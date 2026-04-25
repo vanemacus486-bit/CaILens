@@ -4,7 +4,8 @@
 
 CaILens is a local-first time-logging app inspired by Alexander Lyubishchev's lifelong time accounting practice, as told in Daniil Granin's *This Strange Life*. Calendars help you plan the future. CaILens helps you see where your time actually went.
 
-![CaILens main view](./docs/screenshot.png)
+!<img width="1908" height="967" alt="e19ff3088c2d5edfd4f5f0d0342a490f" src="https://github.com/user-attachments/assets/f8e2a65e-a9ce-44a9-929f-ab4a790c4b84" />
+
 
 <!-- TODO: replace with a real screenshot of the week view, ideally with a few colorful events laid out across the day -->
 
