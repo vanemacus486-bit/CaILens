@@ -1,13 +1,14 @@
 # CaILens
 
-> A time journal, not a calendar.
+> A focused weekly calendar, on the way to becoming a time journal.
 
-CaILens is a local-first time-logging app inspired by Alexander Lyubishchev's lifelong time accounting practice, as told in Daniil Granin's *This Strange Life*. Calendars help you plan the future. CaILens helps you see where your time actually went.
+CaILens is a local-first calendar app, building toward a full time-logging tool inspired by Alexander Lyubishchev's lifelong time accounting practice (as told in Daniil Granin's *This Strange Life*).
 
-!<img width="1908" height="967" alt="e19ff3088c2d5edfd4f5f0d0342a490f" src="https://github.com/user-attachments/assets/f8e2a65e-a9ce-44a9-929f-ab4a790c4b84" />
+**Today, CaILens is a polished weekly calendar** — think of it as a Google Calendar-style week view, but local-first, open source, and quietly designed. The full time-journal vision (categorized stats, retrospective views, Lyubishchev-style accounting) is on the roadmap and under active development.
 
+![CaILens week view](https://github.com/user-attachments/assets/f8e2a65e-a9ce-44a9-929f-ab4a790c4b84)
 
-<!-- TODO: replace with a real screenshot of the week view, ideally with a few colorful events laid out across the day -->
+> **Status:** Active development. Calendar module shipped; statistics, journaling, and import/export coming soon.
 
 ## Why
 
@@ -15,20 +16,40 @@ Most calendar tools optimize for scheduling: future events, invites, reminders. 
 
 Lyubishchev kept a time log for 56 years — every hour accounted for, every category tallied. It was not productivity theater. It was an instrument for thinking about how a life is actually spent.
 
-CaILens is a small attempt at that instrument, for the browser:
+CaILens is a small attempt at that instrument, for the browser. It starts with the part that has to be excellent before anything else matters: the calendar grid itself.
 
-- **Past, not future.** The unit is a logged event, not a planned one.
+The principles:
+
 - **Local-first.** Your data lives in your browser (IndexedDB). No accounts, no servers, no telemetry.
+- **Direct manipulation.** Click, drag, resize, type. Modals are a last resort.
 - **Quiet design.** Restrained palette, no nudges, no streaks. The app gets out of the way.
 
-## Features
+## Features (current)
+
+The calendar module is feature-complete and behaves the way Google Calendar's week view does, with a few opinionated differences:
 
 - **24-hour, single-screen week view.** No scrolling between morning and night — the whole day is visible at once.
-- **Direct manipulation everywhere.** Click-to-create, drag-to-move (across columns too), drag-to-resize, right-click for the context menu, double-click to edit inline.
+- **Click-to-create.** Click any empty slot to create an event at that time.
+- **Drag to move.** Drag events anywhere, including across day columns.
+- **Drag edges to resize.** Adjust duration without opening anything.
 - **Live drag preview.** Events render at 60fps while dragging, with the target time updating in real time.
+- **Inline editing.** Double-click to rename. No modal.
+- **Right-click menu.** Quick access to delete, duplicate, color change.
 - **Six color categories** for at-a-glance pattern recognition.
-- **Keyboard-friendly inline editing.** Title, time, category — no modals.
 - **Persistent local storage.** Refresh the page; your week is still there.
+
+## Roadmap
+
+What's next, in rough order:
+
+- **Statistics view** — Lyubishchev-style category totals over arbitrary ranges (this is the core of the project; the calendar is the input device for it).
+- **Daily/monthly views** — beyond the current week view.
+- **Recurring events** and templates ("morning routine" as a one-click insert).
+- **Import / export** — JSON and ICS, so your data is never trapped here.
+- **Search** across all logged events.
+- **Optional sync** — still local-first; sync as opt-in, not default.
+
+If you have opinions about any of these, open an issue.
 
 ## Getting started
 
@@ -80,15 +101,6 @@ A few notes on the harder parts:
 - **Render performance.** Aggressive use of `React.memo`, stable callbacks, and Zustand's sliced subscriptions so a drag that touches one event doesn't re-render the other 49 in the week.
 - **Storage.** A thin repository layer over Dexie. The store calls repositories; components never see Dexie. Migrations live with the schema.
 
-## Roadmap
-
-A few things on the list, in no particular order:
-
-- Statistics view (Lyubishchev-style category totals over arbitrary ranges)
-- Import / export (JSON, ICS)
-- Recurring templates ("morning routine" as a one-click insert)
-- Optional sync (still local-first; sync as opt-in, not default)
-
 ## Built with Claude Code
 
 This project was developed in close collaboration with [Claude Code](https://www.anthropic.com/claude-code). The split was roughly:
@@ -106,4 +118,4 @@ If you're curious about the workflow, the repository keeps the planning docs (`P
 
 ---
 
-[中文版 →](./README.zh-CN.md) *(coming soon)*
+[中文版 →](./README.zh-CN.md)
