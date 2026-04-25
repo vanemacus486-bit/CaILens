@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Claude\\\\CaILens\\\\src\\\\features\\\\app-shell\" -Force)"
+    ]
+  }
+}

@@ -1,0 +1,104 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/source-serif-4/400.css';
+@import '@fontsource/source-serif-4/400-italic.css';
+@import '@fontsource/source-serif-4/600.css';
+@import '@fontsource/jetbrains-mono/400.css';
+
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
+
+/* ── Light mode ─────────────────────────────────────────── */
+:root {
+  --surface-base:    #FAF9F5;
+  --surface-raised:  #F3F1EB;
+  --surface-sunken:  #ECEAE2;
+
+  --border-subtle:   #E5E2D9;
+  --border-default:  #CCC9BF;
+
+  --text-primary:    #1C1B19;
+  --text-secondary:  #5A5750;
+  --text-tertiary:   #8E8B84;
+
+  --accent:          #D97757;
+  --accent-hover:    #C4663F;
+
+  --time-line:       #D97757;
+
+  --event-accent-bg:   #FDDCCC;
+  --event-accent-text: #A0522D;
+  --event-sage-bg:     #D4E6D4;
+  --event-sage-text:   #3A6040;
+  --event-sand-bg:     #EDE3CF;
+  --event-sand-text:   #7A5C2E;
+  --event-sky-bg:      #CCE4F0;
+  --event-sky-text:    #2A5F7A;
+  --event-rose-bg:     #F0D4D8;
+  --event-rose-text:   #8B3A42;
+  --event-stone-bg:    #E0DDD8;
+  --event-stone-text:  #4A4744;
+}
+
+/* ── Dark mode ──────────────────────────────────────────── */
+.dark {
+  --surface-base:    #262624;
+  --surface-raised:  #2E2D2A;
+  --surface-sunken:  #1E1D1B;
+
+  --border-subtle:   #3A3834;
+  --border-default:  #504E49;
+
+  --text-primary:    #F0EDE6;
+  --text-secondary:  #A8A49C;
+  --text-tertiary:   #6B6862;
+
+  --accent:          #D97757;
+  --accent-hover:    #E8896A;
+
+  --time-line:       #E8896A;
+
+  --event-accent-bg:   #4A2E22;
+  --event-accent-text: #F2B89A;
+  --event-sage-bg:     #1E3326;
+  --event-sage-text:   #8EC49A;
+  --event-sand-bg:     #3A3020;
+  --event-sand-text:   #D4B882;
+  --event-sky-bg:      #1A2E3A;
+  --event-sky-text:    #7EC0DC;
+  --event-rose-bg:     #3A1E22;
+  --event-rose-text:   #E8A0A8;
+  --event-stone-bg:    #2E2C2A;
+  --event-stone-text:  #B0ADA8;
+}
+
+/* ── Drag state ─────────────────────────────────────────── */
+body.dragging-event,
+body.dragging-event * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+body.resizing-event,
+body.resizing-event * {
+  cursor: ns-resize !important;
+  user-select: none;
+}
+
+/* ── Base ───────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--surface-base);
+  color: var(--text-primary);
+  font-family: Inter, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
