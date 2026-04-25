@@ -1,0 +1,124 @@
+import { useRef, useState } from 'react'
+import { MapPin, Trash2 } from 'lucide-react'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import type { CalendarEvent } from '@/domain/event'
+
+interface EventDetailCardProps {
+  event:    CalendarEvent
+  anchorEl: HTMLElement
+  onEdit:   () => void
+  onDelete: () => void
+  onClose:  () => void
+}
+
+function fmtTime(ts: number): string {
+  const d = new Date(ts)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: EventDetailCardProps) {
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  // Stable ref pointing to the anchor element — Radix reads this for positioning.
+  const virtualRef = useRef<HTMLElement | null>(null)
+  virtualRef.current = anchorEl
+
+  const isEmpty = !event.title.trim()
+
+  return (
+    <>
+      <Popover open>
+        {/* virtualRef positions the Popover relative to the event block */}
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <PopoverAnchor virtualRef={virtualRef as any} />
+
+        <PopoverContent
+          side="right"
+          className="w-64 p-0"
+          onPointerDownOutside={onClose}
+          onEscapeKeyDown={onClose}
+          // Prevent Radix from auto-closing (we handle it ourselves)
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <div className="p-4 flex flex-col gap-2.5">
+            {/* Title */}
+            <p className={`text-base font-serif leading-snug ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary'}`}>
+              {isEmpty ? '(Untitled)' : event.title}
+            </p>
+
+            {/* Time */}
+            <p className="text-xs text-text-secondary font-mono">
+              {fmtTime(event.startTime)} – {fmtTime(event.endTime)}
+            </p>
+
+            {/* Colour dot */}
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: `var(--event-${event.color}-text)` }}
+              />
+              <span className="text-xs text-text-tertiary capitalize font-sans">{event.color}</span>
+            </div>
+
+            {/* Notes */}
+            {event.description && (
+              <p className="text-sm text-text-secondary line-clamp-2 font-sans leading-snug">
+                {event.description}
+              </p>
+            )}
+
+            {/* Location */}
+            {event.location && (
+              <div className="flex items-start gap-1.5 text-xs text-text-secondary">
+                <MapPin className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-text-tertiary" />
+                <span className="line-clamp-1">{event.location}</span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-border-subtle mt-0.5">
+              <Button
+                variant="ghost" size="sm"
+                onClick={() => setShowConfirm(true)}
+                className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 gap-1.5 px-2 h-8"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </Button>
+              <Button variant="default" size="sm" onClick={onEdit} className="h-8">
+                Edit
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Delete confirmation — rendered outside Popover to avoid z-index issues */}
+      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete event?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isEmpty ? 'This event' : `"${event.title}"`} will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={onDelete}
+              className="bg-rose-500 hover:bg-rose-600 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
