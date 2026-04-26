@@ -19,6 +19,7 @@ function makeInput(overrides: Partial<CreateEventInput> = {}): CreateEventInput 
     startTime: 1000,
     endTime: 2000,
     color: 'accent',
+    categoryId: 'accent',
     ...overrides,
   }
 }
@@ -87,7 +88,7 @@ describe('getByTimeRange', () => {
   it('returns events fully inside the range', async () => {
     await db.events.add({
       id: '1', title: 'Inside', startTime: 200, endTime: 800,
-      color: 'accent', createdAt: 0, updatedAt: 0,
+      color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0,
     })
     const results = await repo.getByTimeRange(100, 1000)
     expect(results).toHaveLength(1)
@@ -97,7 +98,7 @@ describe('getByTimeRange', () => {
   it('does not return events fully outside the range', async () => {
     await db.events.add({
       id: '1', title: 'Outside', startTime: 2000, endTime: 3000,
-      color: 'accent', createdAt: 0, updatedAt: 0,
+      color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0,
     })
     const results = await repo.getByTimeRange(100, 1000)
     expect(results).toHaveLength(0)
@@ -106,7 +107,7 @@ describe('getByTimeRange', () => {
   it('returns events that start before range and end inside (overlap at start)', async () => {
     await db.events.add({
       id: '1', title: 'Overlap start', startTime: 50, endTime: 500,
-      color: 'accent', createdAt: 0, updatedAt: 0,
+      color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0,
     })
     const results = await repo.getByTimeRange(100, 1000)
     expect(results).toHaveLength(1)
@@ -115,7 +116,7 @@ describe('getByTimeRange', () => {
   it('returns events that start inside range and end after (overlap at end)', async () => {
     await db.events.add({
       id: '1', title: 'Overlap end', startTime: 500, endTime: 1500,
-      color: 'accent', createdAt: 0, updatedAt: 0,
+      color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0,
     })
     const results = await repo.getByTimeRange(100, 1000)
     expect(results).toHaveLength(1)
@@ -125,7 +126,7 @@ describe('getByTimeRange', () => {
     // event ends exactly at range start → no overlap
     await db.events.add({
       id: '1', title: 'Touches start', startTime: 0, endTime: 100,
-      color: 'accent', createdAt: 0, updatedAt: 0,
+      color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0,
     })
     const results = await repo.getByTimeRange(100, 1000)
     expect(results).toHaveLength(0)
@@ -135,7 +136,7 @@ describe('getByTimeRange', () => {
     // event starts exactly at range end → no overlap
     await db.events.add({
       id: '1', title: 'Touches end', startTime: 1000, endTime: 2000,
-      color: 'accent', createdAt: 0, updatedAt: 0,
+      color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0,
     })
     const results = await repo.getByTimeRange(100, 1000)
     expect(results).toHaveLength(0)
@@ -143,9 +144,9 @@ describe('getByTimeRange', () => {
 
   it('returns results sorted by startTime ascending', async () => {
     await db.events.bulkAdd([
-      { id: 'c', title: 'C', startTime: 900, endTime: 950, color: 'accent', createdAt: 0, updatedAt: 0 },
-      { id: 'a', title: 'A', startTime: 100, endTime: 150, color: 'sage',   createdAt: 0, updatedAt: 0 },
-      { id: 'b', title: 'B', startTime: 500, endTime: 600, color: 'sky',    createdAt: 0, updatedAt: 0 },
+      { id: 'c', title: 'C', startTime: 900, endTime: 950, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+      { id: 'a', title: 'A', startTime: 100, endTime: 150, color: 'sage',   categoryId: 'sage',   createdAt: 0, updatedAt: 0 },
+      { id: 'b', title: 'B', startTime: 500, endTime: 600, color: 'sky',    categoryId: 'sky',    createdAt: 0, updatedAt: 0 },
     ])
     const results = await repo.getByTimeRange(0, 1000)
     expect(results.map((e) => e.id)).toEqual(['a', 'b', 'c'])
