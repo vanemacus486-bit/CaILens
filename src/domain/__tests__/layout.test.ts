@@ -16,6 +16,7 @@ function makeEvent(id: string, startH: number, endH: number, startM = 0, endM = 
     startTime: ts(startH, startM),
     endTime:   ts(endH,   endM),
     color:     'accent',
+    categoryId: 'accent',
     createdAt: 0,
     updatedAt: 0,
   }
@@ -51,7 +52,7 @@ describe('single event', () => {
     const event: CalendarEvent = {
       id: 'short', title: 'short',
       startTime: ts(8, 0), endTime: ts(8, 15),
-      color: 'accent', createdAt: 0, updatedAt: 0,
+      color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0,
     }
     const result = layoutDayEvents([event], DAY)
     expect(result[0].rowEnd).toBeGreaterThan(result[0].rowStart)
@@ -150,7 +151,7 @@ describe('row calculation', () => {
     const event: CalendarEvent = {
       id: 'x', title: 'x',
       startTime: ts(11, 30), endTime: ts(12, 30),
-      color: 'accent', createdAt: 0, updatedAt: 0,
+      color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0,
     }
     const result = layoutDayEvents([event], DAY)
     expect(result[0].rowStart).toBe(24)
@@ -170,7 +171,7 @@ describe('day filtering', () => {
       id: 'other', title: 'other',
       startTime: new Date(2026, 3, 21, 8, 0).getTime(),
       endTime:   new Date(2026, 3, 21, 9, 0).getTime(),
-      color: 'accent', createdAt: 0, updatedAt: 0,
+      color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0,
     }
     expect(layoutDayEvents([other], DAY)).toHaveLength(0)
   })
