@@ -1,3 +1,5 @@
+import type { CategoryId } from './category'
+
 export type EventColor = 'accent' | 'sage' | 'sand' | 'sky' | 'rose' | 'stone'
 
 export const EVENT_COLORS: readonly EventColor[] = [
@@ -19,6 +21,7 @@ export interface CalendarEvent {
   startTime: number   // UTC ms
   endTime: number     // UTC ms
   color: EventColor
+  categoryId: CategoryId  // 新增
   description?: string
   location?: string
   createdAt: number   // UTC ms
