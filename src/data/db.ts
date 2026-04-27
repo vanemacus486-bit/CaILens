@@ -6,11 +6,9 @@ import type { AppSettings } from '@/domain/settings'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import { migrateEventV1ToV2 } from '@/domain/migration'
 
-// ── v3 upgrade: name-string → bilingual lookup ────────────
-//
-// Used when upgrading a v2 dev database whose categories table already has
-// string-name records. Keys are the known Chinese defaults from old v2.
-// Unknown/user-edited names fall back to { zh: name, en: name }.
+// ── v3 upgrade: string name → bilingual lookup ────────────
+// 旧 v2 数据库中 categories.name 是 string，v3 需要转为 {zh, en}。
+// 未知/用户自定义名称降级为 { zh: name, en: name }。
 
 const V3_NAME_MAP: Record<string, CategoryName> = {
   '核心工作': { zh: '核心工作', en: 'Core Work'       },
@@ -36,22 +34,18 @@ export class CailensDB extends Dexie {
   constructor() {
     super('cailens')
 
-    // v1: events only
+    // v1：只有 events 表
     this.version(1).stores({
       events: 'id, startTime',
     })
 
-    // v3: add categories + settings tables
-    // Data seeding is split:
-    //   - on('populate'): fresh DB — fires outside the versionchange transaction,
-    //     using the normal readwrite path which is reliable in all environments.
-    //   - upgrade: v1/v2 existing DB — backfills events + migrates category names.
+    // v3：新增 categories + settings 表
     this.version(3).stores({
       events:     'id, startTime',
       categories: 'id',
       settings:   'id',
     }).upgrade(async (tx) => {
-      // Backfill categoryId on v1 events that don't have it yet
+      // 1. 给 v1 遗留 events 补 categoryId
       await tx.table('events').toCollection().modify((e) => {
         if (e.categoryId === undefined) {
           const migrated = migrateEventV1ToV2(e)
@@ -60,8 +54,10 @@ export class CailensDB extends Dexie {
         }
       })
 
-      // For existing v2 dev databases: migrate category.name string → {zh, en}
-      // For v1 users and fresh DB: categories table is empty, populate event handles seeding.
+      // 2. 迁移 v2 dev 数据库的 categories.name string → {zh, en}
+      //    v1 用户和全新 DB 的 categories 表是空的，由 on('populate') 或
+      //    on('ready') 负责播种，不在这里处理（upgrade 内写入 categories 在
+      //    Dexie v4 + fake-indexeddb 环境中不可靠）。
       const existing = await tx.table('categories').toArray()
       if (existing.length > 0) {
         await tx.table('categories').toCollection().modify((cat) => {
@@ -71,18 +67,27 @@ export class CailensDB extends Dexie {
         })
       }
 
-      // Seed settings for all upgrade paths
+      // 3. 播种 settings（所有升级路径共用）
       await tx.table('settings').put({ ...DEFAULT_SETTINGS })
     })
 
-    // Fires when the database is created for the very first time (version 0 → any).
-    // This is the reliable path for seeding initial data in all environments because
-    // it runs outside the versionchange transaction as normal readwrite operations.
-    this.on('populate', () => {
-      void Promise.all([
+    // 全新 DB 首次创建时触发（version 0 → any）。
+    // 返回 Promise 让 Dexie 等待操作完成再认为 DB 就绪。
+    this.on('populate', () =>
+      Promise.all([
         this.categories.bulkPut([...DEFAULT_CATEGORIES]),
         this.settings.put({ ...DEFAULT_SETTINGS }),
       ])
+    )
+
+    // DB 每次成功打开后触发。用于处理 v1 用户的升级路径：
+    // v1→v3 upgrade 结束后 categories 表是空的（upgrade 内写入不可靠），
+    // 在这里用普通 readwrite transaction 补种。
+    this.on('ready', async () => {
+      const count = await this.categories.count()
+      if (count === 0) {
+        await this.categories.bulkPut([...DEFAULT_CATEGORIES])
+      }
     })
   }
 }
