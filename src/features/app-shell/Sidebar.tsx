@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import { addWeeks, getWeekStart, isSameDay } from '@/domain/time'
 import { useWeekFromURL } from '@/features/week-view/hooks/useWeekFromURL'
+import { SettingsPopover } from '@/features/settings/SettingsPopover'
 
 // ── Tooltip ───────────────────────────────────────────────
 
@@ -122,7 +123,13 @@ export function Sidebar() {
       {/* Push settings to bottom */}
       <div className="flex-1" />
 
-      <NavButton icon={Settings} tooltip="Coming soon" disabled />
+      <SettingsPopover
+        trigger={
+          <div>
+            <NavButton icon={Settings} tooltip="Settings" />
+          </div>
+        }
+      />
     </div>
   )
 }

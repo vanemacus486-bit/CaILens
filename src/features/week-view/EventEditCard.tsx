@@ -4,12 +4,13 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
+import type { CategoryId } from '@/domain/category'
 import { isSameDay } from '@/domain/time'
+import { useCategoryStore } from '@/stores/categoryStore'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 import type { DraftPreview } from './types'
 
 // ── Constants ─────────────────────────────────────────────
-
-const COLORS: EventColor[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
 
 const INPUT = cn(
   'w-full px-2.5 py-1.5 rounded-xl text-sm font-sans',
@@ -60,8 +61,8 @@ interface EventEditCardProps {
   isNewlyCreated: boolean
   onSave:         (updates: UpdateEventInput) => void
   onDelete:       () => void
-  onClose:        () => void   // called after save or delete-then-close
-  onCancel:       () => void   // called on Esc (discard or delete-if-new)
+  onClose:        () => void
+  onCancel:       () => void
   onDraftChange:  (draft: DraftPreview | null) => void
 }
 
@@ -71,19 +72,22 @@ export function EventEditCard({
 }: EventEditCardProps) {
   const localDate = new Date(event.startTime)
 
-  const [title, setTitle]       = useState(event.title)
-  const [startStr, setStartStr] = useState(tsToStr(event.startTime))
-  const [endStr, setEndStr]     = useState(tsToStr(event.endTime))
-  const [color, setColor]       = useState<EventColor>(event.color)
-  const [desc, setDesc]         = useState(event.description ?? '')
-  const [loc, setLoc]           = useState(event.location ?? '')
-  const [error, setError]       = useState<string | null>(null)
+  const categories = useCategoryStore((s) => s.categories)
+  const language   = useAppSettingsStore((s) => s.settings.language)
+
+  const [title,      setTitle]      = useState(event.title)
+  const [startStr,   setStartStr]   = useState(tsToStr(event.startTime))
+  const [endStr,     setEndStr]     = useState(tsToStr(event.endTime))
+  // categoryId と color は常に同値（CategoryId === EventColor）
+  const [categoryId, setCategoryId] = useState<CategoryId>(event.categoryId)
+  const [desc,       setDesc]       = useState(event.description ?? '')
+  const [loc,        setLoc]        = useState(event.location ?? '')
+  const [error,      setError]      = useState<string | null>(null)
 
   const titleRef   = useRef<HTMLInputElement>(null)
   const virtualRef = useRef<HTMLElement | null>(null)
   virtualRef.current = anchorEl
 
-  // Autofocus + select title on open
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
       titleRef.current?.focus()
@@ -92,16 +96,14 @@ export function EventEditCard({
     return () => cancelAnimationFrame(raf)
   }, [])
 
-  // Clear draft when unmounting
   useEffect(() => () => onDraftChange(null), [onDraftChange])
 
-  // Send initial draft
   useEffect(() => {
     pushDraft(tsToStr(event.startTime), tsToStr(event.endTime), event.color, localDate, onDraftChange)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Save / discard logic ──────────────────────────────
+  // ── Save / discard ────────────────────────────────────
 
   const doSave = () => {
     onSave({
@@ -109,27 +111,26 @@ export function EventEditCard({
       title:       title.trim(),
       startTime:   strToTs(localDate, startStr),
       endTime:     strToTs(localDate, endStr),
-      color,
+      color:       categoryId as EventColor,
+      categoryId,
       description: desc.trim() || undefined,
       location:    loc.trim()  || undefined,
     })
   }
 
-  // Called when clicking outside (auto-save path)
   const handleClose = () => {
     if (title.trim() === '') {
-      onDelete()   // fire-and-forget (store updates async)
+      onDelete()
     } else {
       const err = getError(startStr, endStr, localDate)
-      if (err) { setError(err); return }  // keep open
+      if (err) { setError(err); return }
       doSave()
     }
     onClose()
   }
 
-  // Called on Esc (discard path)
   const handleCancel = () => {
-    if (isNewlyCreated) onDelete()  // discard: remove the just-created stub
+    if (isNewlyCreated) onDelete()
     onCancel()
   }
 
@@ -137,14 +138,16 @@ export function EventEditCard({
 
   const handleStart = (e: React.ChangeEvent<HTMLInputElement>) => {
     const s = e.target.value; setStartStr(s); setError(null)
-    pushDraft(s, endStr, color, localDate, onDraftChange)
+    pushDraft(s, endStr, categoryId as EventColor, localDate, onDraftChange)
   }
   const handleEnd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const s = e.target.value; setEndStr(s); setError(null)
-    pushDraft(startStr, s, color, localDate, onDraftChange)
+    pushDraft(startStr, s, categoryId as EventColor, localDate, onDraftChange)
   }
-  const handleColor = (c: EventColor) => {
-    setColor(c); pushDraft(startStr, endStr, c, localDate, onDraftChange)
+
+  const handleCategory = (id: CategoryId) => {
+    setCategoryId(id)
+    pushDraft(startStr, endStr, id as EventColor, localDate, onDraftChange)
   }
 
   // ── Render ───────────────────────────────────────────
@@ -181,21 +184,34 @@ export function EventEditCard({
 
           {error && <p className="text-xs text-rose-500 -mt-1 font-sans">{error}</p>}
 
-          {/* Colour picker */}
-          <div className="flex gap-1.5 items-center">
-            {COLORS.map((c) => (
-              <button
-                key={c} onClick={() => handleColor(c)} aria-label={c}
-                className={cn(
-                  'w-5 h-5 rounded-full border-2 transition-transform duration-150 flex-shrink-0',
-                  color === c ? 'scale-125' : 'border-transparent scale-100',
-                )}
-                style={{
-                  backgroundColor: `var(--event-${c}-bg)`,
-                  borderColor: color === c ? `var(--event-${c}-text)` : 'transparent',
-                }}
-              />
-            ))}
+          {/* 分类选择器（颜色 + 名称，点击选中） */}
+          <div className="flex flex-col gap-1">
+            {categories.map((cat) => {
+              const isSelected = cat.id === categoryId
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategory(cat.id)}
+                  className={cn(
+                    'flex items-center gap-2 px-2 py-1.5 rounded-lg text-left',
+                    'transition-colors duration-150',
+                    isSelected
+                      ? 'bg-surface-raised'
+                      : 'hover:bg-surface-raised',
+                  )}
+                >
+                  <span
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: `var(--event-${cat.id}-bg)`,
+                             outline: isSelected ? `2px solid var(--event-${cat.id}-text)` : 'none',
+                             outlineOffset: '1px' }}
+                  />
+                  <span className="text-sm font-sans text-text-primary">
+                    {cat.name[language]}
+                  </span>
+                </button>
+              )
+            })}
           </div>
 
           {/* Notes */}
@@ -212,7 +228,7 @@ export function EventEditCard({
             className={cn(INPUT, 'font-serif')}
           />
 
-          {/* Delete (no confirmation needed in edit mode) */}
+          {/* Delete */}
           <div className="pt-1 border-t border-border-subtle">
             <Button
               variant="ghost" size="sm" onClick={() => { onDelete(); onClose() }}

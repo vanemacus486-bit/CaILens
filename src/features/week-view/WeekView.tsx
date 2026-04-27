@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getWeekDays, isEventOnDay } from '@/domain/time'
-import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput } from '@/domain/event'
+import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
 import { DayColumn } from '@/components/calendar/DayColumn'
 import { TimeGrid } from '@/components/calendar/TimeGrid'
 import { useEventStore } from '@/stores/eventStore'
+import { useCategoryStore } from '@/stores/categoryStore'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 import { Sidebar } from '@/features/app-shell/Sidebar'
 import { useWeekFromURL } from './hooks/useWeekFromURL'
 import { WeekDateHeader } from './WeekDateHeader'
+import { WeekStats } from './WeekStats'
 import { EventDetailCard } from './EventDetailCard'
 import { EventEditCard } from './EventEditCard'
 import type { CardState, DraftPreview } from './types'
@@ -16,11 +19,20 @@ const EMPTY: CalendarEvent[] = []
 export function WeekView() {
   const { weekStart } = useWeekFromURL()
 
-  const events      = useEventStore((s) => s.events)
-  const loadWeek    = useEventStore((s) => s.loadWeek)
-  const createEvent = useEventStore((s) => s.createEvent)
-  const updateEvent = useEventStore((s) => s.updateEvent)
-  const deleteEvent = useEventStore((s) => s.deleteEvent)
+  const events          = useEventStore((s) => s.events)
+  const loadWeek        = useEventStore((s) => s.loadWeek)
+  const createEvent     = useEventStore((s) => s.createEvent)
+  const updateEvent     = useEventStore((s) => s.updateEvent)
+  const deleteEvent     = useEventStore((s) => s.deleteEvent)
+  const loadCategories  = useCategoryStore((s) => s.loadCategories)
+  const loadSettings    = useAppSettingsStore((s) => s.loadSettings)
+
+  // アプリ起動時に categories と settings を一度だけロード
+  useEffect(() => {
+    void loadCategories()
+    void loadSettings()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [cardState,    setCardState]    = useState<CardState>({ mode: 'none' })
   const [draftPreview, setDraftPreview] = useState<DraftPreview | null>(null)
@@ -104,8 +116,9 @@ export function WeekView() {
     if (cardState.mode !== 'none') return
 
     void createEvent({
-      title: '', startTime, endTime: startTime + 60 * 60_000, color: 'accent',
-    } as CreateEventInput).then((newEvent) => {
+      title: '', startTime, endTime: startTime + 60 * 60_000,
+      color: 'stone', categoryId: 'stone',
+    }).then((newEvent) => {
       setCardState({ mode: 'edit', event: newEvent, anchorEl: slotEl, isNewlyCreated: true })
     })
   }, [cardState.mode, createEvent])
@@ -208,6 +221,7 @@ export function WeekView() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <WeekDateHeader days={days} />
+        <WeekStats weekStart={weekStart} />
 
         {/*
          * overflow-visible: event blocks need to visually cross column boundaries
