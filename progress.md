@@ -7,7 +7,7 @@
 
 ## 当前阶段
 
-**第二版 — Step 2(data 层)已完成,等 PM review 进入 Step 3。**
+**v2 已完成,等 PM 验收。**
 
 ---
 
@@ -34,19 +34,23 @@
 - ESLint 三条规则降级(详见 decisions.md)
 - decisions.md 初始化
 
-### 第二版 — 待完成
-- Step 3:stores 层(categoryStore, settingsStore)
-- Step 4:UI 层(SettingsPopover, WeekStats, EventEditCard 分类选择器, Sidebar 激活)
+### 第二版 — Step 3(stores 层) ✅
+- `stores/categoryStore.ts` — `{ categories, isLoaded, loadCategories, updateCategoryName }`
+- `stores/settingsStore.ts` — `{ settings, isLoaded, loadSettings, setLanguage }`, 初始值为 DEFAULT_SETTINGS
+
+### 第二版 — Step 4(UI 层) ✅
+- `features/week-view/StatsBar.tsx` — 纯展示，颜色圆点 + 名称 + 进度条 + 时长/百分比
+- `features/week-view/WeekStats.tsx` — 容器，本周统计条，仅显示有记录的分类
+- `features/settings/SettingsPopover.tsx` — 语言切换 + 6 个分类改名
+- `features/week-view/EventEditCard.tsx` — 色板替换为分类选择器
+- `features/week-view/WeekView.tsx` — 插入 WeekStats，修复 createEvent 类型逃逸，加载 stores
+- `features/app-shell/Sidebar.tsx` — Settings 按钮激活，BarChart3 保持 disabled
 
 ---
 
 ## 下一步
 
-**Step 3 — stores 层**
-
-1. `src/stores/categoryStore.ts` — `{categories, isLoaded, loadCategories, updateCategoryName}`
-2. `src/stores/settingsStore.ts` — `{settings, isLoaded, loadSettings, setLanguage}`
-3. 三件套全过后 commit，直接进 Step 4
+等 PM 浏览器验收。验收通过后由 PM 决定是否 push 到 GitHub。
 
 ---
 
