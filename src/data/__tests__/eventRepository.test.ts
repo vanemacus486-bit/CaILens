@@ -67,6 +67,72 @@ describe('create', () => {
   })
 })
 
+// ── bulkCreate ─────────────────────────────────────────────
+
+describe('bulkCreate', () => {
+  it('creates multiple events with generated ids and timestamps', async () => {
+    let counter = 0
+    const idGen = { generate: () => `id-${++counter}` }
+    const bulkRepo = new EventRepository(db, fixedClock, idGen)
+
+    const inputs = [
+      makeInput({ title: 'A', startTime: 1000, endTime: 1100 }),
+      makeInput({ title: 'B', startTime: 1200, endTime: 1300 }),
+    ]
+    const results = await bulkRepo.bulkCreate(inputs)
+
+    expect(results).toHaveLength(2)
+    expect(results[0].id).toBe('id-1')
+    expect(results[0].title).toBe('A')
+    expect(results[0].createdAt).toBe(FIXED_NOW)
+    expect(results[0].updatedAt).toBe(FIXED_NOW)
+    expect(results[1].id).toBe('id-2')
+    expect(results[1].title).toBe('B')
+    expect(results[1].createdAt).toBe(FIXED_NOW)
+  })
+
+  it('returns empty array when input is empty', async () => {
+    const results = await repo.bulkCreate([])
+    expect(results).toEqual([])
+  })
+
+  it('persists all events to the database', async () => {
+    let counter = 0
+    const idGen = { generate: () => `persist-${++counter}` }
+    const bulkRepo = new EventRepository(db, fixedClock, idGen)
+
+    const inputs = [
+      makeInput({ title: 'Persist A' }),
+      makeInput({ title: 'Persist B' }),
+    ]
+    await bulkRepo.bulkCreate(inputs)
+
+    const all = await db.events.toArray()
+    expect(all).toHaveLength(2)
+    expect(all.find((e) => e.id === 'persist-1')?.title).toBe('Persist A')
+    expect(all.find((e) => e.id === 'persist-2')?.title).toBe('Persist B')
+  })
+
+  it('uses the injected Clock and IdGenerator per event', async () => {
+    let counter = 0
+    const customClock = { now: () => 9999 }
+    const customIdGen = { generate: () => `cust-${++counter}` }
+    const customRepo = new EventRepository(db, customClock, customIdGen)
+
+    const inputs = [
+      makeInput({ title: 'X' }),
+      makeInput({ title: 'Y' }),
+    ]
+    const results = await customRepo.bulkCreate(inputs)
+
+    expect(results).toHaveLength(2)
+    expect(results[0].id).toBe('cust-1')
+    expect(results[0].createdAt).toBe(9999)
+    expect(results[1].id).toBe('cust-2')
+    expect(results[1].createdAt).toBe(9999)
+  })
+})
+
 // ── getById ───────────────────────────────────────────────
 
 describe('getById', () => {

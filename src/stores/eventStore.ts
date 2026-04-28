@@ -2,6 +2,9 @@ import { addDays } from 'date-fns'
 import { create } from 'zustand'
 import { eventRepository } from '@/data/eventRepository'
 import type { CalendarEvent, CreateEventInput, UpdateEventInput } from '@/domain/event'
+import { type CategoryId } from '@/domain/category'
+import { parseIcs } from '@/domain/icsImport'
+import type { ImportResult } from '@/domain/icsImport'
 import { getDayStart, shiftEventsByWeeks } from '@/domain/time'
 
 interface EventState {
@@ -11,6 +14,7 @@ interface EventState {
   updateEvent: (input: UpdateEventInput) => Promise<CalendarEvent>
   deleteEvent: (id: string) => Promise<void>
   shiftCurrentWeek: (direction: -1 | 1) => Promise<void>
+  importEvents: (icsText: string, categoryId: CategoryId) => Promise<ImportResult>
 }
 
 export const useEventStore = create<EventState>()((set) => ({
@@ -49,5 +53,24 @@ export const useEventStore = create<EventState>()((set) => ({
     const updates = shifted.map((e) => ({ id: e.id, startTime: e.startTime, endTime: e.endTime }))
     await eventRepository.bulkUpdateTimes(updates)
     set({ events: shifted })
+  },
+
+  importEvents: async (icsText, categoryId) => {
+    const result = parseIcs(icsText)
+    if (result.events.length === 0) return result
+
+    const inputs: CreateEventInput[] = result.events.map((e) => ({
+      title: e.title,
+      startTime: e.startTime,
+      endTime: e.endTime,
+      color: categoryId,
+      categoryId,
+      description: e.description,
+      location: e.location,
+    }))
+
+    const created = await eventRepository.bulkCreate(inputs)
+    set((state) => ({ events: [...state.events, ...created] }))
+    return result
   },
 }))

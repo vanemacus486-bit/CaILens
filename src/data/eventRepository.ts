@@ -69,6 +69,19 @@ export class EventRepository {
     await this.db.events.delete(id)
   }
 
+  async bulkCreate(inputs: CreateEventInput[]): Promise<CalendarEvent[]> {
+    if (inputs.length === 0) return []
+    const now = this.clock.now()
+    const events: CalendarEvent[] = inputs.map((input) => ({
+      ...input,
+      id: this.idGen.generate(),
+      createdAt: now,
+      updatedAt: now,
+    }))
+    await this.db.events.bulkAdd(events)
+    return events
+  }
+
   async bulkUpdateTimes(updates: { id: string; startTime: number; endTime: number }[]): Promise<void> {
     if (updates.length === 0) return
     const now = this.clock.now()
