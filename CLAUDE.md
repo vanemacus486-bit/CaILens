@@ -77,17 +77,33 @@ domain/  ──→  data/  ──→  stores/  ──→  features/ + components
 
 **关键文件：**
 
-- `src/domain/event.ts` —— `CalendarEvent` 类型、`EventColor` 枚举
-- `src/domain/time.ts` —— 时间工具（getDayStart、isSameDay、getWeekDays 等）
-- `src/domain/layout.ts` —— 重叠事件水平并排布局算法（纯函数）
-- `src/data/db.ts` —— Dexie 数据库定义和 schema 版本
-- `src/data/eventRepository.ts` —— 事件 CRUD
-- `src/stores/eventStore.ts` —— 全局事件状态
-- `src/features/week-view/WeekView.tsx` —— 主视图入口
-- `src/features/week-view/EventEditCard.tsx` —— 事件编辑 Popover
-- `src/features/week-view/hooks/useDragToMove.ts` —— 拖拽移动事件
-- `src/features/week-view/hooks/useDragToResize.ts` —— 拖拽边缘改时长
-- `src/features/week-view/hooks/useWeekFromURL.ts` —— URL 参数 `?week=YYYY-MM-DD` 同步
+| 层 | 文件 | 说明 |
+|---|---|---|
+| domain | `src/domain/event.ts` | `CalendarEvent` 类型、`EventColor` 枚举 |
+| domain | `src/domain/time.ts` | 时间工具（getDayStart、isSameDay、getWeekDays 等） |
+| domain | `src/domain/layout.ts` | 重叠事件水平并排布局算法（纯函数） |
+| domain | `src/domain/category.ts` | `Category` 类型、`DEFAULT_CATEGORIES`、`CATEGORY_NAME_MAX_LENGTH` |
+| domain | `src/domain/settings.ts` | `AppSettings` 类型（language: zh/en） |
+| domain | `src/domain/stats.ts` | `computeWeekStats` 周统计纯函数、`mergeIntervals` |
+| domain | `src/domain/migration.ts` | v1→v2 数据迁移（补 categoryId） |
+| data | `src/data/db.ts` | Dexie 数据库定义（v3 schema） |
+| data | `src/data/eventRepository.ts` | 事件 CRUD（依赖注入 Clock + IdGenerator） |
+| data | `src/data/categoryRepository.ts` | 分类 CRUD（getAll、updateName） |
+| data | `src/data/settingsRepository.ts` | 设置 CRUD（get、update） |
+| stores | `src/stores/eventStore.ts` | 全局事件状态 |
+| stores | `src/stores/categoryStore.ts` | 全局分类状态 |
+| stores | `src/stores/settingsStore.ts` | 全局设置状态 |
+| UI | `src/features/week-view/WeekView.tsx` | 主视图入口 |
+| UI | `src/features/week-view/EventEditCard.tsx` | 事件编辑 Popover（含分类选择器） |
+| UI | `src/features/week-view/EventDetailCard.tsx` | 事件详情 Popover |
+| UI | `src/features/week-view/StatsBar.tsx` | 单条统计条 |
+| UI | `src/features/week-view/WeekStats.tsx` | 周统计面板 |
+| UI | `src/features/week-view/WeekDateHeader.tsx` | 周日期头 |
+| UI | `src/features/app-shell/Sidebar.tsx` | 左侧导航栏 |
+| UI | `src/features/settings/SettingsPopover.tsx` | 设置弹窗（语言切换 + 分类改名） |
+| hooks | `src/features/week-view/hooks/useDragToMove.ts` | 拖拽移动事件 |
+| hooks | `src/features/week-view/hooks/useDragToResize.ts` | 拖拽边缘改时长 |
+| hooks | `src/features/week-view/hooks/useWeekFromURL.ts` | URL 参数 `?week=YYYY-MM-DD` 同步 |
 
 ---
 
@@ -100,12 +116,12 @@ domain/  ──→  data/  ──→  stores/  ──→  features/ + components
 - **拖事件上下边缘改变时长**
 - **拖动时实时预览**（draft preview merge 进 effectiveEvents，60fps）
 - **右键菜单**（基于 `@radix-ui/react-context-menu`）：删除、复制、改颜色
-- 事件字段：`id` `title` `startTime`（UTC ms） `endTime`（UTC ms） `color`（6 种枚举） `description?` `location?` `createdAt` `updatedAt`
+- 事件字段：`id` `title` `startTime`（UTC ms） `endTime`（UTC ms） `color`（6 种枚举） `categoryId`（与 color 同值） `description?` `location?` `createdAt` `updatedAt`
 - 当前时间红线（仅今日列，每整分钟更新）
 - 上一周 / 下一周 / 本周 导航（状态在 URL 参数 `?week=YYYY-MM-DD`）
 - 重叠事件水平并排（`domain/layout.ts` 纯函数算法）
 - 浅色 / 深色模式
-- 100+ 单元测试（domain、data、hooks 都有覆盖）
+- 500+ 单元测试（domain、data、hooks 都有覆盖，24 个测试文件全部通过）
 
 **第一版没有的（要保留这种"没有"）：**
 
@@ -127,6 +143,7 @@ export interface CalendarEvent {
   startTime: number       // UTC ms
   endTime: number         // UTC ms
   color: EventColor
+  categoryId: EventColor  // 第二版新增，与 color 同值（CategoryId = EventColor）
   description?: string
   location?: string
   createdAt: number       // UTC ms
@@ -134,11 +151,52 @@ export interface CalendarEvent {
 }
 ```
 
-**Dexie schema（`src/data/db.ts`）目前是 version 1：**
+```typescript
+// src/domain/category.ts
+export type CategoryId = EventColor   // 6 个固定分类，id 与 EventColor 一一对应
+
+export interface Category {
+  id: CategoryId
+  name: CategoryName     // { zh: string, en: string }，用户可改名
+  color: EventColor      // 固定，与 id 同值
+}
+
+export const DEFAULT_CATEGORIES = [
+  { id: 'accent', name: { zh: '核心工作', en: 'Core Work'       }, color: 'accent' },
+  { id: 'sage',   name: { zh: '辅助工作', en: 'Support Work'    }, color: 'sage'   },
+  { id: 'sand',   name: { zh: '必要事务', en: 'Essentials'      }, color: 'sand'   },
+  { id: 'sky',    name: { zh: '阅读学习', en: 'Reading & Study' }, color: 'sky'    },
+  { id: 'rose',   name: { zh: '休息',     en: 'Rest'            }, color: 'rose'   },
+  { id: 'stone',  name: { zh: '其他',     en: 'Other'           }, color: 'stone'  },
+] as const
+```
+
+```typescript
+// src/domain/settings.ts
+export interface AppSettings {
+  id: 'default'           // singleton — Dexie primary key
+  language: AppLanguage   // 'zh' | 'en'
+}
+```
+
+**Dexie schema（`src/data/db.ts`）当前是 version 3：**
 ```typescript
 this.version(1).stores({
   events: 'id, startTime',
 })
+
+// v3: 新增 categories + settings 表，含数据迁移
+this.version(3).stores({
+  events:     'id, startTime',
+  categories: 'id',
+  settings:   'id',
+}).upgrade(async (tx) => {
+  // 1. 给 v1 遗留 events 补 categoryId
+  // 2. 迁移 v2 dev 数据库的 categories.name string → {zh, en}
+  // 3. 播种 settings
+})
+// 全新 DB 通过 on('populate') 播种默认分类和设置
+// on('ready') 兜底：如果 upgrade 内写入不可靠时补种
 ```
 
 **关键约束：**
@@ -227,28 +285,79 @@ npm run lint && npm run test && npm run build
 
 ---
 
-## 10. 第二版（进行中）
+## 10. 第二版（已实现）
 
 **版本主题：让记录变得有意义。**
 
-核心新增：分类系统（6 个固定分类，可改名）+ 周统计（百分比条）。
+核心新增：分类系统（6 个固定分类，可改名）+ 周统计（百分比条）+ 双语设置。
 
-> **当前状态：需求对齐中，部分决策未定。** 在以下决策拍板前不要动手：
->
-> - [ ] 6 个默认分类的最终名称和语言（中/英）
-> - [ ] 数据迁移机制的具体方案（建议 Dexie schema upgrade）
-> - [ ] 统计百分比的分母口径（重叠是否去重）
-> - [ ] 分类管理界面的入口位置（建议事件 Popover 内齿轮图标）
-> - [ ] 第一版已有的拖拽/右键菜单/双击改名功能在第二版**全部保留**（除非另行通知）
->
-> **第二版边界（坚决不做）：**
-> - 不引入标签 / 子分类 / 自定义分类数量（永远固定 6 个）
-> - 不引入"计划 vs 实际"对比、反思笔记、AI、跨周/月统计
-> - 不破坏第一版数据模型基本结构（只增量、不破坏）
-> - 不引入路由（虽然 `react-router-dom` 在 package.json 但不要扩展使用）
-> - 不引入自动分类、基于标题识别分类
->
-> 详细需求见 `PLAN.md` 第二版章节（待补）。决策完成后此节将被替换为正式规范。
+### 已实现功能
+
+**分类系统：**
+
+- 6 个固定分类，id 与 EventColor 一一对应（accent/sage/sand/sky/rose/stone）
+- 每个分类有双语名称 `{ zh: string, en: string }`，用户可分别修改
+- 分类名称上限 20 字符（`CATEGORY_NAME_MAX_LENGTH`）
+- 默认分类名（中文/英文）：核心工作/Core Work、辅助工作/Support Work、必要事务/Essentials、阅读学习/Reading & Study、休息/Rest、其他/Other
+- EventEditCard 内新增分类选择器（颜色圆点 + 名称），创建事件时必须选分类
+- 右键菜单改颜色功能保留（同时改了 categoryId，两者始终同步）
+
+**设置面板（SettingsPopover）：**
+
+- 入口：侧边栏齿轮图标
+- 语言切换（中文 / English）—— 影响分类名称的显示语言
+- 分类名称编辑（点击分类行进入编辑模式，Enter 提交，Escape 取消）
+- 基于 Radix Popover 实现，side="right"
+
+**周统计（WeekStats + StatsBar）：**
+
+- 显示在 WeekDateHeader 下方、周视图上方
+- 顶部显示本周总记录时间（小时）
+- 每个非零分类显示一条统计条：颜色圆点 + 分类名 + 进度条 + 小时数/百分比
+- 统计算法（`domain/stats.ts` 纯函数）：
+  - 将每个事件 clip 到 [weekStart, weekEnd) 边界内
+  - 分母 = 所有 clip 后区间的并集时长（重叠去重）
+  - 分子 = 每个分类自身 clip 后区间的并集时长
+  - 百分比四舍五入到 1 位小数
+- 本周无记录时显示空状态提示
+
+**数据迁移：**
+
+- Dexie schema upgrade v1→v3（跳过了 v2，因为 upgrade 内写入不可靠）
+- `migrateEventV1ToV2`（`domain/migration.ts`）：给旧 event 补 `categoryId`，规则为 `categoryId = event.color`，脏数据 fallback 到 `'stone'`
+- `on('ready')` 兜底迁移：如果 upgrade 内无法写入 categories，在 DB 打开后补种默认数据
+- 全新 DB 通过 `on('populate')` 播种
+
+**Sidebar 左侧导航栏：**
+
+- 替代了 v1 的顶部导航
+- 图标按钮：今日（当前周时禁用）、上一周、下一周
+- 预留按钮：Search（Coming soon）、BarChart3（Coming soon）
+- 底部：Settings 齿轮入口
+- 带 400ms 延迟的 Tooltip
+
+**双语 UI 覆盖范围：**
+
+- EventEditCard 分类选择器
+- WeekStats / StatsBar（中文"本周记录"/英文"This week"等）
+- Sidebar Tooltip（英文硬编码）
+- SettingsPopover（界面标签 + 分类名同时切换）
+
+### 实现边界（坚决不做）
+
+- 不引入标签 / 子分类 / 自定义分类数量（永远固定 6 个）
+- 不引入"计划 vs 实际"对比、反思笔记、AI、跨周/月统计
+- 不引入自动分类、基于标题识别分类
+- 不引入路由（`react-router-dom` 仅用于空路由 `/`）
+- 不引入新的 npm 依赖
+
+### 决策记录
+
+- **分类名语言**：中英双语并存，语言切换只影响显示，不影响存储
+- **分类与颜色的关系**：CategoryId = EventColor，两者永远同值，不得分离
+- **统计分母**：所有事件的并集（重叠去重），不按天聚合再求和
+- **升级路径**：Dexie schema upgrade + on('ready') 双重保障
+- **v2 不存在**：schema 直接从 v1 跳到 v3
 
 ---
 

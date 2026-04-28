@@ -15,7 +15,7 @@ export function WeekStats({ weekStart }: WeekStatsProps) {
   const categories = useCategoryStore((s) => s.categories)
   const language   = useAppSettingsStore((s) => s.settings.language)
 
-  // categories がロードされるまで何も表示しない
+  // Hide until categories are loaded
   if (categories.length === 0) return null
 
   const weekStartMs = getDayStart(weekStart)
@@ -25,7 +25,7 @@ export function WeekStats({ weekStart }: WeekStatsProps) {
 
   return (
     <div className="border-b border-border-subtle bg-surface-base px-4 py-2">
-      {/* ヘッダー：合計記録時間 */}
+      {/* Header: total recorded time */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-sans text-text-tertiary">
           {language === 'zh' ? '本周记录' : 'This week'}

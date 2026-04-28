@@ -7,9 +7,7 @@ let db:   CailensDB
 let repo: SettingsRepository
 
 beforeEach(() => {
-  db = new CailensDB()
-  // @ts-expect-error — accessing private for test isolation
-  db.name = `cailens-test-${Math.random()}`
+  db = new CailensDB(`cailens-test-${Math.random()}`)
   repo = new SettingsRepository(db)
 })
 

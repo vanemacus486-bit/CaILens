@@ -85,7 +85,10 @@ export function EventEditCard({
   const [error,      setError]      = useState<string | null>(null)
 
   const titleRef   = useRef<HTMLInputElement>(null)
-  const virtualRef = useRef<HTMLElement | null>(null)
+  // useRef<HTMLElement>(null!) avoids the null union so the type matches
+  // Radix's RefObject<Measurable> without casting. Initial value is never
+  // read before assignment.
+  const virtualRef = useRef<HTMLElement>(null!)
   virtualRef.current = anchorEl
 
   useEffect(() => {
@@ -154,8 +157,7 @@ export function EventEditCard({
 
   return (
     <Popover open>
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <PopoverAnchor virtualRef={virtualRef as any} />
+      <PopoverAnchor virtualRef={virtualRef} />
 
       <PopoverContent
         side="right"

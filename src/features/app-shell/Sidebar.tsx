@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import { addWeeks, getWeekStart, isSameDay } from '@/domain/time'
 import { useWeekFromURL } from '@/features/week-view/hooks/useWeekFromURL'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 import { SettingsPopover } from '@/features/settings/SettingsPopover'
 
 // ── Tooltip ───────────────────────────────────────────────
@@ -90,6 +91,7 @@ function NavButton({ icon: Icon, tooltip, onClick, disabled = false }: NavButton
 
 export function Sidebar() {
   const { weekStart, setWeekStart } = useWeekFromURL()
+  const language = useAppSettingsStore((s) => s.settings.language)
 
   const currentWeekStart = getWeekStart(new Date(), 1)
   const isOnCurrentWeek  = isSameDay(weekStart, currentWeekStart)
@@ -98,19 +100,23 @@ export function Sidebar() {
   const goPrev  = () => setWeekStart(addWeeks(weekStart, -1))
   const goNext  = () => setWeekStart(addWeeks(weekStart, 1))
 
+  const todayTooltip = isOnCurrentWeek
+    ? (language === 'zh' ? '当前周' : "You're on this week")
+    : (language === 'zh' ? '本周' : 'Today')
+
   return (
     <div className="w-12 flex-shrink-0 border-r border-border-subtle bg-surface-base flex flex-col items-center py-3">
       {/* Navigation group */}
       <div className="flex flex-col items-center gap-1">
         <NavButton
           icon={CalendarCheck}
-          tooltip={isOnCurrentWeek ? "You're on this week" : 'Today'}
+          tooltip={todayTooltip}
           onClick={goToday}
           disabled={isOnCurrentWeek}
         />
         <Divider />
-        <NavButton icon={ChevronLeft}  tooltip="Previous week" onClick={goPrev} />
-        <NavButton icon={ChevronRight} tooltip="Next week"     onClick={goNext} />
+        <NavButton icon={ChevronLeft}  tooltip={language === 'zh' ? '上一周' : 'Previous week'} onClick={goPrev} />
+        <NavButton icon={ChevronRight} tooltip={language === 'zh' ? '下一周' : 'Next week'}     onClick={goNext} />
         <Divider />
       </div>
 

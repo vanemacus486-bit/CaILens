@@ -26,7 +26,9 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
   const [showConfirm, setShowConfirm] = useState(false)
 
   // Stable ref pointing to the anchor element — Radix reads this for positioning.
-  const virtualRef = useRef<HTMLElement | null>(null)
+  // useRef<HTMLElement>(null!) avoids union with null so the type matches
+  // Radix's RefObject<Measurable>. The initial value is never read before assignment.
+  const virtualRef = useRef<HTMLElement>(null!)
   virtualRef.current = anchorEl
 
   const isEmpty = !event.title.trim()
@@ -35,8 +37,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
     <>
       <Popover open>
         {/* virtualRef positions the Popover relative to the event block */}
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <PopoverAnchor virtualRef={virtualRef as any} />
+        <PopoverAnchor virtualRef={virtualRef} />
 
         <PopoverContent
           side="right"

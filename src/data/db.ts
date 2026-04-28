@@ -31,8 +31,8 @@ export class CailensDB extends Dexie {
   categories!: Table<Category, CategoryId>
   settings!:   Table<AppSettings, string>
 
-  constructor() {
-    super('cailens')
+  constructor(name = 'cailens') {
+    super(name)
 
     // v1：只有 events 表
     this.version(1).stores({
