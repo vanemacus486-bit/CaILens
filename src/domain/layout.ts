@@ -1,6 +1,6 @@
 import type { CalendarEvent } from './event'
 import { getDayStart, getDayEnd, isRangeOverlapping } from './time'
-import { SLOTS_PER_HOUR } from '@/features/week-view/constants'
+import { SLOTS_PER_HOUR } from './constants'
 
 export interface PositionedEvent {
   event: CalendarEvent
