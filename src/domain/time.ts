@@ -93,6 +93,24 @@ export function isEventOnDay(
   )
 }
 
+// Exact number of ms in 7 days — no DST ambiguity since we work in UTC epoch ms.
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+
+/**
+ * Returns a shallow copy of `events` with startTime/endTime shifted by
+ * `weeks` weeks (positive = forward, negative = backward).
+ *
+ * Arithmetic is done in raw ms (WEEK_MS) rather than date-fns addWeeks so
+ * that local DST transitions never change the UTC offset of the stored value.
+ */
+export function shiftEventsByWeeks<T extends { startTime: number; endTime: number }>(
+  events: T[],
+  weeks: number,
+): T[] {
+  const delta = WEEK_MS * weeks
+  return events.map((e) => ({ ...e, startTime: e.startTime + delta, endTime: e.endTime + delta }))
+}
+
 /**
  * Returns a new timestamp on `targetDay` with the same local hours/minutes
  * as `timestamp`, with seconds and milliseconds reset to zero.
