@@ -4,14 +4,15 @@ import {
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
-  Search,
   Settings,
+  Upload,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { addWeeks, getWeekStart, isSameDay } from '@/domain/time'
 import { useWeekFromURL } from '@/features/week-view/hooks/useWeekFromURL'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { SettingsPopover } from '@/features/settings/SettingsPopover'
+import { ImportIcsDialog } from '@/features/import-ics/ImportIcsDialog'
 
 // ── Tooltip ───────────────────────────────────────────────
 
@@ -92,6 +93,7 @@ function NavButton({ icon: Icon, tooltip, onClick, disabled = false }: NavButton
 export function Sidebar() {
   const { weekStart, setWeekStart } = useWeekFromURL()
   const language = useAppSettingsStore((s) => s.settings.language)
+  const [importOpen, setImportOpen] = useState(false)
 
   const currentWeekStart = getWeekStart(new Date(), 1)
   const isOnCurrentWeek  = isSameDay(weekStart, currentWeekStart)
@@ -122,7 +124,7 @@ export function Sidebar() {
 
       {/* Tools group */}
       <div className="flex flex-col items-center gap-1">
-        <NavButton icon={Search}   tooltip="Coming soon" disabled />
+        <NavButton icon={Upload}    tooltip={language === 'zh' ? '导入日历' : 'Import .ics'} onClick={() => setImportOpen(true)} />
         <NavButton icon={BarChart3} tooltip="Coming soon" disabled />
       </div>
 
@@ -136,6 +138,8 @@ export function Sidebar() {
           </div>
         }
       />
+
+      <ImportIcsDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   )
 }
