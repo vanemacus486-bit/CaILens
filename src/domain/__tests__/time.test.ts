@@ -16,6 +16,7 @@ import {
   formatMonthDay,
   isRangeOverlapping,
   isEventOnDay,
+  shiftEventsByWeeks,
 } from '../time'
 
 // ── helpers ───────────────────────────────────────────────
@@ -528,5 +529,71 @@ describe('moveTimestampToDay', () => {
     expect(d.getDate()).toBe(20)
     expect(d.getHours()).toBe(14)
     expect(d.getMinutes()).toBe(45)
+  })
+})
+
+// ── shiftEventsByWeeks ────────────────────────────────────
+
+describe('shiftEventsByWeeks', () => {
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+
+  const baseStart = new Date(2026, 3, 20, 10, 0).getTime()  // Mon Apr 20 10:00
+  const baseEnd   = new Date(2026, 3, 20, 11, 0).getTime()  // Mon Apr 20 11:00
+
+  it('returns an empty array unchanged', () => {
+    expect(shiftEventsByWeeks([], 1)).toEqual([])
+    expect(shiftEventsByWeeks([], -1)).toEqual([])
+  })
+
+  it('shifts a single event forward by exactly 7 days in ms', () => {
+    const events = [{ id: 'a', startTime: baseStart, endTime: baseEnd }]
+    const result = shiftEventsByWeeks(events, 1)
+    expect(result[0].startTime).toBe(baseStart + WEEK_MS)
+    expect(result[0].endTime).toBe(baseEnd + WEEK_MS)
+  })
+
+  it('shifts a single event backward by exactly 7 days in ms', () => {
+    const events = [{ id: 'a', startTime: baseStart, endTime: baseEnd }]
+    const result = shiftEventsByWeeks(events, -1)
+    expect(result[0].startTime).toBe(baseStart - WEEK_MS)
+    expect(result[0].endTime).toBe(baseEnd - WEEK_MS)
+  })
+
+  it('shifts multiple events independently', () => {
+    const s2 = new Date(2026, 3, 21, 9, 0).getTime()
+    const e2 = new Date(2026, 3, 21, 10, 0).getTime()
+    const events = [
+      { id: 'a', startTime: baseStart, endTime: baseEnd },
+      { id: 'b', startTime: s2, endTime: e2 },
+    ]
+    const result = shiftEventsByWeeks(events, 1)
+    expect(result[0].startTime).toBe(baseStart + WEEK_MS)
+    expect(result[1].startTime).toBe(s2 + WEEK_MS)
+  })
+
+  it('preserves extra fields on event objects', () => {
+    const events = [{ id: 'a', startTime: baseStart, endTime: baseEnd, color: 'sage' as const, title: 'Meeting' }]
+    const result = shiftEventsByWeeks(events, 1)
+    expect(result[0].color).toBe('sage')
+    expect(result[0].title).toBe('Meeting')
+    expect(result[0].id).toBe('a')
+  })
+
+  it('does not mutate the original array', () => {
+    const events = [{ id: 'a', startTime: baseStart, endTime: baseEnd }]
+    shiftEventsByWeeks(events, 1)
+    expect(events[0].startTime).toBe(baseStart)
+  })
+
+  // UTC arithmetic is immune to DST — this test documents that invariant.
+  // US clocks spring forward 2026-03-08 and fall back 2026-11-01.
+  it('crosses a DST boundary without clock-hour drift (UTC ms stays exact)', () => {
+    // Mar 1 10:00 local → shift to Mar 8 (spring-forward day)
+    const mar1 = new Date(2026, 2, 1, 10, 0).getTime()
+    const events = [{ id: 'x', startTime: mar1, endTime: mar1 + 3600_000 }]
+    const result = shiftEventsByWeeks(events, 1)
+    // Shift must be exactly WEEK_MS regardless of DST
+    expect(result[0].startTime - mar1).toBe(WEEK_MS)
+    expect(result[0].endTime - (mar1 + 3600_000)).toBe(WEEK_MS)
   })
 })

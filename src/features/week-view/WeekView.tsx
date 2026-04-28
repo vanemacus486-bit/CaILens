@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { getWeekDays, isEventOnDay } from '@/domain/time'
+import { addWeeks, getWeekDays, getWeekStart, isEventOnDay } from '@/domain/time'
 import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
 import { DayColumn } from '@/components/calendar/DayColumn'
 import { TimeGrid } from '@/components/calendar/TimeGrid'
@@ -10,6 +10,7 @@ import { Sidebar } from '@/features/app-shell/Sidebar'
 import { useWeekFromURL } from './hooks/useWeekFromURL'
 import { WeekDateHeader } from './WeekDateHeader'
 import { WeekStats } from './WeekStats'
+import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
 import { EventEditCard } from './EventEditCard'
 import type { CardState, DraftPreview } from './types'
@@ -17,15 +18,16 @@ import type { CardState, DraftPreview } from './types'
 const EMPTY: CalendarEvent[] = []
 
 export function WeekView() {
-  const { weekStart } = useWeekFromURL()
+  const { weekStart, setWeekStart } = useWeekFromURL()
 
-  const events          = useEventStore((s) => s.events)
-  const loadWeek        = useEventStore((s) => s.loadWeek)
-  const createEvent     = useEventStore((s) => s.createEvent)
-  const updateEvent     = useEventStore((s) => s.updateEvent)
-  const deleteEvent     = useEventStore((s) => s.deleteEvent)
-  const loadCategories  = useCategoryStore((s) => s.loadCategories)
-  const loadSettings    = useAppSettingsStore((s) => s.loadSettings)
+  const events             = useEventStore((s) => s.events)
+  const loadWeek           = useEventStore((s) => s.loadWeek)
+  const createEvent        = useEventStore((s) => s.createEvent)
+  const updateEvent        = useEventStore((s) => s.updateEvent)
+  const deleteEvent        = useEventStore((s) => s.deleteEvent)
+  const shiftCurrentWeek   = useEventStore((s) => s.shiftCurrentWeek)
+  const loadCategories     = useCategoryStore((s) => s.loadCategories)
+  const loadSettings       = useAppSettingsStore((s) => s.loadSettings)
 
   // アプリ起動時に categories と settings を一度だけロード
   useEffect(() => {
@@ -190,6 +192,13 @@ export function WeekView() {
     }
   }, [])
 
+  // ── Bulk shift ───────────────────────────────────────
+
+  const handleShift = useCallback(async (direction: -1 | 1) => {
+    await shiftCurrentWeek(direction)
+    setWeekStart(addWeeks(weekStart, direction))
+  }, [shiftCurrentWeek, weekStart, setWeekStart])
+
   // ── Edit card actions ────────────────────────────────
 
   const handleSave = useCallback((updates: UpdateEventInput) => {
@@ -220,6 +229,14 @@ export function WeekView() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
+        <WeekToolbar
+          weekStart={weekStart}
+          eventCount={events.length}
+          onPrev={() => setWeekStart(addWeeks(weekStart, -1))}
+          onNext={() => setWeekStart(addWeeks(weekStart, 1))}
+          onToday={() => setWeekStart(getWeekStart(new Date(), 1))}
+          onShift={handleShift}
+        />
         <WeekDateHeader days={days} />
         <WeekStats weekStart={weekStart} />
 

@@ -68,6 +68,20 @@ export class EventRepository {
   async delete(id: string): Promise<void> {
     await this.db.events.delete(id)
   }
+
+  async bulkUpdateTimes(updates: { id: string; startTime: number; endTime: number }[]): Promise<void> {
+    if (updates.length === 0) return
+    const now = this.clock.now()
+    await this.db.transaction('rw', this.db.events, async () => {
+      const ids = updates.map((u) => u.id)
+      const existing = await this.db.events.bulkGet(ids)
+      const patched = existing.flatMap((e, i) => {
+        if (e === undefined) return []
+        return [{ ...e, startTime: updates[i].startTime, endTime: updates[i].endTime, updatedAt: now }]
+      })
+      await this.db.events.bulkPut(patched)
+    })
+  }
 }
 
 export const eventRepository = new EventRepository(defaultDb)
