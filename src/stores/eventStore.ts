@@ -10,7 +10,9 @@ import { getDayStart, shiftEventsByWeeks } from '@/domain/time'
 
 interface EventState {
   events: CalendarEvent[]
+  rangeEvents: CalendarEvent[]
   loadWeek: (weekStart: Date) => Promise<void>
+  loadRange: (start: number, end: number) => Promise<void>
   createEvent: (input: CreateEventInput) => Promise<CalendarEvent>
   updateEvent: (input: UpdateEventInput) => Promise<CalendarEvent>
   deleteEvent: (id: string) => Promise<void>
@@ -21,12 +23,18 @@ interface EventState {
 
 export const useEventStore = create<EventState>()((set) => ({
   events: [],
+  rangeEvents: [],
 
   loadWeek: async (weekStart) => {
     const start = getDayStart(weekStart)
     const end   = getDayStart(addDays(weekStart, 7))  // exclusive: start of next Monday
     const events = await eventRepository.getByTimeRange(start, end)
     set({ events })
+  },
+
+  loadRange: async (start, end) => {
+    const rangeEvents = await eventRepository.getByTimeRange(start, end)
+    set({ rangeEvents })
   },
 
   createEvent: async (input) => {

@@ -2,13 +2,15 @@ import { BrowserRouter, Route, Routes, Outlet } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
 import { Sidebar } from '@/features/app-shell/Sidebar'
 import { SettingsPage } from '@/features/settings/SettingsPage'
-import { StatsPage } from '@/features/stats/StatsPage'
+import { StatsPage } from '@/pages/StatsPage'
 
 function Layout() {
   return (
     <div className="h-screen flex bg-surface-base text-text-primary overflow-hidden">
       <Sidebar />
-      <Outlet />
+      <div className="flex-1 h-full overflow-hidden flex flex-col">
+        <Outlet />
+      </div>
     </div>
   )
 }

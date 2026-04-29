@@ -29,16 +29,27 @@
 
   --event-accent-bg:   #FDDCCC;
   --event-accent-text: #A0522D;
+  --event-accent-fill: #C86D3E;
   --event-sage-bg:     #D4E6D4;
   --event-sage-text:   #3A6040;
+  --event-sage-fill:   #5A8A5E;
   --event-sand-bg:     #EDE3CF;
   --event-sand-text:   #7A5C2E;
+  --event-sand-fill:   #B08A40;
   --event-sky-bg:      #CCE4F0;
   --event-sky-text:    #2A5F7A;
+  --event-sky-fill:    #4A8AAA;
   --event-rose-bg:     #F0D4D8;
   --event-rose-text:   #8B3A42;
+  --event-rose-fill:   #B85A62;
   --event-stone-bg:    #E0DDD8;
   --event-stone-text:  #4A4744;
+  --event-stone-fill:  #6E6B66;
+
+  --color-text-success:  #2D7D46;
+  --color-text-danger:   #B53535;
+  --color-bg-info:       #E8F0F8;
+  --color-text-info:     #3A5A80;
 }
 
 /* ── Dark mode ──────────────────────────────────────────── */
@@ -61,16 +72,27 @@
 
   --event-accent-bg:   #4A2E22;
   --event-accent-text: #F2B89A;
+  --event-accent-fill: #E09060;
   --event-sage-bg:     #1E3326;
   --event-sage-text:   #8EC49A;
+  --event-sage-fill:   #6AAA78;
   --event-sand-bg:     #3A3020;
   --event-sand-text:   #D4B882;
+  --event-sand-fill:   #C4A060;
   --event-sky-bg:      #1A2E3A;
   --event-sky-text:    #7EC0DC;
+  --event-sky-fill:    #5EA8C8;
   --event-rose-bg:     #3A1E22;
   --event-rose-text:   #E8A0A8;
+  --event-rose-fill:   #D07882;
   --event-stone-bg:    #2E2C2A;
   --event-stone-text:  #B0ADA8;
+  --event-stone-fill:  #8A8882;
+
+  --color-text-success:  #5CB878;
+  --color-text-danger:   #E06060;
+  --color-bg-info:       #2A3040;
+  --color-text-info:     #90B8D8;
 }
 
 /* ── Drag state ─────────────────────────────────────────── */
