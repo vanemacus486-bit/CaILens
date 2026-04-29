@@ -1,8 +1,10 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
 import type { Bucket } from '@/hooks/useStatsAggregation'
 import { useCategoryColors } from '@/constants/categoryColors'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const DAY_LABELS_ZH = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+const DAY_LABELS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const HOUR_LABEL_COLS = [0, 3, 6, 9, 12, 15, 18, 21]
 const OPACITY_LEVELS = [0.12, 0.30, 0.50, 0.72, 1.0] as const
 
@@ -42,6 +44,10 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
   const [containerWidth, setContainerWidth] = useState<number>(Infinity)
   const colors = useCategoryColors()
   const fillColor = colors.accent.fill
+  const language = useAppSettingsStore((s) => s.settings.language)
+
+  const t = (zh: string, en: string) => language === 'zh' ? zh : en
+  const dayLabels = language === 'zh' ? DAY_LABELS_ZH : DAY_LABELS_EN
 
   const thresholds = useMemo(() => {
     const allValues: number[] = []
@@ -111,7 +117,7 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
           lineHeight: `${cellSize}px`,
         }}
       >
-        {DAY_LABELS[d]}
+        {dayLabels[d]}
       </div>,
     )
 
@@ -120,7 +126,7 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
       const value = daySlots[h] ?? 0
       const level = getHeatLevel(value, thresholds)
       const hasData = level > 0
-      const title = `${DAY_LABELS[d]} ${h}:00 — ${formatHours(value)}`
+      const title = `${dayLabels[d]} ${h}:00 — ${formatHours(value)}`
 
       gridItems.push(
         <div
@@ -160,7 +166,7 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
         color: 'var(--text-tertiary)',
       }}
     >
-      <span>Less</span>
+      <span>{t('少', 'Less')}</span>
       {OPACITY_LEVELS.map((opacity, i) => (
         <div
           key={`leg-${i}`}
@@ -173,8 +179,8 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
           }}
         />
       ))}
-      <span style={{ marginRight: '12px' }}>More</span>
-      <span>Empty = no data</span>
+      <span style={{ marginRight: '12px' }}>{t('多', 'More')}</span>
+      <span>{t('空白 = 无记录', 'Empty = no data')}</span>
     </div>,
   )
 

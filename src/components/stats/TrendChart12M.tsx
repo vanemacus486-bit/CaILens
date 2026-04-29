@@ -1,6 +1,8 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import type { Bucket } from '@/hooks/useStatsAggregation'
 import { useCategoryColors } from '@/constants/categoryColors'
+import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useCategoryStore } from '@/stores/categoryStore'
 import type { CategoryId } from '@/domain/category'
 
 const CAT_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
@@ -14,16 +16,11 @@ const LINE_DASH: Record<CategoryId, string> = {
   stone: '8 3',
 }
 
-const CAT_LABELS: Record<CategoryId, string> = {
-  accent: 'Core Work',
-  sage: 'Support Work',
-  sand: 'Essentials',
-  sky: 'Reading & Study',
-  rose: 'Rest',
-  stone: 'Other',
-}
-
-const MONTH_NAMES = [
+const MONTH_NAMES_ZH = [
+  '1月', '2月', '3月', '4月', '5月', '6月',
+  '7月', '8月', '9月', '10月', '11月', '12月',
+]
+const MONTH_NAMES_EN = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ]
@@ -76,17 +73,6 @@ function PointShape({ catId, fill }: { catId: CategoryId; fill: string }) {
   }
 }
 
-function LegendItem({ catId, fill }: { catId: CategoryId; fill: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-        <rect x="1" y="1" width="12" height="12" rx="2" fill={fill} opacity="0.8" />
-      </svg>
-      <span>{CAT_LABELS[catId]}</span>
-    </div>
-  )
-}
-
 interface TrendChart12MProps {
   history: Bucket[]
 }
@@ -96,8 +82,17 @@ export function TrendChart12M({ history }: TrendChart12MProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [width, setWidth] = useState(400)
   const colors = useCategoryColors()
+  const language = useAppSettingsStore((s) => s.settings.language)
+  const categories = useCategoryStore((s) => s.categories)
   const [activeMonth, setActiveMonth] = useState<number | null>(null)
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
+
+  const t = (zh: string, en: string) => language === 'zh' ? zh : en
+  const monthNames = language === 'zh' ? MONTH_NAMES_ZH : MONTH_NAMES_EN
+
+  function catName(catId: CategoryId): string {
+    return categories.find((c) => c.id === catId)?.name[language] ?? catId
+  }
 
   useEffect(() => {
     const el = containerRef.current
@@ -221,10 +216,12 @@ export function TrendChart12M({ history }: TrendChart12MProps) {
           fontSize: 14,
         }}
       >
-        No data
+        {t('暂无数据', 'No data')}
       </div>
     )
   }
+
+  const ariaLabel = language === 'zh' ? '12个月分类趋势' : '12 month category trend'
 
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: SVG_H }}>
@@ -239,7 +236,12 @@ export function TrendChart12M({ history }: TrendChart12MProps) {
         }}
       >
         {CAT_IDS.map((cat) => (
-          <LegendItem key={cat} catId={cat} fill={colors[cat]?.fill ?? ''} />
+          <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+              <rect x="1" y="1" width="12" height="12" rx="2" fill={colors[cat]?.fill ?? ''} opacity="0.8" />
+            </svg>
+            <span>{catName(cat)}</span>
+          </div>
         ))}
       </div>
 
@@ -248,12 +250,12 @@ export function TrendChart12M({ history }: TrendChart12MProps) {
         width="100%"
         height={SVG_H}
         role="img"
-        aria-label="12 month category trend"
+        aria-label={ariaLabel}
         style={{ display: 'block' }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
-        <title>12 month trend chart</title>
+        <title>{ariaLabel}</title>
 
         {yTicks.map((tick, i) => {
           const y = yPx(tick.v, niceMax)
@@ -291,7 +293,7 @@ export function TrendChart12M({ history }: TrendChart12MProps) {
             fill="var(--text-tertiary)"
             fontSize="11"
           >
-            {MONTH_NAMES[b.start.getMonth()]}
+            {monthNames[b.start.getMonth()]}
           </text>
         ))}
 
@@ -353,7 +355,7 @@ export function TrendChart12M({ history }: TrendChart12MProps) {
           }}
         >
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            {MONTH_NAMES[history[activeMonth].start.getMonth()]}
+            {monthNames[history[activeMonth].start.getMonth()]}
           </div>
           {CAT_IDS.map((cat) => {
             const h = history[activeMonth].byCategory[cat]
@@ -376,7 +378,7 @@ export function TrendChart12M({ history }: TrendChart12MProps) {
                     flexShrink: 0,
                   }}
                 />
-                <span style={{ color: 'var(--text-secondary)' }}>{CAT_LABELS[cat]}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{catName(cat)}</span>
                 <span style={{ marginLeft: 'auto' }}>{h.toFixed(1)}h</span>
               </div>
             )

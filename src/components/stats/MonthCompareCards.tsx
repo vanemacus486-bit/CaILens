@@ -1,17 +1,10 @@
 import type { Bucket } from '@/hooks/useStatsAggregation'
 import type { CategoryId } from '@/domain/category'
 import { useCategoryColors } from '@/constants/categoryColors'
+import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useCategoryStore } from '@/stores/categoryStore'
 
 const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
-
-const CAT_NAMES: Record<CategoryId, string> = {
-  accent: 'Core Work',
-  sage: 'Support Work',
-  sand: 'Essentials',
-  sky: 'Reading & Study',
-  rose: 'Rest',
-  stone: 'Other',
-}
 
 interface MonthCompareCardsProps {
   current: Bucket
@@ -43,12 +36,10 @@ function ChangeIndicator({ currHrs, prevHrs }: ChangeIndicatorProps) {
   const deltaHrs = currHrs - prevHrs
   const deltaPct = prevHrs > 0 ? Math.round((deltaHrs / prevHrs) * 100) : null
 
-  // Previous = 0, current = 0
   if (prevHrs === 0 && currHrs === 0) {
     return <span style={{ color: 'var(--text-tertiary)' }}>— 0%</span>
   }
 
-  // Previous = 0, current > 0
   if (prevHrs === 0 && currHrs > 0) {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: 2, color: 'var(--color-text-success)' }}>
@@ -57,7 +48,6 @@ function ChangeIndicator({ currHrs, prevHrs }: ChangeIndicatorProps) {
     )
   }
 
-  // deltaPct is guaranteed to be non-null here since prevHrs > 0
   if (Math.abs(deltaPct!) < 1) {
     return <span style={{ color: 'var(--text-tertiary)' }}>— 0%</span>
   }
@@ -77,31 +67,38 @@ function ChangeIndicator({ currHrs, prevHrs }: ChangeIndicatorProps) {
   )
 }
 
-function generateInsight(current: Bucket, previous: Bucket | null): string | null {
+type TFunc = (zh: string, en: string) => string
+
+function generateInsight(
+  current: Bucket,
+  previous: Bucket | null,
+  t: TFunc,
+  catName: (id: CategoryId) => string,
+): string | null {
   if (!previous) return null
 
   const deltas = CATEGORY_IDS.map((id) => ({
     id,
-    name: CAT_NAMES[id],
+    name: catName(id),
     delta: current.byCategory[id] - previous.byCategory[id],
   })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
 
   const [a, b] = deltas
   if (Math.abs(a.delta) < 2) return null
 
-  const verb = (d: number) => (d > 0 ? 'increased' : 'decreased')
+  const dirLabel = (d: number) => d > 0 ? t('上升', 'increased') : t('下降', 'decreased')
 
-  let msg = `${a.name} ${verb(a.delta)} ${Math.abs(a.delta).toFixed(1)}h`
+  let msg = `${a.name} ${dirLabel(a.delta)} ${Math.abs(a.delta).toFixed(1)}h`
   if (Math.abs(b.delta) >= 2) {
-    msg += `, ${b.name} ${verb(b.delta)} ${Math.abs(b.delta).toFixed(1)}h`
+    msg += `, ${b.name} ${dirLabel(b.delta)} ${Math.abs(b.delta).toFixed(1)}h`
   }
 
   if (a.id === 'accent' && a.delta < 0 && b.id === 'rose' && b.delta < 0) {
-    msg += ' — Crunch time?'
+    msg += t(' — 在赶项目？', ' — Crunch time?')
   } else if (a.id === 'sky' && a.delta > 0) {
-    msg += ' — Learning investment increasing, great!'
+    msg += t(' — 学习投入在增加，不错', ' — Learning investment increasing, great!')
   } else {
-    msg += ' — Does this match your expectations?'
+    msg += t(' — 看看是不是符合你的预期？', ' — Does this match your expectations?')
   }
 
   return msg
@@ -109,6 +106,14 @@ function generateInsight(current: Bucket, previous: Bucket | null): string | nul
 
 export function MonthCompareCards({ current, previous }: MonthCompareCardsProps) {
   const colors = useCategoryColors()
+  const language = useAppSettingsStore((s) => s.settings.language)
+  const categories = useCategoryStore((s) => s.categories)
+
+  const t = (zh: string, en: string) => language === 'zh' ? zh : en
+
+  function catName(id: CategoryId): string {
+    return categories.find((c) => c.id === id)?.name[language] ?? id
+  }
 
   if (!previous) {
     return (
@@ -120,12 +125,12 @@ export function MonthCompareCards({ current, previous }: MonthCompareCardsProps)
           fontSize: 13,
         }}
       >
-        Needs at least 2 months of data for comparison
+        {t('至少需要 2 个月数据才能对比', 'Needs at least 2 months of data for comparison')}
       </div>
     )
   }
 
-  const insight = generateInsight(current, previous)
+  const insight = generateInsight(current, previous, t, catName)
 
   return (
     <div>
@@ -171,7 +176,7 @@ export function MonthCompareCards({ current, previous }: MonthCompareCardsProps)
                     fontFamily: 'serif',
                   }}
                 >
-                  {CAT_NAMES[id]}
+                  {catName(id)}
                 </span>
               </div>
               <div
@@ -200,7 +205,7 @@ export function MonthCompareCards({ current, previous }: MonthCompareCardsProps)
                   marginTop: 4,
                 }}
               >
-                Prev: {prevHrs.toFixed(1)}h
+                {t('上月', 'Prev')}: {prevHrs.toFixed(1)}h
               </div>
             </div>
           )
