@@ -6,7 +6,7 @@ CaILens is a local-first time-logging tool, inspired by Alexander Lyubishchev's 
 
 ![CaILens week view](https://github.com/user-attachments/assets/f8e2a65e-a9ce-44a9-929f-ab4a790c4b84)
 
-> **Status:** Active development. v2 shipped with categories and weekly stats. .ics import + keyword-based classification + standalone stats page have landed. **The settings and stats pages are functional but the UI is still rough — expect polish in upcoming iterations.**
+> **Status:** Active development. v2 shipped with categories, weekly stats, .ics import, and keyword-based auto-classification. **Enhanced stats (hour heatmap, 12-month trend chart, month-over-month comparison) have landed on the stats page.**
 
 ## Why
 
@@ -41,7 +41,11 @@ The principles:
 
 - **6 fixed categories** (Core Work, Support Work, Essentials, Reading & Study, Rest, Other), each with a distinct color. Users can rename them in both Chinese and English.
 - **Category selector** in the event editor — every event belongs to exactly one category.
-- **Weekly stats** — standalone stats page (click BarChart3 in the sidebar) with per-category breakdown and percentage bars. Overlapping time is deduplicated before calculating percentages.
+- **Weekly stats page** (click BarChart3 in the sidebar) with per-category breakdown, percentage bars, and total tracked hours. Overlapping time is deduplicated before calculating percentages.
+- **Hour heatmap** — a 7×24 CSS Grid showing activity density across the week. Quantile-based color scaling highlights your peak hours at a glance.
+- **Monthly stats** — week/month toggle switches to a month view with two visualizations:
+  - **12-month trend chart** — pure SVG line chart with one line per category, distinct dash patterns and point shapes, and a hover tooltip.
+  - **Month-over-month comparison cards** — 6 cards showing current vs previous month hours, with change arrows (↑↓) and an auto-generated insight line.
 - **Bilingual UI** — Chinese (zh) and English (en), toggleable in settings.
 - **Sidebar navigation** — replaced the v1 top nav. Today, previous/next week, stats, settings, and .ics import all live here.
 
@@ -61,7 +65,7 @@ The principles:
 
 What's next, in rough order:
 
-- **Enhanced statistics** — Lyubishchev-style category totals over arbitrary ranges (monthly, custom date ranges).
+- **Enhanced statistics** — custom date ranges and longer historical views.
 - **Journal / notes** — attach daily or weekly reflections to the timeline.
 - **Export** — JSON and ICS export so your data is never trapped here.
 - **Search** across all logged events.
@@ -87,7 +91,7 @@ Then open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server (default http://localhost:5173)
 npm run build        # type-check + production build
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (530+ tests, 25 test files)
+npm run test         # run unit tests once (544 tests, 26 test files)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -102,7 +106,7 @@ npm run lint         # run ESLint
 | State | Zustand v5 | Sliced selectors to keep re-renders local |
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Dates | date-fns v4 | No dayjs/moment |
-| Testing | Vitest + React Testing Library + fake-indexeddb | 530+ tests across 25 files |
+| Testing | Vitest + React Testing Library + fake-indexeddb | 544 tests across 26 files |
 | Fonts | Inter, Source Serif 4, JetBrains Mono | Fontsource-hosted locally |
 | Icons | lucide-react | |
 
