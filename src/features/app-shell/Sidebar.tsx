@@ -1,4 +1,5 @@
 import { type ElementType, useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   BarChart3,
   CalendarCheck,
@@ -11,7 +12,6 @@ import { cn } from '@/lib/utils'
 import { addWeeks, getWeekStart, isSameDay } from '@/domain/time'
 import { useWeekFromURL } from '@/features/week-view/hooks/useWeekFromURL'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { SettingsPopover } from '@/features/settings/SettingsPopover'
 import { ImportIcsDialog } from '@/features/import-ics/ImportIcsDialog'
 
 // ── Tooltip ───────────────────────────────────────────────
@@ -94,6 +94,7 @@ export function Sidebar() {
   const { weekStart, setWeekStart } = useWeekFromURL()
   const language = useAppSettingsStore((s) => s.settings.language)
   const [importOpen, setImportOpen] = useState(false)
+  const navigate = useNavigate()
 
   const currentWeekStart = getWeekStart(new Date(), 1)
   const isOnCurrentWeek  = isSameDay(weekStart, currentWeekStart)
@@ -125,19 +126,13 @@ export function Sidebar() {
       {/* Tools group */}
       <div className="flex flex-col items-center gap-1">
         <NavButton icon={Upload}    tooltip={language === 'zh' ? '导入日历' : 'Import .ics'} onClick={() => setImportOpen(true)} />
-        <NavButton icon={BarChart3} tooltip="Coming soon" disabled />
+        <NavButton icon={BarChart3} tooltip={language === 'zh' ? '时间统计' : 'Stats'} onClick={() => navigate('/stats')} />
       </div>
 
       {/* Push settings to bottom */}
       <div className="flex-1" />
 
-      <SettingsPopover
-        trigger={
-          <div>
-            <NavButton icon={Settings} tooltip="Settings" />
-          </div>
-        }
-      />
+      <NavButton icon={Settings} tooltip="Settings" onClick={() => navigate('/settings')} />
 
       <ImportIcsDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>

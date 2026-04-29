@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { parseIcs } from '../icsImport'
+import { parseIcs, classifyEvent } from '../icsImport'
+import type { CategoryId } from '../category'
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -236,5 +237,63 @@ describe('parseIcs — mixed event types', () => {
     expect(result.events).toHaveLength(2)      // 2 normal events
     expect(result.skippedAllDay).toBe(1)         // 1 all-day
     expect(result.skippedRecurring).toBe(2)       // 1 RRULE + 1 RDATE
+  })
+})
+
+// ── classifyEvent ─────────────────────────────────────────
+
+type CategoryStub = { id: CategoryId; keywords: string[] }
+
+const accent: CategoryStub = { id: 'accent', keywords: ['meeting', 'standup', '会议'] }
+const sage:   CategoryStub = { id: 'sage',   keywords: ['email', 'review'] }
+const sand:   CategoryStub = { id: 'sand',   keywords: [] }
+const sky:    CategoryStub = { id: 'sky',    keywords: ['read', 'study', '学习'] }
+const rose:   CategoryStub = { id: 'rose',   keywords: ['lunch', 'break', '午休'] }
+const stone:  CategoryStub = { id: 'stone',  keywords: [] }
+
+const allCategories = [accent, sage, sand, sky, rose, stone]
+
+describe('classifyEvent', () => {
+  it('returns matching category by case-insensitive substring', () => {
+    expect(classifyEvent('Weekly Meeting', allCategories)).toBe('accent')
+    expect(classifyEvent('weekly meeting', allCategories)).toBe('accent')
+    expect(classifyEvent('MEETING notes', allCategories)).toBe('accent')
+  })
+
+  it('returns first match in category order when multiple categories match', () => {
+    // 'meeting' matches accent first (accent comes before sage)
+    expect(classifyEvent('meeting review', allCategories)).toBe('accent')
+  })
+
+  it('matches Chinese keywords', () => {
+    expect(classifyEvent('项目会议', allCategories)).toBe('accent')
+    expect(classifyEvent('午休时间', allCategories)).toBe('rose')
+    expect(classifyEvent('学习 Rust', allCategories)).toBe('sky')
+  })
+
+  it('returns null when no keyword matches', () => {
+    expect(classifyEvent('random stuff', allCategories)).toBeNull()
+  })
+
+  it('returns null for empty title', () => {
+    expect(classifyEvent('', allCategories)).toBeNull()
+  })
+
+  it('returns null when all categories have empty keywords', () => {
+    const noKeywords: CategoryStub[] = [
+      { id: 'accent', keywords: [] },
+      { id: 'stone',  keywords: [] },
+    ]
+    expect(classifyEvent('anything', noKeywords)).toBeNull()
+  })
+
+  it('handles undefined keywords gracefully', () => {
+    const cat = { id: 'accent' as CategoryId, keywords: undefined as unknown as string[] }
+    expect(classifyEvent('meeting', [cat])).toBeNull()
+  })
+
+  it('skips empty-string keywords', () => {
+    const cat: CategoryStub = { id: 'accent', keywords: ['', '  ', 'real'] }
+    expect(classifyEvent('real deal', [cat])).toBe('accent')
   })
 })

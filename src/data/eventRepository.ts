@@ -1,4 +1,5 @@
-import type { CalendarEvent, CreateEventInput, UpdateEventInput } from '@/domain/event'
+import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput } from '@/domain/event'
+import type { CategoryId } from '@/domain/category'
 import { type CailensDB, db as defaultDb } from './db'
 
 export interface Clock {
@@ -91,6 +92,26 @@ export class EventRepository {
       const patched = existing.flatMap((e, i) => {
         if (e === undefined) return []
         return [{ ...e, startTime: updates[i].startTime, endTime: updates[i].endTime, updatedAt: now }]
+      })
+      await this.db.events.bulkPut(patched)
+    })
+  }
+
+  async getAll(): Promise<CalendarEvent[]> {
+    return this.db.events.toArray()
+  }
+
+  async bulkUpdateCategories(
+    updates: { id: string; color: EventColor; categoryId: CategoryId }[],
+  ): Promise<void> {
+    if (updates.length === 0) return
+    const now = this.clock.now()
+    await this.db.transaction('rw', this.db.events, async () => {
+      const ids = updates.map((u) => u.id)
+      const existing = await this.db.events.bulkGet(ids)
+      const patched = existing.flatMap((e, i) => {
+        if (e === undefined) return []
+        return { ...e, color: updates[i].color, categoryId: updates[i].categoryId, updatedAt: now }
       })
       await this.db.events.bulkPut(patched)
     })

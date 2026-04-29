@@ -23,6 +23,13 @@ export class CategoryRepository {
     if (updated === undefined) throw new Error(`Category not found: ${id}`)
     return updated
   }
+
+  async updateKeywords(id: CategoryId, keywords: string[]): Promise<Category> {
+    await this.db.categories.update(id, { keywords })
+    const updated = await this.db.categories.get(id)
+    if (updated === undefined) throw new Error(`Category not found: ${id}`)
+    return updated
+  }
 }
 
 export const categoryRepository = new CategoryRepository(defaultDb)

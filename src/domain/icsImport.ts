@@ -7,6 +7,7 @@
  */
 
 import ICAL from 'ical.js'
+import type { CategoryId } from './category'
 
 export interface ImportedEvent {
   title: string
@@ -89,4 +90,28 @@ export function parseIcs(icsText: string): ImportResult {
   }
 
   return { events, skippedAllDay, skippedRecurring }
+}
+
+// ── Keyword-based classification ──────────────────────────
+
+/**
+ * Matches an event title against categories' keyword lists and returns the
+ * first matching CategoryId, or null if no keyword matches.
+ *
+ * Categories are iterated in the order they appear (accent → sage → sand →
+ * sky → rose → stone). The first category with a keyword that is a
+ * case-insensitive substring of the title wins.
+ */
+export function classifyEvent(
+  title: string,
+  categories: ReadonlyArray<{ id: CategoryId; keywords: string[] }>,
+): CategoryId | null {
+  if (!title) return null
+  const lower = title.toLowerCase()
+  for (const cat of categories) {
+    for (const kw of cat.keywords ?? []) {
+      if (kw && lower.includes(kw.toLowerCase())) return cat.id
+    }
+  }
+  return null
 }

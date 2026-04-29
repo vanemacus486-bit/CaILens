@@ -7,6 +7,7 @@ interface CategoryState {
   isLoaded: boolean
   loadCategories: () => Promise<void>
   updateCategoryName: (id: CategoryId, name: CategoryName) => Promise<void>
+  updateCategoryKeywords: (id: CategoryId, keywords: string[]) => Promise<void>
 }
 
 export const useCategoryStore = create<CategoryState>()((set) => ({
@@ -20,6 +21,13 @@ export const useCategoryStore = create<CategoryState>()((set) => ({
 
   updateCategoryName: async (id, name) => {
     const updated = await categoryRepository.updateName(id, name)
+    set((state) => ({
+      categories: state.categories.map((c) => (c.id === id ? updated : c)),
+    }))
+  },
+
+  updateCategoryKeywords: async (id, keywords) => {
+    const updated = await categoryRepository.updateKeywords(id, keywords)
     set((state) => ({
       categories: state.categories.map((c) => (c.id === id ? updated : c)),
     }))
