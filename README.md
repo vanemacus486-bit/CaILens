@@ -6,7 +6,7 @@ CaILens is a local-first time-logging tool, inspired by Alexander Lyubishchev's 
 
 ![CaILens week view](https://github.com/user-attachments/assets/f8e2a65e-a9ce-44a9-929f-ab4a790c4b84)
 
-> **Status:** Active development. v2 shipped with categories and weekly stats. .ics import added. Retrospective views and journaling are next.
+> **Status:** Active development. v2 shipped with categories and weekly stats. .ics import + keyword-based classification + standalone stats page have landed. **The settings and stats pages are functional but the UI is still rough — expect polish in upcoming iterations.**
 
 ## Why
 
@@ -41,13 +41,15 @@ The principles:
 
 - **6 fixed categories** (Core Work, Support Work, Essentials, Reading & Study, Rest, Other), each with a distinct color. Users can rename them in both Chinese and English.
 - **Category selector** in the event editor — every event belongs to exactly one category.
-- **Weekly stats panel** — shows total recorded hours plus a per-category breakdown with percentage bars. Overlapping time is deduplicated before calculating percentages.
+- **Weekly stats** — standalone stats page (click BarChart3 in the sidebar) with per-category breakdown and percentage bars. Overlapping time is deduplicated before calculating percentages.
 - **Bilingual UI** — Chinese (zh) and English (en), toggleable in settings.
-- **Sidebar navigation** — replaced the v1 top nav. Today, previous/next week, settings, and .ics import all live here.
+- **Sidebar navigation** — replaced the v1 top nav. Today, previous/next week, stats, settings, and .ics import all live here.
 
 ### Import (v2, stable)
 
-- **.ics file import** — parse RFC 5545 calendar files via ical.js. All-day and recurring events are automatically skipped with counts shown in the preview. Assign one category to all imported events before importing.
+- **.ics file import** — parse RFC 5545 calendar files via ical.js. All-day and recurring events are automatically skipped with counts shown in the preview.
+- **Keyword-based auto-classification** — each category can have keywords (editable in Settings). On import, event titles are matched against all keywords (case-insensitive substring). First match wins; unmatched events fall back to the default category you pick.
+- **Re-classify on keyword change** — updating a category's keywords automatically re-scans all existing events and updates their categories/colors.
 
 ### Data
 
@@ -64,6 +66,7 @@ What's next, in rough order:
 - **Export** — JSON and ICS export so your data is never trapped here.
 - **Search** across all logged events.
 - **Optional sync** — still local-first; sync as opt-in, not default.
+- **UI polish** — settings and stats pages are functional but need visual refinement.
 
 ## Getting started
 
