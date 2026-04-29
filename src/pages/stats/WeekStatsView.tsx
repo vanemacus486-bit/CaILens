@@ -5,6 +5,8 @@ import { computeWeekStats } from '@/domain/stats'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useStatsAggregation } from '@/hooks/useStatsAggregation'
+import { HourHeatmap } from '@/components/stats/HourHeatmap'
 import { WeekStats } from '@/features/week-view/WeekStats'
 
 interface WeekStatsViewProps {
@@ -23,6 +25,11 @@ export function WeekStatsView({ weekAnchor }: WeekStatsViewProps) {
   useEffect(() => {
     void loadRange(weekStartMs, weekEndMs)
   }, [weekStartMs, weekEndMs, loadRange])
+
+  const { current } = useStatsAggregation({
+    granularity: 'week',
+    anchorDate: weekAnchor,
+  })
 
   const weekEnd    = addDays(weekAnchor, 6)
   const rangeLabel = `${formatMonthDay(weekAnchor)} – ${formatMonthDay(weekEnd)}, ${weekEnd.getFullYear()}`
@@ -48,9 +55,9 @@ export function WeekStatsView({ weekAnchor }: WeekStatsViewProps) {
         </span>
       </div>
 
-      {/* Cards column — PR 1 will add useStatsAggregation hook and mount HourHeatmap above */}
+      {/* Cards column */}
       <div className="lg:col-span-2 space-y-6">
-        {/* PR 1: add useStatsAggregation + import HourHeatmap + <HourHeatmap bucket={current} /> */}
+        <HourHeatmap bucket={current} />
         <WeekStats stats={stats} />
       </div>
     </div>
