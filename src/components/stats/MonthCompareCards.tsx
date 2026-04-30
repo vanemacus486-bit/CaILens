@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils'
 import type { Bucket } from '@/hooks/useStatsAggregation'
 import type { CategoryId } from '@/domain/category'
 import { useCategoryColors } from '@/constants/categoryColors'
@@ -37,31 +38,31 @@ function ChangeIndicator({ currHrs, prevHrs }: ChangeIndicatorProps) {
   const deltaPct = prevHrs > 0 ? Math.round((deltaHrs / prevHrs) * 100) : null
 
   if (prevHrs === 0 && currHrs === 0) {
-    return <span style={{ color: 'var(--text-tertiary)' }}>— 0%</span>
+    return <span className="text-text-tertiary">— 0%</span>
   }
 
   if (prevHrs === 0 && currHrs > 0) {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 2, color: 'var(--color-text-success)' }}>
+      <span className="flex items-center gap-0.5 text-color-text-success">
         <UpArrow /> —
       </span>
     )
   }
 
   if (Math.abs(deltaPct!) < 1) {
-    return <span style={{ color: 'var(--text-tertiary)' }}>— 0%</span>
+    return <span className="text-text-tertiary">— 0%</span>
   }
 
   if (deltaPct! >= 1) {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 2, color: 'var(--color-text-success)' }}>
+      <span className="flex items-center gap-0.5 text-color-text-success">
         <UpArrow /> {deltaPct}%
       </span>
     )
   }
 
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 2, color: 'var(--color-text-danger)' }}>
+    <span className="flex items-center gap-0.5 text-color-text-danger">
       <DownArrow /> {Math.abs(deltaPct!)}
     </span>
   )
@@ -117,14 +118,7 @@ export function MonthCompareCards({ current, previous }: MonthCompareCardsProps)
 
   if (!previous) {
     return (
-      <div
-        style={{
-          padding: 24,
-          textAlign: 'center',
-          color: 'var(--text-tertiary)',
-          fontSize: 13,
-        }}
-      >
+      <div className="p-6 text-center text-text-tertiary text-[13px]">
         {t('至少需要 2 个月数据才能对比', 'Needs at least 2 months of data for comparison')}
       </div>
     )
@@ -134,77 +128,28 @@ export function MonthCompareCards({ current, previous }: MonthCompareCardsProps)
 
   return (
     <div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 12,
-        }}
-      >
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
         {CATEGORY_IDS.map((id) => {
           const prevHrs = previous.byCategory[id]
           const currHrs = current.byCategory[id]
           return (
-            <div
-              key={id}
-              style={{
-                background: 'var(--surface-raised)',
-                borderRadius: 12,
-                padding: '14px 16px',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  marginBottom: 10,
-                }}
-              >
+            <div key={id} className="bg-surface-raised rounded-xl p-3.5">
+              <div className="flex items-center gap-2 mb-2.5">
                 <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: colors[id].fill,
-                  }}
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ background: colors[id].fill }}
                 />
-                <span
-                  style={{
-                    fontSize: 13,
-                    color: 'var(--text-secondary)',
-                    fontFamily: 'serif',
-                  }}
-                >
+                <span className="text-[13px] text-text-secondary font-serif">
                   {catName(id)}
                 </span>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 24,
-                    fontWeight: 500,
-                    color: 'var(--text-primary)',
-                    fontFamily: 'mono',
-                  }}
-                >
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-medium text-text-primary font-mono">
                   {currHrs.toFixed(1)}h
                 </span>
                 <ChangeIndicator currHrs={currHrs} prevHrs={prevHrs} />
               </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: 'var(--text-tertiary)',
-                  marginTop: 4,
-                }}
-              >
+              <div className="text-xs text-text-tertiary mt-1">
                 {t('上月', 'Prev')}: {prevHrs.toFixed(1)}h
               </div>
             </div>
@@ -212,16 +157,7 @@ export function MonthCompareCards({ current, previous }: MonthCompareCardsProps)
         })}
       </div>
       {insight && (
-        <div
-          style={{
-            marginTop: 16,
-            padding: '12px 14px',
-            background: 'var(--color-bg-info)',
-            borderRadius: 12,
-            fontSize: 13,
-            color: 'var(--color-text-info)',
-          }}
-        >
+        <div className="mt-4 px-3.5 py-3 bg-color-bg-info rounded-xl text-[13px] text-color-text-info">
           {insight}
         </div>
       )}
