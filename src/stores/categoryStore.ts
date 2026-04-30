@@ -1,13 +1,13 @@
 import { create } from 'zustand'
 import { categoryRepository } from '@/data/categoryRepository'
-import type { Category, CategoryId, CategoryName } from '@/domain/category'
+import type { Category, CategoryId, CategoryName, KeywordFolder } from '@/domain/category'
 
 interface CategoryState {
   categories: Category[]
   isLoaded: boolean
   loadCategories: () => Promise<void>
   updateCategoryName: (id: CategoryId, name: CategoryName) => Promise<void>
-  updateCategoryKeywords: (id: CategoryId, keywords: string[]) => Promise<void>
+  updateCategoryFolders: (id: CategoryId, folders: KeywordFolder[]) => Promise<void>
 }
 
 export const useCategoryStore = create<CategoryState>()((set) => ({
@@ -26,8 +26,8 @@ export const useCategoryStore = create<CategoryState>()((set) => ({
     }))
   },
 
-  updateCategoryKeywords: async (id, keywords) => {
-    const updated = await categoryRepository.updateKeywords(id, keywords)
+  updateCategoryFolders: async (id, folders) => {
+    const updated = await categoryRepository.updateFolders(id, folders)
     set((state) => ({
       categories: state.categories.map((c) => (c.id === id ? updated : c)),
     }))

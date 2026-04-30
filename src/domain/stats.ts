@@ -96,3 +96,75 @@ export function computeWeekStats(
 
   return { totalMinutes, byCategory }
 }
+
+export interface DayStats {
+  totalMinutes: number
+  byCategory: CategoryStat[]
+}
+
+/**
+ * Computes per-category time statistics for a single day.
+ * Same algorithm as computeWeekStats but for a 24-hour day boundary.
+ *
+ * dayStart is inclusive, dayEnd is exclusive (half-open interval).
+ */
+export function computeDayStats(
+  events: readonly CalendarEvent[],
+  categories: readonly Category[],
+  dayStart: number,
+  dayEnd: number,
+): DayStats {
+  return computeWeekStats(events, categories, dayStart, dayEnd)
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60_000
+
+/**
+ * Counts consecutive past weeks (including the current incomplete one) that
+ * have at least one event. Returns 0 if there are no events at all.
+ *
+ * A "week" is a fixed 7-day window. The most recent week ends at `now` and
+ * starts at `now - 7 days`. This avoids coupling the streak to the calendar
+ * week-start setting and ensures the streak updates in real-time as time passes.
+ */
+export function computeStreak(events: readonly CalendarEvent[]): number {
+  if (events.length === 0) return 0
+
+  const now = Date.now()
+  let streak = 0
+
+  // Walk backwards from now in 7-day steps
+  for (let i = 0; i < 200; i++) {
+    const weekEnd = now - i * WEEK_MS
+    const weekStart = weekEnd - WEEK_MS
+
+    const hasEvent = events.some(
+      (e) => e.startTime < weekEnd && e.endTime > weekStart,
+    )
+    if (!hasEvent) break
+    streak++
+  }
+
+  return streak
+}
+
+export interface TypeSplit {
+  typeI: { hours: number; pct: number }
+  typeII: { hours: number; pct: number }
+}
+
+// Type I: creative core (accent + sky); Type II: auxiliary (sage, sand, rose, stone)
+const TYPE_I_IDS: CategoryId[] = ['accent', 'sky']
+const TYPE_II_IDS: CategoryId[] = ['sage', 'sand', 'rose', 'stone']
+
+export function computeTypeSplit(byCategory: Record<CategoryId, number>): TypeSplit {
+  let typeI = 0
+  let typeII = 0
+  for (const id of TYPE_I_IDS) typeI += byCategory[id] || 0
+  for (const id of TYPE_II_IDS) typeII += byCategory[id] || 0
+  const total = typeI + typeII
+  return {
+    typeI: { hours: typeI, pct: total > 0 ? Math.round((typeI / total) * 100) : 0 },
+    typeII: { hours: typeII, pct: total > 0 ? Math.round((typeII / total) * 100) : 0 },
+  }
+}

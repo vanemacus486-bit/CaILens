@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Trash2 } from 'lucide-react'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
+import { createPortal } from 'react-dom'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
@@ -9,15 +8,6 @@ import { isSameDay } from '@/domain/time'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import type { DraftPreview } from './types'
-
-// ── Constants ─────────────────────────────────────────────
-
-const INPUT = cn(
-  'w-full px-2.5 py-1.5 rounded-xl text-sm font-sans',
-  'bg-surface-sunken border border-border-subtle',
-  'text-text-primary placeholder:text-text-tertiary',
-  'focus:outline-none focus:border-border-default transition-colors duration-150',
-)
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -29,6 +19,15 @@ function tsToStr(ts: number): string {
 function strToTs(date: Date, s: string): number {
   const [h, m] = s.split(':').map(Number)
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m, 0, 0).getTime()
+}
+
+function fmtDateHeader(date: Date, language: 'zh' | 'en'): string {
+  const weekdays = { zh: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'], en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] }
+  const months = { zh: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'], en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] }
+  const wd = weekdays[language][date.getDay()]
+  const d = date.getDate()
+  const m = months[language][date.getMonth()]
+  return language === 'zh' ? `${m}${d}日 ${wd}` : `${wd}, ${m} ${d}`
 }
 
 function pushDraft(
@@ -47,7 +46,6 @@ function pushDraft(
 
 interface EventEditCardProps {
   event:          CalendarEvent
-  anchorEl:       HTMLElement
   isNewlyCreated: boolean
   onSave:         (updates: UpdateEventInput) => void
   onDelete:       () => void
@@ -57,7 +55,7 @@ interface EventEditCardProps {
 }
 
 export function EventEditCard({
-  event, anchorEl, isNewlyCreated,
+  event, isNewlyCreated,
   onSave, onDelete, onClose, onCancel, onDraftChange,
 }: EventEditCardProps) {
   const localDate = new Date(event.startTime)
@@ -69,18 +67,12 @@ export function EventEditCard({
   const [title,      setTitle]      = useState(event.title)
   const [startStr,   setStartStr]   = useState(tsToStr(event.startTime))
   const [endStr,     setEndStr]     = useState(tsToStr(event.endTime))
-  // categoryId と color は常に同値（CategoryId === EventColor）
   const [categoryId, setCategoryId] = useState<CategoryId>(event.categoryId)
   const [desc,       setDesc]       = useState(event.description ?? '')
-  const [loc,        setLoc]        = useState(event.location ?? '')
   const [error,      setError]      = useState<string | null>(null)
 
-  const titleRef   = useRef<HTMLInputElement>(null)
-  // useRef<HTMLElement>(null!) avoids the null union so the type matches
-  // Radix's RefObject<Measurable> without casting. Initial value is never
-  // read before assignment.
-  const virtualRef = useRef<HTMLElement>(null!)
-  virtualRef.current = anchorEl
+  const titleRef = useRef<HTMLTextAreaElement>(null)
+  const cardRef  = useRef<HTMLDivElement>(null)
 
   function getError(startStr: string, endStr: string, date: Date): string | null {
     if (!startStr || !endStr) return t('请设置开始和结束时间', 'Set start and end times')
@@ -107,6 +99,29 @@ export function EventEditCard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Close on click outside the card
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
+        handleClose()
+      }
+    }
+    // Delay to avoid capturing the click that opened the card
+    const id = setTimeout(() => document.addEventListener('click', handleClick), 0)
+    return () => { clearTimeout(id); document.removeEventListener('click', handleClick) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, startStr, endStr, categoryId, desc])
+
+  // Close on Escape
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { handleCancel() }
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, startStr, endStr, categoryId, desc])
+
   // ── Save / discard ────────────────────────────────────
 
   const doSave = () => {
@@ -118,7 +133,7 @@ export function EventEditCard({
       color:       categoryId as EventColor,
       categoryId,
       description: desc.trim() || undefined,
-      location:    loc.trim()  || undefined,
+      location:    undefined,
     })
   }
 
@@ -140,6 +155,10 @@ export function EventEditCard({
 
   // ── Draft updates ────────────────────────────────────
 
+  const handleTitle = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setTitle(e.target.value)
+  }
+
   const handleStart = (e: React.ChangeEvent<HTMLInputElement>) => {
     const s = e.target.value; setStartStr(s); setError(null)
     pushDraft(s, endStr, categoryId as EventColor, localDate, onDraftChange)
@@ -156,93 +175,163 @@ export function EventEditCard({
 
   // ── Render ───────────────────────────────────────────
 
-  return (
-    <Popover open>
-      <PopoverAnchor virtualRef={virtualRef} />
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      {/* Dimmed backdrop */}
+      <div
+        className="absolute inset-0 bg-surface-base opacity-60"
+        onClick={handleClose}
+      />
 
-      <PopoverContent
-        side="right"
-        className="w-80 p-0"
-        onPointerDownOutside={handleClose}
-        onEscapeKeyDown={handleCancel}
-        onOpenAutoFocus={(e) => e.preventDefault()}
+      {/* Card */}
+      <div
+        ref={cardRef}
+        className="relative bg-surface-raised border border-border-default rounded-lg shadow-[0_8px_32px_rgba(40,36,31,0.12)] w-[420px] px-7 py-7 flex flex-col gap-4"
       >
-        <div className="p-4 flex flex-col gap-3">
-          {/* Title */}
-          <input
-            ref={titleRef}
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleClose() } }}
-            placeholder={t('标题', 'Title')}
-            className={cn(INPUT, 'font-serif text-base')}
-          />
-
-          {/* Time range */}
-          <div className="flex gap-2">
-            <input type="time" value={startStr} onChange={handleStart} className={cn(INPUT, 'font-mono flex-1')} />
-            <input type="time" value={endStr}   onChange={handleEnd}   className={cn(INPUT, 'font-mono flex-1')} />
+        {/* Header */}
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="font-serif text-[17px] font-medium text-text-primary">
+              {fmtDateHeader(localDate, language)}
+            </div>
+            <div className="font-mono text-xs text-accent mt-[3px]">
+              {startStr} – {endStr}
+            </div>
           </div>
-
-          {error && <p className="text-xs text-rose-500 -mt-1 font-sans">{error}</p>}
-
-          {/* 分类选择器（颜色 + 名称，点击选中） */}
-          <div className="flex flex-col gap-1">
-            {categories.map((cat) => {
-              const isSelected = cat.id === categoryId
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategory(cat.id)}
-                  className={cn(
-                    'flex items-center gap-2 px-2 py-1.5 rounded-lg text-left',
-                    'transition-colors duration-150',
-                    isSelected
-                      ? 'bg-surface-raised'
-                      : 'hover:bg-surface-raised',
-                  )}
-                >
-                  <span
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: `var(--event-${cat.id}-bg)`,
-                             outline: isSelected ? `2px solid var(--event-${cat.id}-text)` : 'none',
-                             outlineOffset: '1px' }}
-                  />
-                  <span className="text-sm font-sans text-text-primary">
-                    {cat.name[language]}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Notes */}
-          <textarea
-            value={desc} onChange={(e) => setDesc(e.target.value)}
-            placeholder={t('添加备注...', 'Add a note...')} rows={2}
-            className={cn(INPUT, 'font-serif resize-none min-h-[56px]')}
-          />
-
-          {/* Location */}
-          <input
-            type="text" value={loc} onChange={(e) => setLoc(e.target.value)}
-            placeholder={t('添加地点...', 'Add a location...')}
-            className={cn(INPUT, 'font-serif')}
-          />
-
-          {/* Delete */}
-          <div className="pt-1 border-t border-border-subtle">
-            <Button
-              variant="ghost" size="sm" onClick={() => { onDelete(); onClose() }}
-              className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 gap-1.5 px-2 h-8"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              {t('删除', 'Delete')}
-            </Button>
-          </div>
+          <button
+            onClick={handleCancel}
+            className="text-text-tertiary hover:text-text-primary transition-colors duration-200 cursor-pointer p-1 leading-none text-lg"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
         </div>
-      </PopoverContent>
-    </Popover>
+
+        <div className="h-px bg-border-subtle -mx-1" />
+
+        {/* Prompt */}
+        <div className="font-serif text-sm text-text-secondary italic">
+          {t('你在做什么？', 'What were you doing?')}
+        </div>
+
+        {/* Title textarea */}
+        <textarea
+          ref={titleRef}
+          value={title}
+          onChange={handleTitle}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleClose() }
+          }}
+          placeholder={t('例如：重构 useTimeBlock hook', 'e.g. Refactored useTimeBlock hook')}
+          className={cn(
+            'w-full font-sans text-sm text-text-primary',
+            'bg-surface-sunken border border-border-subtle rounded-md',
+            'px-3 py-2.5 resize-none h-[72px] outline-none',
+            'focus:border-border-default transition-colors duration-150',
+            'placeholder:text-text-tertiary',
+          )}
+        />
+
+        {/* Time range */}
+        <div className="flex gap-2">
+          <input
+            type="time"
+            value={startStr}
+            onChange={handleStart}
+            className={cn(
+              'flex-1 font-mono text-xs text-text-primary',
+              'bg-surface-sunken border border-border-subtle rounded-md',
+              'px-2.5 py-2 outline-none focus:border-border-default transition-colors duration-150',
+            )}
+          />
+          <input
+            type="time"
+            value={endStr}
+            onChange={handleEnd}
+            className={cn(
+              'flex-1 font-mono text-xs text-text-primary',
+              'bg-surface-sunken border border-border-subtle rounded-md',
+              'px-2.5 py-2 outline-none focus:border-border-default transition-colors duration-150',
+            )}
+          />
+        </div>
+
+        {error && <p className="text-xs text-rose-500 -mt-2 font-sans">{error}</p>}
+
+        {/* Category chips */}
+        {categories.length > 0 && (
+          <div>
+            <div className="text-[11px] font-sans font-semibold uppercase tracking-[0.1em] text-text-tertiary mb-2.5 select-none">
+              {t('分类', 'Category')}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {categories.map((cat) => {
+                const isSelected = cat.id === categoryId
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategory(cat.id)}
+                    className={cn(
+                      'flex items-center gap-1.5 font-sans text-xs rounded-md px-2.5 py-[5px] cursor-pointer transition-colors duration-150',
+                      isSelected
+                        ? 'ring-1 ring-inset'
+                        : 'border border-border-subtle hover:bg-surface-sunken',
+                    )}
+                    style={{
+                      backgroundColor: isSelected ? `var(--event-${cat.id}-bg)` : 'transparent',
+                      borderColor: isSelected ? `var(--event-${cat.id}-fill)` : undefined,
+                      color: isSelected ? `var(--event-${cat.id}-text)` : 'var(--text-primary)',
+                    }}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: `var(--event-${cat.id}-fill)` }}
+                    />
+                    {cat.name[language]}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Optional note */}
+        <div>
+          <div className="text-[11px] font-sans font-semibold uppercase tracking-[0.1em] text-text-tertiary mb-2 select-none">
+            {t('添加备注', 'Add a note')}{' '}
+            <span className="normal-case tracking-normal font-normal">({t('可选', 'optional')})</span>
+          </div>
+          <input
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder={t('关于这段时间的一个想法…', 'A quick thought about this block…')}
+            className={cn(
+              'w-full font-sans text-[13px] text-text-primary',
+              'bg-surface-sunken border border-border-subtle rounded-md',
+              'px-3 py-2 outline-none',
+              'focus:border-border-default transition-colors duration-150',
+              'placeholder:text-text-tertiary',
+            )}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 mt-1">
+          <button
+            onClick={handleCancel}
+            className="font-sans text-[13px] font-normal text-text-secondary bg-transparent border border-border-subtle rounded-md px-4 py-2 cursor-pointer hover:bg-surface-sunken transition-colors duration-200"
+          >
+            {t('取消', 'Cancel')}
+          </button>
+          <button
+            onClick={handleClose}
+            className="font-sans text-[13px] font-medium text-white bg-accent border-none rounded-md px-5 py-2 cursor-pointer hover:bg-accent-hover transition-colors duration-200"
+          >
+            {t('记录', 'Log it')}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   )
 }

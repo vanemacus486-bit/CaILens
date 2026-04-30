@@ -5,6 +5,10 @@ interface TimeGridProps {
   hourEnd?:   number
 }
 
+function formatHour24(h: number): string {
+  return `${String(h).padStart(2, '0')}:00`
+}
+
 export function TimeGrid({
   hourStart = DEFAULT_HOUR_START,
   hourEnd   = DEFAULT_HOUR_END,
@@ -13,7 +17,7 @@ export function TimeGrid({
 
   return (
     <div
-      className="h-full grid"
+      className="h-full grid bg-surface-sunken/50"
       style={{ gridTemplateRows: `repeat(${hourEnd - hourStart}, 1fr)` }}
     >
       {hours.map((h) => (
@@ -23,18 +27,12 @@ export function TimeGrid({
             <div className="absolute inset-x-0 top-0 border-t border-border-subtle" />
           )}
 
-          {/* Time label — every 3 hours to avoid crowding in the compressed 24 h view */}
-          {h > 0 && h % 3 === 0 && (
+          {/* Time label — every hour, skip 00:00 */}
+          {h > 0 && (
             <span className="absolute top-0.5 right-2 text-[10px] font-mono text-text-tertiary select-none leading-none">
-              {h}:00
+              {formatHour24(h)}
             </span>
           )}
-
-          {/* Half-hour dashed indicator at 50% of this hour cell */}
-          <div
-            className="absolute inset-x-0 border-t border-dashed border-border-subtle opacity-40"
-            style={{ top: '50%' }}
-          />
         </div>
       ))}
     </div>

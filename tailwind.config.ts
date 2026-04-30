@@ -23,6 +23,7 @@ export default {
         accent: {
           DEFAULT: 'var(--accent)',
           hover:   'var(--accent-hover)',
+          light:   'var(--accent-light)',
         },
         'event-accent-bg':   'var(--event-accent-bg)',
         'event-accent-text': 'var(--event-accent-text)',

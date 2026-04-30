@@ -11,40 +11,41 @@
 
 /* ── Light mode ─────────────────────────────────────────── */
 :root {
-  --surface-base:    #FAF9F5;
-  --surface-raised:  #F3F1EB;
-  --surface-sunken:  #ECEAE2;
+  --surface-base:    #f0ece4;
+  --surface-raised:  #faf9f5;
+  --surface-sunken:  #f3f0ea;
 
-  --border-subtle:   #E5E2D9;
-  --border-default:  #CCC9BF;
+  --border-subtle:   #e2ddd5;
+  --border-default:  #ccc7be;
 
-  --text-primary:    #1C1B19;
-  --text-secondary:  #5A5750;
-  --text-tertiary:   #8E8B84;
+  --text-primary:    #28241f;
+  --text-secondary:  #6b6460;
+  --text-tertiary:   #a09894;
 
-  --accent:          #D97757;
-  --accent-hover:    #C4663F;
+  --accent:          #c96442;
+  --accent-hover:    #b85a3a;
+  --accent-light:    #f5ede8;
 
-  --time-line:       #D97757;
+  --time-line:       #c96442;
 
-  --event-accent-bg:   #FDDCCC;
-  --event-accent-text: #A0522D;
-  --event-accent-fill: #C86D3E;
-  --event-sage-bg:     #D4E6D4;
-  --event-sage-text:   #3A6040;
-  --event-sage-fill:   #5A8A5E;
-  --event-sand-bg:     #EDE3CF;
-  --event-sand-text:   #7A5C2E;
-  --event-sand-fill:   #B08A40;
-  --event-sky-bg:      #CCE4F0;
-  --event-sky-text:    #2A5F7A;
-  --event-sky-fill:    #4A8AAA;
-  --event-rose-bg:     #F0D4D8;
-  --event-rose-text:   #8B3A42;
-  --event-rose-fill:   #B85A62;
-  --event-stone-bg:    #E0DDD8;
-  --event-stone-text:  #4A4744;
-  --event-stone-fill:  #6E6B66;
+  --event-accent-bg:   #f8dfcd;
+  --event-accent-text: #c96442;
+  --event-accent-fill: #c96442;
+  --event-sage-bg:     #dde9d6;
+  --event-sage-text:   #5a8a5e;
+  --event-sage-fill:   #5a8a5e;
+  --event-sand-bg:     #efe3cc;
+  --event-sand-text:   #b08a40;
+  --event-sand-fill:   #b08a40;
+  --event-sky-bg:      #e3dbce;
+  --event-sky-text:    #7a7060;
+  --event-sky-fill:    #7a7060;
+  --event-rose-bg:     #f1d8dd;
+  --event-rose-text:   #b85a62;
+  --event-rose-fill:   #b85a62;
+  --event-stone-bg:    #e6e2db;
+  --event-stone-text:  #9a948e;
+  --event-stone-fill:  #9a948e;
 
   --color-text-success:  #2D7D46;
   --color-text-danger:   #B53535;
@@ -54,40 +55,41 @@
 
 /* ── Dark mode ──────────────────────────────────────────── */
 .dark {
-  --surface-base:    #262624;
-  --surface-raised:  #2E2D2A;
-  --surface-sunken:  #1E1D1B;
+  --surface-base:    #2a2824;
+  --surface-raised:  #33312c;
+  --surface-sunken:  #22201c;
 
-  --border-subtle:   #3A3834;
-  --border-default:  #504E49;
+  --border-subtle:   #3d3a35;
+  --border-default:  #54514b;
 
-  --text-primary:    #F0EDE6;
-  --text-secondary:  #A8A49C;
-  --text-tertiary:   #6B6862;
+  --text-primary:    #f0ede6;
+  --text-secondary:  #a8a49c;
+  --text-tertiary:   #6b6862;
 
-  --accent:          #D97757;
-  --accent-hover:    #E8896A;
+  --accent:          #c96442;
+  --accent-hover:    #d97a5a;
+  --accent-light:    #3a2820;
 
-  --time-line:       #E8896A;
+  --time-line:       #d97a5a;
 
-  --event-accent-bg:   #4A2E22;
-  --event-accent-text: #F2B89A;
-  --event-accent-fill: #E09060;
-  --event-sage-bg:     #1E3326;
-  --event-sage-text:   #8EC49A;
-  --event-sage-fill:   #6AAA78;
-  --event-sand-bg:     #3A3020;
-  --event-sand-text:   #D4B882;
-  --event-sand-fill:   #C4A060;
-  --event-sky-bg:      #1A2E3A;
-  --event-sky-text:    #7EC0DC;
-  --event-sky-fill:    #5EA8C8;
-  --event-rose-bg:     #3A1E22;
-  --event-rose-text:   #E8A0A8;
-  --event-rose-fill:   #D07882;
-  --event-stone-bg:    #2E2C2A;
-  --event-stone-text:  #B0ADA8;
-  --event-stone-fill:  #8A8882;
+  --event-accent-bg:   #3f2a1e;
+  --event-accent-text: #f0c0a0;
+  --event-accent-fill: #d08060;
+  --event-sage-bg:     #1f3324;
+  --event-sage-text:   #8ec49a;
+  --event-sage-fill:   #6aaa78;
+  --event-sand-bg:     #3b3220;
+  --event-sand-text:   #d4b882;
+  --event-sand-fill:   #c4a060;
+  --event-sky-bg:      #2d2a24;
+  --event-sky-text:    #b0a898;
+  --event-sky-fill:    #908878;
+  --event-rose-bg:     #3b2024;
+  --event-rose-text:   #e8a0a8;
+  --event-rose-fill:   #d07882;
+  --event-stone-bg:    #302e2a;
+  --event-stone-text:  #b0ada8;
+  --event-stone-fill:  #8a8882;
 
   --color-text-success:  #5CB878;
   --color-text-danger:   #E06060;

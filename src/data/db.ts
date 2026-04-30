@@ -55,9 +55,6 @@ export class CailensDB extends Dexie {
       })
 
       // 2. 迁移 v2 dev 数据库的 categories.name string → {zh, en}
-      //    v1 用户和全新 DB 的 categories 表是空的，由 on('populate') 或
-      //    on('ready') 负责播种，不在这里处理（upgrade 内写入 categories 在
-      //    Dexie v4 + fake-indexeddb 环境中不可靠）。
       const existing = await tx.table('categories').toArray()
       if (existing.length > 0) {
         await tx.table('categories').toCollection().modify((cat) => {
@@ -67,8 +64,26 @@ export class CailensDB extends Dexie {
         })
       }
 
-      // 3. 播种 settings（所有升级路径共用）
+      // 3. 播种 settings
       await tx.table('settings').put({ ...DEFAULT_SETTINGS })
+    })
+
+    // v4：categories.keywords: string[] → folders: KeywordFolder[]
+    this.version(4).stores({
+      events:     'id, startTime',
+      categories: 'id',
+      settings:   'id',
+    }).upgrade(async (tx) => {
+      const cats = await tx.table('categories').toArray()
+      for (const cat of cats) {
+        if (cat.keywords !== undefined || !cat.folders) {
+          const oldKeywords: string[] = cat.keywords ?? []
+          await tx.table('categories').update(cat.id, {
+            folders: [{ id: 'default', name: '默认', keywords: oldKeywords }],
+            keywords: undefined,
+          })
+        }
+      }
     })
 
     // 全新 DB 首次创建时触发（version 0 → any）。

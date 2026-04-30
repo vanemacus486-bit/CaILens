@@ -1,10 +1,15 @@
 import { useMemo } from 'react'
+// Required: npm install date-fns
 import {
   startOfWeek,
   startOfMonth,
+  startOfQuarter,
+  startOfYear,
   addDays,
   addWeeks,
   addMonths,
+  addQuarters,
+  addYears,
   subMonths,
 } from 'date-fns'
 import { useEventStore } from '@/stores/eventStore'
@@ -12,7 +17,7 @@ import { mergeIntervals } from '@/domain/stats'
 import type { CategoryId } from '@/domain/category'
 import type { CalendarEvent } from '@/domain/event'
 
-export type Granularity = 'week' | 'month'
+export type Granularity = 'week' | 'month' | 'quarter' | 'year' | 'all'
 
 const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
 
@@ -103,12 +108,28 @@ function getBucketRange(
   anchor: Date,
   granularity: Granularity,
 ): [number, number] {
-  if (granularity === 'week') {
-    const start = startOfWeek(anchor, { weekStartsOn: 1 })
-    return [start.getTime(), addDays(start, 7).getTime()]
+  switch (granularity) {
+    case 'week': {
+      const start = startOfWeek(anchor, { weekStartsOn: 1 })
+      return [start.getTime(), addDays(start, 7).getTime()]
+    }
+    case 'month': {
+      const start = startOfMonth(anchor)
+      return [start.getTime(), addMonths(start, 1).getTime()]
+    }
+    case 'quarter': {
+      const start = startOfQuarter(anchor)
+      return [start.getTime(), addQuarters(start, 1).getTime()]
+    }
+    case 'year': {
+      const start = startOfYear(anchor)
+      return [start.getTime(), addYears(start, 1).getTime()]
+    }
+    case 'all': {
+      // Single bucket from epoch to far future — caller must provide real range
+      return [0, Date.now() + 100 * 365 * 24 * 60 * 60_000]
+    }
   }
-  const start = startOfMonth(anchor)
-  return [start.getTime(), addMonths(start, 1).getTime()]
 }
 
 export function computeBucket(
@@ -136,6 +157,16 @@ export function computeBucket(
   }
 }
 
+function shiftAnchor(anchor: Date, granularity: Granularity, offset: number): Date {
+  switch (granularity) {
+    case 'week':    return addWeeks(anchor, offset)
+    case 'month':   return addMonths(anchor, offset)
+    case 'quarter': return addQuarters(anchor, offset)
+    case 'year':    return addYears(anchor, offset)
+    case 'all':     return anchor
+  }
+}
+
 function computeHistory(
   events: readonly CalendarEvent[],
   anchorDate: Date,
@@ -144,10 +175,7 @@ function computeHistory(
 ): Bucket[] {
   const buckets: Bucket[] = []
   for (let i = lookbackBuckets - 1; i >= 0; i--) {
-    const anchor =
-      granularity === 'week'
-        ? addWeeks(anchorDate, -i)
-        : subMonths(anchorDate, i)
+    const anchor = shiftAnchor(anchorDate, granularity, -i)
     const [start, end] = getBucketRange(anchor, granularity)
     buckets.push(computeBucket(events, start, end))
   }

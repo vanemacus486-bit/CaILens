@@ -6,9 +6,8 @@ import { EventBlock } from './EventBlock'
 import { CurrentTimeLine } from './CurrentTimeLine'
 import { MAX_OVERLAP_COLUMNS, TOTAL_SLOTS } from '@/features/week-view/constants'
 
-const SLOT_STYLE_FIRST = 'cursor-pointer hover:bg-surface-sunken/30'
-const SLOT_STYLE_HOUR  = 'border-t border-border-subtle cursor-pointer hover:bg-surface-sunken/30'
-const SLOT_STYLE_HALF  = 'border-t border-dashed border-border-subtle opacity-40 cursor-pointer'
+const SLOT_STYLE_HOUR  = 'border-t border-border-subtle cursor-pointer hover:bg-surface-sunken/20'
+const SLOT_STYLE_HALF  = 'cursor-pointer hover:bg-surface-sunken/20'
 
 const SLOT_INDICES = Array.from({ length: TOTAL_SLOTS }, (_, i) => i)
 
@@ -58,7 +57,7 @@ function DayColumnInner({
         {SLOT_INDICES.map((i) => (
           <div
             key={i}
-            className={i === 0 ? SLOT_STYLE_FIRST : i % 2 === 0 ? SLOT_STYLE_HOUR : SLOT_STYLE_HALF}
+            className={i % 2 === 0 ? SLOT_STYLE_HOUR : SLOT_STYLE_HALF}
             style={{ gridColumn: `1 / ${MAX_OVERLAP_COLUMNS + 1}`, gridRow: i + 1 }}
             onClick={(e) => onSlotClick(slotToTimestamp(i, dayStart), e.currentTarget as HTMLElement)}
           />

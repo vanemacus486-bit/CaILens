@@ -1,4 +1,3 @@
-import { cn } from '@/lib/utils'
 import type { Bucket } from '@/hooks/useStatsAggregation'
 import type { CategoryId } from '@/domain/category'
 import { useCategoryColors } from '@/constants/categoryColors'

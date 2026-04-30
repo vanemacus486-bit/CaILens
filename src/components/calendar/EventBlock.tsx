@@ -45,7 +45,7 @@ export const EventBlock = React.memo(function EventBlock({
   onDragMove, onDragStart, onResize, weekDays, gridRef, isCardOpen = false,
 }: EventBlockProps) {
   const { event, rowStart, rowEnd, columnIndex, totalColumns } = positioned
-  const { bg, text, border } = EVENT_COLOR_CLASSES[event.color]
+  const { bg, text } = EVENT_COLOR_CLASSES[event.color]
   const { gridColumnStart, gridColumnEnd } = colSpan(columnIndex, totalColumns)
 
   const divRef = useRef<HTMLDivElement>(null)
@@ -87,8 +87,8 @@ export const EventBlock = React.memo(function EventBlock({
   })
 
   const durationMinutes = (event.endTime - event.startTime) / 60_000
-  const isCompact = durationMinutes < 30
-  const isMedium  = durationMinutes >= 30 && durationMinutes < 60
+  const isCompact = durationMinutes <= 60
+  const isMedium  = false
 
   return (
     <ContextMenu>
@@ -96,10 +96,9 @@ export const EventBlock = React.memo(function EventBlock({
         <div
           ref={divRef}
           className={cn(
-            // `relative` is required for absolute-positioned resize handles
-            'relative rounded-md px-1.5 py-0.5 overflow-hidden select-none',
-            'border-l-2 transition-colors duration-200 z-10',
-            bg, text, border,
+            'relative rounded-md px-2 py-[5px] overflow-hidden select-none',
+            'border-t-2 border border-border-subtle transition-colors duration-200 z-10',
+            bg, text,
             isDragging
               ? 'cursor-grabbing'
               : isCardOpen
@@ -111,6 +110,7 @@ export const EventBlock = React.memo(function EventBlock({
             gridRowEnd:   rowEnd,
             gridColumnStart,
             gridColumnEnd,
+            borderTopColor: `var(--event-${event.color}-fill)`,
             opacity: isDragging ? 0.85 : 1,
             zIndex:  isDragging ? 50   : undefined,
           }}
@@ -131,7 +131,7 @@ export const EventBlock = React.memo(function EventBlock({
           )}
 
           {/* Event content */}
-          <p className={cn('font-serif font-normal leading-tight truncate', isCompact ? 'text-[11px]' : 'text-xs')}>
+          <p className={cn('font-sans font-normal leading-tight truncate', isCompact ? 'text-[11px]' : 'text-xs')}>
             {event.title || <span className="opacity-50 italic">Untitled</span>}
           </p>
           {!isCompact && (

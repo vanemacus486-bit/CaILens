@@ -2,7 +2,6 @@ import { useState, useRef } from 'react'
 import { Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const MAX_KEYWORDS = 10
 const MAX_KEYWORD_LENGTH = 30
 
 interface KeywordEditorProps {
@@ -17,7 +16,7 @@ export function KeywordEditor({ keywords, onChange, disabled = false }: KeywordE
   const inputRef = useRef<HTMLInputElement>(null)
 
   const startAdd = () => {
-    if (disabled || keywords.length >= MAX_KEYWORDS) return
+    if (disabled) return
     setAdding(true)
     setValue('')
     // Focus after render
@@ -42,10 +41,8 @@ export function KeywordEditor({ keywords, onChange, disabled = false }: KeywordE
     if (e.key === 'Escape') { setAdding(false); setValue('') }
   }
 
-  const atLimit = keywords.length >= MAX_KEYWORDS
-
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-wrap items-start content-start gap-1.5 max-h-20 overflow-y-auto">
       {keywords.map((kw) => (
         <span
           key={kw}
@@ -88,12 +85,12 @@ export function KeywordEditor({ keywords, onChange, disabled = false }: KeywordE
         <button
           type="button"
           onClick={startAdd}
-          disabled={disabled || atLimit}
+          disabled={disabled}
           className={cn(
             'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-sans',
             'text-text-tertiary hover:text-text-primary hover:bg-surface-raised',
             'transition-colors duration-150 cursor-pointer',
-            (disabled || atLimit) && 'opacity-40 cursor-not-allowed',
+            disabled && 'opacity-40 cursor-not-allowed',
           )}
         >
           <Plus size={11} strokeWidth={2} />

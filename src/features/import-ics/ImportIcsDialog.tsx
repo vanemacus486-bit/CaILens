@@ -25,7 +25,7 @@ type Status = 'idle' | 'preview' | 'importing' | 'done'
 export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
   const [status, setStatus] = useState<Status>('idle')
   const [fileName, setFileName] = useState('')
-  const [fileContent, setFileContent] = useState('')
+  const [, setFileContent] = useState('')
   const [parseResult, setParseResult] = useState<ImportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedCat, setSelectedCat] = useState<CategoryId>('accent')
@@ -173,7 +173,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
           {parseResult && status !== 'importing' && status !== 'done' && parseResult.events.length > 0 && (
             <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto bg-surface-sunken rounded-xl p-2">
               {parseResult.events.slice(0, 50).map((ev, i) => {
-                const autoCat = classifyEvent(ev.title, categories.map(c => ({ id: c.id, keywords: c.keywords })))
+                const autoCat = classifyEvent(ev.title, categories.map(c => ({ id: c.id, folders: c.folders })))
                 const catName = autoCat
                   ? categories.find(c => c.id === autoCat)?.name[language] ?? autoCat
                   : null

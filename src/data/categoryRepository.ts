@@ -1,4 +1,4 @@
-import type { Category, CategoryId, CategoryName } from '@/domain/category'
+import type { Category, CategoryId, CategoryName, KeywordFolder } from '@/domain/category'
 import { DEFAULT_CATEGORIES } from '@/domain/category'
 import type { CailensDB } from './db'
 import { db as defaultDb } from './db'
@@ -24,8 +24,8 @@ export class CategoryRepository {
     return updated
   }
 
-  async updateKeywords(id: CategoryId, keywords: string[]): Promise<Category> {
-    await this.db.categories.update(id, { keywords })
+  async updateFolders(id: CategoryId, folders: KeywordFolder[]): Promise<Category> {
+    await this.db.categories.update(id, { folders })
     const updated = await this.db.categories.get(id)
     if (updated === undefined) throw new Error(`Category not found: ${id}`)
     return updated

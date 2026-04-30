@@ -4,14 +4,14 @@ import { cn } from '@/lib/utils'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useEventStore } from '@/stores/eventStore'
-import type { CategoryId } from '@/domain/category'
+import type { CategoryId, KeywordFolder } from '@/domain/category'
 import { CategoryNameEditor } from './CategoryNameEditor'
-import { KeywordEditor } from './KeywordEditor'
+import { FolderKeywordEditor } from './FolderKeywordEditor'
 
 export function SettingsPage() {
   const categories  = useCategoryStore((s) => s.categories)
   const updateName  = useCategoryStore((s) => s.updateCategoryName)
-  const updateKeywords     = useCategoryStore((s) => s.updateCategoryKeywords)
+  const updateFolders       = useCategoryStore((s) => s.updateCategoryFolders)
   const reclassifyAllEvents = useEventStore((s) => s.reclassifyAllEvents)
   const settings           = useAppSettingsStore((s) => s.settings)
   const setLanguage        = useAppSettingsStore((s) => s.setLanguage)
@@ -26,6 +26,10 @@ export function SettingsPage() {
       ? { zh: newName, en: cat.name.en }
       : { zh: cat.name.zh, en: newName }
     void updateName(id, updated)
+  }
+
+  const handleFoldersChange = (id: CategoryId, folders: KeywordFolder[]) => {
+    void updateFolders(id, folders).then(() => reclassifyAllEvents())
   }
 
   return (
@@ -74,7 +78,7 @@ export function SettingsPage() {
           <p className="text-xs font-sans text-text-tertiary mb-3">
             {t('分类与关键词', 'Categories & Keywords')}
           </p>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 max-w-2xl">
             {categories.map((cat) => (
               <div
                 key={cat.id}
@@ -93,13 +97,11 @@ export function SettingsPage() {
                   />
                 </div>
 
-                {/* Keywords */}
+                {/* Folders & keywords */}
                 <div className="pl-[18px]">
-                  <KeywordEditor
-                    keywords={cat.keywords ?? []}
-                    onChange={(kws) => {
-                      void updateKeywords(cat.id, kws).then(() => reclassifyAllEvents())
-                    }}
+                  <FolderKeywordEditor
+                    folders={cat.folders ?? []}
+                    onChange={(folders) => handleFoldersChange(cat.id, folders)}
                   />
                 </div>
               </div>

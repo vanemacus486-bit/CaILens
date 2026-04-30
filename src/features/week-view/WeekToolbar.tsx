@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { ArrowLeftRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { getISOWeek } from 'date-fns'
+import { ArrowLeftRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { addWeeks, formatMonthDay, getWeekStart, isSameDay } from '@/domain/time'
+import { addWeeks, formatISODate, formatMonthDay, getWeekStart, isSameDay } from '@/domain/time'
 import { addDays } from 'date-fns'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useAppSettingsStore } from '@/stores/settingsStore'
@@ -23,14 +25,16 @@ export function WeekToolbar({
   onToday,
   onShift,
 }: WeekToolbarProps) {
+  const navigate = useNavigate()
   const language = useAppSettingsStore((s) => s.settings.language)
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
   const [shiftOpen, setShiftOpen] = useState(false)
 
-  const weekEnd         = addDays(weekStart, 6)
-  const rangeLabel      = `${formatMonthDay(weekStart)} – ${formatMonthDay(weekEnd)}, ${weekEnd.getFullYear()}`
+  const weekEnd = addDays(weekStart, 6)
+  const weekNum = getISOWeek(weekStart)
+  const rangeLabel = `${formatMonthDay(weekStart)} – ${formatMonthDay(weekEnd)}`
   const currentWeekStart = getWeekStart(new Date(), 1)
-  const isCurrentWeek   = isSameDay(weekStart, currentWeekStart)
+  const isCurrentWeek = isSameDay(weekStart, currentWeekStart)
 
   function handleShift(direction: -1 | 1) {
     setShiftOpen(false)
@@ -38,49 +42,60 @@ export function WeekToolbar({
   }
 
   return (
-    <div className="flex items-center justify-between px-4 h-10 flex-shrink-0 border-b border-border-subtle">
-      {/* Week range label */}
-      <span className="font-serif text-sm text-text-secondary select-none">
-        {rangeLabel}
-      </span>
+    <div className="flex items-center justify-between px-7 py-[13px] border-b border-border-subtle flex-shrink-0">
+      {/* Left: Logo + tagline */}
+      <div className="flex items-baseline gap-2.5 select-none">
+        <span className="font-serif text-[22px] font-semibold text-text-primary tracking-[-0.01em]">
+          CaILens
+        </span>
+        <span className="font-serif text-[13px] text-text-secondary italic">
+          — time, recorded
+        </span>
+      </div>
 
-      {/* Navigation controls */}
-      <div className="flex items-center gap-0.5">
-        {/* Prev / Today / Next */}
+      {/* Center: Navigation */}
+      <div className="flex items-center gap-2">
         <button
           onClick={onPrev}
           aria-label="Previous week"
-          className="w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors duration-200 cursor-pointer"
+          className="w-7 h-7 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer text-lg leading-none"
         >
-          <ChevronLeft size={15} strokeWidth={1.75} />
+          ‹
         </button>
 
-        <button
-          onClick={onToday}
-          disabled={isCurrentWeek}
-          aria-label="This week"
-          className={cn(
-            'h-7 px-2.5 rounded-md text-xs font-sans transition-colors duration-200',
-            isCurrentWeek
-              ? 'text-text-tertiary cursor-not-allowed'
-              : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised cursor-pointer',
-          )}
-        >
-          {t('本周', 'This week')}
-        </button>
+        <div className="text-center min-w-[180px]">
+          <span className="font-serif text-base font-medium text-text-primary">
+            {t(`第 ${weekNum} 周`, `Week ${weekNum}`)}
+          </span>
+          <span className="font-mono text-xs text-text-secondary ml-2">
+            {rangeLabel}
+          </span>
+        </div>
 
         <button
           onClick={onNext}
           aria-label="Next week"
-          className="w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors duration-200 cursor-pointer"
+          className="w-7 h-7 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer text-lg leading-none"
         >
-          <ChevronRight size={15} strokeWidth={1.75} />
+          ›
         </button>
 
-        {/* Separator */}
-        <div className="w-px h-4 bg-border-subtle mx-1.5" />
+        <div className="w-px h-5 bg-border-subtle mx-2" />
 
-        {/* Bulk-shift button */}
+        <button
+          onClick={onToday}
+          disabled={isCurrentWeek}
+          className={cn(
+            'h-[30px] px-3 rounded-md text-xs font-sans font-medium transition-colors duration-200',
+            isCurrentWeek
+              ? 'text-text-tertiary cursor-not-allowed'
+              : 'text-text-secondary bg-surface-sunken border border-border-subtle hover:text-text-primary hover:bg-surface-raised cursor-pointer',
+          )}
+        >
+          {t('今天', 'Today')}
+        </button>
+
+        {/* Bulk-shift */}
         <Popover open={shiftOpen} onOpenChange={setShiftOpen}>
           <PopoverTrigger asChild>
             <button
@@ -90,7 +105,7 @@ export function WeekToolbar({
                 'w-7 h-7 flex items-center justify-center rounded-md transition-colors duration-200',
                 eventCount === 0
                   ? 'text-text-tertiary opacity-40 cursor-not-allowed'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised cursor-pointer',
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-sunken cursor-pointer',
               )}
             >
               <ArrowLeftRight size={14} strokeWidth={1.75} />
@@ -113,6 +128,31 @@ export function WeekToolbar({
             />
           </PopoverContent>
         </Popover>
+      </div>
+
+      {/* Right: View switcher pills */}
+      <div className="flex gap-1">
+        <button
+          onClick={() => navigate('/')}
+          className={cn(
+            'font-sans text-xs font-medium rounded-md px-2.5 py-[5px] transition-colors duration-200 cursor-pointer',
+            'bg-accent-light border border-[#e8c4b0] text-accent',
+          )}
+        >
+          W
+        </button>
+        <button
+          onClick={() => navigate(`/day?date=${formatISODate(new Date())}`)}
+          className="font-sans text-xs font-normal rounded-md px-2.5 py-[5px] transition-colors duration-200 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-surface-sunken border border-transparent"
+        >
+          D
+        </button>
+        <button
+          disabled
+          className="font-sans text-xs font-normal rounded-md px-2.5 py-[5px] cursor-not-allowed text-text-tertiary opacity-40 border border-transparent"
+        >
+          Y
+        </button>
       </div>
     </div>
   )

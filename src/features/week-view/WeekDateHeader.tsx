@@ -7,39 +7,28 @@ interface WeekDateHeaderProps {
 
 export function WeekDateHeader({ days }: WeekDateHeaderProps) {
   return (
-    <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-border-subtle flex-shrink-0 h-[52px]">
+    <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-border-subtle flex-shrink-0">
       {/* Spacer — aligns with TimeGrid's 80px label column */}
-      <div />
+      <div className="bg-surface-sunken/50" />
 
       {days.map((day) => {
         const today = isToday(day.getTime())
         return (
           <div
             key={day.getTime()}
-            className="flex flex-col items-center justify-center select-none"
+            className="flex flex-col items-center justify-center py-2.5 select-none"
           >
-            {/* Column highlight for today */}
-            <div
+            <span className="text-[11px] font-sans font-medium text-text-tertiary uppercase tracking-[0.06em] leading-none">
+              {formatWeekday(day, 'short')}
+            </span>
+            <span
               className={cn(
-                'flex flex-col items-center justify-center rounded-lg w-full h-full px-1 py-1.5',
-                today && 'mx-0.5',
+                'font-mono text-base font-medium leading-none mt-[3px]',
+                today ? 'text-accent' : 'text-text-primary',
               )}
-              style={today ? {
-                backgroundColor: 'color-mix(in oklch, var(--accent) 10%, transparent)',
-              } : undefined}
             >
-              <span className="text-[10px] font-sans font-medium text-text-tertiary uppercase tracking-wider leading-none">
-                {formatWeekday(day, 'short')}
-              </span>
-              <span
-                className={cn(
-                  'text-lg font-serif leading-tight mt-0.5',
-                  today ? 'text-accent font-semibold' : 'text-text-primary font-normal',
-                )}
-              >
-                {day.getDate()}
-              </span>
-            </div>
+              {day.getDate()}
+            </span>
           </div>
         )
       })}

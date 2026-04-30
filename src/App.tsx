@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes, Outlet } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
+import { DayView } from '@/features/day-view/DayView'
 import { Sidebar } from '@/features/app-shell/Sidebar'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { StatsPage } from '@/pages/StatsPage'
@@ -21,6 +22,7 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<WeekView />} />
+          <Route path="/day" element={<DayView />} />
           <Route path="/stats" element={<StatsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

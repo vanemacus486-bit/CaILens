@@ -106,7 +106,7 @@ export function WeekView() {
   // Because onPointerDownOutside fires on pointerdown and slot onClick fires
   // on click (later), this callback still sees the pre-update cardState from
   // its closure — returning early prevents accidental double-create.
-  const handleSlotClick = useCallback((startTime: number, slotEl: HTMLElement) => {
+  const handleSlotClick = useCallback((startTime: number, _slotEl: HTMLElement) => {
     // Swallow the click that immediately follows closing a card — they're part
     // of the same pointer gesture (pointerdown closed the card, click hits here).
     if (justClosedCardRef.current) {
@@ -119,7 +119,7 @@ export function WeekView() {
       title: '', startTime, endTime: startTime + 60 * 60_000,
       color: 'stone', categoryId: 'stone',
     }).then((newEvent) => {
-      setCardState({ mode: 'edit', event: newEvent, anchorEl: slotEl, isNewlyCreated: true })
+      setCardState({ mode: 'edit', event: newEvent, isNewlyCreated: true })
     })
   }, [cardState.mode, createEvent])
 
@@ -135,7 +135,7 @@ export function WeekView() {
   const handleEdit = useCallback(() => {
     setCardState((prev) =>
       prev.mode === 'detail'
-        ? { mode: 'edit', event: prev.event, anchorEl: prev.anchorEl, isNewlyCreated: false }
+        ? { mode: 'edit', event: prev.event, isNewlyCreated: false }
         : prev,
     )
   }, [])
@@ -149,13 +149,13 @@ export function WeekView() {
   // ── Context-menu actions (stable refs, no cardState dep) ─
 
   const handleColorChange = useCallback((eventId: string, color: EventColor) => {
-    void updateEvent({ id: eventId, color })
+    void updateEvent({ id: eventId, color, categoryId: color })
   }, [updateEvent])
 
   // Jump straight to edit card (skips detail card).
-  const handleContextEdit = useCallback((event: CalendarEvent, anchorEl: HTMLElement) => {
+  const handleContextEdit = useCallback((event: CalendarEvent, _anchorEl: HTMLElement) => {
     setDraftPreview(null)
-    setCardState({ mode: 'edit', event, anchorEl, isNewlyCreated: false })
+    setCardState({ mode: 'edit', event, isNewlyCreated: false })
   }, [])
 
   // Delete via context menu. Uses ref so cardState isn't a dep (keeps this stable).
@@ -235,8 +235,7 @@ export function WeekView() {
         />
         <WeekDateHeader days={days} />
 
-        {/* Calendar grid fills remaining height. 24 hours distributed evenly
-            via CSS grid 1fr rows — no fixed px, no scrolling. */}
+        {/* Calendar grid */}
         <div ref={gridRef} className="flex-1 min-h-0 grid grid-cols-[80px_repeat(7,1fr)]">
           <TimeGrid />
           {days.map((day) => (
@@ -275,7 +274,6 @@ export function WeekView() {
       {cardState.mode === 'edit' && (
         <EventEditCard
           event={cardState.event}
-          anchorEl={cardState.anchorEl}
           isNewlyCreated={cardState.isNewlyCreated}
           onSave={handleSave}
           onDelete={handleEditDelete}
