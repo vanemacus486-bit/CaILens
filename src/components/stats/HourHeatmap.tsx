@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
+import { cn } from '@/lib/utils'
 import type { Bucket } from '@/hooks/useStatsAggregation'
 import { useCategoryColors } from '@/constants/categoryColors'
 import { useAppSettingsStore } from '@/stores/settingsStore'
@@ -83,13 +84,11 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
     gridItems.push(
       <div
         key={`hl-${hour}`}
+        className="font-mono text-text-tertiary text-center"
         style={{
           gridColumn: `${hour + 2} / span 1`,
           gridRow: 1,
           fontSize: labelFontSize,
-          fontFamily: 'var(--font-mono, JetBrains Mono, monospace)',
-          color: 'var(--text-tertiary)',
-          textAlign: 'center',
           lineHeight: `${labelFontSize + 4}px`,
         }}
       >
@@ -106,13 +105,11 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
     gridItems.push(
       <div
         key={`dl-${d}`}
+        className="font-sans text-text-secondary text-right"
         style={{
           gridColumn: 1,
           gridRow: d + 2,
           fontSize: labelFontSize,
-          fontFamily: 'var(--font-sans, Inter, sans-serif)',
-          color: 'var(--text-secondary)',
-          textAlign: 'right',
           paddingRight: '4px',
           lineHeight: `${cellSize}px`,
         }}
@@ -132,18 +129,17 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
         <div
           key={`c-${d}-${h}`}
           title={title}
+          className={cn(
+            'rounded-sm',
+            hasData ? '' : 'border border-dashed border-border-subtle',
+          )}
           style={{
             gridColumn: h + 2,
             gridRow: d + 2,
             width: cellSize,
             height: cellSize,
-            boxSizing: 'border-box',
             backgroundColor: hasData ? fillColor : 'transparent',
             opacity: hasData ? OPACITY_LEVELS[level - 1] : undefined,
-            border: hasData
-              ? 'none'
-              : '1px dashed var(--border-subtle)',
-            borderRadius: '2px',
           }}
         />,
       )
@@ -154,32 +150,21 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
   gridItems.push(
     <div
       key="legend"
+      className="flex items-center gap-1.5 mt-2 text-xs font-sans text-text-tertiary"
       style={{
         gridColumn: '1 / -1',
         gridRow: 9,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        marginTop: '8px',
-        fontSize: '12px',
-        fontFamily: 'var(--font-sans, Inter, sans-serif)',
-        color: 'var(--text-tertiary)',
       }}
     >
       <span>{t('少', 'Less')}</span>
       {OPACITY_LEVELS.map((opacity, i) => (
         <div
           key={`leg-${i}`}
-          style={{
-            width: 14,
-            height: 14,
-            borderRadius: '2px',
-            backgroundColor: fillColor,
-            opacity,
-          }}
+          className="w-3.5 h-3.5 rounded-sm"
+          style={{ backgroundColor: fillColor, opacity }}
         />
       ))}
-      <span style={{ marginRight: '12px' }}>{t('多', 'More')}</span>
+      <span className="mr-3">{t('多', 'More')}</span>
       <span>{t('空白 = 无记录', 'Empty = no data')}</span>
     </div>,
   )
