@@ -1,63 +1,76 @@
-import { addDays } from 'date-fns'
-import { getDayStart } from '@/domain/time'
-import { computeWeekStats } from '@/domain/stats'
-import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { StatsBar } from './StatsBar'
+import type { WeekStats as WeekStatsData } from '@/domain/stats'
+import { cn } from '@/lib/utils'
 
 interface WeekStatsProps {
-  weekStart: Date
+  stats: WeekStatsData
 }
 
-export function WeekStats({ weekStart }: WeekStatsProps) {
-  const events     = useEventStore((s) => s.events)
+export function WeekStats({ stats }: WeekStatsProps) {
   const categories = useCategoryStore((s) => s.categories)
   const language   = useAppSettingsStore((s) => s.settings.language)
 
-  // Hide until categories are loaded
   if (categories.length === 0) return null
 
-  const weekStartMs = getDayStart(weekStart)
-  const weekEndMs   = getDayStart(addDays(weekStart, 7))
-  const stats       = computeWeekStats(events, categories, weekStartMs, weekEndMs)
-  const totalHrs    = (stats.totalMinutes / 60).toFixed(1)
+  const t = (zh: string, en: string) => language === 'zh' ? zh : en
+
+  const activeStats = stats.byCategory.filter((s) => s.minutes > 0)
+
+  if (activeStats.length === 0) {
+    return (
+      <p className="text-sm font-sans text-text-tertiary text-center py-12">
+        {t('本周暂无记录', 'No events this week')}
+      </p>
+    )
+  }
 
   return (
-    <div className="border-b border-border-subtle bg-surface-base px-4 py-2">
-      {/* Header: total recorded time */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-sans text-text-tertiary">
-          {language === 'zh' ? '本周记录' : 'This week'}
-        </span>
-        <span className="text-xs font-mono text-text-secondary">
-          {totalHrs}h
-        </span>
-      </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+      {activeStats.map((stat) => {
+        const cat = categories.find((c) => c.id === stat.categoryId)
+        if (!cat) return null
+        const hrs     = (stat.minutes / 60).toFixed(1)
+        const pct     = stat.percentage.toFixed(1)
+        const colorId = cat.id
 
-      {/* 各分类统计条 */}
-      <div className="flex flex-col gap-1.5">
-        {stats.byCategory
-          .filter((s) => s.minutes > 0)
-          .map((stat) => {
-            const cat = categories.find((c) => c.id === stat.categoryId)
-            if (!cat) return null
-            return (
-              <StatsBar
-                key={stat.categoryId}
-                category={cat}
-                minutes={stat.minutes}
-                percentage={stat.percentage}
-                language={language}
+        return (
+          <div
+            key={stat.categoryId}
+            className="rounded-xl border border-border-subtle bg-surface-base px-4 py-3.5 flex flex-col gap-2.5"
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{ backgroundColor: `var(--event-${colorId}-text)` }}
               />
-            )
-          })}
-        {stats.totalMinutes === 0 && (
-          <p className="text-xs font-sans text-text-tertiary text-center py-1">
-            {language === 'zh' ? '本周暂无记录' : 'No events this week'}
-          </p>
-        )}
-      </div>
+              <span className="font-serif text-sm text-text-primary">
+                {cat.name[language]}
+              </span>
+            </div>
+
+            <div className="h-2 rounded-full bg-surface-sunken overflow-hidden">
+              <div
+                className={cn('h-full rounded-full transition-all duration-500')}
+                style={{
+                  width: `${Math.min(stat.percentage, 100)}%`,
+                  backgroundColor: `var(--event-${colorId}-text)`,
+                  opacity: 0.7,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono text-text-secondary">
+                {hrs}h
+              </span>
+              <span className="text-xs font-mono text-text-tertiary">
+                {pct}%
+              </span>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

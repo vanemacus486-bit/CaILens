@@ -23,8 +23,8 @@ export function TimeGrid({
             <div className="absolute inset-x-0 top-0 border-t border-border-subtle" />
           )}
 
-          {/* Time label — skip 0 to avoid crowding the header */}
-          {h > 0 && (
+          {/* Time label — every 3 hours to avoid crowding in the compressed 24 h view */}
+          {h > 0 && h % 3 === 0 && (
             <span className="absolute top-0.5 right-2 text-[10px] font-mono text-text-tertiary select-none leading-none">
               {h}:00
             </span>

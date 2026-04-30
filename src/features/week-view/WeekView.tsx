@@ -235,11 +235,8 @@ export function WeekView() {
         />
         <WeekDateHeader days={days} />
 
-        {/*
-         * overflow-visible: event blocks need to visually cross column boundaries
-         * during drag (transform doesn't affect layout). The outermost container
-         * already has overflow-hidden to clip at the viewport edge.
-         */}
+        {/* Calendar grid fills remaining height. 24 hours distributed evenly
+            via CSS grid 1fr rows — no fixed px, no scrolling. */}
         <div ref={gridRef} className="flex-1 min-h-0 grid grid-cols-[80px_repeat(7,1fr)]">
           <TimeGrid />
           {days.map((day) => (

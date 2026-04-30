@@ -29,7 +29,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-surface-base text-text-primary overflow-auto">
+    <div className="h-full flex flex-col bg-surface-base text-text-primary">
       {/* Header */}
       <div className="flex items-center gap-4 px-6 py-4 border-b border-border-subtle">
         <Link
@@ -43,7 +43,7 @@ export function SettingsPage() {
         </h1>
       </div>
 
-      <div className="flex-1 max-w-2xl mx-auto w-full px-6 py-6 flex flex-col gap-6">
+      <div className="flex-1 w-full px-8 py-8 flex flex-col gap-6 overflow-y-auto">
         {/* Language switcher */}
         <section>
           <p className="text-xs font-sans text-text-tertiary mb-2">
@@ -74,7 +74,7 @@ export function SettingsPage() {
           <p className="text-xs font-sans text-text-tertiary mb-3">
             {t('分类与关键词', 'Categories & Keywords')}
           </p>
-          <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {categories.map((cat) => (
               <div
                 key={cat.id}

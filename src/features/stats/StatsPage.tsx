@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 import { addDays } from 'date-fns'
-import { addWeeks, formatMonthDay, getWeekStart } from '@/domain/time'
+import { addWeeks, formatMonthDay, getDayStart, getWeekStart } from '@/domain/time'
+import { computeWeekStats } from '@/domain/stats'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
@@ -13,6 +14,8 @@ import { cn } from '@/lib/utils'
 export function StatsPage() {
   const { weekStart, setWeekStart } = useWeekFromURL()
 
+  const events     = useEventStore((s) => s.events)
+  const categories = useCategoryStore((s) => s.categories)
   const loadWeek       = useEventStore((s) => s.loadWeek)
   const loadCategories = useCategoryStore((s) => s.loadCategories)
   const loadSettings   = useAppSettingsStore((s) => s.loadSettings)
@@ -31,10 +34,15 @@ export function StatsPage() {
   const currentWeekStart = getWeekStart(new Date(), 1)
   const isOnCurrentWeek  = weekStart.getTime() === currentWeekStart.getTime()
 
+  const weekStartMs  = getDayStart(weekStart)
+  const weekEndMs    = getDayStart(addDays(weekStart, 7))
+  const stats        = computeWeekStats(events, categories, weekStartMs, weekEndMs)
+  const totalHrs     = (stats.totalMinutes / 60).toFixed(1)
+
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
   return (
-    <div className="h-full flex flex-col bg-surface-base text-text-primary overflow-auto">
+    <div className="h-full flex flex-col bg-surface-base text-text-primary">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle flex-shrink-0">
         <div className="flex items-center gap-4">
@@ -80,14 +88,26 @@ export function StatsPage() {
         </div>
       </div>
 
-      {/* Week range subtitle */}
-      <p className="px-6 pt-4 text-xs font-sans text-text-tertiary">
-        {rangeLabel}
-      </p>
+      {/* Content: hero + cards, side-by-side on lg+ */}
+      <div className="flex-1 w-full px-8 py-8 overflow-y-auto lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
+        {/* Hero column */}
+        <div className="flex flex-col items-center lg:items-start gap-1 mb-8 lg:mb-0">
+          <span className="font-serif text-5xl text-text-primary tabular-nums tracking-tight">
+            {totalHrs}
+            <span className="text-2xl text-text-secondary ml-0.5">h</span>
+          </span>
+          <span className="text-xs font-sans text-text-tertiary tracking-wide">
+            {t('本周总记录', 'Total tracked')}
+          </span>
+          <span className="text-xs font-sans text-text-tertiary mt-1">
+            {rangeLabel}
+          </span>
+        </div>
 
-      {/* Stats content */}
-      <div className="flex-1 px-6 py-4">
-        <WeekStats weekStart={weekStart} />
+        {/* Cards column */}
+        <div className="lg:col-span-2">
+          <WeekStats stats={stats} />
+        </div>
       </div>
     </div>
   )
