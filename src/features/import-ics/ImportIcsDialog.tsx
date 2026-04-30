@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { parseIcs } from '@/domain/icsImport'
+import { parseIcs, classifyEvent } from '@/domain/icsImport'
 import type { ImportResult } from '@/domain/icsImport'
 import type { CategoryId } from '@/domain/category'
 import { useCategoryStore } from '@/stores/categoryStore'
@@ -33,7 +33,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
 
   const categories = useCategoryStore((s) => s.categories)
   const language = useAppSettingsStore((s) => s.settings.language)
-  const importEvents = useEventStore((s) => s.importEvents)
+  const importParsedEvents = useEventStore((s) => s.importParsedEvents)
 
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
@@ -81,7 +81,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
     if (!parseResult || parseResult.events.length === 0) return
     setStatus('importing')
     try {
-      await importEvents(fileContent, selectedCat)
+      await importParsedEvents(parseResult.events, selectedCat)
       setStatus('done')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed')
@@ -141,16 +141,60 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                 </span>
               </div>
               {parseResult.skippedAllDay > 0 && (
-                <div className="flex items-center justify-between text-text-tertiary">
-                  <span>{t('跳过（全天）', 'Skipped (all-day)')}</span>
-                  <span>{parseResult.skippedAllDay}</span>
-                </div>
+                <details className="text-text-tertiary">
+                  <summary className="flex items-center justify-between cursor-pointer text-xs">
+                    <span>{t('跳过（全天）', 'Skipped (all-day)')}</span>
+                    <span>{parseResult.skippedAllDay}</span>
+                  </summary>
+                  <ul className="mt-1 pl-3 text-[11px] list-disc list-inside max-h-24 overflow-y-auto">
+                    {parseResult.skippedAllDayTitles.map((title, i) => (
+                      <li key={i} className="truncate">{title || t('(无标题)', '(Untitled)')}</li>
+                    ))}
+                  </ul>
+                </details>
               )}
               {parseResult.skippedRecurring > 0 && (
-                <div className="flex items-center justify-between text-text-tertiary">
-                  <span>{t('跳过（重复）', 'Skipped (recurring)')}</span>
-                  <span>{parseResult.skippedRecurring}</span>
-                </div>
+                <details className="text-text-tertiary">
+                  <summary className="flex items-center justify-between cursor-pointer text-xs">
+                    <span>{t('跳过（重复）', 'Skipped (recurring)')}</span>
+                    <span>{parseResult.skippedRecurring}</span>
+                  </summary>
+                  <ul className="mt-1 pl-3 text-[11px] list-disc list-inside max-h-24 overflow-y-auto">
+                    {parseResult.skippedRecurringTitles.map((title, i) => (
+                      <li key={i} className="truncate">{title || t('(无标题)', '(Untitled)')}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
+
+          {/* Event preview list */}
+          {parseResult && status !== 'importing' && status !== 'done' && parseResult.events.length > 0 && (
+            <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto bg-surface-sunken rounded-xl p-2">
+              {parseResult.events.slice(0, 50).map((ev, i) => {
+                const autoCat = classifyEvent(ev.title, categories.map(c => ({ id: c.id, keywords: c.keywords })))
+                const catName = autoCat
+                  ? categories.find(c => c.id === autoCat)?.name[language] ?? autoCat
+                  : null
+                return (
+                  <div key={i} className="flex items-center gap-2 px-2 py-1 text-xs font-sans">
+                    <span className="flex-1 text-text-primary truncate">{ev.title || t('(无标题)', '(Untitled)')}</span>
+                    <span className="text-text-tertiary font-mono flex-shrink-0">
+                      {new Date(ev.startTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+                    </span>
+                    {autoCat && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-raised text-text-secondary flex-shrink-0">
+                        {catName}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+              {parseResult.events.length > 50 && (
+                <p className="text-xs text-text-tertiary text-center py-1">
+                  {t(`... 及其他 ${parseResult.events.length - 50} 个事件`, `... and ${parseResult.events.length - 50} more events`)}
+                </p>
               )}
             </div>
           )}

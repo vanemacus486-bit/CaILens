@@ -4,7 +4,7 @@ import { eventRepository } from '@/data/eventRepository'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput } from '@/domain/event'
 import { type CategoryId } from '@/domain/category'
 import { parseIcs, classifyEvent } from '@/domain/icsImport'
-import type { ImportResult } from '@/domain/icsImport'
+import type { ImportResult, ImportedEvent } from '@/domain/icsImport'
 import { useCategoryStore } from './categoryStore'
 import { getDayStart, shiftEventsByWeeks } from '@/domain/time'
 
@@ -18,6 +18,7 @@ interface EventState {
   deleteEvent: (id: string) => Promise<void>
   shiftCurrentWeek: (direction: -1 | 1) => Promise<void>
   importEvents: (icsText: string, categoryId: CategoryId) => Promise<ImportResult>
+  importParsedEvents: (parsedEvents: ImportedEvent[], categoryId: CategoryId) => Promise<void>
   reclassifyAllEvents: () => Promise<void>
 }
 
@@ -88,6 +89,29 @@ export const useEventStore = create<EventState>()((set) => ({
     const created = await eventRepository.bulkCreate(inputs)
     set((state) => ({ events: [...state.events, ...created] }))
     return result
+  },
+
+  importParsedEvents: async (parsedEvents, categoryId) => {
+    if (parsedEvents.length === 0) return
+
+    const { categories } = useCategoryStore.getState()
+
+    const inputs: CreateEventInput[] = parsedEvents.map((e) => {
+      const matched = classifyEvent(e.title, categories)
+      const catId = matched ?? categoryId
+      return {
+        title: e.title,
+        startTime: e.startTime,
+        endTime: e.endTime,
+        color: catId,
+        categoryId: catId,
+        description: e.description,
+        location: e.location,
+      }
+    })
+
+    const created = await eventRepository.bulkCreate(inputs)
+    set((state) => ({ events: [...state.events, ...created] }))
   },
 
   reclassifyAllEvents: async () => {
