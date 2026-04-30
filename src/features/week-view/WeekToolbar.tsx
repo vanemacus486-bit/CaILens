@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { addWeeks, formatMonthDay, getWeekStart, isSameDay } from '@/domain/time'
 import { addDays } from 'date-fns'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 
 interface WeekToolbarProps {
   weekStart: Date
@@ -22,6 +23,8 @@ export function WeekToolbar({
   onToday,
   onShift,
 }: WeekToolbarProps) {
+  const language = useAppSettingsStore((s) => s.settings.language)
+  const t = (zh: string, en: string) => language === 'zh' ? zh : en
   const [shiftOpen, setShiftOpen] = useState(false)
 
   const weekEnd         = addDays(weekStart, 6)
@@ -63,7 +66,7 @@ export function WeekToolbar({
               : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised cursor-pointer',
           )}
         >
-          今週
+          {t('本周', 'This week')}
         </button>
 
         <button
@@ -96,15 +99,15 @@ export function WeekToolbar({
 
           <PopoverContent align="end" className="w-52 p-1.5">
             <p className="px-2.5 py-1.5 text-[11px] font-sans text-text-tertiary select-none">
-              移动 {eventCount} 个事件
+              {t(`移动 ${eventCount} 个事件`, `Move ${eventCount} events`)}
             </p>
             <ShiftMenuItem
-              label="← 移到上一周"
+              label={t('← 移到上一周', '← Move to previous week')}
               weekLabel={formatMonthDay(addWeeks(weekStart, -1))}
               onClick={() => handleShift(-1)}
             />
             <ShiftMenuItem
-              label="→ 移到下一周"
+              label={t('→ 移到下一周', '→ Move to next week')}
               weekLabel={formatMonthDay(addWeeks(weekStart, 1))}
               onClick={() => handleShift(1)}
             />
