@@ -205,16 +205,8 @@ export function TrendChart12M({ history }: TrendChart12MProps) {
     return (
       <div
         ref={containerRef}
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: SVG_H,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-tertiary)',
-          fontSize: 14,
-        }}
+        className="relative w-full flex items-center justify-center text-text-tertiary text-sm"
+        style={{ height: SVG_H }}
       >
         {t('暂无数据', 'No data')}
       </div>
@@ -224,19 +216,10 @@ export function TrendChart12M({ history }: TrendChart12MProps) {
   const ariaLabel = language === 'zh' ? '12个月分类趋势' : '12 month category trend'
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: SVG_H }}>
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 12,
-          marginBottom: 8,
-          fontSize: 12,
-          color: 'var(--text-secondary)',
-        }}
-      >
+    <div ref={containerRef} className="relative w-full" style={{ height: SVG_H }}>
+      <div className="flex flex-wrap gap-3 mb-2 text-xs text-text-secondary">
         {CAT_IDS.map((cat) => (
-          <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div key={cat} className="flex items-center gap-1">
             <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
               <rect x="1" y="1" width="12" height="12" rx="2" fill={colors[cat]?.fill ?? ''} opacity="0.8" />
             </svg>
@@ -338,48 +321,22 @@ export function TrendChart12M({ history }: TrendChart12MProps) {
 
       {activeMonth !== null && mousePos !== null && (
         <div
-          style={{
-            position: 'fixed',
-            left: mousePos.x + 15,
-            top: mousePos.y + 15,
-            background: 'var(--surface-raised)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 8,
-            padding: '8px 12px',
-            fontSize: 12,
-            color: 'var(--text-primary)',
-            zIndex: 1000,
-            pointerEvents: 'none',
-            whiteSpace: 'nowrap',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-          }}
+          className="bg-surface-raised border border-border-subtle rounded-lg px-3 py-2 text-xs text-text-primary z-[1000] pointer-events-none whitespace-nowrap shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
+          style={{ position: 'fixed', left: mousePos.x + 15, top: mousePos.y + 15 }}
         >
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+          <div className="font-semibold mb-1">
             {monthNames[history[activeMonth].start.getMonth()]}
           </div>
           {CAT_IDS.map((cat) => {
             const h = history[activeMonth].byCategory[cat]
             return (
-              <div
-                key={cat}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  lineHeight: '1.6',
-                }}
-              >
+              <div key={cat} className="flex items-center gap-1.5 leading-[1.6]">
                 <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 2,
-                    background: colors[cat]?.fill ?? '',
-                    flexShrink: 0,
-                  }}
+                  className="w-2 h-2 rounded-sm flex-shrink-0"
+                  style={{ background: colors[cat]?.fill ?? '' }}
                 />
-                <span style={{ color: 'var(--text-secondary)' }}>{catName(cat)}</span>
-                <span style={{ marginLeft: 'auto' }}>{h.toFixed(1)}h</span>
+                <span className="text-text-secondary">{catName(cat)}</span>
+                <span className="ml-auto">{h.toFixed(1)}h</span>
               </div>
             )
           })}
