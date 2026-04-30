@@ -31,16 +31,6 @@ function strToTs(date: Date, s: string): number {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m, 0, 0).getTime()
 }
 
-function getError(startStr: string, endStr: string, date: Date): string | null {
-  if (!startStr || !endStr) return 'Set start and end times'
-  const s = strToTs(date, startStr)
-  const e = strToTs(date, endStr)
-  if (isNaN(s) || isNaN(e)) return 'Invalid time'
-  if (e <= s)               return 'End must be after start'
-  if (!isSameDay(s, e))     return 'Must be on the same day'
-  return null
-}
-
 function pushDraft(
   startStr: string, endStr: string, color: EventColor, date: Date,
   onChange: (d: DraftPreview | null) => void,
@@ -74,6 +64,7 @@ export function EventEditCard({
 
   const categories = useCategoryStore((s) => s.categories)
   const language   = useAppSettingsStore((s) => s.settings.language)
+  const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
   const [title,      setTitle]      = useState(event.title)
   const [startStr,   setStartStr]   = useState(tsToStr(event.startTime))
@@ -90,6 +81,16 @@ export function EventEditCard({
   // read before assignment.
   const virtualRef = useRef<HTMLElement>(null!)
   virtualRef.current = anchorEl
+
+  function getError(startStr: string, endStr: string, date: Date): string | null {
+    if (!startStr || !endStr) return t('请设置开始和结束时间', 'Set start and end times')
+    const s = strToTs(date, startStr)
+    const e = strToTs(date, endStr)
+    if (isNaN(s) || isNaN(e)) return t('无效时间', 'Invalid time')
+    if (e <= s)               return t('结束时间必须在开始时间之后', 'End must be after start')
+    if (!isSameDay(s, e))     return t('必须在同一天', 'Must be on the same day')
+    return null
+  }
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -174,7 +175,7 @@ export function EventEditCard({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleClose() } }}
-            placeholder="Title"
+            placeholder={t('标题', 'Title')}
             className={cn(INPUT, 'font-serif text-base')}
           />
 
@@ -219,14 +220,14 @@ export function EventEditCard({
           {/* Notes */}
           <textarea
             value={desc} onChange={(e) => setDesc(e.target.value)}
-            placeholder="Add a note…" rows={2}
+            placeholder={t('添加备注...', 'Add a note...')} rows={2}
             className={cn(INPUT, 'font-serif resize-none min-h-[56px]')}
           />
 
           {/* Location */}
           <input
             type="text" value={loc} onChange={(e) => setLoc(e.target.value)}
-            placeholder="Add a location…"
+            placeholder={t('添加地点...', 'Add a location...')}
             className={cn(INPUT, 'font-serif')}
           />
 
@@ -237,7 +238,7 @@ export function EventEditCard({
               className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 gap-1.5 px-2 h-8"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Delete
+              {t('删除', 'Delete')}
             </Button>
           </div>
         </div>
