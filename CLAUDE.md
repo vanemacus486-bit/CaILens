@@ -96,7 +96,7 @@ domain/  ──→  data/  ──→  stores/  ──→  features/ + components
 | UI | `src/features/week-view/WeekView.tsx` | 主视图入口 |
 | UI | `src/features/week-view/EventEditCard.tsx` | 事件编辑 Popover（含分类选择器） |
 | UI | `src/features/week-view/EventDetailCard.tsx` | 事件详情 Popover |
-| UI | `src/features/week-view/StatsBar.tsx` | 单条统计条 |
+
 | UI | `src/features/week-view/WeekStats.tsx` | 周统计面板 |
 | UI | `src/features/week-view/WeekDateHeader.tsx` | 周日期头 |
 | UI | `src/features/app-shell/Sidebar.tsx` | 左侧导航栏 |
@@ -309,7 +309,7 @@ npm run lint && npm run test && npm run build
 - 分类名称编辑（点击分类行进入编辑模式，Enter 提交，Escape 取消）
 - 基于 Radix Popover 实现，side="right"
 
-**周统计（WeekStats + StatsBar）：**
+**周统计（WeekStats 卡片网格）：**
 
 - 显示在 WeekDateHeader 下方、周视图上方
 - 顶部显示本周总记录时间（小时）
@@ -339,7 +339,7 @@ npm run lint && npm run test && npm run build
 **双语 UI 覆盖范围：**
 
 - EventEditCard 分类选择器
-- WeekStats / StatsBar（中文"本周记录"/英文"This week"等）
+- WeekStats 卡片网格（中文"本周暂无记录"/英文"No events this week"等）
 - Sidebar Tooltip（英文硬编码）
 - SettingsPopover（界面标签 + 分类名同时切换）
 

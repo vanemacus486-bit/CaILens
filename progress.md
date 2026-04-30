@@ -39,8 +39,7 @@
 - `stores/settingsStore.ts` — `{ settings, isLoaded, loadSettings, setLanguage }`, 初始值为 DEFAULT_SETTINGS
 
 ### 第二版 — Step 4(UI 层) ✅
-- `features/week-view/StatsBar.tsx` — 纯展示，颜色圆点 + 名称 + 进度条 + 时长/百分比
-- `features/week-view/WeekStats.tsx` — 容器，本周统计条，仅显示有记录的分类
+- `features/week-view/WeekStats.tsx` — 卡片网格展示，含颜色圆点、分类名、进度条、时长和百分比，仅显示有记录的分类
 - `features/settings/SettingsPopover.tsx` — 语言切换 + 6 个分类改名
 - `features/week-view/EventEditCard.tsx` — 色板替换为分类选择器
 - `features/week-view/WeekView.tsx` — 插入 WeekStats，修复 createEvent 类型逃逸，加载 stores
