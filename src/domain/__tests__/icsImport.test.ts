@@ -58,6 +58,8 @@ describe('parseIcs — happy path', () => {
     expect(result.events[0].endTime).toBe(Date.UTC(2026, 3, 1, 11, 0, 0))
     expect(result.skippedAllDay).toBe(0)
     expect(result.skippedRecurring).toBe(0)
+    expect(result.skippedAllDayTitles).toEqual([])
+    expect(result.skippedRecurringTitles).toEqual([])
   })
 
   it('parses an event without SUMMARY — defaults to empty string', () => {
@@ -121,6 +123,7 @@ describe('parseIcs — all-day events are skipped', () => {
     expect(result.events).toHaveLength(0)
     expect(result.skippedAllDay).toBe(1)
     expect(result.skippedRecurring).toBe(0)
+    expect(result.skippedAllDayTitles).toEqual(['All Day'])
   })
 })
 
@@ -141,6 +144,7 @@ describe('parseIcs — recurring events are skipped', () => {
     expect(result.events).toHaveLength(0)
     expect(result.skippedAllDay).toBe(0)
     expect(result.skippedRecurring).toBe(1)
+    expect(result.skippedRecurringTitles).toEqual(['Weekly Standup'])
   })
 
   it('skips an event with RDATE', () => {
@@ -156,6 +160,7 @@ describe('parseIcs — recurring events are skipped', () => {
     const result = parseIcs(ics)
     expect(result.events).toHaveLength(0)
     expect(result.skippedRecurring).toBe(1)
+    expect(result.skippedRecurringTitles).toEqual(['Has RDATE'])
   })
 
   it('skips an event with RECURRENCE-ID', () => {
@@ -172,6 +177,7 @@ describe('parseIcs — recurring events are skipped', () => {
     const result = parseIcs(ics)
     expect(result.events).toHaveLength(0)
     expect(result.skippedRecurring).toBe(1)
+    expect(result.skippedRecurringTitles).toEqual(['Exception'])
   })
 })
 
@@ -237,6 +243,8 @@ describe('parseIcs — mixed event types', () => {
     expect(result.events).toHaveLength(2)      // 2 normal events
     expect(result.skippedAllDay).toBe(1)         // 1 all-day
     expect(result.skippedRecurring).toBe(2)       // 1 RRULE + 1 RDATE
+    expect(result.skippedAllDayTitles).toEqual(['All Day'])
+    expect(result.skippedRecurringTitles).toEqual(['Daily', 'Has RDATE'])
   })
 })
 

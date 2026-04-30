@@ -21,6 +21,8 @@ export interface ImportResult {
   events: ImportedEvent[]
   skippedAllDay: number
   skippedRecurring: number
+  skippedAllDayTitles: string[]
+  skippedRecurringTitles: string[]
 }
 
 /**
@@ -51,6 +53,8 @@ export function parseIcs(icsText: string): ImportResult {
   const events: ImportedEvent[] = []
   let skippedAllDay = 0
   let skippedRecurring = 0
+  const skippedAllDayTitles: string[] = []
+  const skippedRecurringTitles: string[] = []
 
   for (const veventComp of vevents) {
     const icalEvent = new ICAL.Event(veventComp)
@@ -59,6 +63,7 @@ export function parseIcs(icsText: string): ImportResult {
     // All-day events: DTSTART with VALUE=DATE (no time component)
     if (startDate.isDate) {
       skippedAllDay++
+      skippedAllDayTitles.push(icalEvent.summary ?? '')
       continue
     }
 
@@ -69,6 +74,7 @@ export function parseIcs(icsText: string): ImportResult {
       veventComp.hasProperty('recurrence-id')
     ) {
       skippedRecurring++
+      skippedRecurringTitles.push(icalEvent.summary ?? '')
       continue
     }
 
@@ -89,7 +95,7 @@ export function parseIcs(icsText: string): ImportResult {
     events.push({ title, startTime, endTime, description, location })
   }
 
-  return { events, skippedAllDay, skippedRecurring }
+  return { events, skippedAllDay, skippedRecurring, skippedAllDayTitles, skippedRecurringTitles }
 }
 
 // ── Keyword-based classification ──────────────────────────
