@@ -1,10 +1,8 @@
 // Required: npm install recharts
-import { useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { Bucket } from '@/hooks/useStatsAggregation'
 import type { Category } from '@/domain/category'
 import type { DataMaturity } from '@/domain/maturity'
-import { cn } from '@/lib/utils'
 import { HourHeatmap } from '@/components/stats/HourHeatmap'
 
 const CAT_ORDER = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone'] as const
@@ -34,7 +32,6 @@ function dayHasData(byHourSlot: number[][], di: number): boolean {
 }
 
 export function RhythmSchedule({ current, categories, language, maturity }: RhythmScheduleProps) {
-  const [hmCat, setHmCat] = useState('accent')
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
   const days = language === 'zh' ? DAYS_ZH : DAYS_EN
   const cold = maturity.maturityLevel === 'cold'
@@ -54,7 +51,7 @@ export function RhythmSchedule({ current, categories, language, maturity }: Rhyt
   })
 
   // Weekly rhythm — dominant category per day
-  const rhythm = days.map((day, di) => {
+  const rhythm = days.map((day) => {
     let dominant = 'stone'
     let domHrs = 0
     let secondary = 'stone'
@@ -95,8 +92,6 @@ export function RhythmSchedule({ current, categories, language, maturity }: Rhyt
       </div>
     )
   }
-
-  const hmCats = ['accent', 'sage', 'sky']
 
   return (
     <div className="space-y-6">

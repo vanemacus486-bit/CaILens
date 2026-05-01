@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, Outlet } from 'react-router-dom'
+import { HashRouter, Route, Routes, Outlet } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
 import { DayView } from '@/features/day-view/DayView'
 import { Sidebar } from '@/features/app-shell/Sidebar'
@@ -18,7 +18,7 @@ function Layout() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<WeekView />} />
@@ -27,6 +27,6 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }

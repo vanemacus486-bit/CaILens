@@ -2,7 +2,7 @@
 import { useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { startOfWeek, startOfMonth, startOfQuarter, startOfYear, addDays, addMonths, addQuarters, addYears, subMonths, format } from 'date-fns'
+import { startOfWeek, startOfMonth, startOfQuarter, startOfYear, addDays, addMonths, addQuarters, addYears, format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { formatISODate, parseISODate } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
@@ -127,7 +127,7 @@ export function StatsPage() {
     if (compare === 'prev') return previous
     if (compare === 'yoy') {
       const yearAgo = addDays(addYears(anchor, -1), 0)
-      const [s, e] = [yearAgo.getTime(), shiftAnchor(yearAgo, period as Period, 1).getTime()]
+      const s = yearAgo.getTime()
       // find matching bucket in history (may not exist — return null)
       return history.find(b => b.start.getTime() === s) ?? null
     }
@@ -136,10 +136,10 @@ export function StatsPage() {
     const avgTotal = history.slice(0, -1).reduce((sum, b) => sum + b.total, 0) / (history.length - 1)
     // Return a synthetic bucket with avg values
     const avgByCat: Record<string, number> = {}
-    for (const catId of ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']) {
+    for (const catId of ['accent', 'sage', 'sand', 'sky', 'rose', 'stone'] as const) {
       avgByCat[catId] = history.slice(0, -1).reduce((sum, b) => sum + (b.byCategory[catId] || 0), 0) / (history.length - 1)
     }
-    return { start: new Date(0), end: new Date(0), byCategory: avgByCat as any, byHourSlot: [], total: avgTotal }
+    return { start: new Date(0), end: new Date(0), byCategory: avgByCat as Record<string, number>, byHourSlot: [], total: avgTotal }
   }, [compare, previous, history, anchor, period])
 
   const streak = useMemo(() => computeStreak(rangeEvents), [rangeEvents])
@@ -181,7 +181,6 @@ export function StatsPage() {
     compareBucket.byCategory.accent || 0,
   ) : null
   const monthTotalDelta = compareBucket ? getDelta(current.total, compareBucket.total) : null
-  const streakDelta = null // streak doesn't compare
 
   return (
     <div className="h-full flex flex-col bg-surface-base text-text-primary overflow-hidden">

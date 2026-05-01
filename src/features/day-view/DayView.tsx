@@ -110,7 +110,6 @@ export function DayView() {
                 <DiaryEntry
                   event={event}
                   catColor={cat ? `var(--event-${cat.id}-fill)` : 'var(--text-tertiary)'}
-                  catBg={cat ? `var(--event-${cat.id}-bg)` : 'transparent'}
                 />
               </div>
             )
@@ -127,7 +126,7 @@ export function DayView() {
   )
 }
 
-function DiaryEntry({ event, catColor, catBg }: { event: CalendarEvent; catColor: string; catBg: string }) {
+function DiaryEntry({ event, catColor }: { event: CalendarEvent; catColor: string }) {
   const timeLabel = fmtTimeHM(event.startTime)
 
   return (

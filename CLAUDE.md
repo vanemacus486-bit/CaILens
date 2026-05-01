@@ -21,17 +21,17 @@
 
 ## 2. 技术栈
 
-| 层 | 选型 | 备注 |
-|---|---|---|
-| 框架 | React 19 + TypeScript（strict） | 函数组件 + hooks，不允许 `any` |
-| 构建 | Vite 8 | |
-| 样式 | Tailwind CSS v4 + 自定义 design tokens（CSS 变量） | shadcn/ui 风格组件，**复制到项目里**而非作为依赖 |
-| 状态 | Zustand v5 | 切片订阅，避免不必要的重渲染 |
-| 存储 | IndexedDB（通过 Dexie v4） | 本地优先，无后端 |
-| 日期 | date-fns v4 | 不要引入 dayjs / moment |
-| 测试 | Vitest + React Testing Library + fake-indexeddb | |
-| 图标 | lucide-react | |
-| 字体 | Inter（UI）+ Source Serif 4（阅读感文本）+ JetBrains Mono（时间） | 通过 Fontsource 本地托管 |
+| 层   | 选型                                                              | 备注                                             |
+| ---- | ----------------------------------------------------------------- | ------------------------------------------------ |
+| 框架 | React 19 + TypeScript（strict）                                   | 函数组件 + hooks，不允许 `any`                   |
+| 构建 | Vite 8                                                            |                                                  |
+| 样式 | Tailwind CSS v4 + 自定义 design tokens（CSS 变量）                | shadcn/ui 风格组件，**复制到项目里**而非作为依赖 |
+| 状态 | Zustand v5                                                        | 切片订阅，避免不必要的重渲染                     |
+| 存储 | IndexedDB（通过 Dexie v4）                                        | 本地优先，无后端                                 |
+| 日期 | date-fns v4                                                       | 不要引入 dayjs / moment                          |
+| 测试 | Vitest + React Testing Library + fake-indexeddb                   |                                                  |
+| 图标 | lucide-react                                                      |                                                  |
+| 字体 | Inter（UI）+ Source Serif 4（阅读感文本）+ JetBrains Mono（时间） | 通过 Fontsource 本地托管                         |
 
 **依赖管理铁律：** 不要引入不必要的包。每加一个新依赖必须说明理由。**绝对不要引入** FullCalendar、Schedule-X、react-big-calendar 等日历库——周视图自己实现。
 
@@ -49,11 +49,13 @@ npm run preview      # 本地预览构建结果
 ```
 
 **跑单个测试文件：**
+
 ```bash
 npm run test -- src/domain/__tests__/layout.test.ts
 ```
 
 **改完任何代码后，提交前必须本地通过：**
+
 ```bash
 npm run lint && npm run test && npm run build
 ```
@@ -77,25 +79,25 @@ domain/  ──→  data/  ──→  stores/  ──→  features/ + components
 
 **关键文件：**
 
-| 层 | 文件 | 说明 |
-|---|---|---|
-| domain | `src/domain/event.ts` | `CalendarEvent` 类型、`EventColor` 枚举 |
-| domain | `src/domain/time.ts` | 时间工具（getDayStart、isSameDay、getWeekDays 等） |
-| domain | `src/domain/layout.ts` | 重叠事件水平并排布局算法（纯函数） |
-| domain | `src/domain/category.ts` | `Category` 类型、`DEFAULT_CATEGORIES`、`CATEGORY_NAME_MAX_LENGTH` |
-| domain | `src/domain/settings.ts` | `AppSettings` 类型（language: zh/en） |
-| domain | `src/domain/stats.ts` | `computeWeekStats` 周统计纯函数、`mergeIntervals` |
-| domain | `src/domain/migration.ts` | v1→v2 数据迁移（补 categoryId） |
-| data | `src/data/db.ts` | Dexie 数据库定义（v3 schema） |
-| data | `src/data/eventRepository.ts` | 事件 CRUD（依赖注入 Clock + IdGenerator） |
-| data | `src/data/categoryRepository.ts` | 分类 CRUD（getAll、updateName） |
-| data | `src/data/settingsRepository.ts` | 设置 CRUD（get、update） |
-| stores | `src/stores/eventStore.ts` | 全局事件状态 |
-| stores | `src/stores/categoryStore.ts` | 全局分类状态 |
-| stores | `src/stores/settingsStore.ts` | 全局设置状态 |
-| UI | `src/features/week-view/WeekView.tsx` | 主视图入口 |
-| UI | `src/features/week-view/EventEditCard.tsx` | 事件编辑 Popover（含分类选择器） |
-| UI | `src/features/week-view/EventDetailCard.tsx` | 事件详情 Popover |
+| 层     | 文件                                         | 说明                                                              |
+| ------ | -------------------------------------------- | ----------------------------------------------------------------- |
+| domain | `src/domain/event.ts`                        | `CalendarEvent` 类型、`EventColor` 枚举                           |
+| domain | `src/domain/time.ts`                         | 时间工具（getDayStart、isSameDay、getWeekDays 等）                |
+| domain | `src/domain/layout.ts`                       | 重叠事件水平并排布局算法（纯函数）                                |
+| domain | `src/domain/category.ts`                     | `Category` 类型、`DEFAULT_CATEGORIES`、`CATEGORY_NAME_MAX_LENGTH` |
+| domain | `src/domain/settings.ts`                     | `AppSettings` 类型（language: zh/en）                             |
+| domain | `src/domain/stats.ts`                        | `computeWeekStats` 周统计纯函数、`mergeIntervals`                 |
+| domain | `src/domain/migration.ts`                    | v1→v2 数据迁移（补 categoryId）                                   |
+| data   | `src/data/db.ts`                             | Dexie 数据库定义（v3 schema）                                     |
+| data   | `src/data/eventRepository.ts`                | 事件 CRUD（依赖注入 Clock + IdGenerator）                         |
+| data   | `src/data/categoryRepository.ts`             | 分类 CRUD（getAll、updateName）                                   |
+| data   | `src/data/settingsRepository.ts`             | 设置 CRUD（get、update）                                          |
+| stores | `src/stores/eventStore.ts`                   | 全局事件状态                                                      |
+| stores | `src/stores/categoryStore.ts`                | 全局分类状态                                                      |
+| stores | `src/stores/settingsStore.ts`                | 全局设置状态                                                      |
+| UI     | `src/features/week-view/WeekView.tsx`        | 主视图入口                                                        |
+| UI     | `src/features/week-view/EventEditCard.tsx`   | 事件编辑 Popover（含分类选择器）                                  |
+| UI     | `src/features/week-view/EventDetailCard.tsx` | 事件详情 Popover                                                  |
 
 | UI | `src/features/week-view/WeekStats.tsx` | 周统计面板 |
 | UI | `src/features/week-view/WeekDateHeader.tsx` | 周日期头 |
@@ -135,66 +137,69 @@ domain/  ──→  data/  ──→  stores/  ──→  features/ + components
 
 ```typescript
 // src/domain/event.ts
-export type EventColor = 'accent' | 'sage' | 'sand' | 'sky' | 'rose' | 'stone'
+export type EventColor = "accent" | "sage" | "sand" | "sky" | "rose" | "stone";
 
 export interface CalendarEvent {
-  id: string              // crypto.randomUUID()
-  title: string
-  startTime: number       // UTC ms
-  endTime: number         // UTC ms
-  color: EventColor
-  categoryId: EventColor  // 第二版新增，与 color 同值（CategoryId = EventColor）
-  description?: string
-  location?: string
-  createdAt: number       // UTC ms
-  updatedAt: number       // UTC ms
+  id: string; // crypto.randomUUID()
+  title: string;
+  startTime: number; // UTC ms
+  endTime: number; // UTC ms
+  color: EventColor;
+  categoryId: EventColor; // 第二版新增，与 color 同值（CategoryId = EventColor）
+  description?: string;
+  location?: string;
+  createdAt: number; // UTC ms
+  updatedAt: number; // UTC ms
 }
 ```
 
 ```typescript
 // src/domain/category.ts
-export type CategoryId = EventColor   // 6 个固定分类，id 与 EventColor 一一对应
+export type CategoryId = EventColor; // 6 个固定分类，id 与 EventColor 一一对应
 
 export interface Category {
-  id: CategoryId
-  name: CategoryName     // { zh: string, en: string }，用户可改名
-  color: EventColor      // 固定，与 id 同值
+  id: CategoryId;
+  name: CategoryName; // { zh: string, en: string }，用户可改名
+  color: EventColor; // 固定，与 id 同值
 }
 
 export const DEFAULT_CATEGORIES = [
-  { id: 'accent', name: { zh: '核心工作', en: 'Core Work'       }, color: 'accent' },
-  { id: 'sage',   name: { zh: '辅助工作', en: 'Support Work'    }, color: 'sage'   },
-  { id: 'sand',   name: { zh: '必要事务', en: 'Essentials'      }, color: 'sand'   },
-  { id: 'sky',    name: { zh: '阅读学习', en: 'Reading & Study' }, color: 'sky'    },
-  { id: 'rose',   name: { zh: '休息',     en: 'Rest'            }, color: 'rose'   },
-  { id: 'stone',  name: { zh: '其他',     en: 'Other'           }, color: 'stone'  },
-] as const
+  { id: "accent", name: { zh: "核心工作", en: "Core Work" }, color: "accent" },
+  { id: "sage", name: { zh: "辅助工作", en: "Support Work" }, color: "sage" },
+  { id: "sand", name: { zh: "必要事务", en: "Essentials" }, color: "sand" },
+  { id: "sky", name: { zh: "阅读学习", en: "Reading & Study" }, color: "sky" },
+  { id: "rose", name: { zh: "休息", en: "Rest" }, color: "rose" },
+  { id: "stone", name: { zh: "其他", en: "Other" }, color: "stone" },
+] as const;
 ```
 
 ```typescript
 // src/domain/settings.ts
 export interface AppSettings {
-  id: 'default'           // singleton — Dexie primary key
-  language: AppLanguage   // 'zh' | 'en'
+  id: "default"; // singleton — Dexie primary key
+  language: AppLanguage; // 'zh' | 'en'
 }
 ```
 
 **Dexie schema（`src/data/db.ts`）当前是 version 3：**
+
 ```typescript
 this.version(1).stores({
-  events: 'id, startTime',
-})
+  events: "id, startTime",
+});
 
 // v3: 新增 categories + settings 表，含数据迁移
-this.version(3).stores({
-  events:     'id, startTime',
-  categories: 'id',
-  settings:   'id',
-}).upgrade(async (tx) => {
-  // 1. 给 v1 遗留 events 补 categoryId
-  // 2. 迁移 v2 dev 数据库的 categories.name string → {zh, en}
-  // 3. 播种 settings
-})
+this.version(3)
+  .stores({
+    events: "id, startTime",
+    categories: "id",
+    settings: "id",
+  })
+  .upgrade(async (tx) => {
+    // 1. 给 v1 遗留 events 补 categoryId
+    // 2. 迁移 v2 dev 数据库的 categories.name string → {zh, en}
+    // 3. 播种 settings
+  });
 // 全新 DB 通过 on('populate') 播种默认分类和设置
 // on('ready') 兜底：如果 upgrade 内写入不可靠时补种
 ```
@@ -261,9 +266,11 @@ this.version(3).stores({
 ### 9.3 提交前自检
 
 写完一个功能后，自己跑一遍：
+
 ```bash
 npm run lint && npm run test && npm run build
 ```
+
 **任何一项失败都要修复后再交。** 不要把失败的测试甩给用户。
 
 ### 9.4 不要做的事
@@ -279,6 +286,7 @@ npm run lint && npm run test && npm run build
 ### 9.5 关于注释
 
 代码本身要清晰到几乎不需要注释。**只在以下情况写注释：**
+
 - 解释"为什么"而不是"是什么"
 - 边界条件和非显然的不变量
 - 引用具体的设计决策来源
@@ -368,3 +376,224 @@ npm run lint && npm run test && npm run build
 - `Chris_Dzombak.md` —— 来源不明的参考文档，使用前请用户确认其权威性
 
 **当本文件与其他文档冲突时，以本文件为准。当本文件与代码冲突时，先停下来问用户。**
+
+# CaILens - 需求文档
+
+## 项目背景
+
+这是一个时间管理软件的第一版，灵感来自《奇特的一生》中柳比歇夫的时间统计法。长期目标是做一个"数据驱动的自我复盘工具"，但第一版只做最基础的日历功能。
+
+这是一个独立的新项目（与之前的 Angular 版本无关），放在一个新的 git 仓库里。
+
+## 核心理念
+
+- **本地优先**：所有数据存储在用户浏览器本地，不上传任何服务器
+- **克制的设计**：界面以留白、阅读感为主，UI 控件为辅
+- **代码质量优先于功能数量**：宁可功能少，也要代码干净、类型严格、可维护
+
+## 技术栈
+
+- **框架**：React 18 + TypeScript（严格模式，不允许 `any`）
+- **构建工具**：Vite
+- **样式**：Tailwind CSS
+- **组件**：shadcn/ui（通过 CLI 复制到项目里，不作为 npm 依赖）
+- **图标**：Lucide React
+- **字体**：Inter（无衬线）+ Source Serif 4（衬线），通过 Fontsource 本地托管
+- **数据存储**: Dexie.js (IndexedDB 封装)
+- **状态管理**: Zustand
+- **日期处理**: date-fns
+- **测试**: Vitest
+
+**不要引入不必要的依赖**。每增加一个 npm 包需要说明理由。特别是：不要引入 FullCalendar、Schedule-X 等日历库——我们自己实现周视图。
+
+## 数据模型
+
+```typescript
+// 事件
+interface Event {
+  id: string; // UUID v4
+  title: string; // 事件标题
+  startTime: number; // UTC 时间戳（毫秒）
+  endTime: number; // UTC 时间戳（毫秒）
+  allDay: boolean; // 是否全天事件
+  color: EventColor; // 颜色标识
+  description?: string; // 备注（可选）
+  location?: string; // 地点（可选）
+  createdAt: number;
+  updatedAt: number;
+}
+
+type EventColor = "accent" | "sage" | "sand" | "sky" | "rose" | "stone";
+
+// 应用设置
+interface AppSettings {
+  weekStartsOn: 0 | 1; // 0 = 周日, 1 = 周一
+  timeFormat: "12h" | "24h";
+  theme: "light" | "dark" | "auto";
+}
+```
+
+**关键约束**：
+
+- 所有时间存 UTC 毫秒时间戳，不存字符串。显示层转本地时区。
+- 颜色用预定义字符串，不存 hex 值。hex 值在 CSS 变量里定义，方便主题切换。
+- 预留扩展空间，但第一版不实现：`categoryId`、`tags`、`reflectionNote`、`source`、`externalId` 这些字段都先不加，等真正需要时再说。
+
+## 架构要求
+
+**分层架构**，职责清晰：
+
+```
+src/
+├── domain/           # 核心业务逻辑（纯函数，零依赖）
+│   ├── event.ts      # Event 相关的业务逻辑和类型
+│   ├── time.ts       # 时间计算工具（周的起止、时间段重叠等）
+│   └── __tests__/    # 单元测试
+├── data/             # 数据持久层
+│   ├── db.ts         # Dexie 数据库定义
+│   └── eventRepository.ts  # Event 的 CRUD（通过这里访问数据库，组件不直接接触 Dexie）
+├── stores/           # Zustand 状态管理
+│   └── eventStore.ts
+├── components/
+│   ├── ui/           # shadcn/ui 组件
+│   └── calendar/     # 日历相关组件
+├── features/         # 功能模块
+│   └── week-view/    # 周视图
+├── lib/              # 通用工具
+└── App.tsx
+```
+
+**架构原则**：
+
+- `domain/` 层是纯函数，不依赖 React、Dexie 或任何框架。这样易于测试和未来迁移。
+- 组件不要直接调用 Dexie，所有数据访问通过 `data/eventRepository.ts`。
+- UI 组件不写业务逻辑，业务逻辑在 `domain/` 里。
+
+## 功能范围
+
+### 第一版必须做
+
+**周视图日历**：
+
+- 显示当前周的 7 天，每天分时段显示（例如 0:00 - 24:00，每小时一格，实际可视区域默认聚焦 8:00-20:00）
+- 顶部显示星期几和日期
+- 左侧显示时间刻度
+- 事件以时间块的形式渲染在对应位置
+- 全天事件单独显示在顶部区域
+- 支持左右切换周（"上一周"、"下一周"、"本周"按钮）
+- 当前时间有一条水平红线标识（仅在今天所在的列显示）
+
+**事件操作**：
+
+- 点击空白时段创建事件（弹出创建面板）
+- 点击已有事件编辑（弹出编辑面板）
+- 编辑面板里有删除按钮
+- 事件面板字段：标题、开始时间、结束时间、全天切换、颜色、备注、地点
+
+**重叠事件的布局**：
+
+- 同一时段有多个事件时，水平并排显示，各占一定宽度
+- 基础的布局算法即可，不要求完美
+
+### 第一版明确不做
+
+- 拖拽创建事件、拖拽调整事件时间（点击创建/编辑即可）
+- 日视图、月视图、年视图、日程视图
+- 重复事件（RRULE）
+- Google Calendar 导入/同步
+- 分类/标签系统
+- 复盘/统计功能
+- 数据导出/导入
+- AI 相关功能
+- PWA 打包
+- 多人协作、提醒通知
+- 时区切换（所有时间按用户本地时区显示）
+
+## UI/UX 风格
+
+整体风格参考 Claude 的设计语言：
+
+**色彩**：
+
+- 背景用暖中性色（warm neutrals），不是纯白。参考值：`#FAF9F5`
+- 主色调用温暖的橘色。参考值：`#D97757`
+- 深色模式用偏暖的深灰，不是纯黑。参考值：`#262624`
+- 整体给人"文档/书本"感，不是"软件工具"感
+
+**字体**：
+
+- 标题和 UI 控件用 Inter
+- 事件标题、描述等文本内容用 Source Serif 4（衬线字体是 Claude 感的关键特征）
+- 等宽字体用 JetBrains Mono（时间刻度可考虑用等宽）
+
+**形状**：
+
+- 中等圆角（按钮 `rounded-lg` 到 `rounded-xl`）
+- 输入框更大圆角（`rounded-2xl`）
+- 事件块用较小圆角（`rounded-md`）
+
+**克制原则**：
+
+- 几乎不用阴影，用边框分隔元素
+- 悬停效果要 subtle（边框加深或背景微变，不要大面积变色）
+- 动画过渡缓慢（200-400ms，ease-out）
+- 留白充裕，不追求信息密度
+- 橘色只用在关键行动（主按钮、当前选中日期等），其他地方用暖灰色
+
+**事件颜色系统**：
+
+在 Tailwind 配置里定义 6 种柔和的事件颜色，不要用饱和度高的纯色：
+
+- accent：Claude 橘色系
+- sage：柔和的鼠尾草绿
+- sand：沙色
+- sky：柔和的天蓝
+- rose：柔和的玫瑰色
+- stone：中性灰
+
+每个颜色需要一个"背景色"和一个"文字/边框色"的配对。
+
+## 开发顺序和交付要求
+
+**第一步：请先输出以下内容给我确认，不要直接开始写代码**：
+
+1. 完整的项目目录结构
+2. Tailwind 配置（颜色系统、字体）
+3. 核心类型定义（`domain/event.ts` 里的类型）
+4. `eventRepository.ts` 的接口签名
+5. 主要组件的划分
+
+我确认后，你再开始分步实现。
+
+**第二步：按以下顺序实现，每完成一步暂停让我 review**：
+
+1. 项目初始化、Tailwind 配置、字体加载、shadcn/ui 初始化
+2. 数据层（Dexie 数据库、Repository）+ 单元测试
+3. Domain 层的时间计算工具 + 单元测试
+4. 周视图骨架（纯布局，静态渲染）
+5. 事件渲染（从数据库读取事件并显示）
+6. 事件创建/编辑面板
+7. 重叠事件布局
+8. 当前时间红线
+9. 周切换导航
+10. 视觉细节打磨（颜色、字体、圆角、动效）
+
+## 代码质量要求
+
+- TypeScript 严格模式，`strict: true`，禁用 `any`（除非有注释说明理由）
+- 核心业务逻辑（`domain/` 层）必须有单元测试
+- 每个组件单一职责，避免超过 200 行的组件
+- 使用函数组件和 hooks，不用 class 组件
+- 时间值统一用 UTC 时间戳（`number`）存储和传递，仅在显示层转本地时区
+- 代码注释、README、Git commit message 都用英文
+
+## 非目标提醒
+
+这个项目第一版的目标是**"一个漂亮的、代码干净的、本地运行的周视图日历"**。请不要：
+
+- 自作主张加"复盘统计"、"AI 助手"等未来才做的功能
+- 引入不必要的抽象（YAGNI 原则）
+- 为了"可扩展性"过度设计
+- 把 UI 做得花哨（动画、渐变、粒子效果——不要）
+
+如果你觉得某个未列出的功能很重要，先告诉我，让我决定加不加，不要自己加。

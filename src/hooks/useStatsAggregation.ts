@@ -10,7 +10,6 @@ import {
   addMonths,
   addQuarters,
   addYears,
-  subMonths,
 } from 'date-fns'
 import { useEventStore } from '@/stores/eventStore'
 import { mergeIntervals } from '@/domain/stats'

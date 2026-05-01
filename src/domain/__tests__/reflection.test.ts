@@ -108,8 +108,6 @@ describe('generateWeeklyReflection', () => {
       current: cur,
       // accent budget stays at 20
     }))
-    // Find the accent category
-    const accentCat = makeCats().find((c) => c.id === 'accent')!
     expect(r.some((s) => s.includes('主要矛盾') && s.includes('无记录'))).toBe(true)
   })
 

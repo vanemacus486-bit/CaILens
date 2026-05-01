@@ -250,14 +250,14 @@ describe('parseIcs — mixed event types', () => {
 
 // ── classifyEvent ─────────────────────────────────────────
 
-type CategoryStub = { id: CategoryId; keywords: string[] }
+type CategoryStub = { id: CategoryId; folders: { keywords: string[] }[] }
 
-const accent: CategoryStub = { id: 'accent', keywords: ['meeting', 'standup', '会议'] }
-const sage:   CategoryStub = { id: 'sage',   keywords: ['email', 'review'] }
-const sand:   CategoryStub = { id: 'sand',   keywords: [] }
-const sky:    CategoryStub = { id: 'sky',    keywords: ['read', 'study', '学习'] }
-const rose:   CategoryStub = { id: 'rose',   keywords: ['lunch', 'break', '午休'] }
-const stone:  CategoryStub = { id: 'stone',  keywords: [] }
+const accent: CategoryStub = { id: 'accent', folders: [{ keywords: ['meeting', 'standup', '会议'] }] }
+const sage:   CategoryStub = { id: 'sage',   folders: [{ keywords: ['email', 'review'] }] }
+const sand:   CategoryStub = { id: 'sand',   folders: [{ keywords: [] }] }
+const sky:    CategoryStub = { id: 'sky',    folders: [{ keywords: ['read', 'study', '学习'] }] }
+const rose:   CategoryStub = { id: 'rose',   folders: [{ keywords: ['lunch', 'break', '午休'] }] }
+const stone:  CategoryStub = { id: 'stone',  folders: [{ keywords: [] }] }
 
 const allCategories = [accent, sage, sand, sky, rose, stone]
 
@@ -289,19 +289,19 @@ describe('classifyEvent', () => {
 
   it('returns null when all categories have empty keywords', () => {
     const noKeywords: CategoryStub[] = [
-      { id: 'accent', keywords: [] },
-      { id: 'stone',  keywords: [] },
+      { id: 'accent', folders: [{ keywords: [] }] },
+      { id: 'stone',  folders: [{ keywords: [] }] },
     ]
     expect(classifyEvent('anything', noKeywords)).toBeNull()
   })
 
-  it('handles undefined keywords gracefully', () => {
-    const cat = { id: 'accent' as CategoryId, keywords: undefined as unknown as string[] }
+  it('handles undefined folders gracefully', () => {
+    const cat = { id: 'accent' as CategoryId, folders: undefined as unknown as { keywords: string[] }[] }
     expect(classifyEvent('meeting', [cat])).toBeNull()
   })
 
   it('skips empty-string keywords', () => {
-    const cat: CategoryStub = { id: 'accent', keywords: ['', '  ', 'real'] }
+    const cat: CategoryStub = { id: 'accent', folders: [{ keywords: ['', '  ', 'real'] }] }
     expect(classifyEvent('real deal', [cat])).toBe('accent')
   })
 })

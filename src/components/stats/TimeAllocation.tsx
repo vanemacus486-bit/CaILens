@@ -39,19 +39,8 @@ export function TimeAllocation({ current, categories, language }: TimeAllocation
   // Stacked bar data
   const days = language === 'zh' ? DAYS_ZH : DAYS_EN
   const barData = current.byHourSlot.length > 0
-    ? days.map((day, di) => {
+    ? days.map((day) => {
         const entry: Record<string, string | number> = { day }
-        let dayTotal = 0
-        for (const id of CAT_ORDER) {
-          let sum = 0
-          for (let h = 0; h < 24; h++) {
-            sum += (current.byHourSlot[di]?.[h] || 0)
-          }
-          // Actually, byHourSlot is per-hour, but we need per-category sums per day
-          // byHourSlot is [7][24] total hours (not by category). We can't get per-category from byHourSlot.
-          // Use category breakdown differently.
-          // For stacked bars, fall back to even distribution approximation
-        }
         // Use average distribution across week
         for (const id of CAT_ORDER) {
           entry[id] = (current.byCategory[id] || 0) / 7

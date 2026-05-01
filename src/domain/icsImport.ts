@@ -110,13 +110,15 @@ export function parseIcs(icsText: string): ImportResult {
  */
 export function classifyEvent(
   title: string,
-  categories: ReadonlyArray<{ id: CategoryId; keywords: string[] }>,
+  categories: ReadonlyArray<{ id: CategoryId; folders: readonly { keywords: string[] }[] }>,
 ): CategoryId | null {
   if (!title) return null
   const lower = title.toLowerCase()
   for (const cat of categories) {
-    for (const kw of cat.keywords ?? []) {
-      if (kw && lower.includes(kw.toLowerCase())) return cat.id
+    for (const folder of cat.folders ?? []) {
+      for (const kw of folder.keywords) {
+        if (kw && lower.includes(kw.toLowerCase())) return cat.id
+      }
     }
   }
   return null

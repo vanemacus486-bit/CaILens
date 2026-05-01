@@ -42,8 +42,6 @@ function pickQuote(language: 'zh' | 'en'): string {
 
 const ALL_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
 const TYPE_I: CategoryId[] = ['accent', 'sky']
-const TYPE_II: CategoryId[] = ['sage', 'sand', 'rose', 'stone']
-
 function catName(categories: readonly Category[], id: string, lang: 'zh' | 'en'): string {
   return categories.find((c) => c.id === id)?.name[lang] ?? id
 }
@@ -165,12 +163,9 @@ export function generateWeeklyReflection(params: ReflectionParams): string[] {
   if (previous) {
     let gainerId = ''
     let gainerDelta = 0
-    let loserId = ''
-    let loserDelta = 0
     for (const id of ALL_IDS) {
       const delta = (current.byCategory[id] || 0) - (previous.byCategory[id] || 0)
       if (delta > gainerDelta) { gainerDelta = delta; gainerId = id }
-      if (delta < loserDelta) { loserDelta = delta; loserId = id }
     }
     if (gainerDelta > 0) {
       const name = catName(categories, gainerId, language)

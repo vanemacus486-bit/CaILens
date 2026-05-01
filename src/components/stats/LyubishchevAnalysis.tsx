@@ -20,7 +20,7 @@ const TYPE_I_IDS = ['accent', 'sky'] as const
 const TYPE_II_IDS = ['sage', 'sand', 'rose', 'stone'] as const
 
 export function LyubishchevAnalysis({
-  current, typeSplit, rangeEvents, categories, language, maturity, periodType,
+  current, typeSplit, categories, language, maturity, periodType,
 }: LyubishchevAnalysisProps) {
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
   const showProjection = maturity.maturityLevel !== 'cold' && periodType !== 'all'
@@ -133,7 +133,7 @@ export function LyubishchevAnalysis({
           {t('从首次记录到现在的累计', 'Running totals from first entry')}
         </p>
 
-        {cumulatives.map((c, i) => (
+        {cumulatives.map((c) => (
           <div key={c.id} className="mb-[18px]">
             <div className="text-[13px] text-text-primary mb-1.5 font-medium">{c.name}</div>
             <div className="relative h-[5px] bg-surface-sunken rounded-sm">
