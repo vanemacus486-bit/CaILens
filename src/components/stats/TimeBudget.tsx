@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react'
 import type { Bucket } from '@/hooks/useStatsAggregation'
 import type { Category } from '@/domain/category'
 import { cn } from '@/lib/utils'
@@ -38,7 +39,8 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
         <div className="space-y-3.5">
           {items.map((item) => {
             const over = item.actual > item.budget
-            const pct = Math.min((item.actual / item.budget) * 100, 100)
+            const overPct = over ? ((item.actual - item.budget) / item.budget) * 100 : 0
+            const barPct = Math.min((item.actual / item.budget) * 100, 100)
             const overAmt = item.actual - item.budget
 
             return (
@@ -51,23 +53,48 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
                     />
                     <span className="text-[13px] text-text-primary">{item.name[language]}</span>
                     {over && (
-                      <span className="text-[10px] text-[#B8823A] bg-[#F5EDD8] px-1.5 py-0.5 rounded-sm font-mono">
+                      <span className="text-[10px] text-color-text-danger bg-surface-sunken px-1.5 py-0.5 rounded-sm font-mono inline-flex items-center gap-1">
+                        <AlertTriangle size={10} strokeWidth={2.5} />
                         +{overAmt.toFixed(1)}h
                       </span>
                     )}
                   </div>
                   <span className="font-mono text-xs text-text-secondary">
-                    <span className="text-text-primary font-semibold">{item.actual.toFixed(1)}</span> / {item.budget}h
+                    <span className={cn('font-semibold', over && 'text-color-text-danger')}>
+                      {item.actual.toFixed(1)}
+                    </span>
+                    {' / '}{item.budget}h
                   </span>
                 </div>
-                <div className="relative h-1.5 bg-surface-sunken rounded-sm">
+                {/* Progress bar */}
+                <div className="relative h-1.5 bg-surface-sunken rounded-sm overflow-hidden">
+                  {/* Solid portion up to budget cap */}
                   <div
-                    className={cn('h-full rounded-sm', over ? 'opacity-100' : 'opacity-80')}
+                    className="h-full rounded-sm absolute left-0 top-0"
                     style={{
-                      width: `${pct}%`,
-                      backgroundColor: over ? 'var(--accent)' : `var(--event-${item.id}-fill)`,
+                      width: `${barPct}%`,
+                      backgroundColor: over ? `var(--event-${item.id}-fill)` : `var(--event-${item.id}-fill)`,
+                      opacity: over ? 0.65 : 0.8,
                     }}
                   />
+                  {/* Excess portion with diagonal stripes */}
+                  {over && (
+                    <div
+                      className="h-full absolute top-0 left-0"
+                      style={{
+                        width: `${barPct + overPct}%`,
+                        maxWidth: '100%',
+                        background: `repeating-linear-gradient(
+                          -45deg,
+                          transparent,
+                          transparent 3px,
+                          var(--event-${item.id}-fill) 3px,
+                          var(--event-${item.id}-fill) 5px
+                        )`,
+                        opacity: 0.4,
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             )
@@ -96,7 +123,8 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
                   />
                   <span className="text-[13px] text-text-primary">{item.name[language]}</span>
                 </div>
-                <span className="font-mono text-xs text-[#B8823A]">
+                <span className="font-mono text-xs text-color-text-danger inline-flex items-center gap-1">
+                  <AlertTriangle size={10} strokeWidth={2.5} />
                   +{(item.actual - item.budget).toFixed(1)}h
                 </span>
               </div>

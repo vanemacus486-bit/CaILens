@@ -2,6 +2,7 @@ import type { Bucket } from '@/hooks/useStatsAggregation'
 import type { Category } from '@/domain/category'
 import type { TypeSplit } from '@/domain/stats'
 import type { CalendarEvent } from '@/domain/event'
+import type { DataMaturity } from '@/domain/maturity'
 
 interface LyubishchevAnalysisProps {
   current: Bucket
@@ -9,13 +10,14 @@ interface LyubishchevAnalysisProps {
   rangeEvents: readonly CalendarEvent[]
   categories: Category[]
   language: 'zh' | 'en'
+  maturity: DataMaturity
 }
 
 const TYPE_I_IDS = ['accent', 'sky'] as const
 const TYPE_II_IDS = ['sage', 'sand', 'rose', 'stone'] as const
 
 export function LyubishchevAnalysis({
-  current, typeSplit, rangeEvents, categories, language,
+  current, typeSplit, rangeEvents, categories, language, maturity,
 }: LyubishchevAnalysisProps) {
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 

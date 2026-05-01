@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { Bucket } from '@/hooks/useStatsAggregation'
 import type { Category } from '@/domain/category'
+import type { DataMaturity } from '@/domain/maturity'
 import { cn } from '@/lib/utils'
 import { HourHeatmap } from '@/components/stats/HourHeatmap'
 
@@ -15,6 +16,7 @@ interface RhythmScheduleProps {
   history: Bucket[]
   categories: Category[]
   language: 'zh' | 'en'
+  maturity: DataMaturity
 }
 
 function formatHourTick(h: number): string {
@@ -24,10 +26,19 @@ function formatHourTick(h: number): string {
   return `${h - 12}p`
 }
 
-export function RhythmSchedule({ current, categories, language }: RhythmScheduleProps) {
+function dayHasData(byHourSlot: number[][], di: number): boolean {
+  for (let h = 0; h < 24; h++) {
+    if ((byHourSlot[di]?.[h] || 0) > 0) return true
+  }
+  return false
+}
+
+export function RhythmSchedule({ current, categories, language, maturity }: RhythmScheduleProps) {
   const [hmCat, setHmCat] = useState('accent')
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
   const days = language === 'zh' ? DAYS_ZH : DAYS_EN
+  const cold = maturity.maturityLevel === 'cold'
+  const warming = maturity.maturityLevel === 'warming'
 
   // Hourly distribution data — average across bucket
   const hourlyData = Array.from({ length: 24 }, (_, h) => {
@@ -48,16 +59,8 @@ export function RhythmSchedule({ current, categories, language }: RhythmSchedule
     let domHrs = 0
     let secondary = 'stone'
     let secHrs = 0
-    for (const id of CAT_ORDER) {
-      let sum = 0
-      for (let h = 0; h < 24; h++) {
-        sum += current.byHourSlot[di]?.[h] || 0
-      }
-      // byHourSlot is total hours, not per-category, so dominant detection is approximate
-    }
-    // Use byCategory distributed evenly as approximation
     const perCat = Object.fromEntries(
-      CAT_ORDER.map((id, i) => [id, (current.byCategory[id] || 0) / 7])
+      CAT_ORDER.map((id) => [id, (current.byCategory[id] || 0) / 7])
     )
     const sorted = CAT_ORDER
       .map(id => ({ id, hrs: perCat[id]! }))
@@ -69,6 +72,11 @@ export function RhythmSchedule({ current, categories, language }: RhythmSchedule
 
     return { day, dominant, domHrs, secondary, secHrs }
   })
+
+  // Filter to only days with real data when warming
+  const visibleRhythm = warming
+    ? rhythm.filter((_, di) => dayHasData(current.byHourSlot, di))
+    : rhythm
 
   const RechartsTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
@@ -149,39 +157,47 @@ export function RhythmSchedule({ current, categories, language }: RhythmSchedule
       </div>
 
       <div className="grid grid-cols-2 gap-6">
-        {/* Weekly Rhythm */}
-        <div className="bg-surface-raised border border-border-subtle p-6">
-          <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
-            {t('每周节奏', 'Weekly Rhythm')}
-          </h3>
-          <p className="text-[11px] text-text-tertiary mb-4">
-            {t('每日主导活动', 'Dominant activity per day')}
-          </p>
+        {/* Weekly Rhythm — hidden in cold, filtered in warming */}
+        {cold ? (
+          <div className="bg-surface-raised border border-border-subtle p-6 flex items-center justify-center">
+            <p className="text-[12px] text-text-tertiary italic">
+              {t('记录更多天后显示每周节奏', 'Record more days to see your weekly rhythm')}
+            </p>
+          </div>
+        ) : (
+          <div className="bg-surface-raised border border-border-subtle p-6">
+            <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
+              {t('每周节奏', 'Weekly Rhythm')}
+            </h3>
+            <p className="text-[11px] text-text-tertiary mb-4">
+              {t('每日主导活动', 'Dominant activity per day')}
+            </p>
 
-          {rhythm.map((r) => {
-            const cat = categories.find((c) => c.id === r.dominant)
-            const secCat = categories.find((c) => c.id === r.secondary)
-            return (
-              <div key={r.day} className="flex items-center gap-2.5 py-2 border-b border-border-subtle last:border-b-0">
-                <span className="text-xs text-text-tertiary w-[72px] flex-shrink-0">{r.day}</span>
-                <span
-                  className="inline-flex items-center px-2.5 py-[3px] rounded-xl text-[11px] font-sans font-medium text-white"
-                  style={{ backgroundColor: `var(--event-${r.dominant}-fill)` }}
-                >
-                  {cat?.name[language] ?? r.dominant}
-                </span>
-                {r.secHrs > 0 && (
-                  <span className="inline-flex items-center px-2.5 py-[3px] rounded-xl text-[11px] font-sans text-text-secondary bg-surface-sunken border border-border-subtle">
-                    {secCat?.name[language] ?? r.secondary}
+            {visibleRhythm.map((r) => {
+              const cat = categories.find((c) => c.id === r.dominant)
+              const secCat = categories.find((c) => c.id === r.secondary)
+              return (
+                <div key={r.day} className="flex items-center gap-2.5 py-2 border-b border-border-subtle last:border-b-0">
+                  <span className="text-xs text-text-tertiary w-[72px] flex-shrink-0">{r.day}</span>
+                  <span
+                    className="inline-flex items-center px-2.5 py-[3px] rounded-xl text-[11px] font-sans font-medium text-white"
+                    style={{ backgroundColor: `var(--event-${r.dominant}-fill)` }}
+                  >
+                    {cat?.name[language] ?? r.dominant}
                   </span>
-                )}
-                <span className="ml-auto font-mono text-[11px] text-text-tertiary">
-                  {r.domHrs > 0 ? `${r.domHrs.toFixed(1)}h` : '—'}
-                </span>
-              </div>
-            )
-          })}
-        </div>
+                  {r.secHrs > 0 && (
+                    <span className="inline-flex items-center px-2.5 py-[3px] rounded-xl text-[11px] font-sans text-text-secondary bg-surface-sunken border border-border-subtle">
+                      {secCat?.name[language] ?? r.secondary}
+                    </span>
+                  )}
+                  <span className="ml-auto font-mono text-[11px] text-text-tertiary">
+                    {r.domHrs > 0 ? `${r.domHrs.toFixed(1)}h` : '—'}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* Heatmap */}
         <div className="bg-surface-raised border border-border-subtle p-6">

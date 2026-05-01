@@ -73,10 +73,11 @@ export function NotableMoments({ current, rangeEvents, streak, categories, langu
     })
   }
 
-  // Longest event
+  // Longest event (exclude rest/sleep category)
   let longest: CalendarEvent | null = null
   let longestDur = 0
   for (const e of rangeEvents) {
+    if (e.categoryId === 'rose') continue
     const dur = e.endTime - e.startTime
     if (dur > longestDur) { longestDur = dur; longest = e }
   }

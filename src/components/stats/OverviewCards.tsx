@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import type { DataMaturity } from '@/domain/maturity'
 
 interface OverviewCardsProps {
   netEffective: number
@@ -9,13 +10,15 @@ interface OverviewCardsProps {
   deepWorkDelta: number | null
   monthTotalDelta: number | null
   language: 'zh' | 'en'
+  maturity: DataMaturity
 }
 
-function OvCard({ label, value, unit, delta }: {
+function OvCard({ label, value, unit, delta, cold }: {
   label: string
   value: string
   unit: string
   delta: number | null
+  cold: boolean
 }) {
   const up = delta !== null && delta >= 0
   const dn = delta !== null && delta < 0
@@ -29,7 +32,7 @@ function OvCard({ label, value, unit, delta }: {
         {value}
         <span className="text-sm font-normal text-text-tertiary ml-0.5">{unit}</span>
       </div>
-      {delta !== null && (
+      {delta !== null && !cold && (
         <div className="mt-2">
           <span className={cn(
             'text-[11px] font-mono px-1.5 py-0.5 rounded-sm',
@@ -53,8 +56,10 @@ export function OverviewCards({
   deepWorkDelta,
   monthTotalDelta,
   language,
+  maturity,
 }: OverviewCardsProps) {
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
+  const cold = maturity.maturityLevel === 'cold'
 
   return (
     <div className="grid grid-cols-4 gap-4">
@@ -63,24 +68,28 @@ export function OverviewCards({
         value={netEffective.toFixed(1)}
         unit="h"
         delta={netEffectiveDelta}
+        cold={cold}
       />
       <OvCard
         label={t('核心工作', 'Deep Work')}
         value={deepWork.toFixed(1)}
         unit="h"
         delta={deepWorkDelta}
+        cold={cold}
       />
       <OvCard
         label={t('连续记录', 'Tracking Streak')}
         value={String(streak)}
         unit={t('天', 'days')}
         delta={null}
+        cold={cold}
       />
       <OvCard
         label={t('本期累计', 'Period Total')}
         value={monthTotal.toFixed(1)}
         unit="h"
         delta={monthTotalDelta}
+        cold={cold}
       />
     </div>
   )

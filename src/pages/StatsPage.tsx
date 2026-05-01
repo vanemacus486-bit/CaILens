@@ -2,13 +2,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { startOfWeek, startOfMonth, startOfQuarter, startOfYear, addDays, addMonths, addQuarters, addYears, subMonths } from 'date-fns'
+import { startOfWeek, startOfMonth, startOfQuarter, startOfYear, addDays, addMonths, addQuarters, addYears, subMonths, format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { formatISODate, parseISODate } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { computeStreak, computeTypeSplit } from '@/domain/stats'
+import { getDataMaturity } from '@/domain/maturity'
+import type { DataMaturity } from '@/domain/maturity'
 import type { Granularity } from '@/hooks/useStatsAggregation'
 import { useStatsAggregation } from '@/hooks/useStatsAggregation'
 import { OverviewCards } from '@/components/stats/OverviewCards'
@@ -32,11 +34,28 @@ const PERIODS: { key: Granularity; label: string; labelZh: string }[] = [
   { key: 'all', label: 'All-time', labelZh: '全部' },
 ]
 
-const COMPARES: { key: CompareMode; label: string; labelZh: string }[] = [
-  { key: 'prev', label: 'vs last period', labelZh: '环比' },
-  { key: 'yoy', label: 'vs same period last year', labelZh: '同比' },
-  { key: 'avg', label: 'vs avg', labelZh: '对比均值' },
-]
+function getCompareOptions(anchor: Date, period: Period, language: 'zh' | 'en') {
+  const fmtMd = (d: Date) => format(d, 'MM.dd')
+  const prevAnchor = shiftAnchor(anchor, period, -1)
+  const prevEnd = period === 'week' ? addDays(prevAnchor, 6) : shiftAnchor(prevAnchor, period, 1)
+  const prevRange = `${fmtMd(prevAnchor)}-${fmtMd(prevEnd)}`
+  const yoyAnchor = addYears(anchor, -1)
+  const yoyEnd = period === 'week' ? addDays(yoyAnchor, 6) : shiftAnchor(yoyAnchor, period, 1)
+  const yoyRange = `${fmtMd(yoyAnchor)}-${fmtMd(yoyEnd)}`
+
+  if (language === 'zh') {
+    return [
+      { key: 'prev' as CompareMode, label: `环比（${prevRange}）` },
+      { key: 'yoy' as CompareMode, label: `同比（${yoyRange}）` },
+      { key: 'avg' as CompareMode, label: '对比均值' },
+    ]
+  }
+  return [
+    { key: 'prev' as CompareMode, label: `vs last period (${prevRange})` },
+    { key: 'yoy' as CompareMode, label: `vs same period last year (${yoyRange})` },
+    { key: 'avg' as CompareMode, label: 'vs average' },
+  ]
+}
 
 function getAnchor(period: Granularity, date: Date): Date {
   switch (period) {
@@ -123,6 +142,7 @@ export function StatsPage() {
 
   const streak = useMemo(() => computeStreak(rangeEvents), [rangeEvents])
   const typeSplit = useMemo(() => computeTypeSplit(current.byCategory), [current])
+  const maturity = useMemo((): DataMaturity => getDataMaturity(rangeEvents), [rangeEvents])
 
   // URL helpers
   const updateParams = (upd: Record<string, string | undefined>) => {
@@ -207,9 +227,9 @@ export function StatsPage() {
           onChange={(e) => updateParams({ compare: e.target.value === 'prev' ? undefined : e.target.value })}
           className="bg-surface-sunken border-none rounded text-xs font-sans text-text-secondary px-2.5 py-1 cursor-pointer outline-none flex-shrink-0"
         >
-          {COMPARES.map((c) => (
+          {getCompareOptions(anchor, period as Period, language).map((c) => (
             <option key={c.key} value={c.key}>
-              {language === 'zh' ? c.labelZh : c.label}
+              {c.label}
             </option>
           ))}
         </select>
@@ -269,6 +289,7 @@ export function StatsPage() {
               deepWorkDelta={deepWorkDelta}
               monthTotalDelta={monthTotalDelta}
               language={language}
+              maturity={maturity}
             />
           </Section>
 
@@ -285,12 +306,13 @@ export function StatsPage() {
               rangeEvents={rangeEvents}
               categories={categories}
               language={language}
+              maturity={maturity}
             />
           </Section>
 
           {/* 4. Rhythm & Schedule */}
           <Section title={t('节奏与日程', 'Rhythm & Schedule')} subtitle={t('工作时间分布与重复模式', 'When you work and how patterns repeat')}>
-            <RhythmSchedule current={current} history={history} categories={categories} language={language} />
+            <RhythmSchedule current={current} history={history} categories={categories} language={language} maturity={maturity} />
           </Section>
 
           {/* 6. Time Budget */}
@@ -300,7 +322,7 @@ export function StatsPage() {
 
           {/* 5. Trends & Comparison */}
           <Section title={t('趋势与对比', 'Trends & Comparison')} subtitle={t('滚动均值与周环比', 'Rolling averages and weekly deltas')}>
-            <TrendsComparison history={history} categories={categories} language={language} />
+            <TrendsComparison history={history} categories={categories} language={language} maturity={maturity} />
           </Section>
 
           {/* 7. Week in Review */}
