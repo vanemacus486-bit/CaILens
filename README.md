@@ -1,12 +1,16 @@
 # CaILens
 
-[English](./README.en.md)
+[English Version](./README.en.md)
 
 > *记录时间。像一本你一小时一小时写出来的书。*
 
 CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一生》中柳比歇夫坚持了 56 年的"时间统计法"。它记录、分类、可视化你的时间去向——没有账号、没有服务器、没有数据上报。
 
-![CaILens 周视图](https://github.com/user-attachments/assets/f8e2a65e-a9ce-44a9-929f-ab4a790c4b84)
+<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/7a408948-e7fd-4137-89a7-5361b12b64c5" />
+
+<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/85722717-8233-41ff-946b-ecc2f8fcf60a" />
+
+<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
 > **状态：** 持续开发中。统计看板已完备——数据成熟度系统、预算驱动的智能回顾、年度推演、预估 vs 实际校准、记录质量元指标。
 
