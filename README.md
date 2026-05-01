@@ -6,7 +6,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 ![CaILens week view](https://github.com/user-attachments/assets/f8e2a65e-a9ce-44a9-929f-ab4a790c4b84)
 
-> **Status:** Active development. v2 shipped — categories, weekly stats, ICS import, keyword auto-classification, day diary view, and a full Recharts-powered statistics dashboard.
+> **Status:** Active development. Statistics dashboard with data maturity system, budget-aware weekly review, annual projection, estimate-vs-actual calibration, and recording quality metrics — all built.
 
 ---
 
@@ -20,8 +20,8 @@ CaILens is a small attempt at that instrument, for the browser.
 
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
-- **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no streaks (as a gamification mechanic), no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 500+ tests, one-way dependency layers. The codebase should age well.
+- **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
+- **Code quality over feature quantity.** Strict TypeScript, 267 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
@@ -39,53 +39,79 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Current time indicator** — a terracotta line on today's column, updating every minute.
 - **Light / dark mode** — follows system preference.
 
+### Sidebar
+
+- **Icon rail with hover expansion** — 200ms delay, Chinese/English labels appear on hover. Pin to keep expanded. State persisted to localStorage.
+- **Week navigation** — previous, next, jump to today.
+- **ICS import** and **Statistics dashboard** buttons.
+
 ### Day Diary
 
 - **Vertical timeline view** — one day at a time, with time labels, coloured dots, and serif entry text.
 - **Category transition dividers** — subtle separators when the activity type changes.
 - **Prev / next day navigation** — walk through your diary day by day.
-- **Back to week view** — a single click returns you to the calendar.
 
 ### Categories (6 fixed)
 
-| Colour | Name (EN) | Name (ZH) | Role |
+| Colour | Name (EN) | Name (ZH) | Type |
 |---|---|---|---|
-| Terracotta | Core Work | 核心工作 | Type I — creative core |
-| Sage | Support Work | 辅助工作 | Type II — auxiliary |
-| Sand | Essentials | 必要事务 | Type II — auxiliary |
-| Warm gray | Reading & Study | 阅读学习 | Type I — creative core |
-| Rose | Rest | 休息 | Type II — auxiliary |
-| Stone | Other | 其他 | Type II — auxiliary |
+| Terracotta | Core Focus | 主要矛盾 | Type I — creative core |
+| Sage | Support Tasks | 次要矛盾 | Type II — auxiliary |
+| Sand | Chores & Admin | 庶务时间 | Type II — auxiliary |
+| Warm gray | Personal Growth | 个人提升 | Type I — creative core |
+| Rose | Rest & Leisure | 休息娱乐 | Type II — auxiliary |
+| Stone | Sleep | 睡眠时长 | Type II — auxiliary |
 
-Users can rename categories in both Chinese and English. Every event belongs to exactly one category.
+Users can rename categories in both Chinese and English. Each category has a configurable **weekly budget** (in hours) — edit in Settings. Every event belongs to exactly one category.
+
+### Settings Page
+
+- **3-section layout** — Interface (language), Categories (names + budgets + keywords), Data (export).
+- **Language toggle** — Chinese / English, using a segmented control.
+- **Per-category budget** — number input for weekly hour targets.
+- **Collapsible keywords** — show preview with count badge; expand to full keyword folder editor.
+- **Data export** — one-click CSV and JSON download.
 
 ### Statistics Dashboard
 
 A full analytics page (click the chart icon in the sidebar), powered by **Recharts**:
 
-- **Overview cards** — net effective time, deep work hours, tracking streak, period total. Each with delta vs the selected comparison.
+**Overview**
+- 4 metric cards — Net Effective Time, Core Focus, Tracking Streak, Period Total. Each with delta vs the selected comparison.
+- **Time Account card** — three-segment bar: recorded / sleep (8h/day default) / unrecorded hours.
+- **Annualised context** — Core Focus card shows projected yearly hours and percentage of Lyubishchev's 1966 benchmark (~2200h).
+
+**Analysis Modules**
 - **Time Allocation** — interactive donut chart (category distribution) + stacked bar chart (daily breakdown).
-- **Lyubishchev Analysis** — Type I (creative core) vs Type II (auxiliary) split with percentage bars and cumulative category hours.
-- **Rhythm & Schedule** — 24-hour stacked area chart, weekly rhythm table with dominant activity chips, and a 7×24 hour heatmap.
-- **Trends & Comparison** — 30-day rolling trend line with category tabs + week-over-week sparkline cards.
-- **Time Budget** — budget vs actual bars with over/under summaries.
-- **Week in Review** — template-driven narrative interpreting the numbers.
-- **Notable Moments** — auto-detected highlights: longest session, current streak, top category.
-- **Export** — one-click CSV and JSON download. All data lives locally.
+- **Lyubishchev Analysis** — Type I (creative core) vs Type II (auxiliary) split with percentage bars, cumulative category hours, and **annual projection card** extrapolating the current pace to a full year.
+- **Rhythm & Schedule** — 24-hour stacked area chart, weekly rhythm table with dominant activity chips, and a 7×24 hour heatmap with **density / blank distribution toggle**.
+- **Trends & Comparison** — 30-day rolling trend line with category tabs + week-over-week sparkline cards. Extreme values greyed out during warming phase.
+- **Time Budget** — budget vs actual bars with diagonal stripe pattern for overruns, AlertTriangle icon, and danger-coloured over-budget labels.
+- **Week in Review** — algorithmically generated reflective narrative. Mentions severe budget overruns, zero-record categories, Type I/II ratio tensions, and biggest gainers. Cold-start safe: single sentence during early weeks.
+- **Estimate vs. Actual** — Monday prompt to predict your week's hours per category. End-of-week comparison table with deviations. Highlights ±30% gaps. Foundation for **systematic bias detection** across multiple weeks.
+- **Notable Moments** — auto-detected highlights: longest session (excluding sleep), current streak, top category.
+- **Recording Quality** — meta-metrics about the recording habit: event count, average granularity, real-time logging ratio, waking-hour coverage.
+
+**Data Maturity System**
+- Every module adapts to how much data you have:
+  - **Cold** (< 3 days) — hides deltas, trend charts, and weekly rhythm. Shows progress-ring placeholders.
+  - **Warming** (3–13 days) — shows data but marks extreme percentages, waters trend charts, filters to real days only.
+  - **Mature** (≥ 14 days) — full analytics unlocked.
 
 **Period selector:** Week / Month / Quarter / Year / All-time.  
-**Compare modes:** vs last period / vs same period last year / vs average.
+**Compare modes:** vs last period / vs same period last year / vs average. Labels include the actual date ranges.
 
 ### ICS Import
 
 - **Parse RFC 5545 files** (via ical.js). All-day and recurring events are automatically skipped with counts shown.
-- **Keyword-based auto-classification** — each category has editable keywords. On import, event titles are matched against all keywords (case-insensitive substring). First match wins.
+- **Keyword-based auto-classification** — each category has editable keywords organised in folders. On import, event titles are matched against all keywords (case-insensitive substring). First match wins.
 - **Re-classify on keyword change** — updating keywords re-scans all existing events.
 
 ### Data
 
-- **Persistent local storage** — IndexedDB via Dexie v4. Schema migrations run automatically.
+- **Persistent local storage** — IndexedDB via Dexie v4. Schema at version 6. Migrations run automatically.
 - **Streak tracking** — `computeStreak()` counts consecutive weeks with at least one logged event.
+- **Data export** — CSV and JSON, available in Settings.
 
 ---
 
@@ -108,7 +134,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once
+npm run test         # run unit tests once (267 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -126,7 +152,7 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest + React Testing Library + fake-indexeddb | |
+| Testing | Vitest + React Testing Library + fake-indexeddb | 267 tests across 16 test files |
 | Fonts | Inter, Source Serif 4, JetBrains Mono | Fontsource, locally hosted |
 | Icons | lucide-react | |
 
@@ -148,6 +174,7 @@ Notable details:
 
 - **Drag system** built on raw Pointer Events. Hit-testing and snapping compute against the layout grid, not the DOM.
 - **Render performance** — `React.memo`, stable callbacks, Zustand sliced subscriptions keep drags from re-rendering unrelated events.
+- **Statistics engine** — pure functions for week stats, bucket aggregation, interval merging, Type I/II split, streak computation, annual projection, data maturity, reflection generation, deviation analysis, and recording quality metrics.
 
 ---
 
@@ -156,7 +183,7 @@ Notable details:
 This project was developed in close collaboration with [Claude Code](https://www.anthropic.com/claude-code). The split:
 
 - **Human** — product direction, architecture decisions, UX judgment, the palette, the typography, and deciding what *not* to build.
-- **Claude** — most of the implementation, test scaffolding, Recharts integration, and debugging pointer-event edge cases.
+- **Claude** — most of the implementation, test scaffolding, Recharts integration, statistics engine, and debugging pointer-event edge cases.
 
 The drag system went through three passes (HTML5 DnD → Pointer Events → 60fps live preview). Each was a conversation, not a prompt. See `CLAUDE.md` for the working conventions that guide the collaboration.
 
