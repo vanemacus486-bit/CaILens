@@ -1,127 +1,132 @@
 # CaILens
 
-> *Time, recorded. Like a book you write one hour at a time.*
+> *记录时间。像一本你一小时一小时写出来的书。*
 
-CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's lifelong time accounting practice, as told in Daniil Granin's *This Strange Life*. It records, categorises, and visualises how your hours are actually spent — no accounts, no servers, no telemetry.
+CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一生》中柳比歇夫坚持了 56 年的"时间统计法"。它记录、分类、可视化你的时间去向——没有账号、没有服务器、没有数据上报。
 
-<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/7a408948-e7fd-4137-89a7-5361b12b64c5" />
+![CaILens 周视图](https://github.com/user-attachments/assets/f8e2a65e-a9ce-44a9-929f-ab4a790c4b84)
 
-<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/85722717-8233-41ff-946b-ecc2f8fcf60a" />
+> **状态：** 持续开发中。统计看板已完备——数据成熟度系统、预算驱动的智能回顾、年度推演、预估 vs 实际校准、记录质量元指标。
 
-<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
+## 下载
 
-> **Status:** Active development. Statistics dashboard with data maturity system, budget-aware weekly review, annual projection, estimate-vs-actual calibration, and recording quality metrics — all built.
+| 平台 | 下载 | 说明 |
+|------|------|------|
+| Windows (x64) | [CaILens.exe](https://github.com/vanemacus486-bit/CaILens/releases/latest) | 便携免安装，Windows 10 1803+ |
+| Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
 
----
-
-## Philosophy
-
-Most calendar tools optimise for scheduling: future events, invites, reminders. That solves a different problem than understanding your own time.
-
-Lyubishchev kept a time log for 56 years. Every hour accounted for. Every category tallied. It was not productivity theatre — it was an instrument for thinking about how a life is actually spent.
-
-CaILens is a small attempt at that instrument, for the browser.
-
-- **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
-- **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
-- **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 267 tests, one-way dependency layers. The codebase should age well.
+> **Android 版本尚未针对手机优化。** 当前 UI 围绕桌面端屏幕尺寸和鼠标交互（拖拽、右键、悬浮）设计。移动端适配版正在开发中。如需最佳体验，请使用 Windows 桌面版。
 
 ---
 
-## Features
+## 设计哲学
 
-### Week Calendar
+市面上几乎所有日历工具都在解决"把未来安排进格子里"——提醒你开会、收邀请、设闹钟。但理解自己的时间去向是完全不同的命题。
 
-- **24-hour, single-screen week view** (Mon–Sun, with time gutter).
-- **Click-to-create** — click any empty slot, a modal overlay card appears with a prompt: *"What were you doing?"*
-- **Drag to move** — events follow the pointer, including cross-day drag. Built on raw Pointer Events, no library.
-- **Drag edges to resize** — top and bottom handles for adjusting duration.
-- **Live preview at 60fps** — draft events render in real-time as you edit or drag.
-- **Right-click menu** — delete, change colour (6 colours, each tied to a category).
-- **Overlap layout** — overlapping events are laid out side-by-side automatically.
-- **Current time indicator** — a terracotta line on today's column, updating every minute.
-- **Light / dark mode** — follows system preference.
+柳比歇夫从 26 岁开始记录每天每一小时，持续 56 年直至去世。这不是"效率表演"——而是一种真正看清楚生命如何被度过的工具。
 
-### Sidebar
+CaILens 就是这个工具在浏览器里的一个尝试。
 
-- **Icon rail with hover expansion** — 200ms delay, Chinese/English labels appear on hover. Pin to keep expanded. State persisted to localStorage.
-- **Week navigation** — previous, next, jump to today.
-- **ICS import** and **Statistics dashboard** buttons.
+- **记录，不规划。** 这里没有日程。你记录的是已经发生的事，不是对明天的承诺。
+- **本地优先。** 数据存在 IndexedDB 里。没有账号、没有服务器、没有数据上报。你的时间日记只属于你。
+- **安静的设计。** 暖中性色调，衬线标题，克制的主色。应用不催促、不评价、不打扰。
+- **代码质量优先于功能数量。** TypeScript 严格模式，267 个测试，单向依赖分层。代码库应该经得起时间考验。
 
-### Day Diary
+---
 
-- **Vertical timeline view** — one day at a time, with time labels, coloured dots, and serif entry text.
-- **Category transition dividers** — subtle separators when the activity type changes.
-- **Prev / next day navigation** — walk through your diary day by day.
+## 功能
 
-### Categories (6 fixed)
+### 周视图日历
 
-| Colour | Name (EN) | Name (ZH) | Type |
+- **24 小时一屏可见**（周一至周日，带时间刻度栏）。
+- **点击空白创建**——弹出卡片覆盖层，一句话提示：*"你在做什么？"*
+- **拖拽移动**——指针跟随，支持跨天。基于原生 Pointer Events 手写，没用库。
+- **拖拽边缘改时长**——上下手柄调整起止时间。
+- **实时预览 60fps**——编辑或拖动时，草稿事件即时渲染。
+- **右键菜单**——删除、换颜色（6 种颜色，每种对应一个分类）。
+- **重叠事件并排**——自动水平排列。
+- **当前时间红线**——焦橙色，仅今日列显示，每分钟更新。
+- **浅色 / 深色模式**——跟随系统偏好。
+
+### 侧边栏
+
+- **图标栏 hover 展开**——200ms 延迟，悬停显示中英文标签。可固定展开状态，状态持久化到 localStorage。
+- **周导航**——上一周、下一周、跳回本周。
+- **ICS 导入**和**统计看板**入口。
+
+### 日视图日记
+
+- **竖排时间线**——一次看一天，时间标签 + 彩色圆点 + 衬线正文。
+- **分类切换分隔线**——活动类型变化时出现微妙的分割线。
+- **前后日导航**——一天一天翻阅你的日记。
+
+### 分类系统（6 个固定分类）
+
+| 颜色 | 中文名 | 英文名 | 归类 |
 |---|---|---|---|
-| Terracotta | Core Focus | 主要矛盾 | Type I — creative core |
-| Sage | Support Tasks | 次要矛盾 | Type II — auxiliary |
-| Sand | Chores & Admin | 庶务时间 | Type II — auxiliary |
-| Warm gray | Personal Growth | 个人提升 | Type I — creative core |
-| Rose | Rest & Leisure | 休息娱乐 | Type II — auxiliary |
-| Stone | Sleep | 睡眠时长 | Type II — auxiliary |
+| 焦橙色 | 主要矛盾 | Core Focus | Type I — 创造性核心 |
+| 鼠尾草绿 | 次要矛盾 | Support Tasks | Type II — 辅助 |
+| 沙色 | 庶务时间 | Chores & Admin | Type II — 辅助 |
+| 暖灰蓝 | 个人提升 | Personal Growth | Type I — 创造性核心 |
+| 玫瑰色 | 休息娱乐 | Rest & Leisure | Type II — 辅助 |
+| 石灰色 | 睡眠时长 | Sleep | Type II — 辅助 |
 
-Users can rename categories in both Chinese and English. Each category has a configurable **weekly budget** (in hours) — edit in Settings. Every event belongs to exactly one category.
+中英文名称可分别修改。每个分类可设置**每周预算**（小时数）——在设置页编辑。每个事件必须属于一个分类。
 
-### Settings Page
+### 设置页
 
-- **3-section layout** — Interface (language), Categories (names + budgets + keywords), Data (export).
-- **Language toggle** — Chinese / English, using a segmented control.
-- **Per-category budget** — number input for weekly hour targets.
-- **Collapsible keywords** — show preview with count badge; expand to full keyword folder editor.
-- **Data export** — one-click CSV and JSON download.
+- **三区布局**——界面（语言）、分类（名称 + 预算 + 关键词）、数据（导出）。
+- **语言切换**——中文 / English，使用分段式选择器。
+- **每分类预算**——数字输入框，设置每周目标小时数。
+- **关键词折叠**——默认显示计数 badge 和预览；点击展开完整关键词文件夹编辑器。
+- **数据导出**——一键 CSV / JSON 下载。
 
-### Statistics Dashboard
+### 统计看板
 
-A full analytics page (click the chart icon in the sidebar), powered by **Recharts**:
+点击侧边栏图表图标进入，基于 **Recharts** 构建：
 
-**Overview**
-- 4 metric cards — Net Effective Time, Core Focus, Tracking Streak, Period Total. Each with delta vs the selected comparison.
-- **Time Account card** — three-segment bar: recorded / sleep (8h/day default) / unrecorded hours.
-- **Annualised context** — Core Focus card shows projected yearly hours and percentage of Lyubishchev's 1966 benchmark (~2200h).
+**总览区**
+- 4 张指标卡——净有效时间、主要矛盾、连续记录、本期累计。每张带所选对比模式的环比变化。
+- **时间去向卡**——三段式横条：已记录 / 睡眠（默认 8h/天）/ 未记录。
+- **年度化上下文**——主要矛盾卡片底部显示推算全年小时数和柳比歇夫 1966 年基准（~2200h）的百分比。
 
-**Analysis Modules**
-- **Time Allocation** — interactive donut chart (category distribution) + stacked bar chart (daily breakdown).
-- **Lyubishchev Analysis** — Type I (creative core) vs Type II (auxiliary) split with percentage bars, cumulative category hours, and **annual projection card** extrapolating the current pace to a full year.
-- **Rhythm & Schedule** — 24-hour stacked area chart, weekly rhythm table with dominant activity chips, and a 7×24 hour heatmap with **density / blank distribution toggle**.
-- **Trends & Comparison** — 30-day rolling trend line with category tabs + week-over-week sparkline cards. Extreme values greyed out during warming phase.
-- **Time Budget** — budget vs actual bars with diagonal stripe pattern for overruns, AlertTriangle icon, and danger-coloured over-budget labels.
-- **Week in Review** — algorithmically generated reflective narrative. Mentions severe budget overruns, zero-record categories, Type I/II ratio tensions, and biggest gainers. Cold-start safe: single sentence during early weeks.
-- **Estimate vs. Actual** — Monday prompt to predict your week's hours per category. End-of-week comparison table with deviations. Highlights ±30% gaps. Foundation for **systematic bias detection** across multiple weeks.
-- **Notable Moments** — auto-detected highlights: longest session (excluding sleep), current streak, top category.
-- **Recording Quality** — meta-metrics about the recording habit: event count, average granularity, real-time logging ratio, waking-hour coverage.
+**分析模块**
+- **时间分配**——交互式环形饼图（分类占比）+ 堆叠柱状图（每日分布）。
+- **柳比歇夫分析**——Type I（创造性核心）/ Type II（辅助）分离，百分比条 + 分类累计小时 + **年度推演卡**（按当前节奏推算全年）。
+- **节奏与日程**——24 小时堆叠面积图、每周节奏表（主导活动标签）、7×24 热力图（带 **记录密度 / 空白分布** 切换）。
+- **趋势与对比**——30 天滚动趋势线 + 每周 sparkline 卡片。warming 期极端值标灰。
+- **时间预算**——预算 vs 实际进度条，超预算部分显示斜纹纹理 + AlertTriangle 图标 + 警示色数字。
+- **本周回顾**——算法生成的反思性叙事。自动提及严重超预算分类、零记录分类、Type I/II 比例张力。冷启动安全：数据少时只输出一句话。
+- **预估 vs 实际**——周一提示预估本周各分类时间，周末对比偏差。±30% 以上高亮。为多周的**系统性偏差检测**打基础。
+- **值得注意的时刻**——自动检测：最长记录段（排除睡眠）、连续记录、最高分类。
+- **记录质量**——记录行为本身的元指标：事件条数、平均颗粒度、实时记录比例、清醒时段覆盖率。
 
-**Data Maturity System**
-- Every module adapts to how much data you have:
-  - **Cold** (< 3 days) — hides deltas, trend charts, and weekly rhythm. Shows progress-ring placeholders.
-  - **Warming** (3–13 days) — shows data but marks extreme percentages, waters trend charts, filters to real days only.
-  - **Mature** (≥ 14 days) — full analytics unlocked.
+**数据成熟度系统**
+- 每个模块根据数据量自适应：
+  - **Cold**（< 3 天）——隐藏环比标签、趋势图和每周节奏。显示进度环占位卡。
+  - **Warming**（3–13 天）——显示数据但标记极端百分比、趋势图加水印、只显示有记录的真实日期。
+  - **Mature**（≥ 14 天）——全部分析解锁。
 
-**Period selector:** Week / Month / Quarter / Year / All-time.  
-**Compare modes:** vs last period / vs same period last year / vs average. Labels include the actual date ranges.
+**周期选择：** 周 / 月 / 季 / 年 / 全部。  
+**对比模式：** 环比 / 同比 / 对比均值。标签包含实际日期范围。
 
-### ICS Import
+### ICS 导入
 
-- **Parse RFC 5545 files** (via ical.js). All-day and recurring events are automatically skipped with counts shown.
-- **Keyword-based auto-classification** — each category has editable keywords organised in folders. On import, event titles are matched against all keywords (case-insensitive substring). First match wins.
-- **Re-classify on keyword change** — updating keywords re-scans all existing events.
+- **解析 RFC 5545 文件**（通过 ical.js）。自动跳过全天事件和重复事件，预览中显示数量。
+- **关键词自动分类**——每个分类可配置关键词（支持文件夹分组）。导入时按事件标题匹配（大小写不敏感、子串匹配），命中即归类。
+- **关键词修改自动重归类**——修改关键词后全库事件自动重新匹配。
 
-### Data
+### 数据
 
-- **Persistent local storage** — IndexedDB via Dexie v4. Schema at version 6. Migrations run automatically.
-- **Streak tracking** — `computeStreak()` counts consecutive weeks with at least one logged event.
-- **Data export** — CSV and JSON, available in Settings.
+- **本地持久存储**——IndexedDB（Dexie v4）。Schema 已到 version 6。迁移自动执行。
+- **连续记录统计**——`computeStreak()` 计算连续有记录的周数。
+- **数据导出**——CSV 和 JSON，在设置页可用。
 
 ---
 
-## Getting Started
+## 怎么跑起来
 
-Requires **Node 20+** and **npm**.
+需要 **Node 20 以上** 和 **npm**。
 
 ```bash
 git clone https://github.com/vanemacus486-bit/CaILens.git
@@ -130,75 +135,75 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
+打开 Vite 打印的地址（通常是 `http://localhost:5173`）。
 
-### Scripts
+### 常用命令
 
 ```bash
-npm run dev          # start dev server
-npm run build        # type-check (tsc) + production build (vite)
-npm run preview      # preview production build locally
-npm run test         # run unit tests once (267 tests)
-npm run test:watch   # run tests in watch mode
-npm run lint         # run ESLint
+npm run dev          # 启动开发服务器
+npm run build        # 类型检查 (tsc) + 生产构建 (vite)
+npm run preview      # 本地预览构建结果
+npm run test         # 跑一次单元测试（267 个测试）
+npm run test:watch   # 监听模式
+npm run lint         # 跑 ESLint
 ```
 
 ---
 
-## Tech Stack
+## 技术栈
 
-| Layer | Choice | Notes |
+| 层 | 选型 | 备注 |
 |---|---|---|
-| UI | React 19 + TypeScript (strict) | Functional components, hooks, no `any` |
-| Build | Vite 8 | |
-| Styling | Tailwind CSS v4 + CSS custom properties | shadcn-style primitives on Radix UI |
-| State | Zustand v5 | Sliced selectors for render performance |
-| Storage | IndexedDB via Dexie v4 | Local-first, no backend |
-| Charts | Recharts 3 | Donut, bar, area, line charts |
-| Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest + React Testing Library + fake-indexeddb | 267 tests across 16 test files |
-| Fonts | Inter, Source Serif 4, JetBrains Mono | Fontsource, locally hosted |
-| Icons | lucide-react | |
+| UI | React 19 + TypeScript（strict） | 函数组件、hooks、不允许 `any` |
+| 构建 | Vite 8 | |
+| 样式 | Tailwind CSS v4 + CSS 自定义属性 | shadcn 风格组件基于 Radix UI |
+| 状态 | Zustand v5 | 切片订阅，避免不必要重渲染 |
+| 存储 | IndexedDB（Dexie v4） | 本地优先，无后端 |
+| 图表 | Recharts 3 | 饼图、柱状图、面积图、折线图 |
+| 时间 | date-fns v4 | 不引入 dayjs / moment |
+| 测试 | Vitest + React Testing Library + fake-indexeddb | 267 个测试，16 个测试文件 |
+| 字体 | Inter、Source Serif 4、JetBrains Mono | Fontsource 本地托管 |
+| 图标 | lucide-react | |
 
 ---
 
-## Architecture
+## 架构
 
 ```
 domain/  ──→  data/  ──→  stores/  ──→  features/ + components/
- (pure)       (Repo)       (Zustand)       (UI)
+ (纯逻辑)    (Repository)   (Zustand)        (UI)
 ```
 
-- **`domain/`** — pure types and business logic. No React, no IndexedDB, no side effects. All unit-tested.
-- **`data/`** — Dexie schema and repositories. The only layer that touches IndexedDB.
-- **`stores/`** — Zustand stores wrapping the data layer. Components never access repositories directly.
-- **`features/` + `components/`** — React UI. `features/` for business-level views; `components/` for reusable primitives.
+- **`domain/`** —— 纯类型和业务逻辑。不依赖 React、不依赖 IndexedDB、没有副作用。全单元测试覆盖。
+- **`data/`** —— Dexie schema 和 repository。项目里唯一直接碰 IndexedDB 的地方。
+- **`stores/`** —— Zustand store，包装数据层。组件永远不直接调 repository。
+- **`features/` + `components/`** —— React UI。`features/` 放业务视图；`components/` 放可复用原语。
 
-Notable details:
+几个值得一提的实现：
 
-- **Drag system** built on raw Pointer Events. Hit-testing and snapping compute against the layout grid, not the DOM.
-- **Render performance** — `React.memo`, stable callbacks, Zustand sliced subscriptions keep drags from re-rendering unrelated events.
-- **Statistics engine** — pure functions for week stats, bucket aggregation, interval merging, Type I/II split, streak computation, annual projection, data maturity, reflection generation, deviation analysis, and recording quality metrics.
-
----
-
-## Built With Claude Code
-
-This project was developed in close collaboration with [Claude Code](https://www.anthropic.com/claude-code). The split:
-
-- **Human** — product direction, architecture decisions, UX judgment, the palette, the typography, and deciding what *not* to build.
-- **Claude** — most of the implementation, test scaffolding, Recharts integration, statistics engine, and debugging pointer-event edge cases.
-
-The drag system went through three passes (HTML5 DnD → Pointer Events → 60fps live preview). Each was a conversation, not a prompt. See `CLAUDE.md` for the working conventions that guide the collaboration.
+- **拖拽系统**完全基于原生 Pointer Events 手写。命中检测和吸附对的是布局网格，不是 DOM。
+- **渲染性能**——`React.memo`、稳定 callback、Zustand 切片订阅，拖一个事件不会让整周重渲染。
+- **统计引擎**——纯函数构成的周统计、时段聚合、区间合并、Type I/II 分离、连续记录、年度推演、数据成熟度、回顾生成、偏差分析、记录质量指标。
 
 ---
 
-## License
+## 关于和 Claude Code 的协作
+
+这个项目是和 [Claude Code](https://www.anthropic.com/claude-code) 深度协作完成的。分工：
+
+- **我负责**——产品方向、架构决策、UX 品位判断、配色、字体、决定**不做什么**。
+- **Claude 负责**——大部分实现、测试脚手架、Recharts 集成、统计引擎、Pointer Events 边界情况的调试。
+
+拖拽系统走了三轮（HTML5 DnD → Pointer Events → 60fps 实时预览）。每一轮都是一次对话，不是一个 prompt。`CLAUDE.md` 记录了我们在这个项目里形成的工作规范。
+
+---
+
+## 开源协议
 
 [Creative Commons Attribution-NonCommercial 4.0 International](./LICENSE)
 
-You may use, share, and adapt this software for non-commercial purposes only, with attribution. Commercial use requires a separate agreement.
+你可以自由使用、分享、改编本软件，但仅限于非商业用途，且需署名。商业使用需另行授权。
 
 ---
 
-[中文版 →](./README.zh-CN.md)
+[English version →](./README.en.md)
