@@ -8,6 +8,9 @@ const DAY_LABELS_ZH = ['周一', '周二', '周三', '周四', '周五', '周六
 const DAY_LABELS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const HOUR_LABEL_COLS = [0, 3, 6, 9, 12, 15, 18, 21]
 const OPACITY_LEVELS = [0.12, 0.30, 0.50, 0.72, 1.0] as const
+const BLANK_OPACITY_LEVELS = [0.10, 0.22, 0.40, 0.60, 0.85] as const
+
+type HeatmapMode = 'density' | 'blank'
 
 interface HourHeatmapProps {
   bucket: Bucket
@@ -41,6 +44,7 @@ function formatHours(hours: number): string {
 }
 
 export function HourHeatmap({ bucket }: HourHeatmapProps) {
+  const [mode, setMode] = useState<HeatmapMode>('density')
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState<number>(Infinity)
   const colors = useCategoryColors()
@@ -76,6 +80,7 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
 
   const cellSize = containerWidth < 700 ? 16 : 22
   const labelFontSize = containerWidth < 700 ? 9 : 10
+  const blank = mode === 'blank'
 
   const gridItems: React.ReactNode[] = []
 
@@ -101,7 +106,6 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
   for (let d = 0; d < 7; d++) {
     const daySlots = bucket.byHourSlot[d] ?? []
 
-    // Day label (left column)
     gridItems.push(
       <div
         key={`dl-${d}`}
@@ -118,12 +122,17 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
       </div>,
     )
 
-    // 24 hour cells
     for (let h = 0; h < 24; h++) {
       const value = daySlots[h] ?? 0
       const level = getHeatLevel(value, thresholds)
       const hasData = level > 0
-      const title = `${dayLabels[d]} ${h}:00 — ${formatHours(value)}`
+
+      // In blank mode: invert — show empty cells with color, filled cells transparent
+      const showCell = blank ? !hasData : hasData
+
+      const title = blank
+        ? `${dayLabels[d]} ${h}:00 — ${hasData ? formatHours(value) : t('无记录', 'No data')}`
+        : `${dayLabels[d]} ${h}:00 — ${formatHours(value)}`
 
       gridItems.push(
         <div
@@ -131,15 +140,19 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
           title={title}
           className={cn(
             'rounded-sm',
-            hasData ? '' : 'border border-dashed border-border-subtle',
+            !showCell ? 'border border-dashed border-border-subtle' : '',
           )}
           style={{
             gridColumn: h + 2,
             gridRow: d + 2,
             width: cellSize,
             height: cellSize,
-            backgroundColor: hasData ? fillColor : 'transparent',
-            opacity: hasData ? OPACITY_LEVELS[level - 1] : undefined,
+            backgroundColor: showCell
+              ? (blank ? 'var(--event-stone-fill)' : fillColor)
+              : 'transparent',
+            opacity: showCell
+              ? (blank ? BLANK_OPACITY_LEVELS[Math.min(level, 4)] : OPACITY_LEVELS[level - 1])
+              : undefined,
           }}
         />,
       )
@@ -157,20 +170,38 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
       }}
     >
       <span>{t('少', 'Less')}</span>
-      {OPACITY_LEVELS.map((opacity, i) => (
+      {(blank ? BLANK_OPACITY_LEVELS : OPACITY_LEVELS).map((opacity, i) => (
         <div
           key={`leg-${i}`}
           className="w-3.5 h-3.5 rounded-sm"
-          style={{ backgroundColor: fillColor, opacity }}
+          style={{ backgroundColor: blank ? 'var(--event-stone-fill)' : fillColor, opacity }}
         />
       ))}
       <span className="mr-3">{t('多', 'More')}</span>
-      <span>{t('空白 = 无记录', 'Empty = no data')}</span>
+      <span>{blank ? t('空白 = 未记录', 'Filled = no data') : t('空白 = 无记录', 'Empty = no data')}</span>
     </div>,
   )
 
   return (
     <div className="rounded-xl border border-border-subtle bg-surface-base p-4">
+      {/* Mode toggle */}
+      <div className="flex gap-0.5 bg-surface-sunken rounded p-0.5 w-fit mb-3">
+        {(['density', 'blank'] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={cn(
+              'px-2.5 py-1 rounded-sm text-[11px] font-sans font-medium transition-all duration-150 cursor-pointer',
+              mode === m
+                ? 'bg-surface-base text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                : 'text-text-tertiary hover:text-text-primary',
+            )}
+          >
+            {m === 'density' ? t('记录密度', 'Density') : t('空白分布', 'Blanks')}
+          </button>
+        ))}
+      </div>
+
       <div ref={containerRef}>
         <div
           style={{

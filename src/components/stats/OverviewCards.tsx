@@ -1,5 +1,7 @@
 import { cn } from '@/lib/utils'
 import type { DataMaturity } from '@/domain/maturity'
+import type { PeriodMultiplier } from '@/domain/projection'
+import { computeAnnualProjection } from '@/domain/projection'
 
 interface OverviewCardsProps {
   netEffective: number
@@ -11,14 +13,16 @@ interface OverviewCardsProps {
   monthTotalDelta: number | null
   language: 'zh' | 'en'
   maturity: DataMaturity
+  periodType: PeriodMultiplier | 'all'
 }
 
-function OvCard({ label, value, unit, delta, cold }: {
+function OvCard({ label, value, unit, delta, cold, footer }: {
   label: string
   value: string
   unit: string
   delta: number | null
   cold: boolean
+  footer?: string
 }) {
   const up = delta !== null && delta >= 0
   const dn = delta !== null && delta < 0
@@ -43,6 +47,11 @@ function OvCard({ label, value, unit, delta, cold }: {
           </span>
         </div>
       )}
+      {footer && (
+        <div className="mt-2 text-[10px] text-text-tertiary leading-tight">
+          {footer}
+        </div>
+      )}
     </div>
   )
 }
@@ -57,9 +66,20 @@ export function OverviewCards({
   monthTotalDelta,
   language,
   maturity,
+  periodType,
 }: OverviewCardsProps) {
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
   const cold = maturity.maturityLevel === 'cold'
+  const warming = maturity.maturityLevel !== 'cold'
+
+  const deepWorkFooter = (warming && deepWork > 0 && periodType !== 'all')
+    ? (() => {
+        const proj = computeAnnualProjection(deepWork, 0, periodType)
+        return language === 'zh'
+          ? `相当于全年 ${proj.typeIAnnual.toFixed(0)}h · 柳比歇夫年均的 ${proj.ratio}%`
+          : `Annualized: ${proj.typeIAnnual.toFixed(0)}h · ${proj.ratio}% of Lyubishchev's avg`
+      })()
+    : undefined
 
   return (
     <div className="grid grid-cols-4 gap-4">
@@ -71,11 +91,12 @@ export function OverviewCards({
         cold={cold}
       />
       <OvCard
-        label={t('核心工作', 'Deep Work')}
+        label={t('主要矛盾', 'Core Focus')}
         value={deepWork.toFixed(1)}
         unit="h"
         delta={deepWorkDelta}
         cold={cold}
+        footer={deepWorkFooter}
       />
       <OvCard
         label={t('连续记录', 'Tracking Streak')}

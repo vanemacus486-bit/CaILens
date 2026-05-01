@@ -3,6 +3,7 @@ import type { CalendarEvent } from '@/domain/event'
 import type { Category, CategoryId, CategoryName } from '@/domain/category'
 import { DEFAULT_CATEGORIES } from '@/domain/category'
 import type { AppSettings } from '@/domain/settings'
+import type { WeeklyEstimate } from '@/domain/estimate'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import { migrateEventV1ToV2 } from '@/domain/migration'
 
@@ -27,9 +28,10 @@ const V3_NAME_MAP: Record<string, CategoryName> = {
 // ── Database ──────────────────────────────────────────────
 
 export class CailensDB extends Dexie {
-  events!:     Table<CalendarEvent, string>
-  categories!: Table<Category, CategoryId>
-  settings!:   Table<AppSettings, string>
+  events!:          Table<CalendarEvent, string>
+  categories!:      Table<Category, CategoryId>
+  settings!:        Table<AppSettings, string>
+  weeklyEstimates!: Table<WeeklyEstimate, string>
 
   constructor(name = 'cailens') {
     super(name)
@@ -84,6 +86,33 @@ export class CailensDB extends Dexie {
           })
         }
       }
+    })
+
+    // v5：给已有 categories 补 weeklyBudget 默认值
+    this.version(5).stores({
+      events:     'id, startTime',
+      categories: 'id',
+      settings:   'id',
+    }).upgrade(async (tx) => {
+      const DEFAULT_BUDGETS: Record<string, number> = {
+        accent: 20, sage: 10, sand: 5, sky: 5, rose: 5, stone: 3,
+      }
+      const cats = await tx.table('categories').toArray()
+      for (const cat of cats) {
+        if (cat.weeklyBudget === undefined) {
+          await tx.table('categories').update(cat.id, {
+            weeklyBudget: DEFAULT_BUDGETS[cat.id] ?? 5,
+          })
+        }
+      }
+    })
+
+    // v6：新增 weeklyEstimates 表
+    this.version(6).stores({
+      events:          'id, startTime',
+      categories:      'id',
+      settings:        'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
     })
 
     // 全新 DB 首次创建时触发（version 0 → any）。

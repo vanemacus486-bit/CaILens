@@ -17,16 +17,17 @@ export interface Category {
   id: CategoryId
   name: CategoryName
   color: EventColor
+  weeklyBudget: number
   folders: KeywordFolder[]
 }
 
 export const DEFAULT_CATEGORIES: readonly Category[] = [
-  { id: 'accent', name: { zh: '核心工作', en: 'Core Work'       }, color: 'accent', folders: [{ id: 'default', name: '默认', keywords: [] }] },
-  { id: 'sage',   name: { zh: '辅助工作', en: 'Support Work'    }, color: 'sage',   folders: [{ id: 'default', name: '默认', keywords: [] }] },
-  { id: 'sand',   name: { zh: '必要事务', en: 'Essentials'      }, color: 'sand',   folders: [{ id: 'default', name: '默认', keywords: [] }] },
-  { id: 'sky',    name: { zh: '阅读学习', en: 'Reading & Study' }, color: 'sky',    folders: [{ id: 'default', name: '默认', keywords: [] }] },
-  { id: 'rose',   name: { zh: '休息',     en: 'Rest'            }, color: 'rose',   folders: [{ id: 'default', name: '默认', keywords: [] }] },
-  { id: 'stone',  name: { zh: '其他',     en: 'Other'           }, color: 'stone',  folders: [{ id: 'default', name: '默认', keywords: [] }] },
+  { id: 'accent', name: { zh: '主要矛盾', en: 'Core Focus'        }, color: 'accent', weeklyBudget: 20, folders: [{ id: 'default', name: '默认', keywords: [] }] },
+  { id: 'sage',   name: { zh: '次要矛盾', en: 'Support Tasks'     }, color: 'sage',   weeklyBudget: 10, folders: [{ id: 'default', name: '默认', keywords: [] }] },
+  { id: 'sand',   name: { zh: '庶务时间', en: 'Chores & Admin'    }, color: 'sand',   weeklyBudget: 5,  folders: [{ id: 'default', name: '默认', keywords: [] }] },
+  { id: 'sky',    name: { zh: '个人提升', en: 'Personal Growth'   }, color: 'sky',    weeklyBudget: 5,  folders: [{ id: 'default', name: '默认', keywords: [] }] },
+  { id: 'rose',   name: { zh: '休息娱乐', en: 'Rest & Leisure'    }, color: 'rose',   weeklyBudget: 5,  folders: [{ id: 'default', name: '默认', keywords: [] }] },
+  { id: 'stone',  name: { zh: '睡眠时长', en: 'Sleep'             }, color: 'stone',  weeklyBudget: 3,  folders: [{ id: 'default', name: '默认', keywords: [] }] },
 ] as const
 
 export const CATEGORY_NAME_MAX_LENGTH = 20

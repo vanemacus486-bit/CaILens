@@ -9,17 +9,12 @@ interface TimeBudgetProps {
   language: 'zh' | 'en'
 }
 
-const DEFAULT_BUDGETS: Record<string, number> = {
-  accent: 20, sage: 10, sand: 5, sky: 5, rose: 5, stone: 3,
-}
-
 export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
   const items = categories.map((cat) => {
     const actual = current.byCategory[cat.id] || 0
-    const budget = cat.weeklyBudget ?? DEFAULT_BUDGETS[cat.id] ?? 5
-    return { ...cat, actual, budget }
+    return { ...cat, actual, budget: cat.weeklyBudget }
   })
 
   const overBudget = items.filter((i) => i.actual > i.budget)

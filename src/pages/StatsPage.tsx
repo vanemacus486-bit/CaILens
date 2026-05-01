@@ -1,5 +1,5 @@
 // Required: npm install react-router-dom lucide-react date-fns
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { startOfWeek, startOfMonth, startOfQuarter, startOfYear, addDays, addMonths, addQuarters, addYears, subMonths, format } from 'date-fns'
@@ -21,7 +21,9 @@ import { TrendsComparison } from '@/components/stats/TrendsComparison'
 import { TimeBudget } from '@/components/stats/TimeBudget'
 import { WeekInReview } from '@/components/stats/WeekInReview'
 import { NotableMoments } from '@/components/stats/NotableMoments'
-import { ExportSection } from '@/components/stats/ExportSection'
+import { TimeAccountCard } from '@/components/stats/TimeAccountCard'
+import { RecordQuality } from '@/components/stats/RecordQuality'
+import { EstimateVsActual } from '@/components/stats/EstimateVsActual'
 
 type CompareMode = 'prev' | 'yoy' | 'avg'
 type Period = Exclude<Granularity, 'all'> // all-time handled separately
@@ -290,7 +292,11 @@ export function StatsPage() {
               monthTotalDelta={monthTotalDelta}
               language={language}
               maturity={maturity}
+              periodType={period as 'week' | 'month' | 'quarter' | 'year' | 'all'}
             />
+            <div className="mt-4">
+              <TimeAccountCard current={current} language={language} />
+            </div>
           </Section>
 
           {/* 2. Time Allocation */}
@@ -307,6 +313,7 @@ export function StatsPage() {
               categories={categories}
               language={language}
               maturity={maturity}
+              periodType={period as 'week' | 'month' | 'quarter' | 'year' | 'all'}
             />
           </Section>
 
@@ -327,18 +334,30 @@ export function StatsPage() {
 
           {/* 7. Week in Review */}
           <Section title={t('本周回顾', 'Week in Review')} subtitle={t('数字背后的反思', 'A considered look at what the numbers actually mean')}>
-            <WeekInReview current={current} previous={previous} categories={categories} language={language} />
+            <WeekInReview current={current} previous={previous} categories={categories} language={language} maturity={maturity} />
           </Section>
+
+          {/* Estimate vs Actual */}
+          <EstimateVsActual
+            current={current}
+            categories={categories}
+            weekStart={startOfWeek(anchor, { weekStartsOn: 1 }).getTime()}
+            language={language}
+          />
+
+          {/* Record Quality (above Notable Moments) */}
+          <RecordQuality
+            rangeEvents={rangeEvents}
+            periodStart={anchor.getTime()}
+            periodEnd={period === 'all' ? Date.now() : shiftAnchor(anchor, period as Period, 1).getTime()}
+            language={language}
+          />
 
           {/* 8. Notable Moments */}
           <Section title={t('值得注意的时刻', 'Notable Moments')} subtitle={t('本周的高光与首次', 'Highs, firsts, and observations from this period')}>
             <NotableMoments current={current} rangeEvents={rangeEvents} streak={streak} categories={categories} language={language} />
           </Section>
 
-          {/* 9. Export */}
-          <Section title={t('你的数据', 'Your Data')} subtitle={t('本地优先 — 始终属于你', 'Local-first — always yours')}>
-            <ExportSection language={language} />
-          </Section>
         </div>
       </div>
     </div>

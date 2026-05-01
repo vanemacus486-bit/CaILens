@@ -39,8 +39,8 @@ describe('getAll', () => {
   it('accent category has the correct default bilingual name', async () => {
     const result = await repo.getAll()
     const accent = result.find((c) => c.id === 'accent')!
-    expect(accent.name.zh).toBe('核心工作')
-    expect(accent.name.en).toBe('Core Work')
+    expect(accent.name.zh).toBe('主要矛盾')
+    expect(accent.name.en).toBe('Core Focus')
   })
 
   it('all 6 expected category ids are present', async () => {
