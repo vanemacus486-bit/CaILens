@@ -1,5 +1,7 @@
 # CaILens
 
+[中文](./README.md)
+
 > *Time, recorded. Like a book you write one hour at a time.*
 
 CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's lifelong time accounting practice, as told in Daniil Granin's *This Strange Life*. It records, categorises, and visualises how your hours are actually spent — no accounts, no servers, no telemetry.
