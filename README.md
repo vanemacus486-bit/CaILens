@@ -4,16 +4,11 @@
 
 CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's lifelong time accounting practice, as told in Daniil Granin's *This Strange Life*. It records, categorises, and visualises how your hours are actually spent — no accounts, no servers, no telemetry.
 
-<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/694326d8-3676-43c8-8f13-2638e292095e" />
-
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/7a408948-e7fd-4137-89a7-5361b12b64c5" />
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/85722717-8233-41ff-946b-ecc2f8fcf60a" />
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
-
-<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/a373f45f-8625-42ad-b89b-9559b0787cd6" />
-
 
 > **Status:** Active development. Statistics dashboard with data maturity system, budget-aware weekly review, annual projection, estimate-vs-actual calibration, and recording quality metrics — all built.
 
