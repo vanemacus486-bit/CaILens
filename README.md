@@ -191,18 +191,6 @@ domain/  ──→  data/  ──→  stores/  ──→  features/ + components
 - **渲染性能**——`React.memo`、稳定 callback、Zustand 切片订阅，拖一个事件不会让整周重渲染。
 - **统计引擎**——纯函数构成的周统计、时段聚合、区间合并、Type I/II 分离、连续记录、年度推演、数据成熟度、回顾生成、偏差分析、记录质量指标。
 
----
-
-## 关于和 Claude Code 的协作
-
-这个项目是和 [Claude Code](https://www.anthropic.com/claude-code) 深度协作完成的。分工：
-
-- **我负责**——产品方向、架构决策、UX 品位判断、配色、字体、决定**不做什么**。
-- **Claude 负责**——大部分实现、测试脚手架、Recharts 集成、统计引擎、Pointer Events 边界情况的调试。
-
-拖拽系统走了三轮（HTML5 DnD → Pointer Events → 60fps 实时预览）。每一轮都是一次对话，不是一个 prompt。`CLAUDE.md` 记录了我们在这个项目里形成的工作规范。
-
----
 
 ## 开源协议
 

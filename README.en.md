@@ -191,18 +191,6 @@ Notable details:
 - **Render performance** — `React.memo`, stable callbacks, Zustand sliced subscriptions keep drags from re-rendering unrelated events.
 - **Statistics engine** — pure functions for week stats, bucket aggregation, interval merging, Type I/II split, streak computation, annual projection, data maturity, reflection generation, deviation analysis, and recording quality metrics.
 
----
-
-## Built With Claude Code
-
-This project was developed in close collaboration with [Claude Code](https://www.anthropic.com/claude-code). The split:
-
-- **Human** — product direction, architecture decisions, UX judgment, the palette, the typography, and deciding what *not* to build.
-- **Claude** — most of the implementation, test scaffolding, Recharts integration, statistics engine, and debugging pointer-event edge cases.
-
-The drag system went through three passes (HTML5 DnD → Pointer Events → 60fps live preview). Each was a conversation, not a prompt. See `CLAUDE.md` for the working conventions that guide the collaboration.
-
----
 
 ## License
 
