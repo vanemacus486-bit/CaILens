@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
-import { ArrowLeftRight } from 'lucide-react'
+import { ArrowLeftRight, Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { addWeeks, formatISODate, formatMonthDay, getWeekStart, isSameDay } from '@/domain/time'
 import { addDays } from 'date-fns'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useUIStore } from '@/stores/uiStore'
 
 interface WeekToolbarProps {
   weekStart: Date
@@ -27,6 +28,7 @@ export function WeekToolbar({
 }: WeekToolbarProps) {
   const navigate = useNavigate()
   const language = useAppSettingsStore((s) => s.settings.language)
+  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
   const [shiftOpen, setShiftOpen] = useState(false)
 
@@ -42,9 +44,18 @@ export function WeekToolbar({
   }
 
   return (
-    <div className="flex items-center justify-between px-7 py-[13px] border-b border-border-subtle flex-shrink-0">
+    <div className="flex items-center justify-between px-3 md:px-7 py-[13px] border-b border-border-subtle flex-shrink-0 gap-1.5">
+      {/* Mobile hamburger */}
+      <button
+        onClick={() => setMobileSidebarOpen(true)}
+        aria-label="Open menu"
+        className="md:hidden w-8 h-8 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer flex-shrink-0"
+      >
+        <Menu size={18} strokeWidth={1.75} />
+      </button>
+
       {/* Left: Logo + tagline */}
-      <div className="flex items-baseline gap-2.5 select-none">
+      <div className="hidden md:flex items-baseline gap-2.5 select-none">
         <span className="font-serif text-[22px] font-semibold text-text-primary tracking-[-0.01em]">
           CaILens
         </span>
@@ -54,7 +65,7 @@ export function WeekToolbar({
       </div>
 
       {/* Center: Navigation */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
         <button
           onClick={onPrev}
           aria-label="Previous week"
@@ -63,11 +74,11 @@ export function WeekToolbar({
           ‹
         </button>
 
-        <div className="text-center min-w-[180px]">
-          <span className="font-serif text-base font-medium text-text-primary">
+        <div className="text-center md:min-w-[180px]">
+          <span className="hidden md:inline font-serif text-base font-medium text-text-primary">
             {t(`第 ${weekNum} 周`, `Week ${weekNum}`)}
           </span>
-          <span className="font-mono text-xs text-text-secondary ml-2">
+          <span className="font-mono text-xs text-text-secondary md:ml-2 whitespace-nowrap">
             {rangeLabel}
           </span>
         </div>

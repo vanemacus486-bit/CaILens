@@ -71,7 +71,7 @@ export function SettingsPage() {
         </h1>
       </div>
 
-      <div className="flex-1 w-full max-w-2xl mx-auto px-8 py-8 flex flex-col gap-8 overflow-y-auto">
+      <div className="flex-1 w-full max-w-2xl mx-auto px-4 md:px-8 py-8 flex flex-col gap-8 overflow-y-auto">
         {/* ── Section 1: Language ────────────────────────── */}
         <section>
           <h2 className="font-serif text-sm font-semibold text-text-primary mb-3">

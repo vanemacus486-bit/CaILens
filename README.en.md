@@ -12,7 +12,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **Status:** Active development. Statistics dashboard with data maturity system, budget-aware weekly review, annual projection, estimate-vs-actual calibration, and recording quality metrics — all built.
+> **Status:** Active development. Statistics dashboard with data maturity system, budget-aware weekly review, annual projection, estimate-vs-actual calibration, and recording quality metrics — all built. Responsive mobile layout now implemented in the web UI. Cross-day event support added.
 
 ## Downloads
 
@@ -21,7 +21,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 | Windows (x64) | [CaILens.exe](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Portable, no install needed. Windows 10 1803+ |
 | Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
 
-> **The Android version is not yet optimized for mobile.** The UI was designed around desktop screen sizes and mouse interactions (drag, right-click, hover). A mobile-optimized layout is in development. For the best experience, use the Windows desktop version.
+> **The Android version is not yet optimized for mobile.** The UI was designed around desktop screen sizes and mouse interactions (drag, right-click, hover). The desktop web version now has responsive layout (hamburger sidebar, flexible spacing, touch support). For the full experience, use the Windows desktop version.
 
 ---
 
@@ -47,7 +47,8 @@ CaILens is a small attempt at that instrument, for the browser.
 - **24-hour, single-screen week view** (Mon–Sun, with time gutter).
 - **Click-to-create** — click any empty slot, a modal overlay card appears with a prompt: *"What were you doing?"*
 - **Drag to move** — events follow the pointer, including cross-day drag. Built on raw Pointer Events, no library.
-- **Drag edges to resize** — top and bottom handles for adjusting duration.
+- **Drag edges to resize** — top and bottom handles for adjusting duration; drag past midnight to create cross-day events.
+- **Cross-day events** — events spanning midnight (e.g. sleep) display across days with arrow indicators and continuous rounded corners.
 - **Live preview at 60fps** — draft events render in real-time as you edit or drag.
 - **Right-click menu** — delete, change colour (6 colours, each tied to a category).
 - **Overlap layout** — overlapping events are laid out side-by-side automatically.
@@ -167,7 +168,7 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest + React Testing Library + fake-indexeddb | 267 tests across 16 test files |
+| Testing | Vitest + React Testing Library + fake-indexeddb | 267 tests across 17 test files |
 | Fonts | Inter, Source Serif 4, JetBrains Mono | Fontsource, locally hosted |
 | Icons | lucide-react | |
 

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { addDays } from 'date-fns'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
-import { isSameDay } from '@/domain/time'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import type { DraftPreview } from './types'
@@ -19,6 +19,12 @@ function tsToStr(ts: number): string {
 function strToTs(date: Date, s: string): number {
   const [h, m] = s.split(':').map(Number)
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m, 0, 0).getTime()
+}
+
+/** Returns true when end time string is numerically before start (e.g. 23:00→07:00 = next-day). */
+function isNextDayEnd(startStr: string, endStr: string): boolean {
+  if (!startStr || !endStr) return false
+  return endStr <= startStr
 }
 
 function fmtDateHeader(date: Date, language: 'zh' | 'en'): string {
@@ -36,9 +42,10 @@ function pushDraft(
 ) {
   if (!startStr || !endStr) return
   const s = strToTs(date, startStr)
-  const e = strToTs(date, endStr)
+  const endDate = isNextDayEnd(startStr, endStr) ? addDays(date, 1) : date
+  const e = strToTs(endDate, endStr)
   if (isNaN(s) || isNaN(e)) return
-  if (e > s && isSameDay(s, e)) onChange({ startTime: s, endTime: e, color })
+  if (e > s) onChange({ startTime: s, endTime: e, color })
   else onChange(null)
 }
 
@@ -58,12 +65,11 @@ export function EventEditCard({
   event, isNewlyCreated,
   onSave, onDelete, onClose, onCancel, onDraftChange,
 }: EventEditCardProps) {
-  const localDate = new Date(event.startTime)
-
   const categories = useCategoryStore((s) => s.categories)
   const language   = useAppSettingsStore((s) => s.settings.language)
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
+  const localDate       = new Date(event.startTime)
   const [title,      setTitle]      = useState(event.title)
   const [startStr,   setStartStr]   = useState(tsToStr(event.startTime))
   const [endStr,     setEndStr]     = useState(tsToStr(event.endTime))
@@ -71,16 +77,18 @@ export function EventEditCard({
   const [desc,       setDesc]       = useState(event.description ?? '')
   const [error,      setError]      = useState<string | null>(null)
 
+  const currentEndIsNext = isNextDayEnd(startStr, endStr)
+
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const cardRef  = useRef<HTMLDivElement>(null)
 
   function getError(startStr: string, endStr: string, date: Date): string | null {
     if (!startStr || !endStr) return t('请设置开始和结束时间', 'Set start and end times')
     const s = strToTs(date, startStr)
-    const e = strToTs(date, endStr)
+    const endDate = isNextDayEnd(startStr, endStr) ? addDays(date, 1) : date
+    const e = strToTs(endDate, endStr)
     if (isNaN(s) || isNaN(e)) return t('无效时间', 'Invalid time')
     if (e <= s)               return t('结束时间必须在开始时间之后', 'End must be after start')
-    if (!isSameDay(s, e))     return t('必须在同一天', 'Must be on the same day')
     return null
   }
 
@@ -125,11 +133,12 @@ export function EventEditCard({
   // ── Save / discard ────────────────────────────────────
 
   const doSave = () => {
+    const endDate = isNextDayEnd(startStr, endStr) ? addDays(localDate, 1) : localDate
     onSave({
       id:          event.id,
       title:       title.trim(),
       startTime:   strToTs(localDate, startStr),
-      endTime:     strToTs(localDate, endStr),
+      endTime:     strToTs(endDate, endStr),
       color:       categoryId as EventColor,
       categoryId,
       description: desc.trim() || undefined,
@@ -186,7 +195,7 @@ export function EventEditCard({
       {/* Card */}
       <div
         ref={cardRef}
-        className="relative bg-surface-raised border border-border-default rounded-lg shadow-[0_8px_32px_rgba(40,36,31,0.12)] w-[420px] px-7 py-7 flex flex-col gap-4"
+        className="relative bg-surface-raised border border-border-default rounded-lg shadow-[0_8px_32px_rgba(40,36,31,0.12)] w-[calc(100vw-2rem)] max-w-[420px] px-5 md:px-7 py-5 md:py-7 flex flex-col gap-4 mx-4 md:mx-0"
       >
         {/* Header */}
         <div className="flex justify-between items-start">
@@ -195,7 +204,7 @@ export function EventEditCard({
               {fmtDateHeader(localDate, language)}
             </div>
             <div className="font-mono text-xs text-accent mt-[3px]">
-              {startStr} – {endStr}
+              {startStr} – {endStr}{currentEndIsNext ? <span className="text-text-tertiary ml-0.5">+1d</span> : ''}
             </div>
           </div>
           <button

@@ -60,7 +60,7 @@ export function DayView() {
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
       {/* Header */}
-      <div className="px-12 py-6 border-b border-border-subtle flex justify-between items-end flex-shrink-0">
+      <div className="px-4 md:px-12 py-6 border-b border-border-subtle flex justify-between items-end flex-shrink-0">
         <div className="flex items-start gap-4">
           <button
             onClick={() => navigate('/')}
@@ -96,7 +96,7 @@ export function DayView() {
 
       {/* Diary entries */}
       {dayEvents.length > 0 ? (
-        <div className="py-9 px-12 max-w-[680px]">
+        <div className="py-9 px-4 md:px-12 max-w-[680px]">
           {dayEvents.map((event, i) => {
             const cat = categories.find((c) => c.id === event.categoryId)
             const prevCat = i > 0 ? categories.find((c) => c.id === dayEvents[i - 1].categoryId) : null

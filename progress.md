@@ -1,13 +1,13 @@
 # CaILens 进度档案(progress.md)
 
-> 每次新会话只读两个文件:本文件 + `spec.md`。不读历史对话。
+> 每次新会话只读两个文件:本文件 + CLAUDE.md。不读历史对话。
 > 每次会话结束前更新本文件。
 
 ---
 
 ## 当前阶段
 
-**v2 已完成,等 PM 验收。**
+**v3 已实现。** 周视图 + 日视图 + 统计仪表盘 + 关键词系统 + 估算/反思 + 17 个测试文件 267 条测试全部通过。
 
 ---
 
@@ -20,44 +20,45 @@
 - 6 色分类、深浅模式、当前时间红线
 - 100+ 单元测试
 
-### 第二版 — Step 1(domain 层) ✅
-- `domain/category.ts` — `CategoryName {zh,en}` 类型、DEFAULT_CATEGORIES 更新为柳比歇夫风格双语名
-- `domain/settings.ts` — `AppLanguage`、`AppSettings` 单例类型、`DEFAULT_SETTINGS`
-- `domain/stats.ts` — `mergeIntervals`(半开区间, O(n log n)) + `computeWeekStats`(并集分母)
-- `domain/__tests__/stats.test.ts` — 27 个测试，覆盖全部必须 case
+### 第二版 — 分类与统计(全部完成)
+- 分类系统(6 个固定分类，双语名称，用户可改名)
+- 设置面板(语言切换 + 分类改名，Radix Popover)
+- 周统计卡片网格(颜色圆点 + 分类名 + 进度条 + 时长/百分比)
+- 侧边栏导航(图标按钮 + Tooltip)
+- Dexie schema v1→v3(events + categories + settings)
+- v1→v2 事件数据迁移(`migrateEventV1ToV2`)
 
-### 第二版 — Step 2(data 层) ✅
-- `data/db.ts` — v1→v3 schema(跳过 v2)，on('populate') 播种 categories，upgrade 处理 v2 dev 迁移
-- `data/categoryRepository.ts` — `getAll()` + `updateName()`，无 create/delete
-- `data/settingsRepository.ts` — `get()`(默认返回 DEFAULT_SETTINGS) + `update()`
-- 对应测试:17 个 repo 测试全通
-- ESLint 三条规则降级(详见 decisions.md)
-- decisions.md 初始化
-
-### 第二版 — Step 3(stores 层) ✅
-- `stores/categoryStore.ts` — `{ categories, isLoaded, loadCategories, updateCategoryName }`
-- `stores/settingsStore.ts` — `{ settings, isLoaded, loadSettings, setLanguage }`, 初始值为 DEFAULT_SETTINGS
-
-### 第二版 — Step 4(UI 层) ✅
-- `features/week-view/WeekStats.tsx` — 卡片网格展示，含颜色圆点、分类名、进度条、时长和百分比，仅显示有记录的分类
-- `features/settings/SettingsPopover.tsx` — 语言切换 + 6 个分类改名
-- `features/week-view/EventEditCard.tsx` — 色板替换为分类选择器
-- `features/week-view/WeekView.tsx` — 插入 WeekStats，修复 createEvent 类型逃逸，加载 stores
-- `features/app-shell/Sidebar.tsx` — Settings 按钮激活，BarChart3 保持 disabled
+### 第三版 — 从记录到理解(全部完成)
+- **日视图**(`/day`):日记风格时间线，URL 参数 `?date=YYYY-MM-DD`
+- **统计仪表盘**(`/stats`):多粒度(周/月/季/年/全部)、多图表、多指标
+  - 概览卡片、环图/堆叠条图、柳比歇夫分析、24h 热力图、30 天趋势、月度对比
+- **关键词系统**:KeywordFolder 文件夹 + 关键词列表，自动学习 + 批量重新分类
+- **ICS 导入**:.ics 文件解析(跳过全天/重复事件)、关键词自动归类
+- **周估算系统**:weeklyEstimates 表、偏差检测、系统性偏差(连续 3 周 ±30%)
+- **数据成熟度**:cold/warming/mature 三级，UI 自适应
+- **记录质量指标**:事件数、平均粒度、实时率、覆盖率
+- **年度投影**:柳比歇夫基准 2200h 对比
+- **周反思**:双语反思文本生成(`generateWeeklyReflection`)
+- **Settings 页面**(`/settings`):语言 + 分类编辑 + 文件夹关键词管理 + 数据导出
+- **UI 改进**:侧边栏 hover 展开 + 固定、移动端 overlay、recharts 图表
+- **数据迁移**:v4(关键词→文件夹)、v5(weeklyBudget)、v6(weeklyEstimates)
+- 依赖新增:recharts v3、ical.js v2、react-router-dom v7
+- 267 个单元测试(17 个文件)，全部通过
 
 ---
 
 ## 下一步
 
-等 PM 浏览器验收。验收通过后由 PM 决定是否 push 到 GitHub。
+等待 PM 评审 v3 功能。后续方向由 PM 决定。
 
 ---
 
 ## 遗留决策 / 待澄清
 
-- [ ] 统计视图的视觉细节(高度、条形样式)— Step 4 实现时决定
-- [ ] 事件创建时默认分类:已定为 `stone`(其他)
-- [ ] 改名字数提示样式:超限阻止输入即可
+- [ ] 全天事件 / 跨天事件 —— 数据结构当前不支持，需 schema 变更
+- [ ] 重复事件 —— 同上
+- [ ] 月视图 / 年视图 —— 仅统计页有，无日历视图
+- [ ] 统计页是否为常住功能还是需要简化——等 PM 反馈
 
 ---
 
@@ -69,3 +70,7 @@
 - 完成 Step 2(data 层):v1→v3 schema、两个 repository + 测试
 - 发现并解决 Dexie v4 upgrade async 函数内 categories.put() 失效问题(on('populate') 方案)
 - 三件套:0 errors / 166 passed / build ✓
+
+### 2026-05-02
+- **文档债务清理**:CLAUDE.md 从 v2 更新到 v3(数据模型、schema v3→v6、技术栈、路由表、架构文件清单、已实现功能清单、设计 token 修正)
+- progress.md 同步更新到 v3 状态

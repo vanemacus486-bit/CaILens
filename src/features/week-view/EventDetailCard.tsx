@@ -44,7 +44,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
 
         <PopoverContent
           side="right"
-          className="w-64 p-0"
+          className="w-64 p-0 max-md:!w-[calc(100vw-1rem)] max-md:max-w-64"
           onPointerDownOutside={onClose}
           onEscapeKeyDown={onClose}
           // Prevent Radix from auto-closing (we handle it ourselves)

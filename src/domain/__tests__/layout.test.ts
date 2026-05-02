@@ -2,11 +2,16 @@ import { describe, it, expect } from 'vitest'
 import { layoutDayEvents } from '../layout'
 import type { CalendarEvent } from '../event'
 
-// All tests use April 20 2026 (Monday) as the reference day.
-const DAY = new Date(2026, 3, 20)
+// Reference days
+const DAY   = new Date(2026, 3, 20) // Monday
+const DAY2  = new Date(2026, 3, 21) // Tuesday
 
 function ts(h: number, m = 0): number {
   return new Date(2026, 3, 20, h, m, 0, 0).getTime()
+}
+
+function tsDay2(h: number, m = 0): number {
+  return new Date(2026, 3, 21, h, m, 0, 0).getTime()
 }
 
 function makeEvent(id: string, startH: number, endH: number, startM = 0, endM = 0): CalendarEvent {
@@ -15,6 +20,19 @@ function makeEvent(id: string, startH: number, endH: number, startM = 0, endM = 
     title: id,
     startTime: ts(startH, startM),
     endTime:   ts(endH,   endM),
+    color:     'accent',
+    categoryId: 'accent',
+    createdAt: 0,
+    updatedAt: 0,
+  }
+}
+
+function makeCrossDayEvent(id: string, startH: number, endDay2H: number, startM = 0, endM = 0): CalendarEvent {
+  return {
+    id,
+    title: id,
+    startTime: ts(startH, startM),
+    endTime:   tsDay2(endDay2H, endM),
     color:     'accent',
     categoryId: 'accent',
     createdAt: 0,
@@ -45,6 +63,12 @@ describe('single event', () => {
     const result = layoutDayEvents([makeEvent('a', 8, 9)], DAY)
     expect(result[0].columnIndex).toBe(0)
     expect(result[0].totalColumns).toBe(1)
+  })
+
+  it('sets startsBeforeDay and endsAfterDay to false for a same-day event', () => {
+    const result = layoutDayEvents([makeEvent('a', 8, 9)], DAY)
+    expect(result[0].startsBeforeDay).toBe(false)
+    expect(result[0].endsAfterDay).toBe(false)
   })
 
   it('guarantees at least 1 slot (rowEnd > rowStart) for a short event', () => {
@@ -187,5 +211,44 @@ describe('result ordering', () => {
     )
     expect(result[0].event.id).toBe('a')
     expect(result[1].event.id).toBe('b')
+  })
+})
+
+// ── cross-day events ────────────────────────────────────────
+
+describe('cross-day events', () => {
+  it('include events that overlap the requested day', () => {
+    // Event from Mon 23:00 to Tue 07:00 — should appear on Monday
+    const result = layoutDayEvents([makeCrossDayEvent('sleep', 23, 7)], DAY)
+    expect(result).toHaveLength(1)
+    expect(result[0].event.id).toBe('sleep')
+  })
+
+  it('set startsBeforeDay=false and endsAfterDay=true on day 1 of a cross-day event', () => {
+    // Mon 23:00 – Tue 07:00, viewed on Monday
+    const result = layoutDayEvents([makeCrossDayEvent('sleep', 23, 7)], DAY)
+    expect(result[0].startsBeforeDay).toBe(false)
+    expect(result[0].endsAfterDay).toBe(true)
+  })
+
+  it('set startsBeforeDay=true and endsAfterDay=false on day 2 of a cross-day event', () => {
+    // Mon 23:00 – Tue 07:00, viewed on Tuesday
+    const result = layoutDayEvents([makeCrossDayEvent('sleep', 23, 7)], DAY2)
+    expect(result[0].startsBeforeDay).toBe(true)
+    expect(result[0].endsAfterDay).toBe(false)
+  })
+
+  it('clamp rowStart to 1 for event that started on a previous day', () => {
+    // Mon 23:00 – Tue 07:00, viewed on Tuesday: starts at 00:00 → rowStart=1
+    const result = layoutDayEvents([makeCrossDayEvent('sleep', 23, 7)], DAY2)
+    expect(result[0].rowStart).toBe(1)
+  })
+
+  it('clamp rowEnd past slot 48 for event continuing to next day', () => {
+    // Mon 23:00 – Tue 07:00, viewed on Monday: ends at 24:00 → rowEnd should be 49
+    const result = layoutDayEvents([makeCrossDayEvent('sleep', 23, 7)], DAY)
+    // 23:00 = 1380 min / 30 = 46 → rowStart 47. 24:00 = 1440 min / 30 = 48 → rowEnd 49.
+    expect(result[0].rowStart).toBe(47)
+    expect(result[0].rowEnd).toBe(49)
   })
 })

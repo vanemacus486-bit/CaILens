@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isSameDay, moveTimestampToDay } from '@/domain/time'
-import { TIME_COLUMN_WIDTH_PX } from '@/features/week-view/constants'
 
 /** Minimum pointer movement (px) before a press becomes a drag. */
 const DRAG_THRESHOLD = 5
@@ -125,10 +124,12 @@ export function useDragToMove({
 
       const gridEl = gridRef.current
       if (gridEl && days.length > 0) {
-        const gridRect   = gridEl.getBoundingClientRect()
-        // Subtract the fixed 80 px time-label column on the left.
-        const relativeX  = finalPointerX - gridRect.left - TIME_COLUMN_WIDTH_PX
-        const colWidth   = (gridRect.width - TIME_COLUMN_WIDTH_PX) / days.length
+        const gridRect = gridEl.getBoundingClientRect()
+        // Measure the time-label column width from the DOM (first DayColumn is gridEl.children[1]).
+        const firstDayCol = gridEl.children[1] as HTMLElement | undefined
+        const timeColW    = firstDayCol ? firstDayCol.getBoundingClientRect().left - gridRect.left : 80
+        const relativeX   = finalPointerX - gridRect.left - timeColW
+        const colWidth    = (gridRect.width - timeColW) / days.length
         if (colWidth > 0) {
           targetIdx = Math.floor(relativeX / colWidth)
           targetIdx = Math.max(0, Math.min(days.length - 1, targetIdx))
@@ -142,19 +143,9 @@ export function useDragToMove({
 
       const origStart = originalStartRef.current
       const origEnd   = originalEndRef.current
-      const duration  = origEnd - origStart
 
-      let newStart = moveTimestampToDay(origStart, targetDay) + snappedYMs
-      let newEnd   = moveTimestampToDay(origEnd,   targetDay) + snappedYMs
-
-      // Clamp to target day's boundaries
-      const dayStart = new Date(
-        targetDay.getFullYear(), targetDay.getMonth(), targetDay.getDate(), 0, 0, 0, 0,
-      ).getTime()
-      const dayEnd = dayStart + 24 * 60 * 60_000
-
-      if (newStart < dayStart) { newStart = dayStart;      newEnd = dayStart + duration }
-      if (newEnd   > dayEnd)   { newEnd   = dayEnd;        newStart = dayEnd  - duration }
+      const newStart = moveTimestampToDay(origStart, targetDay) + snappedYMs
+      const newEnd   = moveTimestampToDay(origEnd,   targetDay) + snappedYMs
 
       return { newStartTime: newStart, newEndTime: newEnd }
     },

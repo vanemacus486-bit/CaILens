@@ -22,6 +22,7 @@ export function colSpan(columnIndex: number, totalColumns: number) {
 
 interface EventBlockProps {
   positioned:    PositionedEvent
+  columnDate:    Date
   onClick:       (event: CalendarEvent, el: HTMLElement) => void
   onColorChange: (eventId: string, color: EventColor) => void
   onEdit:        (event: CalendarEvent, anchorEl: HTMLElement) => void
@@ -41,10 +42,10 @@ function fmtHM(ts: number): string {
 }
 
 export const EventBlock = React.memo(function EventBlock({
-  positioned, onClick, onColorChange, onEdit, onDelete,
+  positioned, columnDate, onClick, onColorChange, onEdit, onDelete,
   onDragMove, onDragStart, onResize, weekDays, gridRef, isCardOpen = false,
 }: EventBlockProps) {
-  const { event, rowStart, rowEnd, columnIndex, totalColumns } = positioned
+  const { event, rowStart, rowEnd, columnIndex, totalColumns, startsBeforeDay, endsAfterDay } = positioned
   const { bg, text } = EVENT_COLOR_CLASSES[event.color]
   const { gridColumnStart, gridColumnEnd } = colSpan(columnIndex, totalColumns)
 
@@ -71,6 +72,7 @@ export const EventBlock = React.memo(function EventBlock({
     originalStartTime: event.startTime,
     originalEndTime:   event.endTime,
     eventBlockRef:     divRef,
+    columnDate,
     onResizeStart:     onDragStart,   // reuse: closes any open card
     onResizeEnd: (s, e) => onResize(event.id, s, e),
     onResizeCancel: () => {},
@@ -81,6 +83,7 @@ export const EventBlock = React.memo(function EventBlock({
     originalStartTime: event.startTime,
     originalEndTime:   event.endTime,
     eventBlockRef:     divRef,
+    columnDate,
     onResizeStart:     onDragStart,
     onResizeEnd: (s, e) => onResize(event.id, s, e),
     onResizeCancel: () => {},
@@ -90,15 +93,20 @@ export const EventBlock = React.memo(function EventBlock({
   const isCompact = durationMinutes <= 60
   const isMedium  = false
 
+  const roundedClass = !startsBeforeDay && !endsAfterDay ? 'rounded-md'
+    : !startsBeforeDay ? 'rounded-t-md'
+    : !endsAfterDay ? 'rounded-b-md'
+    : ''
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
           ref={divRef}
           className={cn(
-            'relative rounded-md px-2 py-[5px] overflow-hidden select-none',
+            'relative px-2 py-[5px] overflow-hidden select-none',
             'border-t-2 border border-border-subtle transition-colors duration-200 z-10',
-            bg, text,
+            roundedClass, bg, text,
             isDragging
               ? 'cursor-grabbing'
               : isCardOpen
@@ -124,10 +132,18 @@ export const EventBlock = React.memo(function EventBlock({
           {/* Top resize handle */}
           {showResizeHandles && (
             <div
-              className="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize z-20"
+              className="absolute top-0 left-0 right-0 h-3 cursor-ns-resize z-20"
               onPointerDown={topResize.onPointerDown}
               onClick={(e) => e.stopPropagation()}
             />
+          )}
+
+          {/* Continue-from-above indicator */}
+          {startsBeforeDay && (
+            <div className="flex items-center gap-0.5 mb-0.5 opacity-60">
+              <span className="text-[8px] leading-none text-current">▲</span>
+              <span className="text-[8px] leading-none text-current opacity-70">{fmtHM(event.startTime).split(':')[0]}h</span>
+            </div>
           )}
 
           {/* Event content */}
@@ -145,10 +161,18 @@ export const EventBlock = React.memo(function EventBlock({
             </p>
           )}
 
+          {/* Continue-to-below indicator */}
+          {endsAfterDay && (
+            <div className="flex items-center gap-0.5 mt-0.5 opacity-60">
+              <span className="text-[8px] leading-none text-current">▼</span>
+              <span className="text-[8px] leading-none text-current opacity-70">{fmtHM(event.endTime).split(':')[0]}h</span>
+            </div>
+          )}
+
           {/* Bottom resize handle */}
           {showResizeHandles && (
             <div
-              className="absolute bottom-0 left-0 right-0 h-1.5 cursor-ns-resize z-20"
+              className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize z-20"
               onPointerDown={bottomResize.onPointerDown}
               onClick={(e) => e.stopPropagation()}
             />

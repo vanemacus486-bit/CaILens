@@ -185,7 +185,7 @@ export function StatsPage() {
   return (
     <div className="h-full flex flex-col bg-surface-base text-text-primary overflow-hidden">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-50 flex items-center gap-4 h-[52px] px-12 border-b border-border-subtle bg-surface-base/96 backdrop-blur-[8px] flex-shrink-0">
+      <div className="sticky top-0 z-50 flex items-center gap-4 h-[52px] px-4 md:px-12 border-b border-border-subtle bg-surface-base/96 backdrop-blur-[8px] flex-shrink-0">
         <Link
           to="/"
           className="inline-flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-200 flex-shrink-0"
@@ -265,7 +265,7 @@ export function StatsPage() {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1100px] mx-auto px-12 py-12 pb-20 space-y-[52px]">
+        <div className="max-w-[1100px] mx-auto px-4 md:px-12 py-12 pb-20 space-y-[52px]">
           {/* Epigraph */}
           <div className="border-l-2 border-accent py-1 pl-6">
             <p className="font-serif italic text-lg leading-[1.65] text-text-primary max-w-[680px]">

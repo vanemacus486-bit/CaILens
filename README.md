@@ -12,7 +12,7 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **状态：** 持续开发中。统计看板已完备——数据成熟度系统、预算驱动的智能回顾、年度推演、预估 vs 实际校准、记录质量元指标。
+> **状态：** 持续开发中。统计看板已完备——数据成熟度系统、预算驱动的智能回顾、年度推演、预估 vs 实际校准、记录质量元指标。桌面端 UI 已适配移动端响应式布局。跨天事件支持已实装。
 
 ## 下载
 
@@ -21,7 +21,7 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 | Windows (x64) | [CaILens.exe](https://github.com/vanemacus486-bit/CaILens/releases/latest) | 便携免安装，Windows 10 1803+ |
 | Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
 
-> **Android 版本尚未针对手机优化。** 当前 UI 围绕桌面端屏幕尺寸和鼠标交互（拖拽、右键、悬浮）设计。移动端适配版正在开发中。如需最佳体验，请使用 Windows 桌面版。
+> **Android 版本尚未针对手机优化。** 当前 UI 围绕桌面端屏幕尺寸和鼠标交互（拖拽、右键、悬浮）设计。桌面端 Web 版已适配响应式布局（侧边栏汉堡菜单、弹性间距、触控支持）。如需完整体验，请使用 Windows 桌面版。
 
 ---
 
@@ -47,7 +47,8 @@ CaILens 就是这个工具在浏览器里的一个尝试。
 - **24 小时一屏可见**（周一至周日，带时间刻度栏）。
 - **点击空白创建**——弹出卡片覆盖层，一句话提示：*"你在做什么？"*
 - **拖拽移动**——指针跟随，支持跨天。基于原生 Pointer Events 手写，没用库。
-- **拖拽边缘改时长**——上下手柄调整起止时间。
+- **拖拽边缘改时长**——上下手柄调整起止时间，可拖过午夜变为跨天事件。
+- **跨天事件**——睡眠等跨越午夜的记录自动跨天显示，带箭头指示器和连续圆角。
 - **实时预览 60fps**——编辑或拖动时，草稿事件即时渲染。
 - **右键菜单**——删除、换颜色（6 种颜色，每种对应一个分类）。
 - **重叠事件并排**——自动水平排列。
@@ -167,7 +168,7 @@ npm run lint         # 跑 ESLint
 | 存储 | IndexedDB（Dexie v4） | 本地优先，无后端 |
 | 图表 | Recharts 3 | 饼图、柱状图、面积图、折线图 |
 | 时间 | date-fns v4 | 不引入 dayjs / moment |
-| 测试 | Vitest + React Testing Library + fake-indexeddb | 267 个测试，16 个测试文件 |
+| 测试 | Vitest + React Testing Library + fake-indexeddb | 267 个测试，17 个测试文件 |
 | 字体 | Inter、Source Serif 4、JetBrains Mono | Fontsource 本地托管 |
 | 图标 | lucide-react | |
 

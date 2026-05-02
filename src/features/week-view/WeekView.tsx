@@ -11,6 +11,7 @@ import { WeekDateHeader } from './WeekDateHeader'
 import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
 import { EventEditCard } from './EventEditCard'
+import { WeekEmptyState } from './WeekEmptyState'
 import type { CardState, DraftPreview } from './types'
 
 const EMPTY: CalendarEvent[] = []
@@ -236,26 +237,33 @@ export function WeekView() {
         <WeekDateHeader days={days} />
 
         {/* Calendar grid */}
-        <div ref={gridRef} className="flex-1 min-h-0 grid grid-cols-[80px_repeat(7,1fr)]">
-          <TimeGrid />
-          {days.map((day) => (
-            <DayColumn
-              key={day.getTime()}
-              date={day}
-              events={eventsByDay.get(day.getTime()) ?? EMPTY}
-              selectedEventId={selectedEventId}
-              weekDays={days}
-              gridRef={gridRef}
-              onSlotClick={handleSlotClick}
-              onEventClick={handleEventClick}
-              onColorChange={handleColorChange}
-              onEdit={handleContextEdit}
-              onDelete={handleContextDelete}
-              onDragMove={handleDragMove}
-              onDragStart={handleDragStart}
-              onResize={handleResize}
-            />
-          ))}
+        <div className="relative flex-1 min-h-0">
+          <div ref={gridRef} className="h-full grid" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)', touchAction: 'manipulation' }}>
+            <TimeGrid />
+            {days.map((day) => (
+              <DayColumn
+                key={day.getTime()}
+                date={day}
+                events={eventsByDay.get(day.getTime()) ?? EMPTY}
+                selectedEventId={selectedEventId}
+                weekDays={days}
+                gridRef={gridRef}
+                onSlotClick={handleSlotClick}
+                onEventClick={handleEventClick}
+                onColorChange={handleColorChange}
+                onEdit={handleContextEdit}
+                onDelete={handleContextDelete}
+                onDragMove={handleDragMove}
+                onDragStart={handleDragStart}
+                onResize={handleResize}
+              />
+            ))}
+          </div>
+          {events.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <WeekEmptyState />
+            </div>
+          )}
         </div>
       </div>
 

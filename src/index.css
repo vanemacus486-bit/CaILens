@@ -110,6 +110,25 @@ body.resizing-event * {
   user-select: none;
 }
 
+/* ── Touch ──────────────────────────────────────────────── */
+/* Prevent double-tap zoom and other browser touch defaults on interactive areas */
+.event-block,
+.calendar-grid {
+  touch-action: manipulation;
+}
+
+/* ── Responsive time-column width ────────────────────────── */
+:root {
+  --time-column-width: 80px;
+}
+
+/* ── Mobile: reduce time column width ───────────────────── */
+@media (max-width: 767px) {
+  :root {
+    --time-column-width: 40px;
+  }
+}
+
 /* ── Base ───────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;

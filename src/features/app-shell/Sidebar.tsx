@@ -109,6 +109,8 @@ export function Sidebar() {
 
   const sidebarExpanded = useUIStore((s) => s.sidebarExpanded)
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
+  const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen)
+  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
   const [hovered, setHovered] = useState(false)
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -139,14 +141,27 @@ export function Sidebar() {
     : (language === 'zh' ? '本周' : 'Today')
 
   return (
-    <div
-      className={cn(
-        'flex-shrink-0 border-r border-border-subtle bg-surface-base flex flex-col py-3 transition-all duration-200',
-        expanded ? 'w-40 items-start px-2' : 'w-12 items-center',
+    <>
+      {/* Mobile backdrop */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
       )}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
+
+      {/* Desktop: always visible. Mobile: fixed overlay when open, hidden otherwise. */}
+      <div
+        className={cn(
+          'flex-shrink-0 border-r border-border-subtle bg-surface-base flex flex-col py-3 transition-all duration-200',
+          expanded ? 'w-40 items-start px-2' : 'w-12 items-center',
+          // Mobile: fixed overlay
+          'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-40 max-md:items-start max-md:px-2',
+          mobileSidebarOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full max-md:hidden',
+        )}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
       {/* Navigation group */}
       <div className="flex flex-col gap-1 w-full">
         <NavButton
@@ -230,6 +245,7 @@ export function Sidebar() {
       </div>
 
       <ImportIcsDialog open={importOpen} onOpenChange={setImportOpen} />
-    </div>
+      </div>
+    </>
   )
 }

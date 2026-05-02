@@ -8,6 +8,8 @@ export interface PositionedEvent {
   rowEnd: number        // 1-based grid-row-end, exclusive
   columnIndex: number   // 0-based column within a conflict group
   totalColumns: number  // column count for the conflict group
+  startsBeforeDay: boolean  // true when event starts before this day
+  endsAfterDay: boolean     // true when event ends after this day
 }
 
 /** Minutes from midnight for a timestamp, clamped to the range [0, 1440]. */
@@ -78,10 +80,12 @@ export function layoutDayEvents(
       }
     }
 
-    const clampedStart  = Math.max(event.startTime, dayStart)
-    const clampedEnd    = Math.min(event.endTime, dayEnd)
-    const startMinutes  = minutesFromDayStart(clampedStart, dayStart)
-    const endMinutes    = minutesFromDayStart(clampedEnd,   dayStart)
+    const clampedStart     = Math.max(event.startTime, dayStart)
+    const clampedEnd       = Math.min(event.endTime, dayEnd)
+    const startsBeforeDay  = event.startTime < dayStart
+    const endsAfterDay     = event.endTime > dayEnd
+    const startMinutes     = minutesFromDayStart(clampedStart, dayStart)
+    const endMinutes       = minutesFromDayStart(clampedEnd,   dayStart)
     const minutesPerSlot = 60 / SLOTS_PER_HOUR  // 30
 
     const rowStart = Math.floor(startMinutes / minutesPerSlot) + 1
@@ -96,6 +100,8 @@ export function layoutDayEvents(
       rowEnd,
       columnIndex:  colAssigned[i],
       totalColumns: maxCol + 1,
+      startsBeforeDay,
+      endsAfterDay,
     }
   })
 }

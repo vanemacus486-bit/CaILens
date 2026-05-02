@@ -9,6 +9,7 @@ interface UseDragToResizeParams {
   originalStartTime: number
   originalEndTime:   number
   eventBlockRef:     React.RefObject<HTMLElement | null>
+  columnDate:        Date            // the day of the column this event block is rendered in
   onResizeStart:     () => void
   onResizeEnd:       (newStartTime: number, newEndTime: number) => void
   onResizeCancel:    () => void
@@ -25,14 +26,15 @@ interface UseDragToResizeResult {
  * into the DayColumn DOM and repositioned on every pointermove — no React renders
  * during the drag.
  *
- * Snapping: 30-minute grid, clamped so the event never shrinks below 30 min or
- * crosses the 00:00 / 24:00 day boundary.
+ * Snapping: 30-minute grid. Only constraint: end must be ≥ 30 min after start.
+ * Day boundaries no longer constrain resize — events can extend across days.
  */
 export function useDragToResize({
   edge,
   originalStartTime,
   originalEndTime,
   eventBlockRef,
+  columnDate,
   onResizeStart,
   onResizeEnd,
   onResizeCancel,
@@ -41,8 +43,10 @@ export function useDragToResize({
 
   const originalStartRef  = useRef(originalStartTime)
   const originalEndRef    = useRef(originalEndTime)
+  const columnDateRef     = useRef(columnDate)
   originalStartRef.current = originalStartTime
   originalEndRef.current   = originalEndTime
+  columnDateRef.current    = columnDate
 
   const onResizeStartRef  = useRef(onResizeStart)
   const onResizeEndRef    = useRef(onResizeEnd)
@@ -89,14 +93,12 @@ export function useDragToResize({
 
       const origStart = originalStartRef.current
       const origEnd   = originalEndRef.current
+      const colDate   = columnDateRef.current
 
-      // Day boundaries in local time
-      const d        = new Date(origStart)
-      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime()
-      const dayEnd   = dayStart + 24 * 60 * 60_000
-
-      const origStartMin = Math.round((origStart - dayStart) / 60_000)
-      const origEndMin   = Math.round((origEnd   - dayStart) / 60_000)
+      // Day boundaries based on the column day, not the event's start day
+      const dayStart = new Date(
+        colDate.getFullYear(), colDate.getMonth(), colDate.getDate(), 0, 0, 0, 0,
+      ).getTime()
 
       const relY      = pointerY - rect.top
       const rawMin    = (relY / rect.height) * 24 * 60
@@ -105,17 +107,19 @@ export function useDragToResize({
       let newStart: number, newEnd: number
 
       if (edge === 'top') {
-        // Top edge: moves startTime; endTime is fixed
-        snappedMin = Math.max(0, Math.min(snappedMin, origEndMin - 30))
+        // Top edge: moves startTime; endTime is fixed.
+        // Clamp: start must be at least 30 min before end.
+        const maxStartMin = Math.round((origEnd - dayStart) / 60_000) - 30
+        snappedMin = Math.min(snappedMin, maxStartMin)
         newStart   = dayStart + snappedMin * 60_000
         newEnd     = origEnd
       } else {
-        // Bottom edge: moves endTime; startTime is fixed
-        snappedMin = Math.max(origStartMin + 30, Math.min(snappedMin, 24 * 60))
+        // Bottom edge: moves endTime; startTime is fixed.
+        // Clamp: end must be at least 30 min after start.
+        const minEndMin = Math.round((origStart - dayStart) / 60_000) + 30
+        snappedMin = Math.max(snappedMin, minEndMin)
         newStart   = origStart
         newEnd     = dayStart + snappedMin * 60_000
-        // Handle 24:00 edge — dayStart + 24h = next day midnight, which is valid
-        if (newEnd > dayEnd) newEnd = dayEnd
       }
 
       return { snappedMin, dayColumnEl: dayColumnEl as HTMLElement, newStart, newEnd }

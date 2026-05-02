@@ -67,6 +67,7 @@ function DayColumnInner({
           <EventBlock
             key={pe.event.id}
             positioned={pe}
+            columnDate={date}
             onClick={onEventClick}
             onColorChange={onColorChange}
             onEdit={onEdit}
