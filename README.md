@@ -21,7 +21,7 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 | Windows (x64) | [CaILens.exe](https://github.com/vanemacus486-bit/CaILens/releases/latest) | 便携免安装，Windows 10 1803+ |
 | Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
 
-> **Android APK 尚未通过 Google Studio 重新打包。** 下载的 APK 仍然是旧版本，不包含本次移动端响应式改动。桌面端 Web 版已适配响应式布局（侧边栏汉堡菜单、弹性间距、触控支持），可在手机浏览器中直接使用。如需完整体验，请使用 Windows 桌面版。
+> Android APK 已更新，包含移动端响应式布局和最新功能改进。
 
 ---
 

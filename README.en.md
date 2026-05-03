@@ -21,7 +21,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 | Windows (x64) | [CaILens.exe](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Portable, no install needed. Windows 10 1803+ |
 | Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
 
-> **The Android APK has not been rebuilt via Google Studio.** The downloadable APK is still the old version without these responsive layout changes. The desktop web version now has responsive layout (hamburger sidebar, flexible spacing, touch support) and can be used in a phone browser. For the full experience, use the Windows desktop version.
+> The Android APK has been rebuilt with the latest responsive layout and feature updates.
 
 ---
 
