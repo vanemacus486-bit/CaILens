@@ -48,7 +48,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Click-to-create** — click any empty slot, a modal overlay card appears with a prompt: *"What were you doing?"*
 - **Drag to move** — events follow the pointer, including cross-day drag. Built on raw Pointer Events, no library.
 - **Drag edges to resize** — top and bottom handles for adjusting duration; drag past midnight to create cross-day events.
-- **Cross-day events** — events spanning midnight (e.g. sleep) display across days with arrow indicators and continuous rounded corners. (⚠️ Experimental — known bugs. Drag and cross-day resize behavior may be incorrect.)
+- **Cross-day events** — events spanning midnight (e.g. sleep) display across days with arrow indicators and continuous rounded corners.
 - **Live preview at 60fps** — draft events render in real-time as you edit or drag.
 - **Right-click menu** — delete, change colour (6 colours, each tied to a category).
 - **Overlap layout** — overlapping events are laid out side-by-side automatically.

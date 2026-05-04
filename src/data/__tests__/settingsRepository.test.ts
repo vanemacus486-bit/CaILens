@@ -64,4 +64,35 @@ describe('update', () => {
     await repo.update({ language: 'zh' })
     expect((await repo.get()).language).toBe('zh')
   })
+
+  // ── theme field ──────────────────────────────────────────
+
+  it('seeded settings have theme: light', async () => {
+    const result = await repo.get()
+    expect(result.theme).toBe('light')
+  })
+
+  it('updates the theme field', async () => {
+    await repo.update({ theme: 'dark' })
+    expect((await repo.get()).theme).toBe('dark')
+  })
+
+  it('persists theme across successive get calls', async () => {
+    await repo.update({ theme: 'dark' })
+    expect((await repo.get()).theme).toBe('dark')
+    expect((await repo.get()).theme).toBe('dark')
+  })
+
+  it('round-trips theme from dark back to light', async () => {
+    await repo.update({ theme: 'dark' })
+    await repo.update({ theme: 'light' })
+    expect((await repo.get()).theme).toBe('light')
+  })
+
+  it('updates theme and language together', async () => {
+    await repo.update({ theme: 'dark', language: 'en' })
+    const result = await repo.get()
+    expect(result.theme).toBe('dark')
+    expect(result.language).toBe('en')
+  })
 })
