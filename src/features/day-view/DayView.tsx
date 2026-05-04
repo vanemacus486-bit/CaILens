@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
+import { cn } from '@/lib/utils'
 import { ArrowLeft } from 'lucide-react'
 import { formatWeekday as fmtWday } from '@/domain/time'
 import { addDays } from 'date-fns'
@@ -102,6 +103,12 @@ export function DayView() {
             const prevCat = i > 0 ? categories.find((c) => c.id === dayEvents[i - 1].categoryId) : null
             const showDivider = prevCat && prevCat.id !== event.categoryId
 
+            const dayStartMs = dayStart.getTime()
+            const dayEndMs = dayEnd.getTime()
+            const startsBeforeDay = event.startTime < dayStartMs
+            const endsAfterDay = event.endTime > dayEndMs
+            const displayStart = startsBeforeDay ? dayStartMs : event.startTime
+
             return (
               <div key={event.id}>
                 {showDivider && (
@@ -110,6 +117,9 @@ export function DayView() {
                 <DiaryEntry
                   event={event}
                   catColor={cat ? `var(--event-${cat.id}-fill)` : 'var(--text-tertiary)'}
+                  startsBeforeDay={startsBeforeDay}
+                  endsAfterDay={endsAfterDay}
+                  displayStart={displayStart}
                 />
               </div>
             )
@@ -126,20 +136,37 @@ export function DayView() {
   )
 }
 
-function DiaryEntry({ event, catColor }: { event: CalendarEvent; catColor: string }) {
-  const timeLabel = fmtTimeHM(event.startTime)
+function DiaryEntry({
+  event, catColor, startsBeforeDay, endsAfterDay, displayStart,
+}: {
+  event: CalendarEvent
+  catColor: string
+  startsBeforeDay: boolean
+  endsAfterDay: boolean
+  displayStart: number
+}) {
+  const timeLabel = fmtTimeHM(displayStart)
+  const isCrossDay = startsBeforeDay || endsAfterDay
 
   return (
     <div className="flex gap-0 mb-1 items-start">
       {/* Time */}
       <div className="w-12 flex-shrink-0 pt-0.5">
-        <span className="font-mono text-[11px] text-text-tertiary">{timeLabel}</span>
+        <span className={cn('font-mono text-[11px]', isCrossDay ? 'text-text-secondary' : 'text-text-tertiary')}>{timeLabel}</span>
+        {startsBeforeDay && (
+          <div className="font-mono text-[9px] text-text-tertiary opacity-60 mt-0.5">
+            ▲ {fmtTimeHM(event.startTime).split(':')[0]}h
+          </div>
+        )}
       </div>
 
       {/* Dot + line */}
       <div className="w-6 flex-shrink-0 flex flex-col items-center pt-[5px]">
         <span
-          className="w-2 h-2 rounded-full flex-shrink-0 border-2"
+          className={cn(
+            'w-2 h-2 rounded-full flex-shrink-0 border-2',
+            isCrossDay && 'opacity-50',
+          )}
           style={{
             backgroundColor: catColor,
             borderColor: 'var(--surface-raised)',
@@ -156,6 +183,11 @@ function DiaryEntry({ event, catColor }: { event: CalendarEvent; catColor: strin
         {event.description && (
           <div className="font-serif text-[13px] text-text-secondary italic mt-1 leading-[1.6]">
             {event.description}
+          </div>
+        )}
+        {endsAfterDay && (
+          <div className="font-mono text-[9px] text-text-tertiary opacity-60 mt-1">
+            ▼ {fmtTimeHM(event.endTime).split(':')[0]}h
           </div>
         )}
       </div>

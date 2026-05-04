@@ -103,6 +103,7 @@ export const EventBlock = React.memo(function EventBlock({
       <ContextMenuTrigger asChild>
         <div
           ref={divRef}
+          data-event-id={event.id}
           className={cn(
             'relative px-2 py-[5px] overflow-hidden select-none',
             'border-t-2 border border-border-subtle transition-colors duration-200 z-10',

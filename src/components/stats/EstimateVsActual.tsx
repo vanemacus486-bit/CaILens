@@ -121,7 +121,7 @@ export function EstimateVsActual({ current, categories, weekStart, language }: E
                     highDev
                       ? d.deviation > 0
                         ? 'text-color-text-danger bg-surface-sunken'
-                        : 'text-[#B8823A] bg-[#F5EDD8]'
+                        : 'text-color-text-warning bg-color-bg-warning'
                       : 'text-text-tertiary',
                   )}>
                     {d.deviation >= 0 ? '+' : ''}{d.deviation.toFixed(1)}h ({d.deviationPct >= 0 ? '+' : ''}{d.deviationPct}%)

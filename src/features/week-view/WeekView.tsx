@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { addWeeks, getWeekDays, getWeekStart, isEventOnDay } from '@/domain/time'
 import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
 import { DayColumn } from '@/components/calendar/DayColumn'
@@ -18,6 +19,7 @@ const EMPTY: CalendarEvent[] = []
 
 export function WeekView() {
   const { weekStart, setWeekStart } = useWeekFromURL()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const events             = useEventStore((s) => s.events)
   const loadWeek           = useEventStore((s) => s.loadWeek)
@@ -43,6 +45,9 @@ export function WeekView() {
   const cardStateRef = useRef(cardState)
   cardStateRef.current = cardState
 
+  // Prevent the openEvent effect from re-firing for the same event ID
+  const handledOpenEventRef = useRef<string | null>(null)
+
   const days = useMemo(() => getWeekDays(weekStart), [weekStart])
 
   // Merge draft preview into the event being edited so the block moves in real-time.
@@ -62,7 +67,6 @@ export function WeekView() {
       for (const day of days) {
         if (isEventOnDay(event, day)) {
           map.get(day.getTime())!.push(event)
-          break
         }
       }
     }
@@ -70,6 +74,36 @@ export function WeekView() {
   }, [effectiveEvents, days])
 
   useEffect(() => { void loadWeek(weekStart) }, [weekStart, loadWeek])
+
+  // Handle ?openEvent=<id> from search navigation
+  useEffect(() => {
+    const openEventId = searchParams.get('openEvent')
+    if (!openEventId || events.length === 0) return
+    if (handledOpenEventRef.current === openEventId) return
+    handledOpenEventRef.current = openEventId
+
+    const event = events.find((e) => e.id === openEventId)
+    if (!event) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('openEvent')
+        return next
+      }, { replace: true })
+      return
+    }
+
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(`[data-event-id="${openEventId}"]`)
+      if (el) {
+        setCardState({ mode: 'detail', event, anchorEl: el })
+      }
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('openEvent')
+        return next
+      }, { replace: true })
+    })
+  }, [events, searchParams, setSearchParams])
 
   // Auto-close if the active event is no longer in the store (week changed, etc.)
   useEffect(() => {

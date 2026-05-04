@@ -40,8 +40,8 @@ function OvCard({ label, value, unit, delta, cold, footer }: {
         <div className="mt-2">
           <span className={cn(
             'text-[11px] font-mono px-1.5 py-0.5 rounded-sm',
-            up ? 'text-[#7A9448] bg-[#ECF0E4]' : '',
-            dn ? 'text-[#9E7A5A] bg-[#F0E8DC]' : '',
+            up ? 'text-color-text-positive bg-color-bg-positive' : '',
+            dn ? 'text-color-text-negative bg-color-bg-negative' : '',
           )}>
             {up ? '↑' : dn ? '↓' : ''} {Math.abs(delta).toFixed(1)}{unit}
           </span>

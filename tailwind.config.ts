@@ -47,6 +47,12 @@ export default {
         'color-text-danger':  'var(--color-text-danger)',
         'color-bg-info':      'var(--color-bg-info)',
         'color-text-info':    'var(--color-text-info)',
+        'color-text-positive': 'var(--color-text-positive)',
+        'color-bg-positive':   'var(--color-bg-positive)',
+        'color-text-negative': 'var(--color-text-negative)',
+        'color-bg-negative':   'var(--color-bg-negative)',
+        'color-text-warning':  'var(--color-text-warning)',
+        'color-bg-warning':    'var(--color-bg-warning)',
       },
       fontFamily: {
         sans:  ['Inter', 'sans-serif'],

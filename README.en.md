@@ -36,7 +36,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
 - **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 267 tests, one-way dependency layers. The codebase should age well.
+- **Code quality over feature quantity.** Strict TypeScript, 283 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
@@ -54,6 +54,13 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Overlap layout** — overlapping events are laid out side-by-side automatically.
 - **Current time indicator** — a terracotta line on today's column, updating every minute.
 - **Light / dark mode** — follows system preference.
+
+### Search
+
+- **Ctrl+K / Cmd+K global shortcut** — summon the search panel from any page.
+- **Keyword search** — matches event titles, descriptions, and locations, case-insensitive.
+- **Instant navigation** — clicking a result jumps to the corresponding week and opens the event detail card.
+- **Toolbar entry** — search icon button in the week view toolbar.
 
 ### Sidebar
 
@@ -150,7 +157,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (267 tests)
+npm run test         # run unit tests once (283 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -168,7 +175,7 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest + React Testing Library + fake-indexeddb | 267 tests across 17 test files |
+| Testing | Vitest + React Testing Library + fake-indexeddb | 283 tests across 17 test files |
 | Fonts | Inter, Source Serif 4, JetBrains Mono | Fontsource, locally hosted |
 | Icons | lucide-react | |
 

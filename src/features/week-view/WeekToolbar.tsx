@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
-import { ArrowLeftRight, Menu } from 'lucide-react'
+import { ArrowLeftRight, Menu, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { addWeeks, formatISODate, formatMonthDay, getWeekStart, isSameDay } from '@/domain/time'
 import { addDays } from 'date-fns'
@@ -93,6 +93,18 @@ export function WeekToolbar({
 
         <div className="w-px h-5 bg-border-subtle mx-2" />
 
+        {/* Search */}
+        <button
+          onClick={() => useUIStore.getState().setSearchOpen(true)}
+          aria-label={t('搜索事件', 'Search events')}
+          className={cn(
+            'w-7 h-7 flex items-center justify-center rounded-md transition-colors duration-200',
+            'text-text-secondary hover:text-text-primary hover:bg-surface-sunken cursor-pointer',
+          )}
+        >
+          <Search size={14} strokeWidth={1.75} />
+        </button>
+
         <button
           onClick={onToday}
           disabled={isCurrentWeek}
@@ -147,7 +159,7 @@ export function WeekToolbar({
           onClick={() => navigate('/')}
           className={cn(
             'font-sans text-xs font-medium rounded-md px-2.5 py-[5px] transition-colors duration-200 cursor-pointer',
-            'bg-accent-light border border-[#e8c4b0] text-accent',
+            'bg-accent-light border border-accent/30 text-accent',
           )}
         >
           W

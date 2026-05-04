@@ -248,6 +248,103 @@ describe('update', () => {
   })
 })
 
+// ── search ────────────────────────────────────────────────
+
+describe('search', () => {
+  it('returns empty array for empty query string', async () => {
+    await repo.create(makeInput({ title: 'Something' }))
+    const results = await repo.search('')
+    expect(results).toEqual([])
+  })
+
+  it('returns empty array for whitespace-only query', async () => {
+    await repo.create(makeInput({ title: 'Something' }))
+    const results = await repo.search('   ')
+    expect(results).toEqual([])
+  })
+
+  it('matches by title substring (case-insensitive)', async () => {
+    await db.events.bulkAdd([
+      { id: '1', title: 'Meeting with Bob', startTime: 1000, endTime: 2000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+      { id: '2', title: 'Lunch break', startTime: 2000, endTime: 3000, color: 'sage', categoryId: 'sage', createdAt: 0, updatedAt: 0 },
+    ])
+    const results = await repo.search('meeting')
+    expect(results).toHaveLength(1)
+    expect(results[0].id).toBe('1')
+  })
+
+  it('matches by description substring (case-insensitive)', async () => {
+    await db.events.bulkAdd([
+      { id: '1', title: 'Work', description: 'Deep focus session', startTime: 1000, endTime: 2000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+      { id: '2', title: 'Break', description: 'Coffee time', startTime: 2000, endTime: 3000, color: 'sage', categoryId: 'sage', createdAt: 0, updatedAt: 0 },
+    ])
+    const results = await repo.search('FOCUS')
+    expect(results).toHaveLength(1)
+    expect(results[0].id).toBe('1')
+  })
+
+  it('matches by location substring (case-insensitive)', async () => {
+    await db.events.bulkAdd([
+      { id: '1', title: 'Meeting', location: 'Room 42', startTime: 1000, endTime: 2000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+      { id: '2', title: 'Call', location: 'Home office', startTime: 2000, endTime: 3000, color: 'sage', categoryId: 'sage', createdAt: 0, updatedAt: 0 },
+    ])
+    const results = await repo.search('room')
+    expect(results).toHaveLength(1)
+    expect(results[0].id).toBe('1')
+  })
+
+  it('returns empty array when no events match', async () => {
+    await db.events.bulkAdd([
+      { id: '1', title: 'Coding', startTime: 1000, endTime: 2000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+    ])
+    const results = await repo.search('nonexistent')
+    expect(results).toEqual([])
+  })
+
+  it('matches a query that appears in multiple fields of the same event only once', async () => {
+    await db.events.bulkAdd([
+      { id: '1', title: 'React', description: 'Learn React patterns', location: 'React conf', startTime: 1000, endTime: 2000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+    ])
+    const results = await repo.search('react')
+    expect(results).toHaveLength(1)
+    expect(results[0].id).toBe('1')
+  })
+
+  it('sorts results by startTime descending (most recent first)', async () => {
+    await db.events.bulkAdd([
+      { id: 'old', title: 'Old meeting', startTime: 1000, endTime: 2000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+      { id: 'mid', title: 'Mid meeting', startTime: 3000, endTime: 4000, color: 'sage', categoryId: 'sage', createdAt: 0, updatedAt: 0 },
+      { id: 'new', title: 'New meeting', startTime: 5000, endTime: 6000, color: 'sky', categoryId: 'sky', createdAt: 0, updatedAt: 0 },
+    ])
+    const results = await repo.search('meeting')
+    expect(results.map((e) => e.id)).toEqual(['new', 'mid', 'old'])
+  })
+
+  it('respects the limit parameter', async () => {
+    const events = Array.from({ length: 10 }, (_, i) => ({
+      id: `e-${i}`,
+      title: `Meeting ${i}`,
+      startTime: 1000 + i * 1000,
+      endTime: 1500 + i * 1000,
+      color: 'accent' as const,
+      categoryId: 'accent' as const,
+      createdAt: 0,
+      updatedAt: 0,
+    }))
+    await db.events.bulkAdd(events)
+    const results = await repo.search('meeting', 3)
+    expect(results).toHaveLength(3)
+  })
+
+  it('handles events with undefined description and location', async () => {
+    await db.events.bulkAdd([
+      { id: '1', title: 'Plain event', startTime: 1000, endTime: 2000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+    ])
+    const results = await repo.search('plain')
+    expect(results).toHaveLength(1)
+  })
+})
+
 // ── delete ────────────────────────────────────────────────
 
 describe('delete', () => {

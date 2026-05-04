@@ -51,6 +51,13 @@
   --color-text-danger:   #B53535;
   --color-bg-info:       #E8F0F8;
   --color-text-info:     #3A5A80;
+
+  --color-text-positive: #7A9448;
+  --color-bg-positive:   #ECF0E4;
+  --color-text-negative: #9E7A5A;
+  --color-bg-negative:   #F0E8DC;
+  --color-text-warning:  #B8823A;
+  --color-bg-warning:    #F5EDD8;
 }
 
 /* ── Dark mode ──────────────────────────────────────────── */
@@ -95,6 +102,13 @@
   --color-text-danger:   #E06060;
   --color-bg-info:       #2A3040;
   --color-text-info:     #90B8D8;
+
+  --color-text-positive: #88AA50;
+  --color-bg-positive:   #1E2E18;
+  --color-text-negative: #B09070;
+  --color-bg-negative:   #2E2820;
+  --color-text-warning:  #D4A848;
+  --color-bg-warning:    #3A3020;
 }
 
 /* ── Drag state ─────────────────────────────────────────── */

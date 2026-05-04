@@ -101,6 +101,23 @@ export class EventRepository {
     return this.db.events.toArray()
   }
 
+  async search(query: string, limit = 50): Promise<CalendarEvent[]> {
+    const q = query.trim().toLowerCase()
+    if (!q) return []
+
+    const results = await this.db.events
+      .filter((e) => {
+        if (e.title.toLowerCase().includes(q)) return true
+        if (e.description && e.description.toLowerCase().includes(q)) return true
+        if (e.location && e.location.toLowerCase().includes(q)) return true
+        return false
+      })
+      .limit(limit)
+      .toArray()
+
+    return results.sort((a, b) => b.startTime - a.startTime)
+  }
+
   async bulkUpdateCategories(
     updates: { id: string; color: EventColor; categoryId: CategoryId }[],
   ): Promise<void> {

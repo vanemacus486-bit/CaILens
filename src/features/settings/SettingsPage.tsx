@@ -18,6 +18,7 @@ export function SettingsPage() {
   const reclassifyAllEvents  = useEventStore((s) => s.reclassifyAllEvents)
   const settings             = useAppSettingsStore((s) => s.settings)
   const setLanguage          = useAppSettingsStore((s) => s.setLanguage)
+  const setTheme             = useAppSettingsStore((s) => s.setTheme)
 
   const language = settings.language
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
@@ -94,6 +95,26 @@ export function SettingsPage() {
                   )}
                 >
                   {lang === 'zh' ? '中文' : 'English'}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-xs text-text-tertiary mt-4 mb-3">
+              {t('主题', 'Theme')}
+            </p>
+            <div className="flex gap-0.5 bg-surface-sunken rounded-lg p-0.5 w-fit">
+              {(['light', 'dark'] as const).map((theme) => (
+                <button
+                  key={theme}
+                  onClick={() => void setTheme(theme)}
+                  className={cn(
+                    'px-4 py-1.5 rounded-md text-sm font-sans font-medium transition-all duration-150 cursor-pointer',
+                    settings.theme === theme
+                      ? 'bg-surface-base text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                      : 'text-text-secondary hover:text-text-primary',
+                  )}
+                >
+                  {theme === 'light' ? t('浅色', 'Light') : t('深色', 'Dark')}
                 </button>
               ))}
             </div>

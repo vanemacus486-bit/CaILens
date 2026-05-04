@@ -100,7 +100,7 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
       {/* Over / Under summary */}
       <div className="flex flex-col gap-4">
         <div className="bg-surface-raised border border-border-subtle p-6 flex-1">
-          <h3 className="font-serif text-sm font-semibold mb-3" style={{ color: '#9A7A40' }}>
+          <h3 className="font-serif text-sm font-semibold mb-3 text-color-text-warning">
             {t('超预算', 'Over budget')}
           </h3>
           <p className="text-[11px] text-text-tertiary mb-3">
@@ -128,7 +128,7 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
         </div>
 
         <div className="bg-surface-raised border border-border-subtle p-6 flex-1">
-          <h3 className="font-serif text-sm font-semibold mb-3" style={{ color: '#6A8E7A' }}>
+          <h3 className="font-serif text-sm font-semibold mb-3 text-color-text-positive">
             {t('未超预算', 'Under budget')}
           </h3>
           <p className="text-[11px] text-text-tertiary mb-3">
@@ -146,7 +146,7 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
                   />
                   <span className="text-[13px] text-text-primary">{item.name[language]}</span>
                 </div>
-                <span className="font-mono text-xs text-[#7A9448]">
+                <span className="font-mono text-xs text-color-text-positive">
                   {(item.budget - item.actual).toFixed(1)}h left
                 </span>
               </div>

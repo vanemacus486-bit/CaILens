@@ -36,7 +36,7 @@ CaILens 就是这个工具在浏览器里的一个尝试。
 - **记录，不规划。** 这里没有日程。你记录的是已经发生的事，不是对明天的承诺。
 - **本地优先。** 数据存在 IndexedDB 里。没有账号、没有服务器、没有数据上报。你的时间日记只属于你。
 - **安静的设计。** 暖中性色调，衬线标题，克制的主色。应用不催促、不评价、不打扰。
-- **代码质量优先于功能数量。** TypeScript 严格模式，267 个测试，单向依赖分层。代码库应该经得起时间考验。
+- **代码质量优先于功能数量。** TypeScript 严格模式，283 个测试，单向依赖分层。代码库应该经得起时间考验。
 
 ---
 
@@ -54,6 +54,13 @@ CaILens 就是这个工具在浏览器里的一个尝试。
 - **重叠事件并排**——自动水平排列。
 - **当前时间红线**——焦橙色，仅今日列显示，每分钟更新。
 - **浅色 / 深色模式**——跟随系统偏好。
+
+### 搜索
+
+- **Ctrl+K / Cmd+K 全局快捷键**——任意页面唤出搜索面板。
+- **关键词搜索**——匹配事件标题、描述和地点，大小写不敏感。
+- **即时导航**——点击搜索结果跳转到对应周并自动打开事件详情卡片。
+- **工具栏入口**——周视图工具栏搜索图标按钮。
 
 ### 侧边栏
 
@@ -150,7 +157,7 @@ npm run dev
 npm run dev          # 启动开发服务器
 npm run build        # 类型检查 (tsc) + 生产构建 (vite)
 npm run preview      # 本地预览构建结果
-npm run test         # 跑一次单元测试（267 个测试）
+npm run test         # 跑一次单元测试（283 个测试）
 npm run test:watch   # 监听模式
 npm run lint         # 跑 ESLint
 ```
@@ -168,7 +175,7 @@ npm run lint         # 跑 ESLint
 | 存储 | IndexedDB（Dexie v4） | 本地优先，无后端 |
 | 图表 | Recharts 3 | 饼图、柱状图、面积图、折线图 |
 | 时间 | date-fns v4 | 不引入 dayjs / moment |
-| 测试 | Vitest + React Testing Library + fake-indexeddb | 267 个测试，17 个测试文件 |
+| 测试 | Vitest + React Testing Library + fake-indexeddb | 283 个测试，17 个测试文件 |
 | 字体 | Inter、Source Serif 4、JetBrains Mono | Fontsource 本地托管 |
 | 图标 | lucide-react | |
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { CategoryId } from '@/domain/category'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 
 export interface CategoryColors {
   fill: string
@@ -30,14 +31,12 @@ export function getCategoryColors(): Record<CategoryId, CategoryColors> {
 }
 
 export function useCategoryColors(): Record<CategoryId, CategoryColors> {
+  const theme = useAppSettingsStore((s) => s.settings.theme)
   const [colors, setColors] = useState<Record<CategoryId, CategoryColors>>(getCategoryColors)
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const update = () => setColors(getCategoryColors())
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
-  }, [])
+    setColors(getCategoryColors())
+  }, [theme])
 
   return colors
 }

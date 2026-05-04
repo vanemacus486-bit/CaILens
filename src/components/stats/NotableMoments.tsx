@@ -18,7 +18,7 @@ interface Moment {
 function StarIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16">
-      <polygon points="8,1 10.2,6.2 16,6.8 11.5,11 13,16 8,13 3,16 4.5,11 0,6.8 5.8,6.2" fill="#c96442" />
+      <polygon points="8,1 10.2,6.2 16,6.8 11.5,11 13,16 8,13 3,16 4.5,11 0,6.8 5.8,6.2" fill="var(--accent)" />
     </svg>
   )
 }
@@ -26,7 +26,7 @@ function StarIcon() {
 function StreakIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16">
-      <path d="M8 2 L8 14 M4 6 L8 2 L12 6" stroke="#5a8a5e" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 2 L8 14 M4 6 L8 2 L12 6" stroke="var(--event-sage-fill)" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -34,8 +34,8 @@ function StreakIcon() {
 function FirstIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16">
-      <circle cx="8" cy="8" r="6.5" stroke="#7a7060" strokeWidth="1.8" fill="none" />
-      <text x="8" y="12" textAnchor="middle" fontSize="8" fill="#7a7060" fontFamily="Georgia,serif" fontWeight="600">1</text>
+      <circle cx="8" cy="8" r="6.5" stroke="var(--event-sky-fill)" strokeWidth="1.8" fill="none" />
+      <text x="8" y="12" textAnchor="middle" fontSize="8" fill="var(--event-sky-fill)" fontFamily="Georgia,serif" fontWeight="600">1</text>
     </svg>
   )
 }
@@ -43,17 +43,17 @@ function FirstIcon() {
 function InsightIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16">
-      <circle cx="8" cy="7" r="4.5" stroke="#9A8AB0" strokeWidth="1.8" fill="none" />
-      <line x1="8" y1="12.5" x2="8" y2="15" stroke="#9A8AB0" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="8" cy="7" r="4.5" stroke="var(--event-stone-fill)" strokeWidth="1.8" fill="none" />
+      <line x1="8" y1="12.5" x2="8" y2="15" stroke="var(--event-stone-fill)" strokeWidth="2" strokeLinecap="round" />
     </svg>
   )
 }
 
 const MOMENT_META = {
-  record:  { bg: '#F0E8D8', icon: <StarIcon /> },
-  streak:  { bg: '#EAF0E8', icon: <StreakIcon /> },
-  first:   { bg: '#E8EEF5', icon: <FirstIcon /> },
-  insight: { bg: '#EDE8F0', icon: <InsightIcon /> },
+  record:  { bg: 'var(--color-bg-warning)',  icon: <StarIcon /> },
+  streak:  { bg: 'var(--color-bg-positive)', icon: <StreakIcon /> },
+  first:   { bg: 'var(--color-bg-info)',     icon: <FirstIcon /> },
+  insight: { bg: 'var(--event-stone-bg)',    icon: <InsightIcon /> },
 }
 
 export function NotableMoments({ current, rangeEvents, streak, categories, language }: NotableMomentsProps) {

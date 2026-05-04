@@ -180,7 +180,7 @@ export function TrendsComparison({ history, categories, language, maturity }: Tr
                           ? 'text-text-tertiary bg-surface-sunken'
                           : extremePct
                             ? 'text-text-tertiary bg-surface-sunken'
-                            : up ? 'text-[#7A9448] bg-[#ECF0E4]' : 'text-[#9E7A5A] bg-[#F0E8DC]',
+                            : up ? 'text-color-text-positive bg-color-bg-positive' : 'text-color-text-negative bg-color-bg-negative',
                       )}
                     >
                       {s.firstRecord
