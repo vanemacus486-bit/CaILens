@@ -36,7 +36,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
 - **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 283 tests, one-way dependency layers. The codebase should age well.
+- **Code quality over feature quantity.** Strict TypeScript, 291 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
@@ -53,7 +53,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Right-click menu** — delete, change colour (6 colours, each tied to a category).
 - **Overlap layout** — overlapping events are laid out side-by-side automatically.
 - **Current time indicator** — a terracotta line on today's column, updating every minute.
-- **Light / dark mode** — follows system preference.
+- **Light / dark mode** — manual toggle, with automatic system preference detection on first visit. Segmented control in Settings.
 
 ### Search
 
@@ -91,6 +91,7 @@ Users can rename categories in both Chinese and English. Each category has a con
 
 - **3-section layout** — Interface (language), Categories (names + budgets + keywords), Data (export).
 - **Language toggle** — Chinese / English, using a segmented control.
+- **Theme toggle** — Light / Dark, using a segmented control, with automatic system preference detection on first visit.
 - **Per-category budget** — number input for weekly hour targets.
 - **Collapsible keywords** — show preview with count badge; expand to full keyword folder editor.
 - **Data export** — one-click CSV and JSON download.
@@ -157,7 +158,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (283 tests)
+npm run test         # run unit tests once (291 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -175,7 +176,7 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest + React Testing Library + fake-indexeddb | 283 tests across 17 test files |
+| Testing | Vitest + React Testing Library + fake-indexeddb | 291 tests across 18 test files |
 | Fonts | Inter, Source Serif 4, JetBrains Mono | Fontsource, locally hosted |
 | Icons | lucide-react | |
 
