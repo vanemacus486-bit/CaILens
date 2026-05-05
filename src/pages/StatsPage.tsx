@@ -238,6 +238,7 @@ export function StatsPage() {
           </div>
         ) : (
           <div className="max-w-[1100px] mx-auto px-4 md:px-12 pt-12 pb-20 flex-1 flex flex-col w-full">
+            <div className="flex-1 min-h-0">
             {view === 'bar' && (
               <CategoryBarChart
                 current={current}
@@ -270,6 +271,7 @@ export function StatsPage() {
                 language={language}
               />
             )}
+            </div>
           </div>
         )}
       </div>

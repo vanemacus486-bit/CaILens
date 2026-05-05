@@ -58,14 +58,14 @@ export function CategoryBarChart({
 
   if (bars.every((b) => b.actual === 0 && b.budget === 0)) {
     return (
-      <div className="flex items-center justify-center min-h-[200px] text-text-tertiary text-sm font-sans">
+      <div className="h-full flex items-center justify-center text-text-tertiary text-sm font-sans">
         {language === 'zh' ? '暂无数据' : 'No data yet'}
       </div>
     )
   }
 
   return (
-    <div className={`flex flex-col ${gap}`}>
+    <div className={compact ? `flex flex-col ${gap}` : `h-full flex flex-col justify-around`}>
       {bars.map(({ id, actual, budget, cat }) => {
         const name = cat?.name?.[language] ?? id
         const budgetPct = scale > 0 ? (budget / scale) * 100 : 0

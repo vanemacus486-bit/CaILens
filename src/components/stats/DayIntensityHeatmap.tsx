@@ -267,7 +267,7 @@ export function DayIntensityHeatmap({
   )
 
   return (
-    <div ref={containerRef} className="relative overflow-x-auto">
+    <div ref={containerRef} className="h-full relative overflow-x-auto">
       <div
         style={{
           display: 'grid',

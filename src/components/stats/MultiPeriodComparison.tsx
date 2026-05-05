@@ -55,7 +55,7 @@ export function MultiPeriodComparison({
   if (availableN.length === 0) availableN.push(1)
 
   return (
-    <div>
+    <div className="h-full flex flex-col">
       {/* N selector */}
       <div className="flex items-center gap-3 mb-4">
         <span className="text-xs text-text-tertiary font-sans">
@@ -81,7 +81,7 @@ export function MultiPeriodComparison({
 
       {/* Side-by-side mini charts */}
       <div
-        className="grid gap-4"
+        className="grid gap-4 flex-1"
         style={{ gridTemplateColumns: `repeat(${buckets.length}, 1fr)` }}
       >
         {buckets.map((bucket) => (

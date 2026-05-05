@@ -126,7 +126,7 @@ export function CategoryTrendChart({
   }
 
   return (
-    <div>
+    <div className="h-full flex flex-col">
       {/* Category selector chips */}
       <div className="flex flex-wrap items-center gap-1.5 mb-4">
         <span className="text-xs text-text-tertiary font-sans mr-1">
@@ -162,7 +162,7 @@ export function CategoryTrendChart({
       </div>
 
       {/* Chart */}
-      <div className="h-[320px]">
+      <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
             <CartesianGrid
