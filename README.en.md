@@ -12,7 +12,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **Status:** Active development. Statistics dashboard with data maturity system, budget-aware weekly review, annual projection, estimate-vs-actual calibration, and recording quality metrics — all built. Responsive mobile layout now implemented in the web UI. Cross-day event support added.
+> **Status:** v3.1 stabilisation complete. Statistics dashboard with data maturity system, budget-aware weekly review, annual projection, estimate-vs-actual calibration, and recording quality metrics — all built. Responsive mobile layout now implemented in the web UI. Cross-day event support added. Recent work includes bug fixes, error boundary, loading states, keyboard accessibility, and code quality improvements.
 
 ## Downloads
 
@@ -36,7 +36,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
 - **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 291 tests, one-way dependency layers. The codebase should age well.
+- **Code quality over feature quantity.** Strict TypeScript, 301 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
@@ -158,7 +158,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (291 tests)
+npm run test         # run unit tests once (301 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -176,7 +176,7 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest + React Testing Library + fake-indexeddb | 291 tests across 18 test files |
+| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 301 tests across 18 test files |
 | Fonts | Inter, Source Serif 4, JetBrains Mono | Fontsource, locally hosted |
 | Icons | lucide-react | |
 

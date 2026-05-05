@@ -12,7 +12,7 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **状态：** 持续开发中。统计看板已完备——数据成熟度系统、预算驱动的智能回顾、年度推演、预估 vs 实际校准、记录质量元指标。桌面端 UI 已适配移动端响应式布局。跨天事件支持已实装。
+> **状态：** v3.1 稳定性打磨完成。统计看板已完备——数据成熟度系统、预算驱动的智能回顾、年度推演、预估 vs 实际校准、记录质量元指标。桌面端 UI 已适配移动端响应式布局。跨天事件支持已实装。近期完成了 bug 修复、错误边界、加载态、键盘无障碍和代码质量优化。
 
 ## 下载
 
@@ -36,7 +36,7 @@ CaILens 就是这个工具在浏览器里的一个尝试。
 - **记录，不规划。** 这里没有日程。你记录的是已经发生的事，不是对明天的承诺。
 - **本地优先。** 数据存在 IndexedDB 里。没有账号、没有服务器、没有数据上报。你的时间日记只属于你。
 - **安静的设计。** 暖中性色调，衬线标题，克制的主色。应用不催促、不评价、不打扰。
-- **代码质量优先于功能数量。** TypeScript 严格模式，291 个测试，单向依赖分层。代码库应该经得起时间考验。
+- **代码质量优先于功能数量。** TypeScript 严格模式，301 个测试，单向依赖分层。代码库应该经得起时间考验。
 
 ---
 
@@ -158,7 +158,7 @@ npm run dev
 npm run dev          # 启动开发服务器
 npm run build        # 类型检查 (tsc) + 生产构建 (vite)
 npm run preview      # 本地预览构建结果
-npm run test         # 跑一次单元测试（291 个测试）
+npm run test         # 跑一次单元测试（301 个测试）
 npm run test:watch   # 监听模式
 npm run lint         # 跑 ESLint
 ```
@@ -176,7 +176,7 @@ npm run lint         # 跑 ESLint
 | 存储 | IndexedDB（Dexie v4） | 本地优先，无后端 |
 | 图表 | Recharts 3 | 饼图、柱状图、面积图、折线图 |
 | 时间 | date-fns v4 | 不引入 dayjs / moment |
-| 测试 | Vitest + React Testing Library + fake-indexeddb | 291 个测试，18 个测试文件 |
+| 测试 | Vitest 4 + React Testing Library + fake-indexeddb | 301 个测试，18 个测试文件 |
 | 字体 | Inter、Source Serif 4、JetBrains Mono | Fontsource 本地托管 |
 | 图标 | lucide-react | |
 
