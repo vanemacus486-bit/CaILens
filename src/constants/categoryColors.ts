@@ -32,11 +32,12 @@ export function getCategoryColors(): Record<CategoryId, CategoryColors> {
 
 export function useCategoryColors(): Record<CategoryId, CategoryColors> {
   const theme = useAppSettingsStore((s) => s.settings.theme)
+  const accentColor = useAppSettingsStore((s) => s.settings.accentColor)
   const [colors, setColors] = useState<Record<CategoryId, CategoryColors>>(getCategoryColors)
 
   useEffect(() => {
     setColors(getCategoryColors())
-  }, [theme])
+  }, [theme, accentColor])
 
   return colors
 }

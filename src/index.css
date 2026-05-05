@@ -133,64 +133,82 @@
 }
 
 /* ── Accent themes ──────────────────────────────────────── */
-/* Default (rust) is defined in :root / .dark above.
-   Theme blocks below override only accent-related variables. */
+/* Each accent shifts three layers:
+   1. Surface + border — the overall "feel" of the page
+   2. Brand accent — buttons, links, timeline, focus rings
+   3. Event category colors are NOT overridden — they are semantic
+      (category identity), not thematic (aesthetic preference). */
 
+/* ── Ocean (cool, calm) ─────────────────────────────────── */
 [data-accent="ocean"] {
+  --surface-base:        #eceef0;
+  --surface-raised:      #f5f7f9;
+  --surface-sunken:      #eeeff2;
+  --border-subtle:       #dfe1e5;
+  --border-default:      #c9ccd1;
   --accent:              #4A7090;
   --accent-hover:        #3A6078;
   --accent-light:        #E8F0F5;
   --time-line:           #4A7090;
-  --event-accent-bg:     #D8E5F0;
-  --event-accent-text:   #4A7090;
-  --event-accent-fill:   #4A7090;
 }
 .dark[data-accent="ocean"] {
+  --surface-base:        #28292c;
+  --surface-raised:      #313235;
+  --surface-sunken:      #222325;
+  --border-subtle:       #3b3c40;
+  --border-default:      #525358;
   --accent:              #6A90B0;
   --accent-hover:        #7AA0C0;
   --accent-light:        #1A2835;
   --time-line:           #6A90B0;
-  --event-accent-bg:     #1E3040;
-  --event-accent-text:   #A0C5E0;
-  --event-accent-fill:   #80B0D0;
 }
 
+/* ── Forest (grounded, natural) ─────────────────────────── */
 [data-accent="forest"] {
+  --surface-base:        #eeede4;
+  --surface-raised:      #f8f8f5;
+  --surface-sunken:      #f1f0e8;
+  --border-subtle:       #e0ded5;
+  --border-default:      #cac7be;
   --accent:              #5A7A5E;
   --accent-hover:        #4A6B4E;
   --accent-light:        #EEF2EC;
   --time-line:           #5A7A5E;
-  --event-accent-bg:     #D5E2D6;
-  --event-accent-text:   #5A7A5E;
-  --event-accent-fill:   #5A7A5E;
 }
 .dark[data-accent="forest"] {
+  --surface-base:        #292a26;
+  --surface-raised:      #32332e;
+  --surface-sunken:      #232420;
+  --border-subtle:       #3c3d38;
+  --border-default:      #53544e;
   --accent:              #7A9A7E;
   --accent-hover:        #8AAA8E;
   --accent-light:        #1E281E;
-  --event-accent-bg:     #1F3324;
-  --event-accent-text:   #A0C0A4;
-  --event-accent-fill:   #80B080;
   --time-line:           #7A9A7E;
 }
 
+/* ── Plum (subdued, elegant) ────────────────────────────── */
 [data-accent="plum"] {
+  --surface-base:        #f0ece7;
+  --surface-raised:      #faf8f7;
+  --surface-sunken:      #f3efe9;
+  --border-subtle:       #e2ddd7;
+  --border-default:      #ccc7c0;
   --accent:              #8A6A7A;
   --accent-hover:        #7A5A6A;
   --accent-light:        #F2ECF0;
   --time-line:           #8A6A7A;
-  --event-accent-bg:     #E5D8DE;
-  --event-accent-text:   #8A6A7A;
-  --event-accent-fill:   #8A6A7A;
 }
 .dark[data-accent="plum"] {
+  --surface-base:        #2a2827;
+  --surface-raised:      #33312f;
+  --surface-sunken:      #232220;
+  --border-subtle:       #3d3a37;
+  --border-default:      #54514d;
   --accent:              #A08090;
   --accent-hover:        #B090A0;
   --accent-light:        #281E22;
   --time-line:           #A08090;
-  --event-accent-bg:     #302028;
-  --event-accent-text:   #D0B8C0;
-  --event-accent-fill:   #C0A0B0;
 }
 
 /* ── Drag state ─────────────────────────────────────────── */

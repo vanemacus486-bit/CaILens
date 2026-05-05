@@ -220,13 +220,13 @@ export function StatsPage() {
       </div>
 
       {/* Chart content area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto flex flex-col">
         {isLoading ? (
-          <div className="flex items-center justify-center min-h-[400px] h-full">
+          <div className="flex items-center justify-center min-h-[400px] flex-1">
             <Loader2 className="h-8 w-8 animate-spin text-text-tertiary" />
           </div>
         ) : loadError ? (
-          <div className="flex flex-col items-center justify-center gap-4 min-h-[400px] h-full">
+          <div className="flex flex-col items-center justify-center gap-4 min-h-[400px] flex-1">
             <AlertCircle className="h-10 w-10 text-color-text-danger" />
             <p className="font-sans text-sm text-text-secondary max-w-md text-center">{loadError}</p>
             <button
@@ -237,7 +237,7 @@ export function StatsPage() {
             </button>
           </div>
         ) : (
-          <div className="max-w-[1100px] mx-auto px-4 md:px-12 py-10 pb-20">
+          <div className="max-w-[1100px] mx-auto px-4 md:px-12 py-10 pb-20 flex-1 flex flex-col justify-center w-full">
             {view === 'bar' && (
               <CategoryBarChart
                 current={current}
