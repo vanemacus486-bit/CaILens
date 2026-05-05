@@ -44,16 +44,16 @@ export function RecordQuality({ rangeEvents, periodStart, periodEnd, language }:
 
   return (
     <div className="bg-surface-raised border border-border-subtle px-6 py-4">
-      <h3 className="text-[11px] font-sans text-text-tertiary tracking-[0.04em] uppercase mb-3 select-none">
+      <h3 className="text-body-xs font-sans text-text-tertiary tracking-caps uppercase mb-3 select-none">
         {t('记录质量', 'Recording Quality')}
       </h3>
       <div className="grid grid-cols-4 gap-4">
         {metrics.map((m) => (
           <div key={m.label}>
-            <div className="text-[10px] text-text-tertiary mb-0.5">{m.label}</div>
+            <div className="text-xs-alt text-text-tertiary mb-0.5">{m.label}</div>
             <div className="font-mono text-sm font-semibold text-text-secondary">
               {m.value}
-              <span className="text-[10px] font-normal text-text-tertiary ml-1">{m.desc}</span>
+              <span className="text-xs-alt font-normal text-text-tertiary ml-1">{m.desc}</span>
             </div>
           </div>
         ))}

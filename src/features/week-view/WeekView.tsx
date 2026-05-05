@@ -282,7 +282,7 @@ export function WeekView() {
             </div>
           ) : loadError ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-              <AlertCircle className="h-10 w-10 text-rose-500" />
+              <AlertCircle className="h-10 w-10 text-color-text-danger" />
               <p className="font-sans text-sm text-text-secondary max-w-md text-center">{loadError}</p>
               <button
                 onClick={() => loadWeek(weekStart)}

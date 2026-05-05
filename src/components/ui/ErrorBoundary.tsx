@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="h-full flex flex-col items-center justify-center bg-surface-base text-text-primary p-8 gap-4">
-        <AlertCircle className="h-10 w-10 text-rose-500" />
+        <AlertCircle className="h-10 w-10 text-color-text-danger" />
         <div className="text-center max-w-md">
           <h2 className="font-serif text-lg font-semibold mb-1 text-text-primary">
             Something went wrong

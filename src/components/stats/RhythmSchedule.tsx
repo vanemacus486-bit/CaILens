@@ -83,7 +83,7 @@ export function RhythmSchedule({ current, categories, language, maturity }: Rhyt
         <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
           {t('24小时能量分布', '24-Hour Energy Distribution')}
         </h3>
-        <p className="text-[11px] text-text-tertiary mb-4">
+        <p className="text-body-xs text-text-tertiary mb-4">
           {t('一天中各时段平均时间分配', 'Average time allocation across hours of the day')}
         </p>
 
@@ -127,7 +127,7 @@ export function RhythmSchedule({ current, categories, language, maturity }: Rhyt
             return (
               <div key={id} className="flex items-center gap-1.5">
                 <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: `var(--event-${id}-fill)` }} />
-                <span className="text-[10px] text-text-tertiary">{cat.name[language]}</span>
+                <span className="text-xs-alt text-text-tertiary">{cat.name[language]}</span>
               </div>
             )
           })}
@@ -147,7 +147,7 @@ export function RhythmSchedule({ current, categories, language, maturity }: Rhyt
             <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
               {t('每周节奏', 'Weekly Rhythm')}
             </h3>
-            <p className="text-[11px] text-text-tertiary mb-4">
+            <p className="text-body-xs text-text-tertiary mb-4">
               {t('每日主导活动', 'Dominant activity per day')}
             </p>
 
@@ -158,17 +158,17 @@ export function RhythmSchedule({ current, categories, language, maturity }: Rhyt
                 <div key={r.day} className="flex items-center gap-2.5 py-2 border-b border-border-subtle last:border-b-0">
                   <span className="text-xs text-text-tertiary w-[72px] flex-shrink-0">{r.day}</span>
                   <span
-                    className="inline-flex items-center px-2.5 py-[3px] rounded-xl text-[11px] font-sans font-medium text-white"
+                    className="inline-flex items-center px-2.5 py-[3px] rounded-xl text-body-xs font-sans font-medium text-white"
                     style={{ backgroundColor: `var(--event-${r.dominant}-fill)` }}
                   >
                     {cat?.name[language] ?? r.dominant}
                   </span>
                   {r.secHrs > 0 && (
-                    <span className="inline-flex items-center px-2.5 py-[3px] rounded-xl text-[11px] font-sans text-text-secondary bg-surface-sunken border border-border-subtle">
+                    <span className="inline-flex items-center px-2.5 py-[3px] rounded-xl text-body-xs font-sans text-text-secondary bg-surface-sunken border border-border-subtle">
                       {secCat?.name[language] ?? r.secondary}
                     </span>
                   )}
-                  <span className="ml-auto font-mono text-[11px] text-text-tertiary">
+                  <span className="ml-auto font-mono text-body-xs text-text-tertiary">
                     {r.domHrs > 0 ? `${r.domHrs.toFixed(1)}h` : '—'}
                   </span>
                 </div>
@@ -182,7 +182,7 @@ export function RhythmSchedule({ current, categories, language, maturity }: Rhyt
           <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
             {t('周度热力图', 'Weekly Heatmap')}
           </h3>
-          <p className="text-[11px] text-text-tertiary mb-4">
+          <p className="text-body-xs text-text-tertiary mb-4">
             {t('7×24 活动密度', '7×24 activity density')}
           </p>
 

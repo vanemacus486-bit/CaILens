@@ -11,6 +11,10 @@
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
         }
+        var accent = localStorage.getItem('cailens-accent');
+        if (accent) {
+          document.documentElement.setAttribute('data-accent', accent);
+        }
       })();
     </script>
     <meta charset="UTF-8" />

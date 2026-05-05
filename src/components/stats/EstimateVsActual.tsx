@@ -46,7 +46,7 @@ export function EstimateVsActual({ current, categories, weekStart, language }: E
         <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
           {t('预估 vs 实际', 'Estimate vs. Actual')}
         </h3>
-        <p className="text-[11px] text-text-tertiary mb-4">
+        <p className="text-body-xs text-text-tertiary mb-4">
           {t('预估本周各分类的时间，周末回来对比', 'Predict your time per category — compare at week end')}
         </p>
 
@@ -57,7 +57,7 @@ export function EstimateVsActual({ current, categories, weekStart, language }: E
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: `var(--event-${cat.id}-fill)` }}
               />
-              <span className="text-[13px] text-text-primary flex-1">{cat.name[language]}</span>
+              <span className="text-body-sm text-text-primary flex-1">{cat.name[language]}</span>
               <input
                 type="number"
                 min={0}
@@ -74,7 +74,7 @@ export function EstimateVsActual({ current, categories, weekStart, language }: E
                 }}
                 className="w-14 px-2 py-1 text-xs font-mono text-text-primary bg-surface-base border border-border-subtle rounded-md text-center focus:outline-none focus:border-border-default"
               />
-              <span className="text-[11px] text-text-tertiary w-4">h</span>
+              <span className="text-body-xs text-text-tertiary w-4">h</span>
             </div>
           ))}
         </div>
@@ -89,7 +89,7 @@ export function EstimateVsActual({ current, categories, weekStart, language }: E
         <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
           {t('预估 vs 实际', 'Estimate vs. Actual')}
         </h3>
-        <p className="text-[11px] text-text-tertiary mb-4">
+        <p className="text-body-xs text-text-tertiary mb-4">
           {t('对比预估与实际记录', 'Estimated vs. recorded hours')}
         </p>
 
@@ -107,7 +107,7 @@ export function EstimateVsActual({ current, categories, weekStart, language }: E
                     className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ backgroundColor: `var(--event-${id}-fill)` }}
                   />
-                  <span className="text-[13px] text-text-primary truncate">{cat?.name[language] ?? id}</span>
+                  <span className="text-body-sm text-text-primary truncate">{cat?.name[language] ?? id}</span>
                 </div>
                 <div className="flex items-center gap-2 font-mono text-xs flex-shrink-0">
                   <span className="text-text-secondary">
@@ -118,7 +118,7 @@ export function EstimateVsActual({ current, categories, weekStart, language }: E
                     {t('实际', 'Act')} {d.actual.toFixed(1)}h
                   </span>
                   <span className={cn(
-                    'px-1.5 py-0.5 rounded-sm text-[10px]',
+                    'px-1.5 py-0.5 rounded-sm text-xs-alt',
                     highDev
                       ? d.deviation > 0
                         ? 'text-color-text-danger bg-surface-sunken'

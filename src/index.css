@@ -58,6 +58,21 @@
   --color-bg-negative:   #F0E8DC;
   --color-text-warning:  #B8823A;
   --color-bg-warning:    #F5EDD8;
+
+  --shadow-pill:       0 1px 3px rgba(0,0,0,0.08);
+  --shadow-tooltip:    0 2px 8px rgba(0,0,0,0.08);
+  --shadow-dialog:     0 8px 32px rgba(40,36,31,0.12);
+
+  --transition-default: 200ms ease-out;
+
+  --text-2xs:          8px;
+  --text-xs-alt:       10px;
+  --text-body-xs:      11px;
+  --text-body-sm:      13px;
+  --text-settings:     15px;
+
+  --tracking-label:    0.1em;
+  --tracking-caps:     0.04em;
 }
 
 /* ── Dark mode ──────────────────────────────────────────── */
@@ -109,6 +124,73 @@
   --color-bg-negative:   #2E2820;
   --color-text-warning:  #D4A848;
   --color-bg-warning:    #3A3020;
+
+  --shadow-pill:       0 1px 3px rgba(0,0,0,0.15);
+  --shadow-tooltip:    0 2px 8px rgba(0,0,0,0.25);
+  --shadow-dialog:     0 8px 32px rgba(0,0,0,0.40);
+
+  --transition-default: 200ms ease-out;
+}
+
+/* ── Accent themes ──────────────────────────────────────── */
+/* Default (rust) is defined in :root / .dark above.
+   Theme blocks below override only accent-related variables. */
+
+[data-accent="ocean"] {
+  --accent:              #4A7090;
+  --accent-hover:        #3A6078;
+  --accent-light:        #E8F0F5;
+  --time-line:           #4A7090;
+  --event-accent-bg:     #D8E5F0;
+  --event-accent-text:   #4A7090;
+  --event-accent-fill:   #4A7090;
+}
+.dark[data-accent="ocean"] {
+  --accent:              #6A90B0;
+  --accent-hover:        #7AA0C0;
+  --accent-light:        #1A2835;
+  --time-line:           #6A90B0;
+  --event-accent-bg:     #1E3040;
+  --event-accent-text:   #A0C5E0;
+  --event-accent-fill:   #80B0D0;
+}
+
+[data-accent="forest"] {
+  --accent:              #5A7A5E;
+  --accent-hover:        #4A6B4E;
+  --accent-light:        #EEF2EC;
+  --time-line:           #5A7A5E;
+  --event-accent-bg:     #D5E2D6;
+  --event-accent-text:   #5A7A5E;
+  --event-accent-fill:   #5A7A5E;
+}
+.dark[data-accent="forest"] {
+  --accent:              #7A9A7E;
+  --accent-hover:        #8AAA8E;
+  --accent-light:        #1E281E;
+  --event-accent-bg:     #1F3324;
+  --event-accent-text:   #A0C0A4;
+  --event-accent-fill:   #80B080;
+  --time-line:           #7A9A7E;
+}
+
+[data-accent="plum"] {
+  --accent:              #8A6A7A;
+  --accent-hover:        #7A5A6A;
+  --accent-light:        #F2ECF0;
+  --time-line:           #8A6A7A;
+  --event-accent-bg:     #E5D8DE;
+  --event-accent-text:   #8A6A7A;
+  --event-accent-fill:   #8A6A7A;
+}
+.dark[data-accent="plum"] {
+  --accent:              #A08090;
+  --accent-hover:        #B090A0;
+  --accent-light:        #281E22;
+  --time-line:           #A08090;
+  --event-accent-bg:     #302028;
+  --event-accent-text:   #D0B8C0;
+  --event-accent-fill:   #C0A0B0;
 }
 
 /* ── Drag state ─────────────────────────────────────────── */
@@ -177,4 +259,17 @@ body {
   color: var(--text-primary);
   font-family: Inter, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ── Utilities ──────────────────────────────────────────── */
+@layer utilities {
+  .interactive-subtle {
+    color: var(--text-secondary);
+    transition: color 200ms ease-out, background-color 200ms ease-out;
+  }
+  .interactive-subtle:hover {
+    color: var(--text-primary);
+    background-color: var(--surface-sunken);
+    cursor: pointer;
+  }
 }

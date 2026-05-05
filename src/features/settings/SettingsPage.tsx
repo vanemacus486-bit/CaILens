@@ -7,6 +7,7 @@ import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useEventStore } from '@/stores/eventStore'
 import type { CategoryId, KeywordFolder } from '@/domain/category'
+import { ACCENT_PRESETS } from '@/domain/themes'
 import { CategoryNameEditor } from './CategoryNameEditor'
 import { FolderKeywordEditor } from './FolderKeywordEditor'
 import { ExportSection } from '@/components/stats/ExportSection'
@@ -20,6 +21,7 @@ export function SettingsPage() {
   const settings             = useAppSettingsStore((s) => s.settings)
   const setLanguage          = useAppSettingsStore((s) => s.setLanguage)
   const setTheme             = useAppSettingsStore((s) => s.setTheme)
+  const setAccentColor       = useAppSettingsStore((s) => s.setAccentColor)
 
   const language = settings.language
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
@@ -93,7 +95,7 @@ export function SettingsPage() {
                   className={cn(
                     'px-4 py-1.5 rounded-md text-sm font-sans font-medium transition-colors duration-200 cursor-pointer',
                     language === lang
-                      ? 'bg-surface-base text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                      ? 'bg-surface-base text-text-primary shadow-pill'
                       : 'text-text-secondary hover:text-text-primary',
                   )}
                 >
@@ -113,12 +115,33 @@ export function SettingsPage() {
                   className={cn(
                     'px-4 py-1.5 rounded-md text-sm font-sans font-medium transition-colors duration-200 cursor-pointer',
                     settings.theme === theme
-                      ? 'bg-surface-base text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                      ? 'bg-surface-base text-text-primary shadow-pill'
                       : 'text-text-secondary hover:text-text-primary',
                   )}
                 >
                   {theme === 'light' ? t('浅色', 'Light') : t('深色', 'Dark')}
                 </button>
+              ))}
+            </div>
+
+            {/* Accent color swatches */}
+            <p className="text-xs text-text-tertiary mt-4 mb-3">
+              {t('主题色', 'Accent')}
+            </p>
+            <div className="flex gap-2 items-center">
+              {ACCENT_PRESETS.map((preset) => (
+                <button
+                  key={preset.key}
+                  onClick={() => fireAndForget(setAccentColor(preset.key), 'set accent')}
+                  className={cn(
+                    'w-7 h-7 rounded-full transition-all duration-200 cursor-pointer border-2',
+                    settings.accentColor === preset.key
+                      ? 'border-text-primary shadow-pill scale-110'
+                      : 'border-transparent hover:scale-105',
+                  )}
+                  style={{ backgroundColor: preset.hex }}
+                  title={t(preset.name.zh, preset.name.en)}
+                />
               ))}
             </div>
           </div>
@@ -154,7 +177,7 @@ export function SettingsPage() {
                       />
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className="text-[11px] text-text-tertiary select-none">
+                      <span className="text-body-xs text-text-tertiary select-none">
                         {t('每周预算', 'Weekly budget')}
                       </span>
                       <input
@@ -172,7 +195,7 @@ export function SettingsPage() {
                         }}
                         className="w-12 px-2 py-0.5 text-xs font-mono text-text-primary bg-surface-base border border-border-subtle rounded-md text-center focus:outline-none focus:border-border-default"
                       />
-                      <span className="text-[11px] text-text-tertiary select-none">h</span>
+                      <span className="text-body-xs text-text-tertiary select-none">h</span>
                     </div>
                   </div>
 
@@ -181,7 +204,7 @@ export function SettingsPage() {
                     {kwCount === 0 ? (
                       <button
                         onClick={() => toggleExpand(cat.id)}
-                        className="text-[11px] text-text-tertiary hover:text-text-primary transition-colors duration-150 cursor-pointer"
+                        className="text-body-xs text-text-tertiary hover:text-text-primary transition-colors duration-150 cursor-pointer"
                       >
                         {expanded
                           ? t('收起', 'Collapse')
@@ -191,7 +214,7 @@ export function SettingsPage() {
                       <>
                         <button
                           onClick={() => toggleExpand(cat.id)}
-                          className="flex items-center gap-1.5 text-[11px] text-text-tertiary hover:text-text-primary transition-colors duration-150 cursor-pointer w-full text-left"
+                          className="flex items-center gap-1.5 text-body-xs text-text-tertiary hover:text-text-primary transition-colors duration-150 cursor-pointer w-full text-left"
                         >
                           {expanded
                             ? <ChevronDown size={12} strokeWidth={2} />

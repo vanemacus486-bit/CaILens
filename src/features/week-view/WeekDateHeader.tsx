@@ -18,7 +18,7 @@ export function WeekDateHeader({ days }: WeekDateHeaderProps) {
             key={day.getTime()}
             className="flex flex-col items-center justify-center py-2.5 select-none"
           >
-            <span className="text-[11px] font-sans font-medium text-text-tertiary uppercase tracking-[0.06em] leading-none">
+            <span className="text-body-xs font-sans font-medium text-text-tertiary uppercase tracking-[0.06em] leading-none">
               {formatWeekday(day, 'short')}
             </span>
             <span

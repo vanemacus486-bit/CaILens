@@ -16,8 +16,8 @@ export function CurrentTimeLine() {
       className="absolute left-0 right-0 z-20 pointer-events-none"
       style={{ top: `${topPct}%` }}
     >
-      <div className="absolute -left-1 -translate-y-1/2 w-2 h-2 rounded-full bg-[var(--time-line)]" />
-      <div className="border-t border-[var(--time-line)]" />
+      <div className="absolute -left-1 -translate-y-1/2 w-2 h-2 rounded-full bg-time-line" />
+      <div className="border-t border-time-line" />
     </div>
   )
 }

@@ -149,22 +149,22 @@ export const EventBlock = React.memo(function EventBlock({
           {/* Continue-from-above indicator */}
           {startsBeforeDay && (
             <div className="flex items-center gap-0.5 mb-0.5 opacity-60">
-              <span className="text-[8px] leading-none text-current">▲</span>
-              <span className="text-[8px] leading-none text-current opacity-70">{fmtHM(event.startTime).split(':')[0]}h</span>
+              <span className="text-2xs leading-none text-current">▲</span>
+              <span className="text-2xs leading-none text-current opacity-70">{fmtHM(event.startTime).split(':')[0]}h</span>
             </div>
           )}
 
           {/* Event content */}
-          <p className={cn('font-sans font-normal leading-tight truncate', isCompact ? 'text-[11px]' : 'text-xs')}>
+          <p className={cn('font-sans font-normal leading-tight truncate', isCompact ? 'text-body-xs' : 'text-xs')}>
             {event.title || <span className="opacity-50 italic">Untitled</span>}
           </p>
           {!isCompact && (
-            <p className="text-[10px] opacity-80 font-mono leading-tight mt-0.5">
+            <p className="text-xs-alt opacity-80 font-mono leading-tight mt-0.5">
               {fmtHM(event.startTime)} – {fmtHM(event.endTime)}
             </p>
           )}
           {!isCompact && event.description && (
-            <p className="text-[10px] opacity-70 leading-tight mt-0.5 line-clamp-1 font-sans">
+            <p className="text-xs-alt opacity-70 leading-tight mt-0.5 line-clamp-1 font-sans">
               {event.description}
             </p>
           )}
@@ -172,8 +172,8 @@ export const EventBlock = React.memo(function EventBlock({
           {/* Continue-to-below indicator */}
           {endsAfterDay && (
             <div className="flex items-center gap-0.5 mt-0.5 opacity-60">
-              <span className="text-[8px] leading-none text-current">▼</span>
-              <span className="text-[8px] leading-none text-current opacity-70">{fmtHM(event.endTime).split(':')[0]}h</span>
+              <span className="text-2xs leading-none text-current">▼</span>
+              <span className="text-2xs leading-none text-current opacity-70">{fmtHM(event.endTime).split(':')[0]}h</span>
             </div>
           )}
 
@@ -211,7 +211,7 @@ export const EventBlock = React.memo(function EventBlock({
         <ContextMenuSeparator />
 
         <ContextMenuItem onSelect={() => onEdit(event, divRef.current!)}>Edit</ContextMenuItem>
-        <ContextMenuItem onSelect={() => onDelete(event.id)} className="text-rose-500 focus:text-rose-500">
+        <ContextMenuItem onSelect={() => onDelete(event.id)} className="text-color-text-danger focus:text-color-text-danger">
           Delete
         </ContextMenuItem>
       </ContextMenuContent>

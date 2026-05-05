@@ -139,7 +139,7 @@ export function NotableMoments({ current, rangeEvents, streak, categories, langu
             <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: meta.bg }}>
               {meta.icon}
             </div>
-            <p className="text-[13px] text-text-primary leading-[1.55]">{m.text}</p>
+            <p className="text-body-sm text-text-primary leading-[1.55]">{m.text}</p>
           </div>
         )
       })}

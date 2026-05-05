@@ -70,7 +70,7 @@ export function WeekToolbar({
         <span className="font-serif text-[22px] font-semibold text-text-primary tracking-[-0.01em]">
           CaILens
         </span>
-        <span className="font-serif text-[13px] text-text-secondary italic">
+        <span className="font-serif text-body-sm text-text-secondary italic">
           — time, recorded
         </span>
       </div>
@@ -147,7 +147,7 @@ export function WeekToolbar({
           </PopoverTrigger>
 
           <PopoverContent align="end" className="w-52 p-1.5">
-            <p className="px-2.5 py-1.5 text-[11px] font-sans text-text-tertiary select-none">
+            <p className="px-2.5 py-1.5 text-body-xs font-sans text-text-tertiary select-none">
               {t(`移动 ${eventCount} 个事件`, `Move ${eventCount} events`)}
             </p>
             <ShiftMenuItem

@@ -137,7 +137,7 @@ export function SearchDialog() {
             </span>
           )}
           {status === 'error' && (
-            <span className="text-xs text-rose-500 flex-shrink-0">
+            <span className="text-xs text-color-text-danger flex-shrink-0">
               {t('搜索失败', 'Search failed')}
             </span>
           )}

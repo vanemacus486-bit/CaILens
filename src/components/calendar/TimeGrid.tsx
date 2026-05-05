@@ -29,7 +29,7 @@ export function TimeGrid({
 
           {/* Time label — every hour, skip 00:00 */}
           {h > 0 && (
-            <span className="absolute top-0.5 right-2 text-[10px] font-mono text-text-tertiary select-none leading-none">
+            <span className="absolute top-0.5 right-2 text-xs-alt font-mono text-text-tertiary select-none leading-none">
               {formatHour24(h)}
             </span>
           )}

@@ -197,7 +197,7 @@ export function EventEditCard({
       {/* Card */}
       <div
         ref={cardRef}
-        className="relative bg-surface-raised border border-border-default rounded-lg shadow-[0_8px_32px_rgba(40,36,31,0.12)] w-[calc(100vw-2rem)] max-w-[420px] px-5 md:px-7 py-5 md:py-7 flex flex-col gap-4 mx-4 md:mx-0"
+        className="relative bg-surface-raised border border-border-default rounded-lg shadow-dialog w-[calc(100vw-2rem)] max-w-[420px] px-5 md:px-7 py-5 md:py-7 flex flex-col gap-4 mx-4 md:mx-0"
       >
         {/* Header */}
         <div className="flex justify-between items-start">
@@ -267,12 +267,12 @@ export function EventEditCard({
           />
         </div>
 
-        {error && <p className="text-xs text-rose-500 -mt-2 font-sans">{error}</p>}
+        {error && <p className="text-xs text-color-text-danger -mt-2 font-sans">{error}</p>}
 
         {/* Category chips */}
         {categories.length > 0 && (
           <div>
-            <div className="text-[11px] font-sans font-semibold uppercase tracking-[0.1em] text-text-tertiary mb-2.5 select-none">
+            <div className="text-body-xs font-sans font-semibold uppercase tracking-label text-text-tertiary mb-2.5 select-none">
               {t('分类', 'Category')}
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -308,7 +308,7 @@ export function EventEditCard({
 
         {/* Optional note */}
         <div>
-          <div className="text-[11px] font-sans font-semibold uppercase tracking-[0.1em] text-text-tertiary mb-2 select-none">
+          <div className="text-body-xs font-sans font-semibold uppercase tracking-label text-text-tertiary mb-2 select-none">
             {t('添加备注', 'Add a note')}{' '}
             <span className="normal-case tracking-normal font-normal">({t('可选', 'optional')})</span>
           </div>
@@ -317,7 +317,7 @@ export function EventEditCard({
             onChange={(e) => setDesc(e.target.value)}
             placeholder={t('关于这段时间的一个想法…', 'A quick thought about this block…')}
             className={cn(
-              'w-full font-sans text-[13px] text-text-primary',
+              'w-full font-sans text-body-sm text-text-primary',
               'bg-surface-sunken border border-border-subtle rounded-md',
               'px-3 py-2 outline-none',
               'focus:border-border-default transition-colors duration-150',
@@ -330,13 +330,13 @@ export function EventEditCard({
         <div className="flex justify-end gap-2 mt-1">
           <button
             onClick={handleCancel}
-            className="font-sans text-[13px] font-normal text-text-secondary bg-transparent border border-border-subtle rounded-md px-4 py-2 cursor-pointer hover:bg-surface-sunken transition-colors duration-200"
+            className="font-sans text-body-sm font-normal text-text-secondary bg-transparent border border-border-subtle rounded-md px-4 py-2 cursor-pointer hover:bg-surface-sunken transition-colors duration-200"
           >
             {t('取消', 'Cancel')}
           </button>
           <button
             onClick={handleClose}
-            className="font-sans text-[13px] font-medium text-white bg-accent border-none rounded-md px-5 py-2 cursor-pointer hover:bg-accent-hover transition-colors duration-200"
+            className="font-sans text-body-sm font-medium text-white bg-accent border-none rounded-md px-5 py-2 cursor-pointer hover:bg-accent-hover transition-colors duration-200"
           >
             {t('记录', 'Log it')}
           </button>

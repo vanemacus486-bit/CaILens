@@ -46,7 +46,7 @@ export function LyubishchevAnalysis({
           <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
             {t('Type I / Type II 分离', 'Type I / Type II Split')}
           </h3>
-          <p className="text-[11px] text-text-tertiary mb-4">
+          <p className="text-body-xs text-text-tertiary mb-4">
             {t('核心创造性工作 vs 辅助与恢复', 'Core creative work vs. auxiliary and recovery')}
           </p>
 
@@ -68,7 +68,7 @@ export function LyubishchevAnalysis({
             />
           </div>
 
-          <div className="flex justify-between text-[11px] font-mono text-text-secondary mb-4">
+          <div className="flex justify-between text-body-xs font-mono text-text-secondary mb-4">
             <span style={{ color: 'var(--event-accent-fill)' }}>{typeSplit.typeI.pct}%</span>
             <span style={{ color: 'var(--event-sage-fill)' }}>{typeSplit.typeII.pct}%</span>
           </div>
@@ -90,11 +90,11 @@ export function LyubishchevAnalysis({
             <div key={i} className="mb-4">
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tItem.color }} />
-                <span className="font-serif italic text-[13px] text-text-primary">{tItem.label}</span>
+                <span className="font-serif italic text-body-sm text-text-primary">{tItem.label}</span>
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="font-mono text-[22px] font-bold text-text-primary">{tItem.value.toFixed(1)}</span>
-                <span className="text-[11px] text-text-tertiary">h — {tItem.items}</span>
+                <span className="text-body-xs text-text-tertiary">h — {tItem.items}</span>
               </div>
             </div>
           ))}
@@ -106,16 +106,16 @@ export function LyubishchevAnalysis({
             <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
               {t('年度推演', 'Annual Projection')}
             </h3>
-            <p className="text-[11px] text-text-tertiary mb-4">
+            <p className="text-body-xs text-text-tertiary mb-4">
               {t('按当前节奏推算全年', 'Extrapolated to a full year at the current pace')}
             </p>
 
-            <p className="text-[15px] text-text-primary leading-relaxed mb-2">
+            <p className="text-settings text-text-primary leading-relaxed mb-2">
               {language === 'zh'
                 ? `按当前节奏，全年 Type I 将累积 ${projection.typeIAnnual.toFixed(0)}h`
                 : `At this pace, Type I would accumulate to ${projection.typeIAnnual.toFixed(0)}h annually`}
             </p>
-            <p className="text-[11px] text-text-tertiary">
+            <p className="text-body-xs text-text-tertiary">
               {language === 'zh'
                 ? `Lyubishchev 1966 年 Type I：约 ${projection.benchmark}h`
                 : `Lyubishchev's 1966 Type I: ~${projection.benchmark}h`}
@@ -129,13 +129,13 @@ export function LyubishchevAnalysis({
         <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
           {t('分类累计小时', 'Category Cumulative Hours')}
         </h3>
-        <p className="text-[11px] text-text-tertiary mb-4">
+        <p className="text-body-xs text-text-tertiary mb-4">
           {t('从首次记录到现在的累计', 'Running totals from first entry')}
         </p>
 
         {cumulatives.map((c) => (
           <div key={c.id} className="mb-[18px]">
-            <div className="text-[13px] text-text-primary mb-1.5 font-medium">{c.name}</div>
+            <div className="text-body-sm text-text-primary mb-1.5 font-medium">{c.name}</div>
             <div className="relative h-[5px] bg-surface-sunken rounded-sm">
               <div
                 className="h-full rounded-sm"
@@ -147,9 +147,9 @@ export function LyubishchevAnalysis({
               />
             </div>
             <div className="flex justify-between items-center mt-1.5">
-              <span className="font-mono text-[13px] font-semibold text-text-primary">
+              <span className="font-mono text-body-sm font-semibold text-text-primary">
                 {c.hours.toFixed(1)}
-                <span className="text-[10px] font-normal text-text-tertiary">h / {c.goal}h goal</span>
+                <span className="text-xs-alt font-normal text-text-tertiary">h / {c.goal}h goal</span>
               </span>
             </div>
           </div>

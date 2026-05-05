@@ -123,7 +123,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
 
           {/* Error */}
           {error && (
-            <div className="flex items-center gap-2 text-xs font-sans text-rose-500">
+            <div className="flex items-center gap-2 text-xs font-sans text-color-text-danger">
               <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
               {error}
             </div>
@@ -146,7 +146,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                     <span>{t('跳过（全天）', 'Skipped (all-day)')}</span>
                     <span>{parseResult.skippedAllDay}</span>
                   </summary>
-                  <ul className="mt-1 pl-3 text-[11px] list-disc list-inside max-h-24 overflow-y-auto">
+                  <ul className="mt-1 pl-3 text-body-xs list-disc list-inside max-h-24 overflow-y-auto">
                     {parseResult.skippedAllDayTitles.map((title, i) => (
                       <li key={i} className="truncate">{title || t('(无标题)', '(Untitled)')}</li>
                     ))}
@@ -159,7 +159,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                     <span>{t('跳过（重复）', 'Skipped (recurring)')}</span>
                     <span>{parseResult.skippedRecurring}</span>
                   </summary>
-                  <ul className="mt-1 pl-3 text-[11px] list-disc list-inside max-h-24 overflow-y-auto">
+                  <ul className="mt-1 pl-3 text-body-xs list-disc list-inside max-h-24 overflow-y-auto">
                     {parseResult.skippedRecurringTitles.map((title, i) => (
                       <li key={i} className="truncate">{title || t('(无标题)', '(Untitled)')}</li>
                     ))}
@@ -184,7 +184,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                       {new Date(ev.startTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
                     </span>
                     {autoCat && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-raised text-text-secondary flex-shrink-0">
+                      <span className="text-xs-alt px-1.5 py-0.5 rounded-full bg-surface-raised text-text-secondary flex-shrink-0">
                         {catName}
                       </span>
                     )}
@@ -238,7 +238,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
 
           {/* Success */}
           {status === 'done' && (
-            <div className="flex items-center gap-2 text-sm font-sans text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 text-sm font-sans text-color-text-success bg-color-bg-positive rounded-xl px-3 py-2">
               <Check className="h-4 w-4 flex-shrink-0" />
               {t('已导入', 'Imported')} {parseResult?.events.length} {t('个事件', 'events')}
             </div>

@@ -45,7 +45,7 @@ export function WeekInReview({ current, previous, categories, language, maturity
           return (
             <p
               key={i}
-              className={`text-[15px] leading-[1.78] ${isLast ? 'text-text-secondary italic' : 'text-text-primary'}`}
+              className={`text-settings leading-[1.78] ${isLast ? 'text-text-secondary italic' : 'text-text-primary'}`}
             >
               {s}
             </p>

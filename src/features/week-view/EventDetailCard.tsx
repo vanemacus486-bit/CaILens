@@ -90,7 +90,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
               <Button
                 variant="ghost" size="sm"
                 onClick={() => setShowConfirm(true)}
-                className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 gap-1.5 px-2 h-8"
+                className="text-color-text-danger hover:bg-surface-sunken gap-1.5 px-2 h-8"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 {t('删除', 'Delete')}
@@ -119,7 +119,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
             <AlertDialogCancel>{t('取消', 'Cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={onDelete}
-              className="bg-rose-500 hover:bg-rose-600 text-white"
+              className="bg-color-text-danger text-white"
             >
               {t('删除', 'Delete')}
             </AlertDialogAction>

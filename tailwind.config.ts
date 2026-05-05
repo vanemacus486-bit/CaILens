@@ -53,6 +53,23 @@ export default {
         'color-bg-negative':   'var(--color-bg-negative)',
         'color-text-warning':  'var(--color-text-warning)',
         'color-bg-warning':    'var(--color-bg-warning)',
+        'time-line':           'var(--time-line)',
+      },
+      boxShadow: {
+        'pill':    'var(--shadow-pill)',
+        'tooltip': 'var(--shadow-tooltip)',
+        'dialog':  'var(--shadow-dialog)',
+      },
+      fontSize: {
+        '2xs':      'var(--text-2xs)',
+        'xs-alt':   'var(--text-xs-alt)',
+        'body-xs':  'var(--text-body-xs)',
+        'body-sm':  'var(--text-body-sm)',
+        'settings': 'var(--text-settings)',
+      },
+      letterSpacing: {
+        'label': 'var(--tracking-label)',
+        'caps':  'var(--tracking-caps)',
       },
       fontFamily: {
         sans:  ['Inter', 'sans-serif'],

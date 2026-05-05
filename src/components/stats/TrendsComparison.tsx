@@ -68,12 +68,12 @@ export function TrendsComparison({ history, categories, language, maturity }: Tr
           <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
             {t('30天滚动趋势', '30-Day Rolling Trend')}
           </h3>
-          <p className="text-[11px] text-text-tertiary mb-4">
+          <p className="text-body-xs text-text-tertiary mb-4">
             {t('每日小时数', 'Daily hours — this week detail')}
           </p>
 
           {warming && (
-            <p className="text-[10px] text-text-tertiary italic mb-3 opacity-60">
+            <p className="text-xs-alt text-text-tertiary italic mb-3 opacity-60">
               {t('数据较少，趋势仅供参考', 'Limited data — trends are for reference only')}
             </p>
           )}
@@ -84,7 +84,7 @@ export function TrendsComparison({ history, categories, language, maturity }: Tr
                 key={id}
                 onClick={() => setTrendCat(id)}
                 className={cn(
-                  'px-2.5 py-[3px] rounded-sm text-[11px] font-sans border transition-colors duration-200 cursor-pointer',
+                  'px-2.5 py-[3px] rounded-sm text-body-xs font-sans border transition-colors duration-200 cursor-pointer',
                   trendCat === id
                     ? 'text-white border-transparent'
                     : 'text-text-tertiary border-border-subtle hover:text-text-primary',
@@ -130,7 +130,7 @@ export function TrendsComparison({ history, categories, language, maturity }: Tr
           <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
             {t('周环比', 'Week-over-Week')}
           </h3>
-          <p className="text-[11px] text-text-tertiary mb-4">
+          <p className="text-body-xs text-text-tertiary mb-4">
             {t('过去8周每分类 sparkline + 当前值 + 变化', 'Last 8 weeks per category — sparkline + current value + delta')}
           </p>
 
@@ -151,14 +151,14 @@ export function TrendsComparison({ history, categories, language, maturity }: Tr
                 <div key={s.key} className="bg-surface-base border border-border-subtle px-4 py-3.5 flex-1 min-w-[140px]">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <div className="text-[11px] text-text-tertiary mb-0.5">{s.name}</div>
+                      <div className="text-body-xs text-text-tertiary mb-0.5">{s.name}</div>
                       <div className="font-mono text-lg font-bold text-text-primary leading-none">
-                        {s.current.toFixed(1)}<span className="text-[11px] font-normal">h</span>
+                        {s.current.toFixed(1)}<span className="text-body-xs font-normal">h</span>
                       </div>
                     </div>
                     <div
                       className={cn(
-                        'text-[11px] font-mono px-1.5 py-0.5 rounded-sm',
+                        'text-body-xs font-mono px-1.5 py-0.5 rounded-sm',
                         s.firstRecord
                           ? 'text-text-tertiary bg-surface-sunken'
                           : extremePct

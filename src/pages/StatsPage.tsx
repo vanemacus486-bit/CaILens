@@ -196,7 +196,7 @@ export function StatsPage() {
           <ArrowLeft size={18} strokeWidth={1.75} />
         </Link>
 
-        <span className="font-serif text-[15px] font-semibold text-accent tracking-[0.02em] flex-shrink-0">
+        <span className="font-serif text-settings font-semibold text-accent tracking-[0.02em] flex-shrink-0">
           CaILens
         </span>
 
@@ -211,7 +211,7 @@ export function StatsPage() {
               className={cn(
                 'px-3 py-1 rounded-sm text-xs font-sans font-medium transition-colors duration-200 cursor-pointer',
                 period === p.key
-                  ? 'bg-surface-base text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                  ? 'bg-surface-base text-text-primary shadow-pill'
                   : 'text-text-secondary hover:text-text-primary',
               )}
             >
@@ -223,7 +223,7 @@ export function StatsPage() {
         <div className="w-px h-5 bg-border-subtle flex-shrink-0" />
 
         {/* Compare dropdown */}
-        <span className="text-[11px] text-text-tertiary flex-shrink-0 select-none">
+        <span className="text-body-xs text-text-tertiary flex-shrink-0 select-none">
           {t('对比', 'Compare')}
         </span>
         <select
@@ -251,7 +251,7 @@ export function StatsPage() {
               </button>
               <button
                 onClick={goToday}
-                className="text-[11px] text-text-secondary hover:text-text-primary px-2 py-1 rounded hover:bg-surface-sunken transition-colors duration-200 cursor-pointer"
+                className="text-body-xs text-text-secondary hover:text-text-primary px-2 py-1 rounded hover:bg-surface-sunken transition-colors duration-200 cursor-pointer"
               >
                 {t('今天', 'Today')}
               </button>
@@ -274,7 +274,7 @@ export function StatsPage() {
           </div>
         ) : loadError ? (
           <div className="flex flex-col items-center justify-center gap-4 min-h-[400px] h-full">
-            <AlertCircle className="h-10 w-10 text-rose-500" />
+            <AlertCircle className="h-10 w-10 text-color-text-danger" />
             <p className="font-sans text-sm text-text-secondary max-w-md text-center">{loadError}</p>
             <button
               onClick={() => loadRange(Date.now() - 3 * 365 * 24 * 60 * 60_000, Date.now())}
@@ -293,7 +293,7 @@ export function StatsPage() {
                 '"I have been keeping a systematic record of my time for many years. Without exaggeration, I can say that this record has transformed my life — not by giving me more hours, but by showing me exactly how each one disappears."',
               )}
             </p>
-            <p className="font-sans text-xs text-text-tertiary mt-2.5 tracking-[0.04em]">
+            <p className="font-sans text-xs text-text-tertiary mt-2.5 tracking-caps">
               — Alexander Lyubishchev, letter to a colleague, 1966
             </p>
           </div>

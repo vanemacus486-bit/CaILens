@@ -22,14 +22,14 @@ export function WeekStatsSidebar({ stats, streak }: WeekStatsSidebarProps) {
       {/* Total hours */}
       <div>
         <div
-          className="text-[11px] font-sans font-semibold uppercase tracking-[0.1em] text-text-tertiary mb-3.5 select-none"
+          className="text-body-xs font-sans font-semibold uppercase tracking-label text-text-tertiary mb-3.5 select-none"
         >
           {t('本周', 'This week')}
         </div>
         <div className="font-mono text-[26px] font-medium text-text-primary tracking-[-0.02em] leading-none">
           {totalHours}h
         </div>
-        <div className="font-sans text-[11px] text-text-secondary mt-0.5 select-none">
+        <div className="font-sans text-body-xs text-text-secondary mt-0.5 select-none">
           {t('已记录', 'logged so far')}
         </div>
       </div>
@@ -51,11 +51,11 @@ export function WeekStatsSidebar({ stats, streak }: WeekStatsSidebarProps) {
                       className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: `var(--event-${cat.id}-fill)` }}
                     />
-                    <span className="font-sans text-[11px] text-text-secondary">
+                    <span className="font-sans text-body-xs text-text-secondary">
                       {cat.name[language]}
                     </span>
                   </div>
-                  <span className="font-mono text-[11px] text-text-secondary">
+                  <span className="font-mono text-body-xs text-text-secondary">
                     {hrs}h
                   </span>
                 </div>
@@ -76,7 +76,7 @@ export function WeekStatsSidebar({ stats, streak }: WeekStatsSidebarProps) {
 
       {/* Empty state */}
       {activeStats.length === 0 && (
-        <p className="text-[11px] font-sans text-text-tertiary">
+        <p className="text-body-xs font-sans text-text-tertiary">
           {t('本周暂无记录', 'No events this week')}
         </p>
       )}
@@ -84,14 +84,14 @@ export function WeekStatsSidebar({ stats, streak }: WeekStatsSidebarProps) {
       {/* Streak */}
       <div className="mt-auto pt-4 border-t border-border-subtle">
         <div
-          className="text-[11px] font-sans font-semibold uppercase tracking-[0.1em] text-text-tertiary mb-2.5 select-none"
+          className="text-body-xs font-sans font-semibold uppercase tracking-label text-text-tertiary mb-2.5 select-none"
         >
           {t('连续记录', 'Streak')}
         </div>
         <div className="font-mono text-[22px] text-accent leading-none">
           {streak} wk
         </div>
-        <div className="font-sans text-[11px] text-text-secondary mt-0.5 select-none">
+        <div className="font-sans text-body-xs text-text-secondary mt-0.5 select-none">
           {t('持续记录周数', 'consecutive logging')}
         </div>
       </div>

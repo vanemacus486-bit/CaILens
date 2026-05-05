@@ -53,14 +53,14 @@ export function MaturityPlaceholder({
           y={SIZE / 2 + 1}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="font-mono text-[11px]"
+          className="font-mono text-body-xs"
           fill="var(--text-tertiary)"
         >
           {daysRecorded}/{target}
         </text>
       </svg>
 
-      <p className="text-[13px] text-text-tertiary leading-relaxed max-w-[260px]">
+      <p className="text-body-sm text-text-tertiary leading-relaxed max-w-[260px]">
         {remaining > 0
           ? t(
               `继续记录 ${remaining} 天，解锁趋势分析`,

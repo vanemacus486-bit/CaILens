@@ -196,7 +196,7 @@ function FolderSection({
           <button
             type="button"
             onClick={onRemove}
-            className="w-4 h-4 inline-flex items-center justify-center rounded-sm text-text-tertiary hover:text-rose-500 transition-colors duration-200 cursor-pointer"
+            className="w-4 h-4 inline-flex items-center justify-center rounded-sm text-text-tertiary hover:text-color-text-danger transition-colors duration-200 cursor-pointer"
           >
             <X size={11} strokeWidth={2} />
           </button>

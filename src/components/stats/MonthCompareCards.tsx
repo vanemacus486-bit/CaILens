@@ -117,7 +117,7 @@ export function MonthCompareCards({ current, previous }: MonthCompareCardsProps)
 
   if (!previous) {
     return (
-      <div className="p-6 text-center text-text-tertiary text-[13px]">
+      <div className="p-6 text-center text-text-tertiary text-body-sm">
         {t('至少需要 2 个月数据才能对比', 'Needs at least 2 months of data for comparison')}
       </div>
     )
@@ -138,7 +138,7 @@ export function MonthCompareCards({ current, previous }: MonthCompareCardsProps)
                   className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{ background: colors[id].fill }}
                 />
-                <span className="text-[13px] text-text-secondary font-serif">
+                <span className="text-body-sm text-text-secondary font-serif">
                   {catName(id)}
                 </span>
               </div>
@@ -156,7 +156,7 @@ export function MonthCompareCards({ current, previous }: MonthCompareCardsProps)
         })}
       </div>
       {insight && (
-        <div className="mt-4 px-3.5 py-3 bg-color-bg-info rounded-xl text-[13px] text-color-text-info">
+        <div className="mt-4 px-3.5 py-3 bg-color-bg-info rounded-xl text-body-sm text-color-text-info">
           {insight}
         </div>
       )}

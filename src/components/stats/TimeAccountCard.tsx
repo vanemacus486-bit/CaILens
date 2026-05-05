@@ -35,7 +35,7 @@ export function TimeAccountCard({ current, language }: TimeAccountCardProps) {
       <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
         {t('时间去向', 'Time Account')}
       </h3>
-      <p className="text-[11px] text-text-tertiary mb-4">
+      <p className="text-body-xs text-text-tertiary mb-4">
         {language === 'zh'
           ? `本周 ${totalH} 小时如何分配`
           : `How ${totalH} hours are allocated this period`}
@@ -70,7 +70,7 @@ export function TimeAccountCard({ current, language }: TimeAccountCardProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-[10px] text-text-tertiary">
+      <div className="flex items-center gap-4 text-xs-alt text-text-tertiary">
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--accent)' }} />
           <span>{t('已记录', 'Recorded')}</span>

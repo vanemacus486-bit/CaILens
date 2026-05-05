@@ -2,8 +2,10 @@ import { create } from 'zustand'
 import { settingsRepository } from '@/data/settingsRepository'
 import type { AppSettings, AppLanguage, AppTheme } from '@/domain/settings'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
+import type { AccentPreset } from '@/domain/themes'
 
-const THEME_KEY = 'cailens-theme'
+const THEME_KEY  = 'cailens-theme'
+const ACCENT_KEY = 'cailens-accent'
 
 function applyTheme(theme: AppTheme) {
   if (theme === 'dark') {
@@ -13,12 +15,17 @@ function applyTheme(theme: AppTheme) {
   }
 }
 
+function applyAccent(accent: AccentPreset) {
+  document.documentElement.setAttribute('data-accent', accent)
+}
+
 interface AppSettingsState {
   settings: AppSettings
   isLoaded: boolean
   loadSettings: () => Promise<void>
   setLanguage: (lang: AppLanguage) => Promise<void>
   setTheme: (theme: AppTheme) => Promise<void>
+  setAccentColor: (accent: AccentPreset) => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
@@ -44,7 +51,18 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const theme = settings.theme ?? 'light' as AppTheme
     localStorage.setItem(THEME_KEY, theme)
     applyTheme(theme)
-    set({ settings: { ...settings, theme }, isLoaded: true })
+
+    // Accent color — same reconciliation pattern
+    const storedAccent = localStorage.getItem(ACCENT_KEY) as AccentPreset | null
+    if (!settings.accentColor || (storedAccent && settings.accentColor !== storedAccent)) {
+      const accent = storedAccent ?? 'rust'
+      settings = await settingsRepository.update({ accentColor: accent })
+    }
+    const accent = settings.accentColor ?? 'rust'
+    localStorage.setItem(ACCENT_KEY, accent)
+    applyAccent(accent)
+
+    set({ settings: { ...settings, theme, accentColor: accent }, isLoaded: true })
   },
 
   setLanguage: async (lang) => {
@@ -56,6 +74,13 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const settings = await settingsRepository.update({ theme })
     localStorage.setItem(THEME_KEY, theme)
     applyTheme(theme)
+    set({ settings })
+  },
+
+  setAccentColor: async (accent) => {
+    const settings = await settingsRepository.update({ accentColor: accent })
+    localStorage.setItem(ACCENT_KEY, accent)
+    applyAccent(accent)
     set({ settings })
   },
 }))

@@ -105,7 +105,7 @@ export function DayView() {
         </div>
       ) : loadError ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <AlertCircle className="h-10 w-10 text-rose-500" />
+          <AlertCircle className="h-10 w-10 text-color-text-danger" />
           <p className="font-sans text-sm text-text-secondary max-w-md text-center">{loadError}</p>
           <button
             onClick={() => loadRange(dayStart.getTime(), dayEnd.getTime())}
@@ -170,7 +170,7 @@ function DiaryEntry({
     <div className="flex gap-0 mb-1 items-start">
       {/* Time */}
       <div className="w-12 flex-shrink-0 pt-0.5">
-        <span className={cn('font-mono text-[11px]', isCrossDay ? 'text-text-secondary' : 'text-text-tertiary')}>{timeLabel}</span>
+        <span className={cn('font-mono text-body-xs', isCrossDay ? 'text-text-secondary' : 'text-text-tertiary')}>{timeLabel}</span>
         {startsBeforeDay && (
           <div className="font-mono text-[9px] text-text-tertiary opacity-60 mt-0.5">
             ▲ {fmtTimeHM(event.startTime).split(':')[0]}h
@@ -199,7 +199,7 @@ function DiaryEntry({
           {event.title || <span className="opacity-50 italic">(Untitled)</span>}
         </div>
         {event.description && (
-          <div className="font-serif text-[13px] text-text-secondary italic mt-1 leading-[1.6]">
+          <div className="font-serif text-body-sm text-text-secondary italic mt-1 leading-[1.6]">
             {event.description}
           </div>
         )}

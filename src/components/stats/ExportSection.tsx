@@ -56,7 +56,7 @@ export function ExportSection({ language }: ExportSectionProps) {
       <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
         {t('导出与所有权', 'Export & Ownership')}
       </h3>
-      <p className="text-[11px] text-text-tertiary mb-4">
+      <p className="text-body-xs text-text-tertiary mb-4">
         {t('随时下载你的记录，任何格式，任何理由。', 'Download your records in any format, at any time, for any reason.')}
       </p>
 
@@ -70,7 +70,7 @@ export function ExportSection({ language }: ExportSectionProps) {
             {expClk === fmt.toLowerCase() ? t('已准备 ✓', 'Prepared ✓') : t(`导出为 ${fmt}`, `Export as ${fmt}`)}
           </button>
         ))}
-        <span className="text-[11px] text-text-tertiary italic">
+        <span className="text-body-xs text-text-tertiary italic">
           {t('所有数据存储在本地。不会离开你的设备。', 'All data lives locally. Nothing leaves your device.')}
         </span>
       </div>

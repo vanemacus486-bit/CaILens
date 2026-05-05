@@ -27,7 +27,7 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
         <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
           {t('预算 vs 实际', 'Budget vs. Actual')}
         </h3>
-        <p className="text-[11px] text-text-tertiary mb-4">
+        <p className="text-body-xs text-text-tertiary mb-4">
           {t('刻度线标注预算上限', 'Tick marks show budget ceiling')}
         </p>
 
@@ -46,9 +46,9 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
                       className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: `var(--event-${item.id}-fill)` }}
                     />
-                    <span className="text-[13px] text-text-primary">{item.name[language]}</span>
+                    <span className="text-body-sm text-text-primary">{item.name[language]}</span>
                     {over && (
-                      <span className="text-[10px] text-color-text-danger bg-surface-sunken px-1.5 py-0.5 rounded-sm font-mono inline-flex items-center gap-1">
+                      <span className="text-xs-alt text-color-text-danger bg-surface-sunken px-1.5 py-0.5 rounded-sm font-mono inline-flex items-center gap-1">
                         <AlertTriangle size={10} strokeWidth={2.5} />
                         +{overAmt.toFixed(1)}h
                       </span>
@@ -103,7 +103,7 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
           <h3 className="font-serif text-sm font-semibold mb-3 text-color-text-warning">
             {t('超预算', 'Over budget')}
           </h3>
-          <p className="text-[11px] text-text-tertiary mb-3">
+          <p className="text-body-xs text-text-tertiary mb-3">
             {t('超出计划的部分', 'Spent more than planned')}
           </p>
           {overBudget.length === 0 ? (
@@ -116,7 +116,7 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
                     className="w-[7px] h-[7px] rounded-full flex-shrink-0"
                     style={{ backgroundColor: `var(--event-${item.id}-fill)` }}
                   />
-                  <span className="text-[13px] text-text-primary">{item.name[language]}</span>
+                  <span className="text-body-sm text-text-primary">{item.name[language]}</span>
                 </div>
                 <span className="font-mono text-xs text-color-text-danger inline-flex items-center gap-1">
                   <AlertTriangle size={10} strokeWidth={2.5} />
@@ -131,7 +131,7 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
           <h3 className="font-serif text-sm font-semibold mb-3 text-color-text-positive">
             {t('未超预算', 'Under budget')}
           </h3>
-          <p className="text-[11px] text-text-tertiary mb-3">
+          <p className="text-body-xs text-text-tertiary mb-3">
             {t('剩余可用', 'Capacity remaining')}
           </p>
           {underBudget.length === 0 ? (
@@ -144,7 +144,7 @@ export function TimeBudget({ current, categories, language }: TimeBudgetProps) {
                     className="w-[7px] h-[7px] rounded-full flex-shrink-0"
                     style={{ backgroundColor: `var(--event-${item.id}-fill)` }}
                   />
-                  <span className="text-[13px] text-text-primary">{item.name[language]}</span>
+                  <span className="text-body-sm text-text-primary">{item.name[language]}</span>
                 </div>
                 <span className="font-mono text-xs text-color-text-positive">
                   {(item.budget - item.actual).toFixed(1)}h left

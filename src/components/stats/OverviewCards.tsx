@@ -33,7 +33,7 @@ function OvCard({ label, value, unit, delta, cold, footer }: {
 
   return (
     <div className="bg-surface-raised border border-border-subtle px-[22px] py-5">
-      <div className="text-[11px] font-sans text-text-tertiary tracking-[0.04em] uppercase mb-2 select-none">
+      <div className="text-body-xs font-sans text-text-tertiary tracking-caps uppercase mb-2 select-none">
         {label}
       </div>
       <div className="font-mono text-[32px] font-bold text-text-primary leading-none">
@@ -43,7 +43,7 @@ function OvCard({ label, value, unit, delta, cold, footer }: {
       {delta !== null && !cold && (
         <div className="mt-2">
           <span className={cn(
-            'text-[11px] font-mono px-1.5 py-0.5 rounded-sm',
+            'text-body-xs font-mono px-1.5 py-0.5 rounded-sm',
             up ? 'text-color-text-positive bg-color-bg-positive' : '',
             dn ? 'text-color-text-negative bg-color-bg-negative' : '',
           )}>
@@ -52,7 +52,7 @@ function OvCard({ label, value, unit, delta, cold, footer }: {
         </div>
       )}
       {footer && (
-        <div className="mt-2 text-[10px] text-text-tertiary leading-tight">
+        <div className="mt-2 text-xs-alt text-text-tertiary leading-tight">
           {footer}
         </div>
       )}

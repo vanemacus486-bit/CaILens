@@ -59,7 +59,7 @@ export function TimeAllocation({ current, categories, language }: TimeAllocation
         <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
           {t('分类分布', 'Category Distribution')}
         </h3>
-        <p className="text-[11px] text-text-tertiary mb-4">
+        <p className="text-body-xs text-text-tertiary mb-4">
           {t('时间如何分配到各分类', 'How the hours break down')}
         </p>
 
@@ -69,7 +69,7 @@ export function TimeAllocation({ current, categories, language }: TimeAllocation
               key={p}
               onClick={() => setDonutTab(p)}
               className={cn(
-                'px-2.5 py-1 rounded-sm text-[11px] font-sans font-medium transition-colors duration-200 cursor-pointer',
+                'px-2.5 py-1 rounded-sm text-body-xs font-sans font-medium transition-colors duration-200 cursor-pointer',
                 donutTab === p
                   ? 'bg-surface-sunken text-text-primary'
                   : 'text-text-tertiary hover:text-text-primary',
@@ -110,7 +110,7 @@ export function TimeAllocation({ current, categories, language }: TimeAllocation
             <div className="font-mono text-2xl font-bold text-text-primary leading-none">
               {ai !== null ? donutData[ai]?.value.toFixed(1) : totalHrs.toFixed(0)}
             </div>
-            <div className="font-serif text-[11px] text-text-tertiary mt-1 italic">
+            <div className="font-serif text-body-xs text-text-tertiary mt-1 italic">
               {ai !== null ? donutData[ai]?.name : t('本周', 'this week')}
             </div>
           </div>
@@ -121,8 +121,8 @@ export function TimeAllocation({ current, categories, language }: TimeAllocation
           {donutData.map((d) => (
             <div key={d.key} className="flex items-center gap-1.5">
               <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: d.fill }} />
-              <span className="text-[10px] text-text-secondary">{d.name}</span>
-              <span className="text-[10px] text-text-primary font-mono">{d.value.toFixed(1)}h</span>
+              <span className="text-xs-alt text-text-secondary">{d.name}</span>
+              <span className="text-xs-alt text-text-primary font-mono">{d.value.toFixed(1)}h</span>
             </div>
           ))}
         </div>
@@ -133,7 +133,7 @@ export function TimeAllocation({ current, categories, language }: TimeAllocation
         <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
           {t('每日分布', 'Daily Breakdown')}
         </h3>
-        <p className="text-[11px] text-text-tertiary mb-4">
+        <p className="text-body-xs text-text-tertiary mb-4">
           {t('每天各分类小时数', 'Hours per category, stacked by day')}
         </p>
 
@@ -175,7 +175,7 @@ export function TimeAllocation({ current, categories, language }: TimeAllocation
             return (
               <div key={id} className="flex items-center gap-1.5">
                 <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: `var(--event-${id}-fill)` }} />
-                <span className="text-[10px] text-text-tertiary">{cat.name[language]}</span>
+                <span className="text-xs-alt text-text-tertiary">{cat.name[language]}</span>
               </div>
             )
           })}
