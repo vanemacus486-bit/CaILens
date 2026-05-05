@@ -1,16 +1,16 @@
-import { useMemo, useState, useRef, useCallback } from 'react'
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { startOfDay, addDays, differenceInDays } from 'date-fns'
-import { cn } from '@/lib/utils'
 import type { CalendarEvent } from '@/domain/event'
 import type { Bucket } from '@/hooks/useStatsAggregation'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const DAY_LABELS_ZH = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 const DAY_MS = 24 * 3600_000
+const OPACITY_LEVELS = [0.10, 0.22, 0.38, 0.58, 0.82] as const
 
 interface CellData {
   date: Date
-  intensity: number // 0–1, accent hours / 24
+  intensity: number
   hours: number
   inRange: boolean
 }
@@ -23,15 +23,13 @@ function computeIntensityGrid(
   const periodEnd = bucket.end
   const totalDays = differenceInDays(periodEnd, periodStart)
 
-  // Group events by day for accent category
-  const dayMap = new Map<number, number>() // dayTimestamp -> accentMs
+  const dayMap = new Map<number, number>()
   for (const event of events) {
     if (event.categoryId !== 'accent') continue
     const start = Math.max(event.startTime, periodStart.getTime())
     const end = Math.min(event.endTime, periodEnd.getTime())
     if (end <= start) continue
 
-    // Walk through each day this event touches
     let cursor = startOfDay(new Date(start)).getTime()
     while (cursor < end) {
       const dayEnd = cursor + DAY_MS
@@ -43,10 +41,8 @@ function computeIntensityGrid(
     }
   }
 
-  // Build the 7×N grid
-  // N = number of weeks that overlap with the period
   const firstDay = startOfDay(periodStart)
-  const firstDow = (firstDay.getDay() + 6) % 7 // Mon=0
+  const firstDow = (firstDay.getDay() + 6) % 7
   const numWeeks = Math.ceil((firstDow + totalDays) / 7)
 
   const grid: CellData[][] = Array.from({ length: 7 }, () => [])
@@ -61,42 +57,40 @@ function computeIntensityGrid(
       const hours = accentMs / 3600_000
       const intensity = Math.min(hours / 24, 1)
 
-      grid[dow].push({
-        date: dayDate,
-        intensity,
-        hours,
-        inRange,
-      })
+      grid[dow].push({ date: dayDate, intensity, hours, inRange })
     }
   }
 
   return grid
 }
 
-function computeOpacityLevels(grid: CellData[][]): number[] {
+function computeThresholds(grid: CellData[][]): [number, number, number, number] {
   const values = grid
     .flat()
     .filter((c) => c.inRange && c.intensity > 0)
     .map((c) => c.intensity)
     .sort((a, b) => a - b)
 
-  if (values.length === 0) return [0.08, 0.18, 0.32, 0.52, 0.78]
-
-  const len = values.length
-  const p20 = values[Math.floor(len * 0.2)]
-  const p40 = values[Math.floor(len * 0.4)]
-  const p60 = values[Math.floor(len * 0.6)]
-  const p80 = values[Math.floor(len * 0.8)]
-  return [p20, p40, p60, p80]
+  if (values.length === 0) return [0.05, 0.10, 0.20, 0.35]
+  const n = values.length
+  const idx = (pct: number) => Math.min(Math.floor(pct * (n - 1)), n - 1)
+  return [values[idx(0.2)], values[idx(0.4)], values[idx(0.6)], values[idx(0.8)]]
 }
 
-function getOpacity(intensity: number, levels: number[]): number {
-  if (intensity <= 0) return 0
-  if (intensity <= levels[0]) return 0.10
-  if (intensity <= levels[1]) return 0.22
-  if (intensity <= levels[2]) return 0.38
-  if (intensity <= levels[3]) return 0.58
-  return 0.82
+function getHeatLevel(v: number, t: [number, number, number, number]): number {
+  if (v <= 0) return 0
+  if (v <= t[0]) return 1
+  if (v <= t[1]) return 2
+  if (v <= t[2]) return 3
+  if (v <= t[3]) return 4
+  return 5
+}
+
+function weekLabelInterval(numWeeks: number): number {
+  if (numWeeks <= 6) return 1
+  if (numWeeks <= 14) return 2
+  if (numWeeks <= 30) return 4
+  return 6
 }
 
 interface DayIntensityHeatmapProps {
@@ -116,15 +110,31 @@ export function DayIntensityHeatmap({
     cell: CellData
   } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState<number>(Infinity)
 
   const grid = useMemo(
     () => computeIntensityGrid(rangeEvents, current),
     [rangeEvents, current],
   )
 
-  const opacityLevels = useMemo(() => computeOpacityLevels(grid), [grid])
+  const thresholds = useMemo(() => computeThresholds(grid), [grid])
 
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width)
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const cellSize = containerWidth < 700 ? 16 : 22
+  const labelFontSize = containerWidth < 700 ? 9 : 10
   const dayLabels = language === 'zh' ? DAY_LABELS_ZH : DAY_LABELS
+  const numWeeks = grid[0]?.length ?? 0
 
   const handlePointerEnter = useCallback(
     (cell: CellData, event: React.PointerEvent) => {
@@ -142,7 +152,6 @@ export function DayIntensityHeatmap({
 
   const handlePointerLeave = useCallback(() => setTooltip(null), [])
 
-  const numWeeks = grid[0]?.length ?? 0
   if (numWeeks === 0) {
     return (
       <div className="flex items-center justify-center min-h-[200px] text-text-tertiary text-sm font-sans">
@@ -152,59 +161,123 @@ export function DayIntensityHeatmap({
   }
 
   const formatPct = (v: number) => (v * 100).toFixed(1)
+  const wlInterval = weekLabelInterval(numWeeks)
 
-  return (
-    <div ref={containerRef} className="relative">
+  // Build flat grid items (matching HourHeatmap pattern)
+  const gridItems: React.ReactNode[] = []
+
+  // Week number labels (top row)
+  for (let w = 0; w < numWeeks; w++) {
+    if (w % wlInterval === 0) {
+      gridItems.push(
+        <div
+          key={`wl-${w}`}
+          className="font-mono text-text-tertiary text-center select-none"
+          style={{
+            gridColumn: w + 2,
+            gridRow: 1,
+            fontSize: labelFontSize,
+            lineHeight: `${labelFontSize + 4}px`,
+          }}
+        >
+          {w + 1}
+        </div>,
+      )
+    }
+  }
+
+  // Day labels + data cells
+  for (let dow = 0; dow < 7; dow++) {
+    const row = grid[dow]
+
+    gridItems.push(
       <div
-        className="grid"
+        key={`dl-${dow}`}
+        className="font-sans text-text-secondary text-right select-none"
         style={{
-          gridTemplateColumns: `40px repeat(${numWeeks}, 1fr)`,
-          gap: '2px',
+          gridColumn: 1,
+          gridRow: dow + 2,
+          fontSize: labelFontSize,
+          paddingRight: '4px',
+          lineHeight: `${cellSize}px`,
         }}
       >
-        {/* Header row — week labels */}
-        <div /> {/* empty corner */}
-        {Array.from({ length: numWeeks }, (_, w) => (
-          <div
-            key={w}
-            className="text-[9px] font-sans text-text-tertiary text-center leading-none py-0.5"
-          >
-            {w + 1}
-          </div>
-        ))}
+        {dayLabels[dow]}
+      </div>,
+    )
 
-        {/* Data rows */}
-        {grid.map((row, dow) => (
-          <>
-            <div
-              key={`label-${dow}`}
-              className="text-[10px] font-sans text-text-tertiary leading-none flex items-center justify-end pr-1.5"
-            >
-              {dayLabels[dow]}
-            </div>
-            {row.map((cell, col) => (
-              <div
-                key={`${dow}-${col}`}
-                className={cn(
-                  'aspect-square rounded-[2px] transition-opacity duration-150',
-                  cell.inRange && cell.intensity > 0 && 'cursor-default',
-                )}
-                style={{
-                  backgroundColor: cell.inRange && cell.intensity > 0
-                    ? `var(--event-accent-fill)`
-                    : 'var(--surface-sunken)',
-                  opacity: cell.inRange && cell.intensity > 0
-                    ? getOpacity(cell.intensity, opacityLevels)
-                    : cell.inRange
-                      ? 0.35
-                      : 0.12,
-                }}
-                onPointerEnter={(e) => handlePointerEnter(cell, e)}
-                onPointerLeave={handlePointerLeave}
-              />
-            ))}
-          </>
-        ))}
+    for (let col = 0; col < numWeeks; col++) {
+      const cell = row[col]
+      const level = getHeatLevel(cell.intensity, thresholds)
+      const hasData = cell.inRange && cell.intensity > 0
+
+      gridItems.push(
+        <div
+          key={`c-${dow}-${col}`}
+          className="rounded-[2px] transition-opacity duration-150"
+          style={{
+            gridColumn: col + 2,
+            gridRow: dow + 2,
+            width: cellSize,
+            height: cellSize,
+            backgroundColor: hasData
+              ? 'var(--event-accent-fill)'
+              : cell.inRange
+                ? 'var(--surface-sunken)'
+                : 'transparent',
+            opacity: hasData
+              ? OPACITY_LEVELS[level - 1]
+              : cell.inRange
+                ? 0.30
+                : 0.08,
+          }}
+          onPointerEnter={(e) => handlePointerEnter(cell, e)}
+          onPointerLeave={handlePointerLeave}
+        />,
+      )
+    }
+  }
+
+  // Legend row
+  gridItems.push(
+    <div
+      key="legend"
+      className="flex items-center gap-1.5 text-[10px] font-sans text-text-tertiary select-none"
+      style={{
+        gridColumn: '1 / -1',
+        gridRow: 9,
+        marginTop: '6px',
+      }}
+    >
+      <span>{language === 'zh' ? '低' : 'Low'}</span>
+      {OPACITY_LEVELS.map((opacity, i) => (
+        <div
+          key={`leg-${i}`}
+          className="w-3 h-3 rounded-[2px] flex-shrink-0"
+          style={{ backgroundColor: 'var(--event-accent-fill)', opacity }}
+        />
+      ))}
+      <span>{language === 'zh' ? '高' : 'High'}</span>
+      <span className="ml-2 text-text-tertiary/60">
+        {language === 'zh'
+          ? '主要矛盾时间 ÷ 24h'
+          : 'Core Focus time ÷ 24h'}
+      </span>
+    </div>,
+  )
+
+  return (
+    <div ref={containerRef} className="relative overflow-x-auto">
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `40px repeat(${numWeeks}, ${cellSize}px)`,
+          gridTemplateRows: `${labelFontSize + 4}px repeat(7, ${cellSize}px) auto`,
+          gap: '2px',
+          alignItems: 'center',
+        }}
+      >
+        {gridItems}
       </div>
 
       {/* Tooltip */}
@@ -228,28 +301,6 @@ export function DayIntensityHeatmap({
           </div>
         </div>
       )}
-
-      {/* Legend */}
-      <div className="flex items-center gap-2 mt-3 justify-end">
-        <span className="text-[10px] text-text-tertiary font-sans">
-          {language === 'zh' ? '低' : 'Low'}
-        </span>
-        <div className="flex gap-0.5">
-          {[0.10, 0.22, 0.38, 0.58, 0.82].map((op) => (
-            <div
-              key={op}
-              className="w-3 h-3 rounded-[2px]"
-              style={{
-                backgroundColor: 'var(--event-accent-fill)',
-                opacity: op,
-              }}
-            />
-          ))}
-        </div>
-        <span className="text-[10px] text-text-tertiary font-sans">
-          {language === 'zh' ? '高' : 'High'}
-        </span>
-      </div>
     </div>
   )
 }
