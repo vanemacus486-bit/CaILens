@@ -78,7 +78,7 @@ export function DayView() {
               {fmtWday(dayStart, 'long')}
             </div>
             <div className="font-serif text-base text-text-secondary italic mt-0.5">
-              {fmtFullDate(dayStart, language)}{language === 'zh' ? ' · ' : ' · '}{t(`第 ${weekNum} 周`, `Week ${weekNum}`)}
+              {fmtFullDate(dayStart, language)}{' · '}{t(`第 ${weekNum} 周`, `Week ${weekNum}`)}
             </div>
           </div>
         </div>

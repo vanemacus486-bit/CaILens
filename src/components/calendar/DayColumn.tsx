@@ -54,14 +54,28 @@ function DayColumnInner({
       {today && <CurrentTimeLine />}
 
       <div className="absolute inset-0 grid" style={GRID_STYLE}>
-        {SLOT_INDICES.map((i) => (
-          <div
-            key={i}
-            className={i % 2 === 0 ? SLOT_STYLE_HOUR : SLOT_STYLE_HALF}
-            style={{ gridColumn: `1 / ${MAX_OVERLAP_COLUMNS + 1}`, gridRow: i + 1 }}
-            onClick={(e) => onSlotClick(slotToTimestamp(i, dayStart), e.currentTarget as HTMLElement)}
-          />
-        ))}
+        {SLOT_INDICES.map((i) => {
+          const ts = slotToTimestamp(i, dayStart)
+          const nextTs = ts + 30 * 60_000
+          const label = `${String(new Date(ts).getHours()).padStart(2, '0')}:${String(new Date(ts).getMinutes()).padStart(2, '0')} – ${String(new Date(nextTs).getHours()).padStart(2, '0')}:${String(new Date(nextTs).getMinutes()).padStart(2, '0')}`
+          return (
+            <div
+              key={i}
+              role="button"
+              tabIndex={0}
+              aria-label={label}
+              className={i % 2 === 0 ? SLOT_STYLE_HOUR : SLOT_STYLE_HALF}
+              style={{ gridColumn: `1 / ${MAX_OVERLAP_COLUMNS + 1}`, gridRow: i + 1 }}
+              onClick={(e) => onSlotClick(ts, e.currentTarget as HTMLElement)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onSlotClick(ts, e.currentTarget as HTMLElement)
+                }
+              }}
+            />
+          )
+        })}
 
         {positioned.map((pe) => (
           <EventBlock

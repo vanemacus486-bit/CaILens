@@ -91,7 +91,6 @@ export const EventBlock = React.memo(function EventBlock({
 
   const durationMinutes = (event.endTime - event.startTime) / 60_000
   const isCompact = durationMinutes <= 60
-  const isMedium  = false
 
   const roundedClass = !startsBeforeDay && !endsAfterDay ? 'rounded-md'
     : !startsBeforeDay ? 'rounded-t-md'
@@ -103,7 +102,15 @@ export const EventBlock = React.memo(function EventBlock({
       <ContextMenuTrigger asChild>
         <div
           ref={divRef}
+          role="button"
+          tabIndex={0}
           data-event-id={event.id}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              onClick(event, e.currentTarget as HTMLElement)
+            }
+          }}
           className={cn(
             'relative px-2 py-[5px] overflow-hidden select-none',
             'border-t-2 border border-border-subtle transition-colors duration-200 z-10',
@@ -153,10 +160,10 @@ export const EventBlock = React.memo(function EventBlock({
           </p>
           {!isCompact && (
             <p className="text-[10px] opacity-80 font-mono leading-tight mt-0.5">
-              {fmtHM(event.startTime)}{!isMedium && ` – ${fmtHM(event.endTime)}`}
+              {fmtHM(event.startTime)} – {fmtHM(event.endTime)}
             </p>
           )}
-          {!isCompact && !isMedium && event.description && (
+          {!isCompact && event.description && (
             <p className="text-[10px] opacity-70 leading-tight mt-0.5 line-clamp-1 font-sans">
               {event.description}
             </p>

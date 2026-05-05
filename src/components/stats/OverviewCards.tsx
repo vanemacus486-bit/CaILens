@@ -16,6 +16,10 @@ interface OverviewCardsProps {
   periodType: PeriodMultiplier | 'all'
 }
 
+function fmtHrs(h: number): string {
+  return h % 1 === 0 ? h.toFixed(0) : h.toFixed(1)
+}
+
 function OvCard({ label, value, unit, delta, cold, footer }: {
   label: string
   value: string
@@ -85,14 +89,14 @@ export function OverviewCards({
     <div className="grid grid-cols-4 gap-4">
       <OvCard
         label={t('净有效时间', 'Net Effective Time')}
-        value={netEffective.toFixed(1)}
+        value={fmtHrs(netEffective)}
         unit="h"
         delta={netEffectiveDelta}
         cold={cold}
       />
       <OvCard
         label={t('主要矛盾', 'Core Focus')}
-        value={deepWork.toFixed(1)}
+        value={fmtHrs(deepWork)}
         unit="h"
         delta={deepWorkDelta}
         cold={cold}
@@ -107,7 +111,7 @@ export function OverviewCards({
       />
       <OvCard
         label={t('本期累计', 'Period Total')}
-        value={monthTotal.toFixed(1)}
+        value={fmtHrs(monthTotal)}
         unit="h"
         delta={monthTotalDelta}
         cold={cold}

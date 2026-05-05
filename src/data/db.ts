@@ -128,8 +128,11 @@ export class CailensDB extends Dexie {
     // v1→v3 upgrade 结束后 categories 表是空的（upgrade 内写入不可靠），
     // 在这里用普通 readwrite transaction 补种。
     this.on('ready', async () => {
-      const count = await this.categories.count()
-      if (count === 0) {
+      const catCount = await this.categories.count()
+      const setCount = await this.settings.count()
+      // Only re-seed when BOTH tables are empty (fresh DB or v1→v3 migration).
+      // If the user intentionally cleared categories while keeping settings, skip.
+      if (catCount === 0 && setCount === 0) {
         await this.categories.bulkPut([...DEFAULT_CATEGORIES])
       }
     })

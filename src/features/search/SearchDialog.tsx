@@ -13,6 +13,21 @@ function fmtHM(ts: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+function highlightMatch(text: string, query: string): React.ReactNode {
+  if (!query.trim()) return text
+  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  if (idx === -1) return text
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-event-accent-bg text-event-accent-text rounded-sm px-0.5">
+        {text.slice(idx, idx + query.length)}
+      </mark>
+      {text.slice(idx + query.length)}
+    </>
+  )
+}
+
 export function SearchDialog() {
   const navigate = useNavigate()
   const setSearchOpen = useUIStore((s) => s.setSearchOpen)
@@ -151,7 +166,7 @@ export function SearchDialog() {
                 />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-sans text-text-primary truncate">
-                    {event.title || t('(无标题)', '(Untitled)')}
+                    {highlightMatch(event.title || t('(无标题)', '(Untitled)'), query)}
                   </p>
                   <p className="text-xs font-mono text-text-secondary mt-0.5">
                     {formatMonthDay(new Date(event.startTime))}{' '}

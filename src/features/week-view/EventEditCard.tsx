@@ -147,8 +147,10 @@ export function EventEditCard({
   }
 
   const handleClose = () => {
-    if (title.trim() === '') {
+    if (isNewlyCreated && title.trim() === '') {
       onDelete()
+    } else if (title.trim() === '') {
+      // Editing an existing event with empty title — keep the original, just close
     } else {
       const err = getError(startStr, endStr, localDate)
       if (err) { setError(err); return }

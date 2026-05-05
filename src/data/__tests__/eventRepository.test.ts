@@ -25,10 +25,7 @@ function makeInput(overrides: Partial<CreateEventInput> = {}): CreateEventInput 
 }
 
 beforeEach(async () => {
-  // Use a unique DB name per test to guarantee isolation
-  db = new CailensDB()
-  // @ts-expect-error — accessing private for test setup
-  db.name = `cailens-test-${Math.random()}`
+  db = new CailensDB(`cailens-test-${Math.random()}`)
   repo = new EventRepository(db, fixedClock, fixedIdGen)
 })
 

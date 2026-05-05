@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 
 /** Minimum Y movement (px) before pending → resizing. */
-const RESIZE_THRESHOLD = 3
+const RESIZE_THRESHOLD = 8
 
 interface UseDragToResizeParams {
   edge:              'top' | 'bottom'

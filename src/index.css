@@ -143,6 +143,15 @@ body.resizing-event * {
   }
 }
 
+/* ── Page transition ────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+.animate-fadeIn {
+  animation: fadeIn 200ms ease-out;
+}
+
 /* ── Base ───────────────────────────────────────────────── */
 @layer base {
   button:focus-visible,

@@ -6,6 +6,10 @@ import { cn } from '@/lib/utils'
 import { addWeeks, formatISODate, formatMonthDay, getWeekStart, isSameDay } from '@/domain/time'
 import { addDays } from 'date-fns'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from '@/components/ui/alert-dialog'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useUIStore } from '@/stores/uiStore'
 
@@ -31,6 +35,7 @@ export function WeekToolbar({
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
   const [shiftOpen, setShiftOpen] = useState(false)
+  const [pendingShift, setPendingShift] = useState<-1 | 1 | null>(null)
 
   const weekEnd = addDays(weekStart, 6)
   const weekNum = getISOWeek(weekStart)
@@ -40,11 +45,17 @@ export function WeekToolbar({
 
   function handleShift(direction: -1 | 1) {
     setShiftOpen(false)
-    onShift(direction)
+    setPendingShift(direction)
+  }
+
+  function confirmShift() {
+    if (pendingShift === null) return
+    setPendingShift(null)
+    onShift(pendingShift)
   }
 
   return (
-    <div className="flex items-center justify-between px-3 md:px-7 py-[13px] border-b border-border-subtle flex-shrink-0 gap-1.5">
+    <div className="flex items-center justify-between px-3 md:px-7 py-[13px] border-b border-border-subtle flex-shrink-0 gap-1.5 max-[370px]:gap-0.5">
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileSidebarOpen(true)}
@@ -170,13 +181,30 @@ export function WeekToolbar({
         >
           D
         </button>
-        <button
-          disabled
-          className="font-sans text-xs font-normal rounded-md px-2.5 py-[5px] cursor-not-allowed text-text-tertiary opacity-40 border border-transparent"
-        >
-          Y
-        </button>
       </div>
+
+      {/* Bulk-shift confirmation dialog */}
+      <AlertDialog open={pendingShift !== null} onOpenChange={(open) => { if (!open) setPendingShift(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingShift === -1
+                ? t(`将 ${eventCount} 个事件移到上一周？`, `Move ${eventCount} events to the previous week?`)
+                : t(`将 ${eventCount} 个事件移到下一周？`, `Move ${eventCount} events to the next week?`)
+              }
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('此操作不可撤销。', 'This action cannot be undone.')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('取消', 'Cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmShift}>
+              {t('移动', 'Move')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

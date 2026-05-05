@@ -33,7 +33,7 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     // 1. Existing DB record missing the theme field (old schema migration)
     // 2. New user: repository returned DEFAULT_SETTINGS('light'), but the
     //    inline script already detected system dark and wrote localStorage
-    const dbHasTheme = !!(settings as unknown as Record<string, unknown>).theme
+    const dbHasTheme = settings.theme !== undefined
     const initialMismatch = storedTheme !== null && settings.theme !== storedTheme
 
     if (!dbHasTheme || initialMismatch) {
@@ -41,9 +41,10 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
       settings = await settingsRepository.update({ theme })
     }
 
-    localStorage.setItem(THEME_KEY, settings.theme)
-    applyTheme(settings.theme)
-    set({ settings, isLoaded: true })
+    const theme = settings.theme ?? 'light' as AppTheme
+    localStorage.setItem(THEME_KEY, theme)
+    applyTheme(theme)
+    set({ settings: { ...settings, theme }, isLoaded: true })
   },
 
   setLanguage: async (lang) => {
