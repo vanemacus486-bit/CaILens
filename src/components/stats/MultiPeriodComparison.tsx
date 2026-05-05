@@ -57,7 +57,7 @@ export function MultiPeriodComparison({
   return (
     <div className="h-full flex flex-col">
       {/* N selector */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-4 flex-shrink-0">
         <span className="text-xs text-text-tertiary font-sans">
           {language === 'zh' ? '对比期数' : 'Periods'}
         </span>
@@ -81,22 +81,24 @@ export function MultiPeriodComparison({
 
       {/* Side-by-side mini charts */}
       <div
-        className="grid gap-4 flex-1"
+        className="grid gap-4 flex-1 min-h-0"
         style={{ gridTemplateColumns: `repeat(${buckets.length}, 1fr)` }}
       >
         {buckets.map((bucket) => (
-          <div key={bucket.start.getTime()} className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-sans font-medium text-text-tertiary text-center tracking-caps">
+          <div key={bucket.start.getTime()} className="flex flex-col gap-1.5 h-full">
+            <span className="text-[10px] font-sans font-medium text-text-tertiary text-center tracking-caps flex-shrink-0">
               {formatPeriodLabel(bucket, periodType)}
             </span>
-            <CategoryBarChart
-              current={bucket}
-              categories={categories}
-              periodType={periodType}
-              language={language}
-              compact
-              globalMax={globalMax}
-            />
+            <div className="flex-1 min-h-0">
+              <CategoryBarChart
+                current={bucket}
+                categories={categories}
+                periodType={periodType}
+                language={language}
+                compact
+                globalMax={globalMax}
+              />
+            </div>
           </div>
         ))}
       </div>

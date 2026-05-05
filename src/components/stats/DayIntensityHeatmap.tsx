@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
+import { useMemo, useState, useRef, useCallback } from 'react'
 import { startOfDay, addDays, differenceInDays } from 'date-fns'
 import type { CalendarEvent } from '@/domain/event'
 import type { Bucket } from '@/hooks/useStatsAggregation'
@@ -110,7 +110,6 @@ export function DayIntensityHeatmap({
     cell: CellData
   } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [containerWidth, setContainerWidth] = useState<number>(Infinity)
 
   const grid = useMemo(
     () => computeIntensityGrid(rangeEvents, current),
@@ -119,20 +118,6 @@ export function DayIntensityHeatmap({
 
   const thresholds = useMemo(() => computeThresholds(grid), [grid])
 
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width)
-      }
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  const cellSize = containerWidth < 700 ? 16 : 22
-  const labelFontSize = containerWidth < 700 ? 9 : 10
   const dayLabels = language === 'zh' ? DAY_LABELS_ZH : DAY_LABELS
   const numWeeks = grid[0]?.length ?? 0
 
@@ -154,7 +139,7 @@ export function DayIntensityHeatmap({
 
   if (numWeeks === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[200px] text-text-tertiary text-sm font-sans">
+      <div className="h-full flex items-center justify-center text-text-tertiary text-sm font-sans">
         {language === 'zh' ? '暂无数据' : 'No data yet'}
       </div>
     )
@@ -163,7 +148,6 @@ export function DayIntensityHeatmap({
   const formatPct = (v: number) => (v * 100).toFixed(1)
   const wlInterval = weekLabelInterval(numWeeks)
 
-  // Build flat grid items (matching HourHeatmap pattern)
   const gridItems: React.ReactNode[] = []
 
   // Week number labels (top row)
@@ -176,8 +160,8 @@ export function DayIntensityHeatmap({
           style={{
             gridColumn: w + 2,
             gridRow: 1,
-            fontSize: labelFontSize,
-            lineHeight: `${labelFontSize + 4}px`,
+            fontSize: 10,
+            lineHeight: '14px',
           }}
         >
           {w + 1}
@@ -197,9 +181,9 @@ export function DayIntensityHeatmap({
         style={{
           gridColumn: 1,
           gridRow: dow + 2,
-          fontSize: labelFontSize,
+          fontSize: 10,
           paddingRight: '4px',
-          lineHeight: `${cellSize}px`,
+          lineHeight: 1,
         }}
       >
         {dayLabels[dow]}
@@ -218,8 +202,6 @@ export function DayIntensityHeatmap({
           style={{
             gridColumn: col + 2,
             gridRow: dow + 2,
-            width: cellSize,
-            height: cellSize,
             backgroundColor: hasData
               ? 'var(--event-accent-fill)'
               : cell.inRange
@@ -238,43 +220,15 @@ export function DayIntensityHeatmap({
     }
   }
 
-  // Legend row
-  gridItems.push(
-    <div
-      key="legend"
-      className="flex items-center gap-1.5 text-[10px] font-sans text-text-tertiary select-none"
-      style={{
-        gridColumn: '1 / -1',
-        gridRow: 9,
-        marginTop: '6px',
-      }}
-    >
-      <span>{language === 'zh' ? '低' : 'Low'}</span>
-      {OPACITY_LEVELS.map((opacity, i) => (
-        <div
-          key={`leg-${i}`}
-          className="w-3 h-3 rounded-[2px] flex-shrink-0"
-          style={{ backgroundColor: 'var(--event-accent-fill)', opacity }}
-        />
-      ))}
-      <span>{language === 'zh' ? '高' : 'High'}</span>
-      <span className="ml-2 text-text-tertiary/60">
-        {language === 'zh'
-          ? '主要矛盾时间 ÷ 24h'
-          : 'Core Focus time ÷ 24h'}
-      </span>
-    </div>,
-  )
-
   return (
-    <div ref={containerRef} className="h-full relative overflow-x-auto">
+    <div ref={containerRef} className="h-full flex flex-col">
       <div
+        className="flex-1 min-h-0 w-full overflow-x-auto"
         style={{
           display: 'grid',
-          gridTemplateColumns: `40px repeat(${numWeeks}, ${cellSize}px)`,
-          gridTemplateRows: `${labelFontSize + 4}px repeat(7, ${cellSize}px) auto`,
+          gridTemplateColumns: `40px repeat(${numWeeks}, 1fr)`,
+          gridTemplateRows: `auto repeat(7, 1fr)`,
           gap: '2px',
-          alignItems: 'center',
         }}
       >
         {gridItems}
@@ -301,6 +255,24 @@ export function DayIntensityHeatmap({
           </div>
         </div>
       )}
+
+      {/* Legend */}
+      <div className="flex items-center gap-1.5 mt-2 text-[10px] font-sans text-text-tertiary select-none flex-shrink-0 justify-end">
+        <span>{language === 'zh' ? '低' : 'Low'}</span>
+        {OPACITY_LEVELS.map((opacity, i) => (
+          <div
+            key={`leg-${i}`}
+            className="w-3 h-3 rounded-[2px] flex-shrink-0"
+            style={{ backgroundColor: 'var(--event-accent-fill)', opacity }}
+          />
+        ))}
+        <span>{language === 'zh' ? '高' : 'High'}</span>
+        <span className="ml-2 text-text-tertiary/60">
+          {language === 'zh'
+            ? '主要矛盾时间 ÷ 24h'
+            : 'Core Focus time ÷ 24h'}
+        </span>
+      </div>
     </div>
   )
 }
