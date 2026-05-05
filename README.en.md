@@ -12,7 +12,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **Status:** v3.3 — Stats page redesigned with a 4-chart view switcher (no more infinite scroll). Design token system with rust / ocean / forest / plum accent themes.
+> **Status:** v3.3 — Stats page stable: 4 viewport-filling charts behind a segmented control; accent themes shift surfaces, borders, and brand colour as a cohesive whole; heatmap auto-scales via grid fractions.
 
 ## Downloads
 
@@ -92,38 +92,36 @@ Users can rename categories in both Chinese and English. Each category has a con
 - **3-section layout** — Interface (language), Categories (names + budgets + keywords), Data (export).
 - **Language toggle** — Chinese / English, using a segmented control.
 - **Theme toggle** — Light / Dark, using a segmented control, with automatic system preference detection on first visit.
+- **Accent colour** — rust / ocean / forest / plum. Switching shifts surfaces, borders, and brand colour as a cohesive whole — not just a button tint.
 - **Per-category budget** — number input for weekly hour targets.
 - **Collapsible keywords** — show preview with count badge; expand to full keyword folder editor.
 - **Data export** — one-click CSV and JSON download.
 
 ### Statistics Dashboard
 
-Click the chart icon in the sidebar. A **segmented control at the top** switches between four views — one at a time:
+Click the chart icon in the sidebar. A **segmented control at the top** switches between four views — one at a time, each filling the available viewport height:
 
 **Category Bar Chart** (default)
-- Horizontal bars, Y-axis = 6 categories, X-axis = hours.
-- Bar width = period budget (neutral `bg-surface-sunken` track), filled portion = actual hours (category colour).
-- Overflow beyond budget extends rightward in warning colour — instantly visible which categories exceeded budget.
+- 6 thick bars distributed evenly across the full height, each = budget track (neutral) + actual fill (category colour).
+- Overflow extends rightward in warning colour.
 - Right-side labels show `actual/budget` in hours.
 
 **Multi-Period Comparison**
-- 2/3/6/12 mini bar charts side-by-side, each mirroring the single-period chart structure.
-- Shared global scale for horizontal scanning across periods.
+- 2/3/6/12 side-by-side mini charts with a shared global scale, filling the full height.
 - Period count selectable via a small segmented control.
 
 **Trend Chart**
-- Multi-line chart (Recharts) with category chip toggles for selecting which to track.
-- Defaults to "Core Focus" only. Selection persisted to localStorage.
-- Horizontal dashed reference line at the budget value — see exactly how far you are from target.
+- Multi-line Recharts chart with category chip toggles, selection persisted to localStorage.
+- Horizontal dashed budget reference line.
+- Chart height adapts to the viewport.
 
 **Day Intensity Heatmap**
-- 7 rows (Mon–Sun) × N columns (days in period) grid.
-- Cell colour intensity = "Core Focus" hours ÷ 24 — measures daily intensity, not just whether you recorded anything.
-- Hover tooltip shows exact hours and percentage.
-- Gradient legend at bottom from low to high.
+- 7 rows (Mon–Sun) × N columns grid, rows and columns distributed evenly via CSS grid fractions.
+- Cell colour intensity = "Core Focus" hours ÷ 24. Hover tooltip shows exact value.
+- Gradient legend below the grid; wide tables scroll horizontally.
 
 **Period selector:** Week / Month / Quarter / Year / All-time — shared across all 4 views.  
-**Data maturity:** Cold / Warming / Mature thresholds still gate analytics, with placeholder prompts when data is insufficient.
+**Data maturity:** Cold / Warming / Mature thresholds still gate analytics.
 
 ### ICS Import
 
