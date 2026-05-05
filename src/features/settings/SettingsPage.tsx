@@ -77,7 +77,7 @@ export function SettingsPage() {
         </h1>
       </div>
 
-      <div className="flex-1 w-full max-w-2xl mx-auto px-4 md:px-8 py-8 flex flex-col gap-8 overflow-y-auto">
+      <div className="flex-1 w-full max-w-2xl mx-auto px-4 md:px-8 py-6 flex flex-col gap-6 overflow-y-auto">
         {/* ── Section 1: Language ────────────────────────── */}
         <section>
           <h2 className="font-serif text-sm font-semibold text-text-primary mb-3">
@@ -193,7 +193,7 @@ export function SettingsPage() {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
                         }}
-                        className="w-12 px-2 py-0.5 text-xs font-mono text-text-primary bg-surface-base border border-border-subtle rounded-md text-center focus:outline-none focus:border-border-default"
+                        className="w-12 px-2 py-0.5 text-xs font-mono text-text-primary bg-surface-base border border-border-subtle rounded-md text-center focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                       />
                       <span className="text-body-xs text-text-tertiary select-none">h</span>
                     </div>

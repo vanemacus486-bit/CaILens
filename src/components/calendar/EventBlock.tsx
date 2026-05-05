@@ -112,7 +112,7 @@ export const EventBlock = React.memo(function EventBlock({
             }
           }}
           className={cn(
-            'relative px-2 py-[5px] overflow-hidden select-none',
+            'relative px-2 py-1 overflow-hidden select-none',
             'border-t-2 border border-border-subtle transition-colors duration-200 z-10',
             roundedClass, bg, text,
             isDragging
@@ -149,8 +149,8 @@ export const EventBlock = React.memo(function EventBlock({
           {/* Continue-from-above indicator */}
           {startsBeforeDay && (
             <div className="flex items-center gap-0.5 mb-0.5 opacity-60">
-              <span className="text-2xs leading-none text-current">▲</span>
-              <span className="text-2xs leading-none text-current opacity-70">{fmtHM(event.startTime).split(':')[0]}h</span>
+              <span className="text-xs-alt leading-none text-current">▲</span>
+              <span className="text-xs-alt leading-none text-current opacity-70">{fmtHM(event.startTime).split(':')[0]}h</span>
             </div>
           )}
 
@@ -172,8 +172,8 @@ export const EventBlock = React.memo(function EventBlock({
           {/* Continue-to-below indicator */}
           {endsAfterDay && (
             <div className="flex items-center gap-0.5 mt-0.5 opacity-60">
-              <span className="text-2xs leading-none text-current">▼</span>
-              <span className="text-2xs leading-none text-current opacity-70">{fmtHM(event.endTime).split(':')[0]}h</span>
+              <span className="text-xs-alt leading-none text-current">▼</span>
+              <span className="text-xs-alt leading-none text-current opacity-70">{fmtHM(event.endTime).split(':')[0]}h</span>
             </div>
           )}
 

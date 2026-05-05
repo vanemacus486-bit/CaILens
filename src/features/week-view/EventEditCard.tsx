@@ -237,8 +237,8 @@ export function EventEditCard({
           className={cn(
             'w-full font-sans text-sm text-text-primary',
             'bg-surface-sunken border border-border-subtle rounded-md',
-            'px-3 py-2.5 resize-none h-[72px] outline-none',
-            'focus:border-border-default transition-colors duration-150',
+            'px-3 py-2.5 resize-none h-[72px]',
+            'focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
             'placeholder:text-text-tertiary',
           )}
         />
@@ -252,7 +252,7 @@ export function EventEditCard({
             className={cn(
               'flex-1 font-mono text-xs text-text-primary',
               'bg-surface-sunken border border-border-subtle rounded-md',
-              'px-2.5 py-2 outline-none focus:border-border-default transition-colors duration-150',
+              'px-2.5 py-2 focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
             )}
           />
           <input
@@ -262,7 +262,7 @@ export function EventEditCard({
             className={cn(
               'flex-1 font-mono text-xs text-text-primary',
               'bg-surface-sunken border border-border-subtle rounded-md',
-              'px-2.5 py-2 outline-none focus:border-border-default transition-colors duration-150',
+              'px-2.5 py-2 focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
             )}
           />
         </div>
@@ -283,7 +283,7 @@ export function EventEditCard({
                     key={cat.id}
                     onClick={() => handleCategory(cat.id)}
                     className={cn(
-                      'flex items-center gap-1.5 font-sans text-xs rounded-md px-2.5 py-[5px] cursor-pointer transition-colors duration-200',
+                      'flex items-center gap-1.5 font-sans text-xs rounded-md px-2.5 py-1 cursor-pointer transition-colors duration-200',
                       isSelected
                         ? 'ring-1 ring-inset'
                         : 'border border-border-subtle hover:bg-surface-sunken',
@@ -319,8 +319,8 @@ export function EventEditCard({
             className={cn(
               'w-full font-sans text-body-sm text-text-primary',
               'bg-surface-sunken border border-border-subtle rounded-md',
-              'px-3 py-2 outline-none',
-              'focus:border-border-default transition-colors duration-150',
+              'px-3 py-2',
+              'focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
               'placeholder:text-text-tertiary',
             )}
           />

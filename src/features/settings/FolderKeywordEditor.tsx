@@ -181,7 +181,7 @@ function FolderSection({
               if (e.key === 'Enter') { e.preventDefault(); commitName() }
               if (e.key === 'Escape') { setEditing(false); setNameValue(folder.name) }
             }}
-            className="flex-1 px-1 py-0 text-xs font-sans bg-transparent border-b border-border-default text-text-primary outline-none"
+            className="flex-1 px-1 py-0 text-xs font-sans bg-transparent border-b border-border-default text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
         ) : (
           <button
@@ -246,7 +246,7 @@ function FolderSection({
               if (e.key === 'Escape') { setAdding(false); setKwValue('') }
             }}
             placeholder="..."
-            className="w-24 px-2 py-0.5 text-xs font-sans rounded-md bg-transparent border border-border-default text-text-primary placeholder:text-text-tertiary outline-none"
+            className="w-24 px-2 py-0.5 text-xs font-sans rounded-md bg-transparent border border-border-default text-text-primary placeholder:text-text-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
         ) : (
           <button

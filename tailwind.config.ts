@@ -61,7 +61,6 @@ export default {
         'dialog':  'var(--shadow-dialog)',
       },
       fontSize: {
-        '2xs':      'var(--text-2xs)',
         'xs-alt':   'var(--text-xs-alt)',
         'body-xs':  'var(--text-body-xs)',
         'body-sm':  'var(--text-body-sm)',

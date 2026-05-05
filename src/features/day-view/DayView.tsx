@@ -62,9 +62,9 @@ export function DayView() {
   const weekNum = getISOWeek(dayStart)
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+    <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">
       {/* Header */}
-      <div className="px-4 md:px-12 py-6 border-b border-border-subtle flex justify-between items-end flex-shrink-0">
+      <header className="px-4 md:px-12 py-6 border-b border-border-subtle flex justify-between items-end flex-shrink-0">
         <div className="flex items-start gap-4">
           <button
             onClick={() => navigate('/')}
@@ -85,18 +85,18 @@ export function DayView() {
         <div className="flex gap-2 items-center">
           <button
             onClick={() => setDayStart(getPrevDay(dayStart))}
-            className="font-sans text-xs text-text-secondary bg-transparent border border-border-subtle rounded-md px-3 py-[5px] cursor-pointer hover:bg-surface-sunken transition-colors duration-200"
+            className="font-sans text-xs text-text-secondary bg-transparent border border-border-subtle rounded-md px-3 py-1 cursor-pointer hover:bg-surface-sunken transition-colors duration-200"
           >
             ‹ {fmtWday(getPrevDay(dayStart), 'short')}
           </button>
           <button
             onClick={() => setDayStart(getNextDay(dayStart))}
-            className="font-sans text-xs text-text-secondary bg-transparent border border-border-subtle rounded-md px-3 py-[5px] cursor-pointer hover:bg-surface-sunken transition-colors duration-200"
+            className="font-sans text-xs text-text-secondary bg-transparent border border-border-subtle rounded-md px-3 py-1 cursor-pointer hover:bg-surface-sunken transition-colors duration-200"
           >
             {fmtWday(getNextDay(dayStart), 'short')} ›
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Diary entries */}
       {isLoading ? (
@@ -128,9 +128,9 @@ export function DayView() {
             const displayStart = startsBeforeDay ? dayStartMs : event.startTime
 
             return (
-              <div key={event.id}>
+              <article key={event.id}>
                 {showDivider && (
-                  <div className="h-px bg-border-subtle my-1 ml-12" />
+                  <div className="h-px bg-border-subtle my-1 ml-[72px]" />
                 )}
                 <DiaryEntry
                   event={event}
@@ -139,7 +139,7 @@ export function DayView() {
                   endsAfterDay={endsAfterDay}
                   displayStart={displayStart}
                 />
-              </div>
+              </article>
             )
           })}
         </div>
@@ -150,7 +150,7 @@ export function DayView() {
           </p>
         </div>
       )}
-    </div>
+    </main>
   )
 }
 
@@ -172,7 +172,7 @@ function DiaryEntry({
       <div className="w-12 flex-shrink-0 pt-0.5">
         <span className={cn('font-mono text-body-xs', isCrossDay ? 'text-text-secondary' : 'text-text-tertiary')}>{timeLabel}</span>
         {startsBeforeDay && (
-          <div className="font-mono text-[9px] text-text-tertiary opacity-60 mt-0.5">
+          <div className="font-mono text-xs-alt text-text-tertiary opacity-60 mt-0.5">
             ▲ {fmtTimeHM(event.startTime).split(':')[0]}h
           </div>
         )}
@@ -204,7 +204,7 @@ function DiaryEntry({
           </div>
         )}
         {endsAfterDay && (
-          <div className="font-mono text-[9px] text-text-tertiary opacity-60 mt-1">
+          <div className="font-mono text-xs-alt text-text-tertiary opacity-60 mt-1">
             ▼ {fmtTimeHM(event.endTime).split(':')[0]}h
           </div>
         )}

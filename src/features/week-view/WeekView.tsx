@@ -264,6 +264,7 @@ export function WeekView() {
   return (
     <>
       <div className="flex-1 flex flex-col min-w-0">
+        <header>
         <WeekToolbar
           weekStart={weekStart}
           eventCount={events.length}
@@ -273,6 +274,7 @@ export function WeekView() {
           onShift={handleShift}
         />
         <WeekDateHeader days={days} />
+        </header>
 
         {/* Calendar grid */}
         <div className="relative flex-1 min-h-0 max-md:overflow-x-auto">

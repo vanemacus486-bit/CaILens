@@ -62,7 +62,7 @@ function CategoryRow({ id, name, onCommit }: CategoryRowProps) {
           'bg-transparent border border-transparent',
           'text-text-primary',
           'hover:border-border-subtle focus:border-border-default',
-          'focus:outline-none transition-colors duration-200',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-200',
         )}
       />
     </div>

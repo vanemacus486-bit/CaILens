@@ -106,9 +106,12 @@ export function SearchDialog() {
   }, [close, navigate])
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-center" style={{ pointerEvents: 'none' }}>
+    <div className="fixed inset-0 z-50 flex justify-center bg-black/20 dark:bg-black/40" style={{ pointerEvents: 'none' }}>
       <div
         ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('搜索事件', 'Search events')}
         className={cn(
           'absolute top-[25%] w-[calc(100vw-2rem)] max-w-[420px]',
           'rounded-2xl border border-border-subtle bg-surface-raised shadow-lg',
@@ -121,13 +124,14 @@ export function SearchDialog() {
           <Search size={16} strokeWidth={1.75} className="text-text-tertiary flex-shrink-0" />
           <input
             ref={inputRef}
-            type="text"
+            type="search"
             value={query}
             onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            aria-label={t('搜索事件', 'Search events')}
             placeholder={t('搜索事件...', 'Search events...')}
             className={cn(
-              'flex-1 bg-transparent border-none outline-none',
+              'flex-1 bg-transparent border-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm',
               'text-sm font-sans text-text-primary placeholder:text-text-tertiary',
             )}
           />
@@ -150,10 +154,11 @@ export function SearchDialog() {
 
         {/* Results */}
         {results.length > 0 && (
-          <div className="max-h-80 overflow-y-auto">
+          <div role="listbox" aria-label={t('搜索结果', 'Search results')} className="max-h-80 overflow-y-auto">
             {results.map((event) => (
               <button
                 key={event.id}
+                role="option"
                 onClick={() => handleResultClick(event)}
                 className={cn(
                   'w-full flex items-start gap-2.5 px-3.5 py-2.5 text-left',

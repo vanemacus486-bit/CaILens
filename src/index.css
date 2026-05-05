@@ -65,7 +65,6 @@
 
   --transition-default: 200ms ease-out;
 
-  --text-2xs:          8px;
   --text-xs-alt:       10px;
   --text-body-xs:      11px;
   --text-body-sm:      13px;
@@ -78,10 +77,10 @@
 /* ── Dark mode ──────────────────────────────────────────── */
 .dark {
   --surface-base:    #2a2824;
-  --surface-raised:  #33312c;
-  --surface-sunken:  #22201c;
+  --surface-raised:  #383430;
+  --surface-sunken:  #1f1d1a;
 
-  --border-subtle:   #3d3a35;
+  --border-subtle:   #44403b;
   --border-default:  #54514b;
 
   --text-primary:    #f0ede6;
@@ -90,39 +89,39 @@
 
   --accent:          #c96442;
   --accent-hover:    #d97a5a;
-  --accent-light:    #3a2820;
+  --accent-light:    #452e24;
 
   --time-line:       #d97a5a;
 
-  --event-accent-bg:   #3f2a1e;
-  --event-accent-text: #f0c0a0;
-  --event-accent-fill: #d08060;
-  --event-sage-bg:     #1f3324;
-  --event-sage-text:   #8ec49a;
-  --event-sage-fill:   #6aaa78;
-  --event-sand-bg:     #3b3220;
-  --event-sand-text:   #d4b882;
-  --event-sand-fill:   #c4a060;
-  --event-sky-bg:      #2d2a24;
-  --event-sky-text:    #b0a898;
-  --event-sky-fill:    #908878;
-  --event-rose-bg:     #3b2024;
-  --event-rose-text:   #e8a0a8;
-  --event-rose-fill:   #d07882;
-  --event-stone-bg:    #302e2a;
-  --event-stone-text:  #b0ada8;
-  --event-stone-fill:  #8a8882;
+  --event-accent-bg:   #3e2f25;
+  --event-accent-text: #d0a888;
+  --event-accent-fill: #b88868;
+  --event-sage-bg:     #263026;
+  --event-sage-text:   #8aaa94;
+  --event-sage-fill:   #6e9476;
+  --event-sand-bg:     #3e362a;
+  --event-sand-text:   #bea878;
+  --event-sand-fill:   #a89060;
+  --event-sky-bg:      #35312a;
+  --event-sky-text:    #a49e94;
+  --event-sky-fill:    #8a827a;
+  --event-rose-bg:     #3b282c;
+  --event-rose-text:   #c8949a;
+  --event-rose-fill:   #a87880;
+  --event-stone-bg:    #37342f;
+  --event-stone-text:  #a6a39c;
+  --event-stone-fill:  #86837c;
 
-  --color-text-success:  #5CB878;
-  --color-text-danger:   #E06060;
+  --color-text-success:  #5eaa74;
+  --color-text-danger:   #d06464;
   --color-bg-info:       #2A3040;
   --color-text-info:     #90B8D8;
 
-  --color-text-positive: #88AA50;
+  --color-text-positive: #82a050;
   --color-bg-positive:   #1E2E18;
   --color-text-negative: #B09070;
   --color-bg-negative:   #2E2820;
-  --color-text-warning:  #D4A848;
+  --color-text-warning:  #c4a048;
   --color-bg-warning:    #3A3020;
 
   --shadow-pill:       0 1px 3px rgba(0,0,0,0.15);

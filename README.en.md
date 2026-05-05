@@ -12,7 +12,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **Status:** v3.3 — Stats page stable: 4 viewport-filling charts behind a segmented control; accent themes shift surfaces, borders, and brand colour as a cohesive whole; heatmap auto-scales via grid fractions.
+> **Status:** v3.4 — Accessibility & visual polish: semantic HTML (main/header/nav/article), ARIA attributes, focus-visible rings; dark-mode surface & event colour rebalance; SearchDialog backdrop + type="search"; hardcoded pixel values consolidated into design tokens.
 
 ## Downloads
 

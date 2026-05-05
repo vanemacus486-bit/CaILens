@@ -145,7 +145,7 @@ export function Sidebar() {
       {/* Mobile backdrop */}
       {mobileSidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/20 md:hidden"
+          className="fixed inset-0 z-30 bg-black/20 dark:bg-black/40 md:hidden"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
@@ -163,7 +163,7 @@ export function Sidebar() {
         onMouseLeave={handleMouseLeave}
       >
       {/* Navigation group */}
-      <div className="flex flex-col gap-1 w-full">
+      <nav aria-label="Main navigation" className="flex flex-col gap-1 w-full">
         <NavButton
           icon={CalendarCheck}
           tooltip={todayTooltip}
@@ -188,7 +188,7 @@ export function Sidebar() {
           onClick={goNext}
         />
         <Divider />
-      </div>
+      </nav>
 
       {/* Tools group */}
       <div className="flex flex-col gap-1 w-full">

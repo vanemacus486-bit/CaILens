@@ -12,7 +12,7 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **状态：** v3.3 统计页重构稳定。4 张图表撑满视口、视图切换器一键切换；主题色切换时背景/边框/品牌色整体联动；热力图按网格均分自适应。
+> **状态：** v3.4 无障碍与视觉打磨。语义化 HTML（main/header/nav/article）、ARIA 属性、focus-visible 焦点环；深色模式表面与事件色值重调；SearchDialog 遮罩与 type="search"；硬编码像素值收敛为设计 token。
 
 ## 下载
 

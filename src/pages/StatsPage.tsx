@@ -132,7 +132,7 @@ export function StatsPage() {
   return (
     <div className="h-full flex flex-col bg-surface-base text-text-primary overflow-hidden">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-50 flex items-center gap-3 h-[52px] px-4 md:px-12 border-b border-border-subtle bg-surface-base/96 backdrop-blur-[8px] flex-shrink-0">
+      <header className="sticky top-0 z-50 flex items-center gap-3 h-[52px] px-4 md:px-12 border-b border-border-subtle bg-surface-base/96 backdrop-blur-[8px] flex-shrink-0">
         <Link
           to="/"
           className="inline-flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-200 flex-shrink-0"
@@ -217,10 +217,10 @@ export function StatsPage() {
             {t('全部时间', 'All time')}
           </span>
         )}
-      </div>
+      </header>
 
       {/* Chart content area */}
-      <div className="flex-1 overflow-y-auto flex flex-col">
+      <section aria-label="Stats charts" className="flex-1 overflow-y-auto flex flex-col">
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[400px] flex-1">
             <Loader2 className="h-8 w-8 animate-spin text-text-tertiary" />
@@ -274,7 +274,7 @@ export function StatsPage() {
             </div>
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }

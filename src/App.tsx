@@ -26,11 +26,11 @@ function Layout() {
   return (
     <div className="h-screen flex bg-surface-base text-text-primary overflow-hidden">
       <Sidebar />
-      <div className="flex-1 h-full overflow-hidden flex flex-col">
+      <main className="flex-1 h-full overflow-hidden flex flex-col">
         <ErrorBoundary>
           <Outlet />
         </ErrorBoundary>
-      </div>
+      </main>
       {searchOpen && <SearchDialog />}
     </div>
   )

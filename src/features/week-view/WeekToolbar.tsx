@@ -55,7 +55,7 @@ export function WeekToolbar({
   }
 
   return (
-    <div className="flex items-center justify-between px-3 md:px-7 py-[13px] border-b border-border-subtle flex-shrink-0 gap-1.5 max-[370px]:gap-0.5">
+    <div className="flex items-center justify-between px-3 md:px-7 py-3 border-b border-border-subtle flex-shrink-0 gap-2">
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileSidebarOpen(true)}
@@ -76,7 +76,7 @@ export function WeekToolbar({
       </div>
 
       {/* Center: Navigation */}
-      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={onPrev}
           aria-label="Previous week"
@@ -169,7 +169,7 @@ export function WeekToolbar({
         <button
           onClick={() => navigate('/')}
           className={cn(
-            'font-sans text-xs font-medium rounded-md px-2.5 py-[5px] transition-colors duration-200 cursor-pointer',
+            'font-sans text-xs font-medium rounded-md px-2.5 py-1 transition-colors duration-200 cursor-pointer',
             'bg-accent-light border border-accent/30 text-accent',
           )}
         >
@@ -177,7 +177,7 @@ export function WeekToolbar({
         </button>
         <button
           onClick={() => navigate(`/day?date=${formatISODate(new Date())}`)}
-          className="font-sans text-xs font-normal rounded-md px-2.5 py-[5px] transition-colors duration-200 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-surface-sunken border border-transparent"
+          className="font-sans text-xs font-normal rounded-md px-2.5 py-1 transition-colors duration-200 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-surface-sunken border border-transparent"
         >
           D
         </button>

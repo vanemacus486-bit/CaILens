@@ -49,7 +49,7 @@ export function CategoryNameEditor({ id, name, onCommit }: CategoryNameEditorPro
         'bg-transparent border border-transparent',
         'text-text-primary',
         'hover:border-border-subtle focus:border-border-default',
-        'focus:outline-none transition-colors duration-150',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
       )}
     />
   )
