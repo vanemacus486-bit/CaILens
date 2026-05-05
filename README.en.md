@@ -12,7 +12,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **Status:** v3.1 stabilisation complete. Statistics dashboard with data maturity system, budget-aware weekly review, annual projection, estimate-vs-actual calibration, and recording quality metrics — all built. Responsive mobile layout now implemented in the web UI. Cross-day event support added. Recent work includes bug fixes, error boundary, loading states, keyboard accessibility, and code quality improvements.
+> **Status:** v3.3 — Stats page redesigned with a 4-chart view switcher (no more infinite scroll). Design token system with rust / ocean / forest / plum accent themes.
 
 ## Downloads
 
@@ -98,32 +98,32 @@ Users can rename categories in both Chinese and English. Each category has a con
 
 ### Statistics Dashboard
 
-A full analytics page (click the chart icon in the sidebar), powered by **Recharts**:
+Click the chart icon in the sidebar. A **segmented control at the top** switches between four views — one at a time:
 
-**Overview**
-- 4 metric cards — Net Effective Time, Core Focus, Tracking Streak, Period Total. Each with delta vs the selected comparison.
-- **Time Account card** — three-segment bar: recorded / sleep (8h/day default) / unrecorded hours.
-- **Annualised context** — Core Focus card shows projected yearly hours and percentage of Lyubishchev's 1966 benchmark (~2200h).
+**Category Bar Chart** (default)
+- Horizontal bars, Y-axis = 6 categories, X-axis = hours.
+- Bar width = period budget (neutral `bg-surface-sunken` track), filled portion = actual hours (category colour).
+- Overflow beyond budget extends rightward in warning colour — instantly visible which categories exceeded budget.
+- Right-side labels show `actual/budget` in hours.
 
-**Analysis Modules**
-- **Time Allocation** — interactive donut chart (category distribution) + stacked bar chart (daily breakdown).
-- **Lyubishchev Analysis** — Type I (creative core) vs Type II (auxiliary) split with percentage bars, cumulative category hours, and **annual projection card** extrapolating the current pace to a full year.
-- **Rhythm & Schedule** — 24-hour stacked area chart, weekly rhythm table with dominant activity chips, and a 7×24 hour heatmap with **density / blank distribution toggle**.
-- **Trends & Comparison** — 30-day rolling trend line with category tabs + week-over-week sparkline cards. Extreme values greyed out during warming phase.
-- **Time Budget** — budget vs actual bars with diagonal stripe pattern for overruns, AlertTriangle icon, and danger-coloured over-budget labels.
-- **Week in Review** — algorithmically generated reflective narrative. Mentions severe budget overruns, zero-record categories, Type I/II ratio tensions, and biggest gainers. Cold-start safe: single sentence during early weeks.
-- **Estimate vs. Actual** — Monday prompt to predict your week's hours per category. End-of-week comparison table with deviations. Highlights ±30% gaps. Foundation for **systematic bias detection** across multiple weeks.
-- **Notable Moments** — auto-detected highlights: longest session (excluding sleep), current streak, top category.
-- **Recording Quality** — meta-metrics about the recording habit: event count, average granularity, real-time logging ratio, waking-hour coverage.
+**Multi-Period Comparison**
+- 2/3/6/12 mini bar charts side-by-side, each mirroring the single-period chart structure.
+- Shared global scale for horizontal scanning across periods.
+- Period count selectable via a small segmented control.
 
-**Data Maturity System**
-- Every module adapts to how much data you have:
-  - **Cold** (< 3 days) — hides deltas, trend charts, and weekly rhythm. Shows progress-ring placeholders.
-  - **Warming** (3–13 days) — shows data but marks extreme percentages, waters trend charts, filters to real days only.
-  - **Mature** (≥ 14 days) — full analytics unlocked.
+**Trend Chart**
+- Multi-line chart (Recharts) with category chip toggles for selecting which to track.
+- Defaults to "Core Focus" only. Selection persisted to localStorage.
+- Horizontal dashed reference line at the budget value — see exactly how far you are from target.
 
-**Period selector:** Week / Month / Quarter / Year / All-time.  
-**Compare modes:** vs last period / vs same period last year / vs average. Labels include the actual date ranges.
+**Day Intensity Heatmap**
+- 7 rows (Mon–Sun) × N columns (days in period) grid.
+- Cell colour intensity = "Core Focus" hours ÷ 24 — measures daily intensity, not just whether you recorded anything.
+- Hover tooltip shows exact hours and percentage.
+- Gradient legend at bottom from low to high.
+
+**Period selector:** Week / Month / Quarter / Year / All-time — shared across all 4 views.  
+**Data maturity:** Cold / Warming / Mature thresholds still gate analytics, with placeholder prompts when data is insufficient.
 
 ### ICS Import
 
