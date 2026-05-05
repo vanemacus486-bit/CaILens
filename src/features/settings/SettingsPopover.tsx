@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { fireAndForget } from '@/lib/fireAndForget'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { CATEGORY_NAME_MAX_LENGTH } from '@/domain/category'
@@ -61,7 +62,7 @@ function CategoryRow({ id, name, onCommit }: CategoryRowProps) {
           'bg-transparent border border-transparent',
           'text-text-primary',
           'hover:border-border-subtle focus:border-border-default',
-          'focus:outline-none transition-colors duration-150',
+          'focus:outline-none transition-colors duration-200',
         )}
       />
     </div>
@@ -89,7 +90,7 @@ export function SettingsPopover({ trigger }: SettingsPopoverProps) {
     const updated = language === 'zh'
       ? { zh: newName, en: cat.name.en }
       : { zh: cat.name.zh, en: newName }
-    void updateName(id, updated)
+    fireAndForget(updateName(id, updated), 'update category name')
   }
 
   return (
@@ -112,9 +113,9 @@ export function SettingsPopover({ trigger }: SettingsPopoverProps) {
               {(['zh', 'en'] as const).map((lang) => (
                 <button
                   key={lang}
-                  onClick={() => void setLanguage(lang)}
+                  onClick={() => fireAndForget(setLanguage(lang), 'set language')}
                   className={cn(
-                    'flex-1 py-1.5 text-sm font-sans rounded-lg transition-colors duration-150',
+                    'flex-1 py-1.5 text-sm font-sans rounded-lg transition-colors duration-200',
                     language === lang
                       ? 'bg-surface-raised text-text-primary'
                       : 'text-text-secondary hover:bg-surface-raised',

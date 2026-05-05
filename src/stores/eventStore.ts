@@ -11,6 +11,8 @@ import { getDayStart, shiftEventsByWeeks } from '@/domain/time'
 interface EventState {
   events: CalendarEvent[]
   rangeEvents: CalendarEvent[]
+  isLoading: boolean
+  loadError: string | null
   loadWeek: (weekStart: Date) => Promise<void>
   loadRange: (start: number, end: number) => Promise<void>
   createEvent: (input: CreateEventInput) => Promise<CalendarEvent>
@@ -25,17 +27,31 @@ interface EventState {
 export const useEventStore = create<EventState>()((set, get) => ({
   events: [],
   rangeEvents: [],
+  isLoading: true,
+  loadError: null,
 
   loadWeek: async (weekStart) => {
-    const start = getDayStart(weekStart)
-    const end   = getDayStart(addDays(weekStart, 7))  // exclusive: start of next Monday
-    const events = await eventRepository.getByTimeRange(start, end)
-    set({ events })
+    set({ isLoading: true, loadError: null })
+    try {
+      const start = getDayStart(weekStart)
+      const end   = getDayStart(addDays(weekStart, 7))  // exclusive: start of next Monday
+      const events = await eventRepository.getByTimeRange(start, end)
+      set({ events, isLoading: false })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load events'
+      set({ isLoading: false, loadError: message })
+    }
   },
 
   loadRange: async (start, end) => {
-    const rangeEvents = await eventRepository.getByTimeRange(start, end)
-    set({ rangeEvents })
+    set({ isLoading: true, loadError: null })
+    try {
+      const rangeEvents = await eventRepository.getByTimeRange(start, end)
+      set({ rangeEvents, isLoading: false })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load events'
+      set({ isLoading: false, loadError: message })
+    }
   },
 
   createEvent: async (input) => {

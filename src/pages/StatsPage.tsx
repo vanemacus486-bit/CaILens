@@ -1,9 +1,10 @@
 // Required: npm install react-router-dom lucide-react date-fns
 import { useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
 import { startOfWeek, startOfMonth, startOfQuarter, startOfYear, addDays, addMonths, addQuarters, addYears, format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { fireAndForget } from '@/lib/fireAndForget'
 import { formatISODate, parseISODate } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
@@ -82,6 +83,8 @@ export function StatsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const loadRange      = useEventStore((s) => s.loadRange)
   const rangeEvents    = useEventStore((s) => s.rangeEvents)
+  const isLoading      = useEventStore((s) => s.isLoading)
+  const loadError      = useEventStore((s) => s.loadError)
   const loadCategories = useCategoryStore((s) => s.loadCategories)
   const categories     = useCategoryStore((s) => s.categories)
   const loadSettings   = useAppSettingsStore((s) => s.loadSettings)
@@ -89,8 +92,8 @@ export function StatsPage() {
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
   useEffect(() => {
-    void loadCategories()
-    void loadSettings()
+    fireAndForget(loadCategories(), 'load categories')
+    fireAndForget(loadSettings(), 'load settings')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -109,7 +112,7 @@ export function StatsPage() {
   // Data loading — broad range for all views
   useEffect(() => {
     const now = Date.now()
-    void loadRange(now - 3 * 365 * 24 * 60 * 60_000, now)
+    fireAndForget(loadRange(now - 3 * 365 * 24 * 60 * 60_000, now), 'load stats range')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -206,7 +209,7 @@ export function StatsPage() {
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={cn(
-                'px-3 py-1 rounded-sm text-xs font-sans font-medium transition-all duration-150 cursor-pointer',
+                'px-3 py-1 rounded-sm text-xs font-sans font-medium transition-colors duration-200 cursor-pointer',
                 period === p.key
                   ? 'bg-surface-base text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
                   : 'text-text-secondary hover:text-text-primary',
@@ -265,7 +268,23 @@ export function StatsPage() {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1100px] mx-auto px-4 md:px-12 py-12 pb-20 space-y-[52px]">
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[400px] h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-text-tertiary" />
+          </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center justify-center gap-4 min-h-[400px] h-full">
+            <AlertCircle className="h-10 w-10 text-rose-500" />
+            <p className="font-sans text-sm text-text-secondary max-w-md text-center">{loadError}</p>
+            <button
+              onClick={() => loadRange(Date.now() - 3 * 365 * 24 * 60 * 60_000, Date.now())}
+              className="inline-flex items-center justify-center rounded-lg bg-accent text-white px-4 py-2 text-sm font-medium transition-colors duration-200 cursor-pointer"
+            >
+              {t('重试', 'Retry')}
+            </button>
+          </div>
+        ) : (
+          <div className="max-w-[1100px] mx-auto px-4 md:px-12 py-12 pb-20 space-y-[52px]">
           {/* Epigraph */}
           <div className="border-l-2 border-accent py-1 pl-6">
             <p className="font-serif italic text-lg leading-[1.65] text-text-primary max-w-[680px]">
@@ -358,6 +377,7 @@ export function StatsPage() {
           </Section>
 
         </div>
+        )}
       </div>
     </div>
   )

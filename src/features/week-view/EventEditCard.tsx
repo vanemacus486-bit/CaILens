@@ -281,7 +281,7 @@ export function EventEditCard({
                     key={cat.id}
                     onClick={() => handleCategory(cat.id)}
                     className={cn(
-                      'flex items-center gap-1.5 font-sans text-xs rounded-md px-2.5 py-[5px] cursor-pointer transition-colors duration-150',
+                      'flex items-center gap-1.5 font-sans text-xs rounded-md px-2.5 py-[5px] cursor-pointer transition-colors duration-200',
                       isSelected
                         ? 'ring-1 ring-inset'
                         : 'border border-border-subtle hover:bg-surface-sunken',

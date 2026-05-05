@@ -56,7 +56,7 @@ export function KeywordEditor({ keywords, onChange, disabled = false }: KeywordE
             <button
               type="button"
               onClick={() => remove(kw)}
-              className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-sm text-text-tertiary hover:text-text-primary transition-colors duration-150 cursor-pointer"
+              className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-sm text-text-tertiary hover:text-text-primary transition-colors duration-200 cursor-pointer"
             >
               <X size={10} strokeWidth={2} />
             </button>
@@ -89,7 +89,7 @@ export function KeywordEditor({ keywords, onChange, disabled = false }: KeywordE
           className={cn(
             'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-sans',
             'text-text-tertiary hover:text-text-primary hover:bg-surface-raised',
-            'transition-colors duration-150 cursor-pointer',
+            'transition-colors duration-200 cursor-pointer',
             disabled && 'opacity-40 cursor-not-allowed',
           )}
         >

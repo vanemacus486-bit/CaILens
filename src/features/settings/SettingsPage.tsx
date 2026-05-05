@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fireAndForget } from '@/lib/fireAndForget'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useEventStore } from '@/stores/eventStore'
@@ -40,15 +41,17 @@ export function SettingsPage() {
     const updated = language === 'zh'
       ? { zh: newName, en: cat.name.en }
       : { zh: cat.name.zh, en: newName }
-    void updateName(id, updated)
+    fireAndForget(updateName(id, updated), 'update category name')
   }
 
   const handleBudgetChange = (id: CategoryId, value: number) => {
-    if (value > 0 && value <= 168) void updateBudget(id, value)
+    if (value > 0 && value <= 168) fireAndForget(updateBudget(id, value), 'update budget')
   }
 
   const handleFoldersChange = (id: CategoryId, folders: KeywordFolder[]) => {
-    void updateFolders(id, folders).then(() => reclassifyAllEvents())
+    void updateFolders(id, folders).then(() => reclassifyAllEvents()).catch((err) => {
+      console.error('[fire-and-forget] update folders:', err)
+    })
   }
 
   const totalKeywords = (folders: KeywordFolder[]): number =>
@@ -86,9 +89,9 @@ export function SettingsPage() {
               {(['zh', 'en'] as const).map((lang) => (
                 <button
                   key={lang}
-                  onClick={() => void setLanguage(lang)}
+                  onClick={() => fireAndForget(setLanguage(lang), 'set language')}
                   className={cn(
-                    'px-4 py-1.5 rounded-md text-sm font-sans font-medium transition-all duration-150 cursor-pointer',
+                    'px-4 py-1.5 rounded-md text-sm font-sans font-medium transition-colors duration-200 cursor-pointer',
                     language === lang
                       ? 'bg-surface-base text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
                       : 'text-text-secondary hover:text-text-primary',
@@ -106,9 +109,9 @@ export function SettingsPage() {
               {(['light', 'dark'] as const).map((theme) => (
                 <button
                   key={theme}
-                  onClick={() => void setTheme(theme)}
+                  onClick={() => fireAndForget(setTheme(theme), 'set theme')}
                   className={cn(
-                    'px-4 py-1.5 rounded-md text-sm font-sans font-medium transition-all duration-150 cursor-pointer',
+                    'px-4 py-1.5 rounded-md text-sm font-sans font-medium transition-colors duration-200 cursor-pointer',
                     settings.theme === theme
                       ? 'bg-surface-base text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
                       : 'text-text-secondary hover:text-text-primary',

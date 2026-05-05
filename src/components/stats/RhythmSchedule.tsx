@@ -4,6 +4,7 @@ import type { Bucket } from '@/hooks/useStatsAggregation'
 import type { Category } from '@/domain/category'
 import type { DataMaturity } from '@/domain/maturity'
 import { HourHeatmap } from '@/components/stats/HourHeatmap'
+import { RechartsTooltip } from '@/components/stats/RechartsTooltip'
 
 const CAT_ORDER = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone'] as const
 const DAYS_EN = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -75,24 +76,6 @@ export function RhythmSchedule({ current, categories, language, maturity }: Rhyt
     ? rhythm.filter((_, di) => dayHasData(current.byHourSlot, di))
     : rhythm
 
-  const RechartsTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload?.length) return null
-    return (
-      <div className="bg-surface-sunken border border-border-default px-3.5 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-        <div className="text-[11px] text-text-tertiary italic mb-1.5">{formatHourTick(label)}</div>
-        {payload.map((p: any, i: number) => (
-          <div key={i} className="flex items-center gap-2 mb-0.5">
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
-            <span className="text-xs text-text-secondary font-sans">{p.name}</span>
-            <span className="text-[13px] text-text-primary font-mono font-semibold ml-auto pl-4">
-              {p.value.toFixed(2)}h
-            </span>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* 24h Area Chart */}
@@ -116,7 +99,7 @@ export function RhythmSchedule({ current, categories, language, maturity }: Rhyt
               tick={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fill: 'var(--text-tertiary)' }}
               axisLine={false} tickLine={false}
             />
-            <Tooltip content={<RechartsTooltip />} />
+            <Tooltip content={<RechartsTooltip labelFormatter={(v) => formatHourTick(v as number)} decimals={2} />} />
             {CAT_ORDER.map((id) => {
               const cat = categories.find((c) => c.id === id)
               if (!cat) return null

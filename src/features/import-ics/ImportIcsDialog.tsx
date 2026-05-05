@@ -113,7 +113,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                 'w-full flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed',
                 'border-border-subtle text-sm font-sans text-text-secondary',
                 'hover:text-text-primary hover:border-border-default',
-                'transition-colors duration-150 cursor-pointer',
+                'transition-colors duration-200 cursor-pointer',
               )}
             >
               <Upload className="h-4 w-4 flex-shrink-0" />
@@ -215,7 +215,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                     disabled={status === 'importing'}
                     className={cn(
                       'flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left text-sm font-sans',
-                      'transition-colors duration-150',
+                      'transition-colors duration-200',
                       sel
                         ? 'bg-surface-raised text-text-primary'
                         : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised',

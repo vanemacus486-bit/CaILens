@@ -127,15 +127,15 @@ const WEEK_MS = 7 * 24 * 60 * 60_000
  * starts at `now - 7 days`. This avoids coupling the streak to the calendar
  * week-start setting and ensures the streak updates in real-time as time passes.
  */
-export function computeStreak(events: readonly CalendarEvent[]): number {
+export function computeStreak(events: readonly CalendarEvent[], now?: number): number {
   if (events.length === 0) return 0
 
-  const now = Date.now()
+  const anchor = now ?? Date.now()
   let streak = 0
 
   // Walk backwards from now in 7-day steps
   for (let i = 0; i < 200; i++) {
-    const weekEnd = now - i * WEEK_MS
+    const weekEnd = anchor - i * WEEK_MS
     const weekStart = weekEnd - WEEK_MS
 
     const hasEvent = events.some(

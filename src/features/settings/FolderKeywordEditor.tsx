@@ -108,7 +108,7 @@ export function FolderKeywordEditor({ folders, onChange }: FolderKeywordEditorPr
       <button
         type="button"
         onClick={addFolder}
-        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-sans text-text-tertiary hover:text-text-primary hover:bg-surface-raised rounded-md transition-colors duration-150 self-start cursor-pointer"
+        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-sans text-text-tertiary hover:text-text-primary hover:bg-surface-raised rounded-md transition-colors duration-200 self-start cursor-pointer"
       >
         <Plus size={11} strokeWidth={2} />
         新建文件夹
@@ -158,7 +158,7 @@ function FolderSection({
   return (
     <div
       className={cn(
-        'rounded-lg border px-3 py-2 flex flex-col gap-1.5 transition-colors duration-150',
+        'rounded-lg border px-3 py-2 flex flex-col gap-1.5 transition-colors duration-200',
         isDropTarget
           ? 'border-accent bg-event-accent-bg/10'
           : 'border-border-subtle bg-surface-base',
@@ -196,7 +196,7 @@ function FolderSection({
           <button
             type="button"
             onClick={onRemove}
-            className="w-4 h-4 inline-flex items-center justify-center rounded-sm text-text-tertiary hover:text-rose-500 transition-colors duration-150 cursor-pointer"
+            className="w-4 h-4 inline-flex items-center justify-center rounded-sm text-text-tertiary hover:text-rose-500 transition-colors duration-200 cursor-pointer"
           >
             <X size={11} strokeWidth={2} />
           </button>
@@ -216,7 +216,7 @@ function FolderSection({
               className={cn(
                 'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-sans',
                 'bg-surface-raised text-text-primary border border-border-subtle',
-                'cursor-grab active:cursor-grabbing transition-opacity duration-150',
+                'cursor-grab active:cursor-grabbing transition-opacity duration-200',
                 isDragging && 'opacity-30',
               )}
             >
@@ -225,7 +225,7 @@ function FolderSection({
               <button
                 type="button"
                 onClick={() => onRemoveKeyword(kw)}
-                className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-sm text-text-tertiary hover:text-text-primary transition-colors duration-150 cursor-pointer"
+                className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-sm text-text-tertiary hover:text-text-primary transition-colors duration-200 cursor-pointer"
               >
                 <X size={10} strokeWidth={2} />
               </button>
@@ -252,7 +252,7 @@ function FolderSection({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-sans text-text-tertiary hover:text-text-primary hover:bg-surface-raised transition-colors duration-150 cursor-pointer"
+            className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-sans text-text-tertiary hover:text-text-primary hover:bg-surface-raised transition-colors duration-200 cursor-pointer"
           >
             <Plus size={11} strokeWidth={2} />
             添加

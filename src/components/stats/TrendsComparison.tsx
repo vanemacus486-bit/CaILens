@@ -6,6 +6,7 @@ import type { Category } from '@/domain/category'
 import type { DataMaturity } from '@/domain/maturity'
 import { cn } from '@/lib/utils'
 import { MaturityPlaceholder } from '@/components/stats/MaturityPlaceholder'
+import { RechartsTooltip } from '@/components/stats/RechartsTooltip'
 
 const CAT_ORDER = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone'] as const
 
@@ -55,24 +56,6 @@ export function TrendsComparison({ history, categories, language, maturity }: Tr
   const cold = maturity.maturityLevel === 'cold'
   const warming = maturity.maturityLevel === 'warming'
 
-  const RechartsTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload?.length) return null
-    return (
-      <div className="bg-surface-sunken border border-border-default px-3.5 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-        <div className="text-[11px] text-text-tertiary italic mb-1.5">{label}</div>
-        {payload.map((p: any, i: number) => (
-          <div key={i} className="flex items-center gap-2 mb-0.5">
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
-            <span className="text-xs text-text-secondary font-sans">{p.name}</span>
-            <span className="text-[13px] text-text-primary font-mono font-semibold ml-auto pl-4">
-              {p.value.toFixed(1)}h
-            </span>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
   const trendCats = ['accent', 'sage', 'sky', 'rose']
 
   return (
@@ -101,7 +84,7 @@ export function TrendsComparison({ history, categories, language, maturity }: Tr
                 key={id}
                 onClick={() => setTrendCat(id)}
                 className={cn(
-                  'px-2.5 py-[3px] rounded-sm text-[11px] font-sans border transition-all duration-150 cursor-pointer',
+                  'px-2.5 py-[3px] rounded-sm text-[11px] font-sans border transition-colors duration-200 cursor-pointer',
                   trendCat === id
                     ? 'text-white border-transparent'
                     : 'text-text-tertiary border-border-subtle hover:text-text-primary',

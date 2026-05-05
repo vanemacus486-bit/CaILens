@@ -133,7 +133,7 @@ export const EventBlock = React.memo(function EventBlock({
           {/* Top resize handle */}
           {showResizeHandles && (
             <div
-              className="absolute top-0 left-0 right-0 h-3 cursor-ns-resize z-20"
+              className="absolute top-0 left-0 right-0 h-5 cursor-ns-resize z-20"
               onPointerDown={topResize.onPointerDown}
               onClick={(e) => e.stopPropagation()}
             />
@@ -173,7 +173,7 @@ export const EventBlock = React.memo(function EventBlock({
           {/* Bottom resize handle */}
           {showResizeHandles && (
             <div
-              className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize z-20"
+              className="absolute bottom-0 left-0 right-0 h-5 cursor-ns-resize z-20"
               onPointerDown={bottomResize.onPointerDown}
               onClick={(e) => e.stopPropagation()}
             />
@@ -190,7 +190,7 @@ export const EventBlock = React.memo(function EventBlock({
               aria-label={c}
               onClick={() => onColorChange(event.id, c)}
               className={cn(
-                'w-3 h-3 rounded-full flex-shrink-0 transition-transform duration-150',
+                'w-5 h-5 rounded-full flex-shrink-0 transition-transform duration-200',
                 'hover:scale-110',
                 event.color === c
                   ? 'ring-2 ring-text-primary ring-offset-1 ring-offset-surface-raised scale-110'

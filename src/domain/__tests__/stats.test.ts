@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mergeIntervals, computeWeekStats } from '../stats'
+import { mergeIntervals, computeWeekStats, computeStreak, computeTypeSplit } from '../stats'
 import { DEFAULT_CATEGORIES } from '../category'
 import type { CalendarEvent, EventColor } from '../event'
 import type { CategoryId } from '../category'
@@ -241,6 +241,99 @@ describe('computeWeekStats — byCategory ordering', () => {
     const expected = DEFAULT_CATEGORIES.map((c) => c.id)
     const actual   = result.byCategory.map((s) => s.categoryId)
     expect(actual).toEqual(expected)
+  })
+})
+
+// ── computeStreak ──────────────────────────────────────────
+
+const WEEK_MS = 7 * 24 * 60 * 60_000
+
+describe('computeStreak', () => {
+  it('returns 0 for empty events', () => {
+    expect(computeStreak([], 0)).toBe(0)
+  })
+
+  it('returns 1 when one event falls in the current week', () => {
+    // anchor=WEEK_MS → current week is [0, WEEK_MS)
+    const events = [makeEvent('e1', 'accent', HOUR, 2 * HOUR)]
+    expect(computeStreak(events, WEEK_MS)).toBe(1)
+  })
+
+  it('returns 3 when events span 3 consecutive weeks back', () => {
+    // anchor=3*WEEK_MS → weeks are [2W,3W), [1W,2W), [0,W)
+    const events = [
+      makeEvent('e1', 'accent', HOUR,                    2 * HOUR),                // week [0,W)
+      makeEvent('e2', 'sage',   WEEK_MS + HOUR,          WEEK_MS + 2 * HOUR),       // week [W,2W)
+      makeEvent('e3', 'sand',   2 * WEEK_MS + HOUR,     2 * WEEK_MS + 2 * HOUR),   // week [2W,3W)
+    ]
+    expect(computeStreak(events, 3 * WEEK_MS)).toBe(3)
+  })
+
+  it('breaks streak when a week has no events', () => {
+    // Events in week 0 and week 2, but gap in week 1 → streak = 1 (only current week)
+    const events = [
+      makeEvent('e1', 'accent', HOUR,                    2 * HOUR),                // week [0,W)
+      makeEvent('e2', 'sage',   2 * WEEK_MS + HOUR,     2 * WEEK_MS + 2 * HOUR),   // week [2W,3W)
+    ]
+    expect(computeStreak(events, 3 * WEEK_MS)).toBe(1)
+  })
+
+  it('counts an event exactly at the week boundary', () => {
+    // Event at anchor-2*WEEK_MS (start of oldest counted week)
+    const events = [makeEvent('e1', 'accent', 2 * WEEK_MS, 2 * WEEK_MS + HOUR)]
+    // anchor=3W → week [2W,3W) starts at 2W, event at 2W falls in
+    expect(computeStreak(events, 3 * WEEK_MS)).toBe(1)
+  })
+})
+
+// ── computeTypeSplit ───────────────────────────────────────
+
+describe('computeTypeSplit', () => {
+  it('returns all zeros for empty byCategory', () => {
+    const result = computeTypeSplit({} as Record<CategoryId, number>)
+    expect(result.typeI.hours).toBe(0)
+    expect(result.typeI.pct).toBe(0)
+    expect(result.typeII.hours).toBe(0)
+    expect(result.typeII.pct).toBe(0)
+  })
+
+  it('correctly splits balanced categories', () => {
+    const byCategory: Record<CategoryId, number> = {
+      accent: 4, sky: 2, sage: 2, sand: 1, rose: 1, stone: 0,
+    }
+    const result = computeTypeSplit(byCategory)
+    expect(result.typeI.hours).toBe(6)    // accent 4 + sky 2
+    expect(result.typeII.hours).toBe(4)   // sage 2 + sand 1 + rose 1
+    expect(result.typeI.pct).toBe(60)     // Math.round(6/10 * 100)
+    expect(result.typeII.pct).toBe(40)    // Math.round(4/10 * 100)
+  })
+
+  it('returns 100% Type I when Type II is zero', () => {
+    const byCategory: Record<CategoryId, number> = {
+      accent: 3, sky: 1, sage: 0, sand: 0, rose: 0, stone: 0,
+    }
+    const result = computeTypeSplit(byCategory)
+    expect(result.typeI.pct).toBe(100)
+    expect(result.typeII.pct).toBe(0)
+  })
+
+  it('returns 100% Type II when Type I is zero', () => {
+    const byCategory: Record<CategoryId, number> = {
+      accent: 0, sky: 0, sage: 2, sand: 2, rose: 1, stone: 1,
+    }
+    const result = computeTypeSplit(byCategory)
+    expect(result.typeI.pct).toBe(0)
+    expect(result.typeII.pct).toBe(100)
+  })
+
+  it('ignores unknown category IDs', () => {
+    const byCategory = {
+      accent: 5, sky: 0, sage: 0, sand: 0, rose: 0, stone: 0,
+      unknown: 100,
+    } as Record<CategoryId, number>
+    const result = computeTypeSplit(byCategory)
+    expect(result.typeI.hours).toBe(5)
+    expect(result.typeII.hours).toBe(0)
   })
 })
 

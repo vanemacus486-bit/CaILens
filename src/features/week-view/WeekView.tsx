@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { addWeeks, getWeekDays, getWeekStart, isEventOnDay } from '@/domain/time'
 import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
+import { fireAndForget } from '@/lib/fireAndForget'
+import { Loader2, AlertCircle } from 'lucide-react'
 import { DayColumn } from '@/components/calendar/DayColumn'
 import { TimeGrid } from '@/components/calendar/TimeGrid'
 import { useEventStore } from '@/stores/eventStore'
@@ -22,6 +24,8 @@ export function WeekView() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const events             = useEventStore((s) => s.events)
+  const isLoading          = useEventStore((s) => s.isLoading)
+  const loadError          = useEventStore((s) => s.loadError)
   const loadWeek           = useEventStore((s) => s.loadWeek)
   const createEvent        = useEventStore((s) => s.createEvent)
   const updateEvent        = useEventStore((s) => s.updateEvent)
@@ -32,8 +36,8 @@ export function WeekView() {
 
   // アプリ起動時に categories と settings を一度だけロード
   useEffect(() => {
-    void loadCategories()
-    void loadSettings()
+    fireAndForget(loadCategories(), 'load categories')
+    fireAndForget(loadSettings(), 'load settings')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -73,7 +77,7 @@ export function WeekView() {
     return map
   }, [effectiveEvents, days])
 
-  useEffect(() => { void loadWeek(weekStart) }, [weekStart, loadWeek])
+  useEffect(() => { fireAndForget(loadWeek(weekStart), 'load week') }, [weekStart, loadWeek])
 
   // Handle ?openEvent=<id> from search navigation
   useEffect(() => {
@@ -155,7 +159,7 @@ export function WeekView() {
       color: 'stone', categoryId: 'stone',
     }).then((newEvent) => {
       setCardState({ mode: 'edit', event: newEvent, isNewlyCreated: true })
-    })
+    }).catch((err) => { console.error('[fire-and-forget] create event:', err) })
   }, [cardState.mode, createEvent])
 
   // ── Event click: open detail card ────────────────────
@@ -177,14 +181,14 @@ export function WeekView() {
 
   const handleDetailDelete = useCallback(() => {
     if (cardState.mode !== 'detail') return
-    void deleteEvent(cardState.event.id)
+    fireAndForget(deleteEvent(cardState.event.id), 'delete event (detail)')
     closeCard()
   }, [cardState, deleteEvent, closeCard])
 
   // ── Context-menu actions (stable refs, no cardState dep) ─
 
   const handleColorChange = useCallback((eventId: string, color: EventColor) => {
-    void updateEvent({ id: eventId, color, categoryId: color })
+    fireAndForget(updateEvent({ id: eventId, color, categoryId: color }), 'update event color')
   }, [updateEvent])
 
   // Jump straight to edit card (skips detail card).
@@ -195,7 +199,7 @@ export function WeekView() {
 
   // Delete via context menu. Uses ref so cardState isn't a dep (keeps this stable).
   const handleContextDelete = useCallback((eventId: string) => {
-    void deleteEvent(eventId)
+    fireAndForget(deleteEvent(eventId), 'delete event (context)')
     const cs = cardStateRef.current
     if (cs.mode !== 'none' && cs.event.id === eventId) {
       setCardState({ mode: 'none' })
@@ -206,7 +210,7 @@ export function WeekView() {
   // ── Resize handler ───────────────────────────────────
 
   const handleResize = useCallback((eventId: string, newStartTime: number, newEndTime: number) => {
-    void updateEvent({ id: eventId, startTime: newStartTime, endTime: newEndTime })
+    fireAndForget(updateEvent({ id: eventId, startTime: newStartTime, endTime: newEndTime }), 'resize event')
   }, [updateEvent])
 
   // ── Drag handlers ────────────────────────────────────
@@ -214,7 +218,7 @@ export function WeekView() {
   // Persist the new position after drag-end. Fire-and-forget is fine:
   // Dexie writes are fast enough (~5 ms) that the brief snap-back is imperceptible.
   const handleDragMove = useCallback((eventId: string, newStartTime: number, newEndTime: number) => {
-    void updateEvent({ id: eventId, startTime: newStartTime, endTime: newEndTime })
+    fireAndForget(updateEvent({ id: eventId, startTime: newStartTime, endTime: newEndTime }), 'drag move event')
   }, [updateEvent])
 
   // Close any open card when a drag begins so the card doesn't float detached.
@@ -235,12 +239,12 @@ export function WeekView() {
   // ── Edit card actions ────────────────────────────────
 
   const handleSave = useCallback((updates: UpdateEventInput) => {
-    void updateEvent(updates)  // fire-and-forget; store updates async
+    fireAndForget(updateEvent(updates), 'save event')
   }, [updateEvent])
 
   const handleEditDelete = useCallback(() => {
     if (cardState.mode !== 'edit') return
-    void deleteEvent(cardState.event.id)
+    fireAndForget(deleteEvent(cardState.event.id), 'delete event (edit)')
   }, [cardState, deleteEvent])
 
   const handleEditClose = useCallback(() => {
@@ -271,32 +275,51 @@ export function WeekView() {
         <WeekDateHeader days={days} />
 
         {/* Calendar grid */}
-        <div className="relative flex-1 min-h-0">
-          <div ref={gridRef} className="h-full grid" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)', touchAction: 'manipulation' }}>
-            <TimeGrid />
-            {days.map((day) => (
-              <DayColumn
-                key={day.getTime()}
-                date={day}
-                events={eventsByDay.get(day.getTime()) ?? EMPTY}
-                selectedEventId={selectedEventId}
-                weekDays={days}
-                gridRef={gridRef}
-                onSlotClick={handleSlotClick}
-                onEventClick={handleEventClick}
-                onColorChange={handleColorChange}
-                onEdit={handleContextEdit}
-                onDelete={handleContextDelete}
-                onDragMove={handleDragMove}
-                onDragStart={handleDragStart}
-                onResize={handleResize}
-              />
-            ))}
-          </div>
-          {events.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <WeekEmptyState />
+        <div className="relative flex-1 min-h-0 max-md:overflow-x-auto">
+          {isLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-text-tertiary" />
             </div>
+          ) : loadError ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+              <AlertCircle className="h-10 w-10 text-rose-500" />
+              <p className="font-sans text-sm text-text-secondary max-w-md text-center">{loadError}</p>
+              <button
+                onClick={() => loadWeek(weekStart)}
+                className="inline-flex items-center justify-center rounded-lg bg-accent text-white px-4 py-2 text-sm font-medium transition-colors duration-200 cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <>
+              <div ref={gridRef} className="h-full grid min-w-[540px]" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)', touchAction: 'manipulation' }}>
+                <TimeGrid />
+                {days.map((day) => (
+                  <DayColumn
+                    key={day.getTime()}
+                    date={day}
+                    events={eventsByDay.get(day.getTime()) ?? EMPTY}
+                    selectedEventId={selectedEventId}
+                    weekDays={days}
+                    gridRef={gridRef}
+                    onSlotClick={handleSlotClick}
+                    onEventClick={handleEventClick}
+                    onColorChange={handleColorChange}
+                    onEdit={handleContextEdit}
+                    onDelete={handleContextDelete}
+                    onDragMove={handleDragMove}
+                    onDragStart={handleDragStart}
+                    onResize={handleResize}
+                  />
+                ))}
+              </div>
+              {events.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <WeekEmptyState />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -19,37 +19,44 @@ export class EstimateRepository {
     categoryId: CategoryId,
     estimatedHours: number,
   ): Promise<WeeklyEstimate> {
-    const existing = await this.db.weeklyEstimates
-      .where({ weekStart, categoryId })
-      .first()
+    return this.db.transaction('rw', this.db.weeklyEstimates, async () => {
+      const existing = await this.db.weeklyEstimates
+        .where({ weekStart, categoryId })
+        .first()
 
-    if (existing) {
-      await this.db.weeklyEstimates.update(existing.id, {
+      if (existing) {
+        await this.db.weeklyEstimates.update(existing.id, {
+          estimatedHours,
+        })
+        return (await this.db.weeklyEstimates.get(existing.id))!
+      }
+
+      const id = crypto.randomUUID()
+      const record: WeeklyEstimate = {
+        id,
+        weekStart,
+        categoryId,
         estimatedHours,
         createdAt: Date.now(),
-      })
-      return (await this.db.weeklyEstimates.get(existing.id))!
-    }
-
-    const id = crypto.randomUUID()
-    const record: WeeklyEstimate = {
-      id,
-      weekStart,
-      categoryId,
-      estimatedHours,
-      createdAt: Date.now(),
-    }
-    await this.db.weeklyEstimates.put(record)
-    return record
+      }
+      await this.db.weeklyEstimates.put(record)
+      return record
+    })
   }
 
   /** Returns the most recent N weeks of estimate data for bias detection */
   async getRecentHistory(weekStarts: number[]): Promise<WeeklyEstimate[][]> {
-    const result: WeeklyEstimate[][] = []
-    for (const ws of weekStarts) {
-      result.push(await this.getByWeek(ws))
+    const rows = await this.db.weeklyEstimates
+      .where('weekStart')
+      .anyOf(weekStarts)
+      .toArray()
+    const map = new Map<number, WeeklyEstimate[]>()
+    for (const row of rows) {
+      let group = map.get(row.weekStart)
+      if (!group) { group = []; map.set(row.weekStart, group) }
+      group.push(row)
     }
-    return result
+    return weekStarts.map((ws) => map.get(ws) ?? [])
   }
 }
 

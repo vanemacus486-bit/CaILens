@@ -191,7 +191,7 @@ function ShiftMenuItem({ label, weekLabel, onClick }: ShiftMenuItemProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-sm font-sans text-text-primary hover:bg-surface-sunken transition-colors duration-150 cursor-pointer"
+      className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-sm font-sans text-text-primary hover:bg-surface-sunken transition-colors duration-200 cursor-pointer"
     >
       <span>{label}</span>
       <span className="text-xs text-text-tertiary">{weekLabel}</span>

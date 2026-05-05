@@ -7,7 +7,7 @@ interface WeekDateHeaderProps {
 
 export function WeekDateHeader({ days }: WeekDateHeaderProps) {
   return (
-    <div className="grid border-b border-border-subtle flex-shrink-0" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)' }}>
+    <div className="grid border-b border-border-subtle flex-shrink-0 min-w-[540px]" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)' }}>
       {/* Spacer — aligns with TimeGrid's 80px label column */}
       <div className="bg-surface-sunken/50" />
 

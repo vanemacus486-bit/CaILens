@@ -191,7 +191,7 @@ export function HourHeatmap({ bucket }: HourHeatmapProps) {
             key={m}
             onClick={() => setMode(m)}
             className={cn(
-              'px-2.5 py-1 rounded-sm text-[11px] font-sans font-medium transition-all duration-150 cursor-pointer',
+              'px-2.5 py-1 rounded-sm text-[11px] font-sans font-medium transition-colors duration-200 cursor-pointer',
               mode === m
                 ? 'bg-surface-base text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
                 : 'text-text-tertiary hover:text-text-primary',

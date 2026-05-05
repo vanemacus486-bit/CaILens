@@ -10,14 +10,17 @@ export function useCurrentTime(): number {
 
   useEffect(() => {
     const msUntilNextMinute = 60_000 - (Date.now() % 60_000)
+    let interval: ReturnType<typeof setInterval> | undefined
 
     const timeout = setTimeout(() => {
       setNow(Date.now())
-      const interval = setInterval(() => setNow(Date.now()), 60_000)
-      return () => clearInterval(interval)
+      interval = setInterval(() => setNow(Date.now()), 60_000)
     }, msUntilNextMinute)
 
-    return () => clearTimeout(timeout)
+    return () => {
+      clearTimeout(timeout)
+      if (interval !== undefined) clearInterval(interval)
+    }
   }, [])
 
   return now

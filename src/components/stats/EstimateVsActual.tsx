@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
+import { fireAndForget } from '@/lib/fireAndForget'
 import type { Bucket } from '@/hooks/useStatsAggregation'
 import type { Category } from '@/domain/category'
 import type { CategoryId } from '@/domain/category'
@@ -24,7 +25,7 @@ export function EstimateVsActual({ current, categories, weekStart, language }: E
   const isLoaded = useEstimateStore((s) => s.isLoaded)
 
   useEffect(() => {
-    void loadEstimates(weekStart)
+    fireAndForget(loadEstimates(weekStart), 'load estimates')
   }, [loadEstimates, weekStart])
 
   const deviations = useMemo(() => {
@@ -34,7 +35,7 @@ export function EstimateVsActual({ current, categories, weekStart, language }: E
 
   const handleEstimateChange = (categoryId: CategoryId, value: number) => {
     if (value >= 0 && value <= 168) {
-      void saveEstimate(weekStart, categoryId, value)
+      fireAndForget(saveEstimate(weekStart, categoryId, value), 'save estimate')
     }
   }
 

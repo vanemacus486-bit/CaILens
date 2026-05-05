@@ -7,6 +7,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage'
 import { StatsPage } from '@/pages/StatsPage'
 import { SearchDialog } from '@/features/search/SearchDialog'
 import { useUIStore } from '@/stores/uiStore'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
 function Layout() {
   const searchOpen = useUIStore((s) => s.searchOpen)
@@ -26,7 +27,9 @@ function Layout() {
     <div className="h-screen flex bg-surface-base text-text-primary overflow-hidden">
       <Sidebar />
       <div className="flex-1 h-full overflow-hidden flex flex-col">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </div>
       {searchOpen && <SearchDialog />}
     </div>

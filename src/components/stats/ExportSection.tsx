@@ -65,7 +65,7 @@ export function ExportSection({ language }: ExportSectionProps) {
           <button
             key={fmt}
             onClick={() => doExport(fmt.toLowerCase() as 'csv' | 'json')}
-            className="bg-surface-base border border-border-default px-[18px] py-2 text-xs font-sans font-medium text-text-secondary cursor-pointer rounded-sm transition-all duration-150 hover:bg-surface-sunken hover:border-border-default hover:text-text-primary"
+            className="bg-surface-base border border-border-default px-[18px] py-2 text-xs font-sans font-medium text-text-secondary cursor-pointer rounded-sm transition-colors duration-200 hover:bg-surface-sunken hover:border-border-default hover:text-text-primary"
           >
             {expClk === fmt.toLowerCase() ? t('已准备 ✓', 'Prepared ✓') : t(`导出为 ${fmt}`, `Export as ${fmt}`)}
           </button>
