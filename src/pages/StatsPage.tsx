@@ -237,7 +237,7 @@ export function StatsPage() {
             </button>
           </div>
         ) : (
-          <div className="max-w-[1100px] mx-auto px-4 md:px-12 py-10 pb-20 flex-1 flex flex-col justify-center w-full">
+          <div className="max-w-[1100px] mx-auto px-4 md:px-12 pt-12 pb-20 flex-1 flex flex-col w-full">
             {view === 'bar' && (
               <CategoryBarChart
                 current={current}
