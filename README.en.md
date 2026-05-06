@@ -12,7 +12,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **Status:** v3.4 — Accessibility & visual polish: semantic HTML (main/header/nav/article), ARIA attributes, focus-visible rings; dark-mode surface & event colour rebalance; SearchDialog backdrop + type="search"; hardcoded pixel values consolidated into design tokens.
+> **Status:** v3.5 — QuickLog: press `n` anywhere for fast event entry with time-chain auto-continuation, Alt+1..6 colour switching, collapsible details; 3-second undo snackbar; schema v7 adds endTime index.
 
 ## Downloads
 
@@ -36,7 +36,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
 - **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 301 tests, one-way dependency layers. The codebase should age well.
+- **Code quality over feature quantity.** Strict TypeScript, 315 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
@@ -54,6 +54,16 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Overlap layout** — overlapping events are laid out side-by-side automatically.
 - **Current time indicator** — a terracotta line on today's column, updating every minute.
 - **Light / dark mode** — manual toggle, with automatic system preference detection on first visit. Segmented control in Settings.
+
+### QuickLog
+
+- **`n` key global shortcut** — opens the QuickLog dialog from any page; shortcut auto-disables while the dialog is open.
+- **Time-chain auto-continuation** — defaults start time to the last event's end time if within 4 hours, else falls back to `now − 1h` → `now`.
+- **Colour + category inheritance** — default colour from the last event; switch with `Alt+1..6` or click colour dots.
+- **Title-first input** — autofocus on title, Enter to save, Esc to close. Built for speed.
+- **Collapsible details** — description + location, collapsed by default, 200ms `max-height` expand animation.
+- **Undo after save** — 3-second snackbar in the bottom-right corner; click Undo to delete the event. Saving again within 3 seconds replaces the toast without affecting already-saved events.
+- **Toolbar entry** — `+` button in the week view toolbar, next to search, with shortcut tooltip.
 
 ### Search
 
@@ -131,7 +141,7 @@ Click the chart icon in the sidebar. A **segmented control at the top** switches
 
 ### Data
 
-- **Persistent local storage** — IndexedDB via Dexie v4. Schema at version 6. Migrations run automatically.
+- **Persistent local storage** — IndexedDB via Dexie v4. Schema at version 7 (v7 adds endTime index). Migrations run automatically.
 - **Streak tracking** — `computeStreak()` counts consecutive weeks with at least one logged event.
 - **Data export** — CSV and JSON, available in Settings.
 
@@ -156,7 +166,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (301 tests)
+npm run test         # run unit tests once (315 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -174,7 +184,7 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 301 tests across 18 test files |
+| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 315 tests across 20 test files |
 | Fonts | Inter, Source Serif 4, JetBrains Mono | Fontsource, locally hosted |
 | Icons | lucide-react | |
 
@@ -196,6 +206,7 @@ Notable details:
 
 - **Drag system** built on raw Pointer Events. Hit-testing and snapping compute against the layout grid, not the DOM.
 - **Render performance** — `React.memo`, stable callbacks, Zustand sliced subscriptions keep drags from re-rendering unrelated events.
+- **QuickLog** — `n` global shortcut + `QuickLogDialog` form. Default times and colour derived by `deriveDefaultTimes` / `deriveDefaultColor` pure functions; global shortcut hook is standalone and reusable.
 - **Statistics engine** — pure functions for week stats, bucket aggregation, interval merging, Type I/II split, streak computation, annual projection, data maturity, reflection generation, deviation analysis, and recording quality metrics.
 
 

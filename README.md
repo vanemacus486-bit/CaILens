@@ -12,7 +12,7 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **状态：** v3.4 无障碍与视觉打磨。语义化 HTML（main/header/nav/article）、ARIA 属性、focus-visible 焦点环；深色模式表面与事件色值重调；SearchDialog 遮罩与 type="search"；硬编码像素值收敛为设计 token。
+> **状态：** v3.5 快速记录。全局 `n` 键快速记录对话框（从上一事件接续时间链、Alt+1..6 切换颜色、详情可折叠）；3 秒撤销 snackbar；endTime 索引迁移到 schema v7。
 
 ## 下载
 
@@ -36,7 +36,7 @@ CaILens 就是这个工具在浏览器里的一个尝试。
 - **记录，不规划。** 这里没有日程。你记录的是已经发生的事，不是对明天的承诺。
 - **本地优先。** 数据存在 IndexedDB 里。没有账号、没有服务器、没有数据上报。你的时间日记只属于你。
 - **安静的设计。** 暖中性色调，衬线标题，克制的主色。应用不催促、不评价、不打扰。
-- **代码质量优先于功能数量。** TypeScript 严格模式，301 个测试，单向依赖分层。代码库应该经得起时间考验。
+- **代码质量优先于功能数量。** TypeScript 严格模式，315 个测试，单向依赖分层。代码库应该经得起时间考验。
 
 ---
 
@@ -54,6 +54,16 @@ CaILens 就是这个工具在浏览器里的一个尝试。
 - **重叠事件并排**——自动水平排列。
 - **当前时间红线**——焦橙色，仅今日列显示，每分钟更新。
 - **浅色 / 深色模式**——手动切换，首次自动检测系统偏好。设置页提供 segment-control 切换。
+
+### 快速记录
+
+- **`n` 键全局快捷键**——任意页面打开快速记录对话框；对话框打开时快捷键自动禁用，防止误触。
+- **时间链自动接续**——自动从上一事件的结束时间开始（间隔 ≤ 4 小时），否则回退到 `now - 1h` → `now`。
+- **颜色与分类继承**——默认颜色取上一事件的颜色；`Alt+1..6` 随时切换，颜色圆点也可点击。
+- **标题优先输入**——打开即 autofocus 标题框，Enter 即保存，Esc 即关闭，速度优先。
+- **可折叠详情**——description + location，默认折叠，展开为 200ms `max-height` 动画。
+- **保存后撤销**——右下角 3 秒 snackbar，点击撤销即删除事件。3 秒内连保存两条，旧 toast 被替换但不影响已保存事件。
+- **工具栏入口**——周视图顶部 `+` 按钮，与搜索按钮同排，tooltip 提示快捷键。
 
 ### 搜索
 
@@ -131,7 +141,7 @@ CaILens 就是这个工具在浏览器里的一个尝试。
 
 ### 数据
 
-- **本地持久存储**——IndexedDB（Dexie v4）。Schema 已到 version 6。迁移自动执行。
+- **本地持久存储**——IndexedDB（Dexie v4）。Schema 已到 version 7（v7 新增加 endTime 索引）。迁移自动执行。
 - **连续记录统计**——`computeStreak()` 计算连续有记录的周数。
 - **数据导出**——CSV 和 JSON，在设置页可用。
 
@@ -156,7 +166,7 @@ npm run dev
 npm run dev          # 启动开发服务器
 npm run build        # 类型检查 (tsc) + 生产构建 (vite)
 npm run preview      # 本地预览构建结果
-npm run test         # 跑一次单元测试（301 个测试）
+npm run test         # 跑一次单元测试（315 个测试）
 npm run test:watch   # 监听模式
 npm run lint         # 跑 ESLint
 ```
@@ -174,7 +184,7 @@ npm run lint         # 跑 ESLint
 | 存储 | IndexedDB（Dexie v4） | 本地优先，无后端 |
 | 图表 | Recharts 3 | 饼图、柱状图、面积图、折线图 |
 | 时间 | date-fns v4 | 不引入 dayjs / moment |
-| 测试 | Vitest 4 + React Testing Library + fake-indexeddb | 301 个测试，18 个测试文件 |
+| 测试 | Vitest 4 + React Testing Library + fake-indexeddb | 315 个测试，20 个测试文件 |
 | 字体 | Inter、Source Serif 4、JetBrains Mono | Fontsource 本地托管 |
 | 图标 | lucide-react | |
 
@@ -196,6 +206,7 @@ domain/  ──→  data/  ──→  stores/  ──→  features/ + components
 
 - **拖拽系统**完全基于原生 Pointer Events 手写。命中检测和吸附对的是布局网格，不是 DOM。
 - **渲染性能**——`React.memo`、稳定 callback、Zustand 切片订阅，拖一个事件不会让整周重渲染。
+- **快速记录**——`n` 键全局快捷键 + `QuickLogDialog` 表单。默认时间和颜色由 `deriveDefaultTimes` / `deriveDefaultColor` 纯函数推导，全局快捷键 hook 独立可复用。
 - **统计引擎**——纯函数构成的周统计、时段聚合、区间合并、Type I/II 分离、连续记录、年度推演、数据成熟度、回顾生成、偏差分析、记录质量指标。
 
 ## 开源协议
