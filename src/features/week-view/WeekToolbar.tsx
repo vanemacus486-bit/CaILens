@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useUIStore } from '@/stores/uiStore'
+import { QuickLogTrigger } from '@/features/quick-log'
 
 interface WeekToolbarProps {
   weekStart: Date
@@ -20,6 +21,7 @@ interface WeekToolbarProps {
   onNext: () => void
   onToday: () => void
   onShift: (direction: -1 | 1) => void
+  onQuickLog: () => void
 }
 
 export function WeekToolbar({
@@ -29,6 +31,7 @@ export function WeekToolbar({
   onNext,
   onToday,
   onShift,
+  onQuickLog,
 }: WeekToolbarProps) {
   const navigate = useNavigate()
   const language = useAppSettingsStore((s) => s.settings.language)
@@ -115,6 +118,8 @@ export function WeekToolbar({
         >
           <Search size={14} strokeWidth={1.75} />
         </button>
+
+        <QuickLogTrigger onClick={onQuickLog} />
 
         <button
           onClick={onToday}

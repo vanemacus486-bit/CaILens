@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useOutletContext } from 'react-router-dom'
 import { addWeeks, getWeekDays, getWeekStart, isEventOnDay } from '@/domain/time'
 import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
 import { fireAndForget } from '@/lib/fireAndForget'
@@ -22,6 +22,7 @@ const EMPTY: CalendarEvent[] = []
 export function WeekView() {
   const { weekStart, setWeekStart } = useWeekFromURL()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { onQuickLog } = useOutletContext<{ onQuickLog: () => void }>()
 
   const events             = useEventStore((s) => s.events)
   const isLoading          = useEventStore((s) => s.isLoading)
@@ -272,6 +273,7 @@ export function WeekView() {
           onNext={() => setWeekStart(addWeeks(weekStart, 1))}
           onToday={() => setWeekStart(getWeekStart(new Date(), 1))}
           onShift={handleShift}
+          onQuickLog={onQuickLog}
         />
         <WeekDateHeader days={days} />
         </header>

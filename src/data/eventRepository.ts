@@ -133,6 +133,11 @@ export class EventRepository {
       await this.db.events.bulkPut(patched)
     })
   }
+
+  async getLatest(): Promise<CalendarEvent | null> {
+    const ev = await this.db.events.orderBy('endTime').reverse().first()
+    return ev ?? null
+  }
 }
 
 export const eventRepository = new EventRepository(defaultDb)

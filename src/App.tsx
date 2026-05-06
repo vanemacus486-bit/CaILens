@@ -8,9 +8,13 @@ import { StatsPage } from '@/pages/StatsPage'
 import { SearchDialog } from '@/features/search/SearchDialog'
 import { useUIStore } from '@/stores/uiStore'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
+import { QuickLogDialog, useQuickLog } from '@/features/quick-log'
+import { useGlobalShortcut } from '@/lib/hooks/useGlobalShortcut'
+import { SnackbarHost } from '@/components/ui/snackbar'
 
 function Layout() {
   const searchOpen = useUIStore((s) => s.searchOpen)
+  const { open, setOpen, defaults, openDialog, handleSave } = useQuickLog()
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -23,15 +27,27 @@ function Layout() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  useGlobalShortcut('n', openDialog, { enabled: !open })
+
   return (
     <div className="h-screen flex bg-surface-base text-text-primary overflow-hidden">
       <Sidebar />
       <main className="flex-1 h-full overflow-hidden flex flex-col">
         <ErrorBoundary>
-          <Outlet />
+          <Outlet context={{ onQuickLog: openDialog }} />
         </ErrorBoundary>
       </main>
       {searchOpen && <SearchDialog />}
+      {defaults && (
+        <QuickLogDialog
+          open={open}
+          onOpenChange={setOpen}
+          defaultTimes={defaults.times}
+          defaultColor={defaults.color}
+          onSave={handleSave}
+        />
+      )}
+      <SnackbarHost />
     </div>
   )
 }

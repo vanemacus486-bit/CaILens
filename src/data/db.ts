@@ -115,6 +115,14 @@ export class CailensDB extends Dexie {
       weeklyEstimates: 'id, weekStart, categoryId',
     })
 
+    // v7：events 表新增 endTime 索引（供 QuickLog getLatest 使用）
+    this.version(7).stores({
+      events:          'id, startTime, endTime',
+      categories:      'id',
+      settings:        'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+    })
+
     // 全新 DB 首次创建时触发（version 0 → any）。
     // 返回 Promise 让 Dexie 等待操作完成再认为 DB 就绪。
     this.on('populate', () =>

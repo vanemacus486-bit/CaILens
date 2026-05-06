@@ -342,6 +342,35 @@ describe('search', () => {
   })
 })
 
+// ── getLatest ──────────────────────────────────────────────
+
+describe('getLatest', () => {
+  it('returns null when the database is empty', async () => {
+    const result = await repo.getLatest()
+    expect(result).toBeNull()
+  })
+
+  it('returns the event with the largest endTime', async () => {
+    await db.events.bulkAdd([
+      { id: 'a', title: 'A', startTime: 1000, endTime: 2000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+      { id: 'b', title: 'B', startTime: 1500, endTime: 5000, color: 'sage', categoryId: 'sage', createdAt: 0, updatedAt: 0 },
+      { id: 'c', title: 'C', startTime: 100,  endTime: 3000, color: 'sky', categoryId: 'sky', createdAt: 0, updatedAt: 0 },
+    ])
+    const result = await repo.getLatest()
+    expect(result).not.toBeNull()
+    expect(result!.id).toBe('b')
+  })
+
+  it('returns a non-null event when two events share the same endTime', async () => {
+    await db.events.bulkAdd([
+      { id: 'x', title: 'X', startTime: 1000, endTime: 4000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+      { id: 'y', title: 'Y', startTime: 2000, endTime: 4000, color: 'sage', categoryId: 'sage', createdAt: 0, updatedAt: 0 },
+    ])
+    const result = await repo.getLatest()
+    expect(result).not.toBeNull()
+  })
+})
+
 // ── delete ────────────────────────────────────────────────
 
 describe('delete', () => {
