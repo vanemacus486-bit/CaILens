@@ -136,7 +136,7 @@ Click the chart icon in the sidebar. A **segmented control at the top** switches
 - Intensity formula: `daily target = weeklyBudget / 7`, 5 levels (0→22%→48%→75%→100%).
 - Cells scale 1.6× on hover with 1px black border; today gets a persistent black box-shadow.
 - Stats bar (Total / Daily Avg / Streak / Best Day) with pip visualisation for streaks.
-- Eastern editorial aesthetic: cream paper background, serif headings, monospace numbers, 1px rules.
+- **Year switching** — `‹` `›` arrows to navigate between years and review historical heatmap data.
 
 **Period selector:** Week / Month / Quarter / Year / All-time — shared across all 4 views.  
 **Data maturity:** Cold / Warming / Mature thresholds still gate analytics.

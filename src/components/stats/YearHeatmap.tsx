@@ -234,10 +234,11 @@ interface YearHeatmapProps {
 
 export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapProps) {
   const [selectedId, setSelectedId] = useState<CategoryId>('accent')
+  const [year, setYear] = useState(() => new Date().getFullYear())
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const now = useMemo(() => Date.now(), [])
-  const year = new Date(now).getFullYear()
+  const isCurrentYear = year === new Date().getFullYear()
 
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
@@ -377,12 +378,26 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
       <div className={`heatmap-title-area${isCompact ? ' heatmap-title-compact' : ''}`}>
         <div className="heatmap-title-left">
           <div className="heatmap-year-row">
+            <button
+              onClick={() => setYear((y) => y - 1)}
+              className="heatmap-year-arrow"
+              title={t('上一年', 'Previous year')}
+            >
+              ‹
+            </button>
             <span
               className="heatmap-year-num"
               style={{ color: 'var(--c-active)' }}
             >
               {year}
             </span>
+            <button
+              onClick={() => setYear((y) => y + 1)}
+              className="heatmap-year-arrow"
+              title={t('下一年', 'Next year')}
+            >
+              ›
+            </button>
             <span className="heatmap-year-label">
               {t('· 年度热力图', ' · Annual Heatmap')}
             </span>
@@ -494,11 +509,16 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
         <div className="heatmap-stat">
           <div className="heatmap-stat-label">{t('连 续', 'Streak')}</div>
           <div className="heatmap-stat-value">
-            {stats.streak}
-            <span className="heatmap-stat-unit">{t('天', 'd')}</span>
+            {isCurrentYear ? (
+              <>{stats.streak}<span className="heatmap-stat-unit">{t('天', 'd')}</span></>
+            ) : (
+              <span style={{ opacity: 0.3 }}>—</span>
+            )}
           </div>
           <div className="heatmap-stat-detail">
-            {stats.streak === 0 ? (
+            {!isCurrentYear ? (
+              t('仅当年有效', 'Current year only')
+            ) : stats.streak === 0 ? (
               t('已中断', 'Broken')
             ) : (
               <span className="heatmap-streak-pips">
@@ -607,6 +627,21 @@ const HEATMAP_CSS = `
   display: flex;
   align-items: baseline;
   gap: 12px;
+}
+.heatmap-year-arrow {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 40px;
+  color: var(--ink-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  transition: color 0.2s ease;
+  user-select: none;
+}
+.heatmap-year-arrow:hover {
+  color: var(--ink-1);
 }
 .heatmap-year-num {
   font-family: 'Noto Serif SC', serif;
