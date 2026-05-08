@@ -1,0 +1,415 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, fireEvent } from '@testing-library/react'
+import {
+  computeYearDailyGrid,
+  buildHeatmapGrid,
+  getIntensityLevel,
+  computeDailyStreak,
+  computeStats,
+} from '../YearHeatmap'
+import type { DayCell } from '../YearHeatmap'
+import type { CalendarEvent } from '@/domain/event'
+import type { Category, CategoryId } from '@/domain/category'
+
+const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
+
+function makeCategories(): Category[] {
+  return [
+    { id: 'accent', name: { zh: '主要矛盾', en: 'Core Focus' }, color: 'accent', weeklyBudget: 20, folders: [] },
+    { id: 'sage', name: { zh: '次要矛盾', en: 'Support Tasks' }, color: 'sage', weeklyBudget: 10, folders: [] },
+    { id: 'sand', name: { zh: '庶务时间', en: 'Chores & Admin' }, color: 'sand', weeklyBudget: 5, folders: [] },
+    { id: 'sky', name: { zh: '个人提升', en: 'Personal Growth' }, color: 'sky', weeklyBudget: 5, folders: [] },
+    { id: 'rose', name: { zh: '休息娱乐', en: 'Rest & Leisure' }, color: 'rose', weeklyBudget: 5, folders: [] },
+    { id: 'stone', name: { zh: '睡眠时长', en: 'Sleep' }, color: 'stone', weeklyBudget: 3, folders: [] },
+  ]
+}
+
+function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
+  return {
+    id: crypto.randomUUID(),
+    title: 'Test Event',
+    startTime: new Date(2026, 0, 15, 9, 0).getTime(),
+    endTime: new Date(2026, 0, 15, 11, 0).getTime(),
+    color: 'accent',
+    categoryId: 'accent',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  }
+}
+
+// ── computeYearDailyGrid ─────────────────────────────────────
+
+describe('computeYearDailyGrid', () => {
+  it('returns 365 days for a non-leap year', () => {
+    const categories = makeCategories()
+    const days = computeYearDailyGrid([], categories, 2026)
+    expect(days).toHaveLength(365)
+  })
+
+  it('returns 366 days for a leap year', () => {
+    const categories = makeCategories()
+    const days = computeYearDailyGrid([], categories, 2024)
+    expect(days).toHaveLength(366)
+  })
+
+  it('all categories have zero hours with empty events', () => {
+    const categories = makeCategories()
+    const days = computeYearDailyGrid([], categories, 2026)
+    for (const day of days) {
+      for (const id of CATEGORY_IDS) {
+        expect(day.byCategory[id]).toBe(0)
+        expect(day.byRatio[id]).toBe(0)
+      }
+    }
+  })
+
+  it('computes correct hours for a single-day event', () => {
+    const categories = makeCategories()
+    const event = makeEvent({
+      startTime: new Date(2026, 0, 15, 9, 0).getTime(), // 9:00
+      endTime: new Date(2026, 0, 15, 11, 0).getTime(),   // 11:00
+      categoryId: 'accent',
+    })
+    const days = computeYearDailyGrid([event], categories, 2026)
+    // Jan 15 = day index 14 (0-based)
+    expect(days[14].byCategory['accent']).toBeCloseTo(2, 1) // 2 hours
+    expect(days[14].byCategory['sage']).toBe(0)
+  })
+
+  it('computes correct ratio based on weekly budget', () => {
+    const categories = makeCategories()
+    // accent weeklyBudget = 20 → daily target = 20/7 ≈ 2.857h
+    // 2h event → ratio = 2 / 2.857 ≈ 0.7
+    const event = makeEvent({
+      startTime: new Date(2026, 0, 15, 9, 0).getTime(),
+      endTime: new Date(2026, 0, 15, 11, 0).getTime(),
+      categoryId: 'accent',
+    })
+    const days = computeYearDailyGrid([event], categories, 2026)
+    expect(days[14].byRatio['accent']).toBeCloseTo(2 / (20 / 7), 1)
+  })
+
+  it('handles zero weeklyBudget gracefully (ratio = 0)', () => {
+    const categories = makeCategories()
+    categories[0].weeklyBudget = 0
+    const event = makeEvent({
+      startTime: new Date(2026, 0, 15, 9, 0).getTime(),
+      endTime: new Date(2026, 0, 15, 11, 0).getTime(),
+      categoryId: 'accent',
+    })
+    const days = computeYearDailyGrid([event], categories, 2026)
+    expect(days[14].byRatio['accent']).toBe(0)
+  })
+
+  it('splits a cross-midnight event across two days', () => {
+    const categories = makeCategories()
+    const event = makeEvent({
+      startTime: new Date(2026, 0, 15, 22, 0).getTime(), // Jan 15, 22:00
+      endTime: new Date(2026, 0, 16, 2, 0).getTime(),     // Jan 16, 02:00
+      categoryId: 'accent',
+    })
+    const days = computeYearDailyGrid([event], categories, 2026)
+    // Jan 15 (index 14): 22:00–00:00 = 2h
+    expect(days[14].byCategory['accent']).toBeCloseTo(2, 1)
+    // Jan 16 (index 15): 00:00–02:00 = 2h
+    expect(days[15].byCategory['accent']).toBeCloseTo(2, 1)
+  })
+
+  it('filters events outside the year range', () => {
+    const categories = makeCategories()
+    const event = makeEvent({
+      startTime: new Date(2025, 11, 31, 9, 0).getTime(),
+      endTime: new Date(2025, 11, 31, 11, 0).getTime(),
+      categoryId: 'accent',
+    })
+    const days = computeYearDailyGrid([event], categories, 2026)
+    for (const day of days) {
+      expect(day.byCategory['accent']).toBe(0)
+    }
+  })
+
+  it('handles multiple categories on the same day', () => {
+    const categories = makeCategories()
+    const e1 = makeEvent({
+      startTime: new Date(2026, 0, 15, 9, 0).getTime(),
+      endTime: new Date(2026, 0, 15, 11, 0).getTime(),
+      categoryId: 'accent',
+    })
+    const e2 = makeEvent({
+      id: crypto.randomUUID(),
+      startTime: new Date(2026, 0, 15, 10, 0).getTime(),
+      endTime: new Date(2026, 0, 15, 12, 0).getTime(),
+      categoryId: 'sage',
+    })
+    const days = computeYearDailyGrid([e1, e2], categories, 2026)
+    expect(days[14].byCategory['accent']).toBeCloseTo(2, 1)
+    expect(days[14].byCategory['sage']).toBeCloseTo(2, 1)
+  })
+})
+
+// ── getIntensityLevel ────────────────────────────────────────
+
+describe('getIntensityLevel', () => {
+  it('returns 0 for ratio <= 0', () => {
+    expect(getIntensityLevel(0)).toBe(0)
+    expect(getIntensityLevel(-0.5)).toBe(0)
+  })
+
+  it('returns 1 for 0 < ratio < 0.5', () => {
+    expect(getIntensityLevel(0.01)).toBe(1)
+    expect(getIntensityLevel(0.49)).toBe(1)
+  })
+
+  it('returns 2 for 0.5 <= ratio < 1.0', () => {
+    expect(getIntensityLevel(0.5)).toBe(2)
+    expect(getIntensityLevel(0.99)).toBe(2)
+  })
+
+  it('returns 3 for 1.0 <= ratio < 1.5', () => {
+    expect(getIntensityLevel(1.0)).toBe(3)
+    expect(getIntensityLevel(1.49)).toBe(3)
+  })
+
+  it('returns 4 for ratio >= 1.5', () => {
+    expect(getIntensityLevel(1.5)).toBe(4)
+    expect(getIntensityLevel(2.0)).toBe(4)
+    expect(getIntensityLevel(10)).toBe(4)
+  })
+})
+
+// ── computeDailyStreak ───────────────────────────────────────
+
+describe('computeDailyStreak', () => {
+  function makeDaysWithStreak(data: Array<{ accent: number }>): DayCell[] {
+    const emptyDay = (): DayCell => {
+      const bc: Record<string, number> = {}
+      const br: Record<string, number> = {}
+      for (const id of CATEGORY_IDS) { bc[id] = 0; br[id] = 0 }
+      return { byCategory: bc as Record<CategoryId, number>, byRatio: br as Record<CategoryId, number> }
+    }
+    return data.map((d) => {
+      const day = emptyDay()
+      if (d.accent > 0) {
+        day.byCategory['accent'] = d.accent
+        day.byRatio['accent'] = d.accent / (20 / 7)
+      }
+      return day
+    })
+  }
+
+  it('returns streak count of consecutive non-zero days ending at today', () => {
+    // 10 days all with data, today is the 10th day
+    const jan1 = new Date(2026, 0, 1).getTime()
+    const now = jan1 + 9 * 24 * 60 * 60_000 + 12 * 60 * 60_000 // Jan 10, 12:00
+    const data = Array.from({ length: 10 }, () => ({ accent: 2 }))
+    const days = makeDaysWithStreak(data)
+    const streak = computeDailyStreak(days, 'accent', now)
+    expect(streak).toBe(10)
+  })
+
+  it('breaks streak at first zero day', () => {
+    const jan1 = new Date(2026, 0, 1).getTime()
+    const now = jan1 + 9 * 24 * 60 * 60_000 + 12 * 60 * 60_000 // Jan 10
+    const data = Array.from({ length: 10 }, (_, i) => ({ accent: i === 5 ? 0 : 2 })) // Jan 6 has zero
+    const days = makeDaysWithStreak(data)
+    const streak = computeDailyStreak(days, 'accent', now)
+    expect(streak).toBe(4) // Jan 10,9,8,7 = 4 days
+  })
+
+  it('returns 0 when today itself has zero hours', () => {
+    const jan1 = new Date(2026, 0, 1).getTime()
+    const now = jan1 + 9 * 24 * 60 * 60_000 + 12 * 60 * 60_000 // Jan 10
+    const data = Array.from({ length: 10 }, (_, i) => ({ accent: i === 9 ? 0 : 2 })) // today = zero
+    const days = makeDaysWithStreak(data)
+    const streak = computeDailyStreak(days, 'accent', now)
+    expect(streak).toBe(0)
+  })
+})
+
+// ── buildHeatmapGrid ─────────────────────────────────────────
+
+describe('buildHeatmapGrid', () => {
+  function emptyDay(): DayCell {
+    const bc: Record<string, number> = {}
+    const br: Record<string, number> = {}
+    for (const id of CATEGORY_IDS) { bc[id] = 0; br[id] = 0 }
+    return { byCategory: bc as Record<CategoryId, number>, byRatio: br as Record<CategoryId, number> }
+  }
+
+  function make365Days(): DayCell[] {
+    return Array.from({ length: 365 }, () => emptyDay())
+  }
+
+  it('returns a grid with 7 rows', () => {
+    const days = make365Days()
+    const now = new Date(2026, 6, 1).getTime()
+    const { grid } = buildHeatmapGrid(days, 'accent', 2026, now)
+    expect(grid).toHaveLength(7)
+  })
+
+  it('has 52 or 53 columns depending on year start day', () => {
+    const days = make365Days()
+    const now = new Date(2026, 6, 1).getTime()
+    const { grid, numWeeks } = buildHeatmapGrid(days, 'accent', 2026, now)
+    expect(numWeeks).toBeGreaterThanOrEqual(52)
+    expect(numWeeks).toBeLessThanOrEqual(53)
+    // All rows should have same length
+    for (let d = 0; d < 7; d++) {
+      expect(grid[d].length).toBeGreaterThanOrEqual(52)
+    }
+  })
+
+  it('marks future dates', () => {
+    const days = make365Days()
+    const now = new Date(2026, 0, 15).getTime() // Jan 15 — most of the year is future
+    const { grid } = buildHeatmapGrid(days, 'accent', 2026, now)
+    const allCells = grid.flat()
+    const futureCells = allCells.filter((c) => c.isFuture)
+    expect(futureCells.length).toBeGreaterThan(200)
+  })
+
+  it('produces month labels', () => {
+    const days = make365Days()
+    const now = new Date(2026, 6, 1).getTime()
+    const { monthLabels } = buildHeatmapGrid(days, 'accent', 2026, now)
+    expect(monthLabels.length).toBeGreaterThanOrEqual(12)
+    expect(monthLabels[0].colIndex).toBe(2) // first month label at column 2
+  })
+
+  it('cells reference correct dates within the year', () => {
+    const days = make365Days()
+    const now = new Date(2026, 6, 1).getTime()
+    const { grid } = buildHeatmapGrid(days, 'accent', 2026, now)
+    const allCells = grid.flat()
+    const year2026 = allCells.filter(
+      (c) => c.date.getFullYear() === 2026 && !c.isFuture,
+    )
+    // Should have Jan 1 through Jul 1 at minimum
+    expect(year2026.length).toBeGreaterThan(150)
+  })
+})
+
+// ── computeStats ─────────────────────────────────────────────
+
+describe('computeStats', () => {
+  function emptyDay(): DayCell {
+    const bc: Record<string, number> = {}
+    const br: Record<string, number> = {}
+    for (const id of CATEGORY_IDS) { bc[id] = 0; br[id] = 0 }
+    return { byCategory: bc as Record<CategoryId, number>, byRatio: br as Record<CategoryId, number> }
+  }
+
+  function dayWithHours(hours: number): DayCell {
+    const day = emptyDay()
+    day.byCategory['accent'] = hours
+    day.byRatio['accent'] = hours / (20 / 7)
+    return day
+  }
+
+  it('computes cumulative hours', () => {
+    const days = [dayWithHours(2), dayWithHours(3), dayWithHours(1)]
+    const now = new Date(2026, 0, 3, 12, 0).getTime()
+    const stats = computeStats(days, 'accent', now)
+    expect(stats.cumulative).toBeCloseTo(6, 1)
+  })
+
+  it('computes daily average over active days only', () => {
+    const days = [dayWithHours(2), emptyDay(), dayWithHours(4)]
+    const now = new Date(2026, 0, 3, 12, 0).getTime()
+    const stats = computeStats(days, 'accent', now)
+    expect(stats.dailyAvg).toBeCloseTo(3, 1) // 6h / 2 active days
+  })
+
+  it('finds best day', () => {
+    const days = [dayWithHours(2), dayWithHours(8), dayWithHours(1)]
+    const now = new Date(2026, 0, 3, 12, 0).getTime()
+    const stats = computeStats(days, 'accent', now)
+    expect(stats.bestDay).not.toBeNull()
+    expect(stats.bestDay!.hours).toBeCloseTo(8, 1)
+  })
+
+  it('returns null bestDay with no data', () => {
+    const days = [emptyDay(), emptyDay()]
+    const now = new Date(2026, 0, 2, 12, 0).getTime()
+    const stats = computeStats(days, 'accent', now)
+    expect(stats.bestDay).toBeNull()
+  })
+})
+
+// ── Component tests ──────────────────────────────────────────
+
+describe('YearHeatmap component', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 0, 15, 12, 0, 0))
+  })
+
+  it('renders without crashing with empty data', async () => {
+    const { YearHeatmap } = await import('../YearHeatmap')
+    const categories = makeCategories()
+    const { container } = render(
+      <YearHeatmap rangeEvents={[]} categories={categories} language="zh" />,
+    )
+    // Should render the year number
+    expect(container.textContent).toContain('2026')
+  })
+
+  it('renders the heatmap grid with cells', async () => {
+    const { YearHeatmap } = await import('../YearHeatmap')
+    const categories = makeCategories()
+    const event = makeEvent({
+      startTime: new Date(2026, 0, 1, 9, 0).getTime(),
+      endTime: new Date(2026, 0, 1, 10, 0).getTime(),
+      categoryId: 'accent',
+    })
+    const { container } = render(
+      <YearHeatmap rangeEvents={[event]} categories={categories} language="zh" />,
+    )
+    // Should have heatmap cells
+    const cells = container.querySelectorAll('.heatmap-cell')
+    expect(cells.length).toBeGreaterThan(300)
+  })
+
+  it('marks today cell', async () => {
+    const { YearHeatmap } = await import('../YearHeatmap')
+    const categories = makeCategories()
+    const event = makeEvent({
+      startTime: new Date(2026, 0, 15, 9, 0).getTime(),
+      endTime: new Date(2026, 0, 15, 10, 0).getTime(),
+      categoryId: 'accent',
+    })
+    const { container } = render(
+      <YearHeatmap rangeEvents={[event]} categories={categories} language="zh" />,
+    )
+    const todayCell = container.querySelector('.cell-today')
+    expect(todayCell).not.toBeNull()
+  })
+
+  it('renders all 6 category pills', async () => {
+    const { YearHeatmap } = await import('../YearHeatmap')
+    const categories = makeCategories()
+    const { container } = render(
+      <YearHeatmap rangeEvents={[]} categories={categories} language="zh" />,
+    )
+    const pills = container.querySelectorAll('.heatmap-pill')
+    expect(pills).toHaveLength(6)
+  })
+
+  it('switches active pill on click', async () => {
+    const { YearHeatmap } = await import('../YearHeatmap')
+    const categories = makeCategories()
+    const { container } = render(
+      <YearHeatmap rangeEvents={[]} categories={categories} language="zh" />,
+    )
+    const pills = container.querySelectorAll('.heatmap-pill')
+    // First pill (accent) should be active by default
+    expect(pills[0].classList.contains('heatmap-pill-active')).toBe(true)
+
+    // Click second pill (sage)
+    fireEvent.click(pills[1])
+    // The component re-renders — check that the pill now has active class
+    const updatedPills = container.querySelectorAll('.heatmap-pill')
+    expect(updatedPills[1].classList.contains('heatmap-pill-active')).toBe(true)
+  })
+})

@@ -74,6 +74,8 @@ export default {
         sans:  ['Inter', 'sans-serif'],
         serif: ['Source Serif 4', 'serif'],
         mono:  ['JetBrains Mono', 'monospace'],
+        'noto-sans':  ['Noto Sans SC', 'sans-serif'],
+        'noto-serif': ['Noto Serif SC', 'serif'],
       },
     },
   },

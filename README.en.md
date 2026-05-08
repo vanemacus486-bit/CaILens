@@ -12,7 +12,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **Status:** v3.5 — QuickLog: press `n` anywhere for fast event entry with time-chain auto-continuation, Alt+1..6 colour switching, collapsible details; 3-second undo snackbar; schema v7 adds endTime index.
+> **Status:** v3.6 — Yearly Heatmap. Full stats page redesign with Eastern editorial aesthetic (serif typography, earth tones, 1px rules); GitHub contribution graph-style yearly heatmap with 6-category switching; Noto fonts added; 346 tests.
 
 ## Downloads
 
@@ -125,10 +125,18 @@ Click the chart icon in the sidebar. A **segmented control at the top** switches
 - Horizontal dashed budget reference line.
 - Chart height adapts to the viewport.
 
-**Day Intensity Heatmap**
+**Day Intensity Heatmap** (one of the four left-side views)
 - 7 rows (Mon–Sun) × N columns grid, rows and columns distributed evenly via CSS grid fractions.
 - Cell colour intensity = "Core Focus" hours ÷ 24. Hover tooltip shows exact value.
 - Gradient legend below the grid; wide tables scroll horizontally.
+
+**Yearly Heatmap** (switch to "Heatmap" tab in the top bar)
+- GitHub contribution graph paradigm: ~53 columns × 7 rows CSS grid.
+- 6-category pill switcher — smooth colour transition via `--c-active` CSS variable.
+- Intensity formula: `daily target = weeklyBudget / 7`, 5 levels (0→22%→48%→75%→100%).
+- Cells scale 1.6× on hover with 1px black border; today gets a persistent black box-shadow.
+- Stats bar (Total / Daily Avg / Streak / Best Day) with pip visualisation for streaks.
+- Eastern editorial aesthetic: cream paper background, serif headings, monospace numbers, 1px rules.
 
 **Period selector:** Week / Month / Quarter / Year / All-time — shared across all 4 views.  
 **Data maturity:** Cold / Warming / Mature thresholds still gate analytics.
@@ -166,7 +174,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (315 tests)
+npm run test         # run unit tests once (346 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -184,8 +192,8 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 315 tests across 20 test files |
-| Fonts | Inter, Source Serif 4, JetBrains Mono | Fontsource, locally hosted |
+| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 346 tests across 21 test files |
+| Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC | Fontsource, locally hosted |
 | Icons | lucide-react | |
 
 ---

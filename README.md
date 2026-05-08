@@ -12,7 +12,7 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **状态：** v3.5 快速记录。全局 `n` 键快速记录对话框（从上一事件接续时间链、Alt+1..6 切换颜色、详情可折叠）；3 秒撤销 snackbar；endTime 索引迁移到 schema v7。
+> **状态：** v3.6 年度热力图。东方编辑风统计看板全面重设计（衬线标题、大地色系、1px 分割线）；GitHub 图例风格年度热力图，6 分类可切换；Noto 字体加入；346 个测试。
 
 ## 下载
 
@@ -125,10 +125,18 @@ CaILens 就是这个工具在浏览器里的一个尝试。
 - 水平虚线标记预算基准线。
 - 图表高度自适应视口。
 
-**日强度热力图**
+**日强度热力图**（左侧四图之一）
 - 7 行（周一至周日）× N 列网格，行列均分可用空间。
 - 每格颜色深浅 = 当日"主要矛盾" ÷ 24h，悬停显示具体数值。
 - 底部渐变图例，宽表自动水平滚屏。
+
+**年度热力图**（顶部 tab 切换至"热力图"视图）
+- GitHub 贡献图范式，53 列 × 7 行网格。
+- 6 分类 pill 切换器——点击切换时全局颜色平滑过渡（`--c-active` CSS 变量驱动）。
+- 强度算法：`每日目标 = weeklyBudget / 7`，5 级（0→22%→48%→75%→100% 纯色）。
+- 格子 hover 放大 1.6 倍 + 1px 黑色边框；今日格恒久黑色 box-shadow。
+- 统计栏（累计 / 日均 / 连续 / 最佳）含连续 Pip 可视化。
+- 东方编辑风：米纸底、衬线题字、等宽数字、1px 分割线。
 
 **周期选择：** 周 / 月 / 季 / 年 / 全部——所有 4 张图共用。  
 **数据成熟度：** Cold / Warming / Mature 三级仍然生效。
@@ -166,7 +174,7 @@ npm run dev
 npm run dev          # 启动开发服务器
 npm run build        # 类型检查 (tsc) + 生产构建 (vite)
 npm run preview      # 本地预览构建结果
-npm run test         # 跑一次单元测试（315 个测试）
+npm run test         # 跑一次单元测试（346 个测试）
 npm run test:watch   # 监听模式
 npm run lint         # 跑 ESLint
 ```
@@ -184,8 +192,8 @@ npm run lint         # 跑 ESLint
 | 存储 | IndexedDB（Dexie v4） | 本地优先，无后端 |
 | 图表 | Recharts 3 | 饼图、柱状图、面积图、折线图 |
 | 时间 | date-fns v4 | 不引入 dayjs / moment |
-| 测试 | Vitest 4 + React Testing Library + fake-indexeddb | 315 个测试，20 个测试文件 |
-| 字体 | Inter、Source Serif 4、JetBrains Mono | Fontsource 本地托管 |
+| 测试 | Vitest 4 + React Testing Library + fake-indexeddb | 346 个测试，21 个测试文件 |
+| 字体 | Inter、Source Serif 4、JetBrains Mono、Noto Serif SC、Noto Sans SC | Fontsource 本地托管 |
 | 图标 | lucide-react | |
 
 ---

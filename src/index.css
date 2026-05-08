@@ -5,6 +5,10 @@
 @import '@fontsource/source-serif-4/400-italic.css';
 @import '@fontsource/source-serif-4/600.css';
 @import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/noto-serif-sc/400.css';
+@import '@fontsource/noto-serif-sc/600.css';
+@import '@fontsource/noto-sans-sc/400.css';
+@import '@fontsource/noto-sans-sc/500.css';
 
 @import 'tailwindcss';
 @config '../tailwind.config.ts';
@@ -46,6 +50,9 @@
   --event-stone-bg:    #e6e2db;
   --event-stone-text:  #9a948e;
   --event-stone-fill:  #9a948e;
+
+  --bg-cell-empty: #E0D5BD;
+  --c-active: var(--event-accent-fill);
 
   --color-text-success:  #2D7D46;
   --color-text-danger:   #B53535;
@@ -111,6 +118,9 @@
   --event-stone-bg:    #37342f;
   --event-stone-text:  #a6a39c;
   --event-stone-fill:  #86837c;
+
+  --bg-cell-empty: #3a3834;
+  --c-active: var(--event-accent-fill);
 
   --color-text-success:  #5eaa74;
   --color-text-danger:   #d06464;

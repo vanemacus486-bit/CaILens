@@ -29,6 +29,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
   const [parseResult, setParseResult] = useState<ImportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedCat, setSelectedCat] = useState<CategoryId>('accent')
+  const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const categories = useCategoryStore((s) => s.categories)
@@ -44,6 +45,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
     setParseResult(null)
     setError(null)
     setSelectedCat('accent')
+    setIsDragOver(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -52,9 +54,11 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
     onOpenChange(next)
   }
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const processFile = (file: File) => {
+    if (!file.name.endsWith('.ics')) {
+      setError(t('请选择 .ics 文件', 'Please select a .ics file'))
+      return
+    }
     setFileName(file.name)
     setError(null)
 
@@ -66,15 +70,42 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
         setParseResult(parseIcs(text))
         setStatus('preview')
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Cannot parse file')
+        setError(err instanceof Error ? err.message : t('无法解析文件', 'Cannot parse file'))
         setStatus('idle')
       }
     }
     reader.onerror = () => {
-      setError('Cannot read file')
+      setError(t('无法读取文件', 'Cannot read file'))
       setStatus('idle')
     }
     reader.readAsText(file)
+  }
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    processFile(file)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    processFile(file)
   }
 
   const handleImport = async () => {
@@ -97,8 +128,12 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
         </AlertDialogHeader>
 
         <div className="flex flex-col gap-4">
-          {/* File picker */}
-          <div>
+          {/* File picker / drop zone */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <input
               ref={fileInputRef}
               type="file"
@@ -111,13 +146,16 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
               onClick={() => fileInputRef.current?.click()}
               className={cn(
                 'w-full flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed',
-                'border-border-subtle text-sm font-sans text-text-secondary',
-                'hover:text-text-primary hover:border-border-default',
-                'transition-colors duration-200 cursor-pointer',
+                'text-sm font-sans transition-colors duration-200 cursor-pointer',
+                isDragOver
+                  ? 'border-event-accent-text bg-event-accent-bg/10 text-event-accent-text'
+                  : 'border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-default',
               )}
             >
               <Upload className="h-4 w-4 flex-shrink-0" />
-              {fileName || t('选择 .ics 文件', 'Choose .ics file')}
+              {isDragOver
+                ? t('释放以导入', 'Drop to import')
+                : fileName || t('拖拽或选择 .ics 文件', 'Drag & drop or choose .ics file')}
             </button>
           </div>
 
