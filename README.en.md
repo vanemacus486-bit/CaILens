@@ -12,7 +12,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
 
-> **Status:** v3.6 — Yearly Heatmap. Full stats page redesign with Eastern editorial aesthetic (serif typography, earth tones, 1px rules); GitHub contribution graph-style yearly heatmap with 6-category switching; Noto fonts added; 346 tests.
+> **Status:** v3.7 — ICS Import Redesign. Event name aggregation (1369 rows → ~28 types); inline category buttons with 1-6 keyboard shortcuts; smart keyword suggestion with one-click apply; event coverage progress bar; per-instance override support. 354 tests.
 
 ## Downloads
 
@@ -36,7 +36,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
 - **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 315 tests, one-way dependency layers. The codebase should age well.
+- **Code quality over feature quantity.** Strict TypeScript, 354 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
@@ -144,7 +144,12 @@ Click the chart icon in the sidebar. A **segmented control at the top** switches
 ### ICS Import
 
 - **Parse RFC 5545 files** (via ical.js). All-day and recurring events are automatically skipped with counts shown.
-- **Keyword-based auto-classification** — each category has editable keywords organised in folders. On import, event titles are matched against all keywords (case-insensitive substring). First match wins.
+- **Event name aggregation** — events are instantly grouped by name (1369 rows → ~28 types). Each row shows the event name + occurrence count. Classifying one instance of "lunch" applies to all 487 events.
+- **Inline category buttons** — 6 colour-coded dot buttons per row (numbered 1-6). Click to assign, or press 1-6 on keyboard for rapid classification.
+- **Smart pre-fill suggestions** — keyword matching auto-guesses categories, shown with a dashed border + sparkle icon. **One-click "Apply N suggestions"** batch-accepts high-confidence matches.
+- **Event-coverage progress bar** — shows "743 / 1369 events covered" (event count, not type count). Classifying high-frequency items gives immediate progress feedback.
+- **Search filter** — event name search box to quickly narrow down 30+ types.
+- **Per-instance override** — expandable rows allow overriding individual events that share the same name but differ in category.
 - **Re-classify on keyword change** — updating keywords re-scans all existing events.
 
 ### Data
@@ -174,7 +179,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (346 tests)
+npm run test         # run unit tests once (354 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -192,7 +197,7 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 346 tests across 21 test files |
+| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 354 tests across 21 test files |
 | Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC | Fontsource, locally hosted |
 | Icons | lucide-react | |
 

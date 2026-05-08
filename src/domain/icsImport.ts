@@ -25,6 +25,14 @@ export interface ImportResult {
   skippedRecurringTitles: string[]
 }
 
+/** A group of imported events sharing the same title. */
+export interface EventNameGroup {
+  title: string
+  count: number
+  events: ImportedEvent[]
+  suggestedCategory: CategoryId | null
+}
+
 /**
  * Parses an .ics text string and returns normal events along with skip counts.
  *
@@ -122,4 +130,35 @@ export function classifyEvent(
     }
   }
   return null
+}
+
+/**
+ * Groups imported events by title, sorted by count descending (most frequent first).
+ * Computes keyword-match suggestion for each group.
+ */
+export function aggregateByName(
+  events: readonly ImportedEvent[],
+  categories: ReadonlyArray<{ id: CategoryId; folders: readonly { keywords: string[] }[] }>,
+): EventNameGroup[] {
+  const map = new Map<string, ImportedEvent[]>()
+  for (const e of events) {
+    const key = e.title || ''
+    const bucket = map.get(key)
+    if (bucket) bucket.push(e)
+    else map.set(key, [e])
+  }
+
+  const groups: EventNameGroup[] = []
+  for (const [title, bucket] of map) {
+    const suggestion = classifyEvent(title, categories)
+    groups.push({
+      title,
+      count: bucket.length,
+      events: bucket,
+      suggestedCategory: suggestion,
+    })
+  }
+
+  groups.sort((a, b) => b.count - a.count)
+  return groups
 }

@@ -20,7 +20,7 @@ interface EventState {
   deleteEvent: (id: string) => Promise<void>
   shiftCurrentWeek: (direction: -1 | 1) => Promise<void>
   importEvents: (icsText: string, categoryId: CategoryId) => Promise<ImportResult>
-  importParsedEvents: (parsedEvents: ImportedEvent[], categoryId: CategoryId) => Promise<void>
+  importParsedEvents: (parsedEvents: ImportedEvent[], resolveCategory: (event: ImportedEvent, index: number) => CategoryId) => Promise<void>
   reclassifyAllEvents: () => Promise<void>
 }
 
@@ -141,14 +141,11 @@ export const useEventStore = create<EventState>()((set, get) => ({
     return result
   },
 
-  importParsedEvents: async (parsedEvents, categoryId) => {
+  importParsedEvents: async (parsedEvents, resolveCategory) => {
     if (parsedEvents.length === 0) return
 
-    const { categories } = useCategoryStore.getState()
-
-    const inputs: CreateEventInput[] = parsedEvents.map((e) => {
-      const matched = classifyEvent(e.title, categories)
-      const catId = matched ?? categoryId
+    const inputs: CreateEventInput[] = parsedEvents.map((e, i) => {
+      const catId = resolveCategory(e, i)
       return {
         title: e.title,
         startTime: e.startTime,

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { parseIcs, classifyEvent } from '../icsImport'
+import { parseIcs, classifyEvent, aggregateByName } from '../icsImport'
 import type { CategoryId } from '../category'
+import type { ImportedEvent } from '../icsImport'
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -303,5 +304,93 @@ describe('classifyEvent', () => {
   it('skips empty-string keywords', () => {
     const cat: CategoryStub = { id: 'accent', folders: [{ keywords: ['', '  ', 'real'] }] }
     expect(classifyEvent('real deal', [cat])).toBe('accent')
+  })
+})
+
+// ── aggregateByName ────────────────────────────────────────
+
+function makeEvents(titles: string[]): ImportedEvent[] {
+  return titles.map((title, i) => ({
+    title,
+    startTime: Date.UTC(2026, 3, 1, 10, 0, 0) + i * 3_600_000, // stagger by 1h
+    endTime: Date.UTC(2026, 3, 1, 11, 0, 0) + i * 3_600_000,
+  }))
+}
+
+describe('aggregateByName', () => {
+  it('groups events by title', () => {
+    const events = makeEvents(['吃饭', '吃饭', 'coding', '吃饭', 'coding', 'coding'])
+    const result = aggregateByName(events, allCategories)
+    expect(result).toHaveLength(2)
+    // Sorted by count desc: 吃饭(3) > coding(3) — first occurred wins tie? Actually sorting is descending by count, ties undefined.
+    expect(result[0].title).toBe('吃饭')
+    expect(result[0].count).toBe(3)
+    expect(result[1].title).toBe('coding')
+    expect(result[1].count).toBe(3)
+  })
+
+  it('sorts by count descending', () => {
+    const events = makeEvents([
+      'rare', 'common', 'common', 'common', 'medium', 'medium',
+    ])
+    const result = aggregateByName(events, allCategories)
+    expect(result.map((g) => g.count)).toEqual([3, 2, 1])
+  })
+
+  it('returns single group when all events have same title', () => {
+    const events = makeEvents(['same', 'same', 'same'])
+    const result = aggregateByName(events, allCategories)
+    expect(result).toHaveLength(1)
+    expect(result[0].title).toBe('same')
+    expect(result[0].count).toBe(3)
+  })
+
+  it('returns one group per unique title', () => {
+    const events = makeEvents(['a', 'b', 'c', 'd'])
+    const result = aggregateByName(events, allCategories)
+    expect(result).toHaveLength(4)
+    for (const g of result) expect(g.count).toBe(1)
+  })
+
+  it('handles empty titles — grouped under empty string', () => {
+    const events = makeEvents(['', '', 'has title'])
+    const result = aggregateByName(events, allCategories)
+    expect(result).toHaveLength(2)
+    const emptyGroup = result.find((g) => g.title === '')
+    expect(emptyGroup).toBeDefined()
+    expect(emptyGroup!.count).toBe(2)
+    expect(emptyGroup!.suggestedCategory).toBeNull() // empty title → no suggestion
+  })
+
+  it('computes keyword-based suggestions for each group', () => {
+    const events = makeEvents(['Weekly Meeting', 'lunch break', 'study math', 'random stuff', 'read book'])
+    const result = aggregateByName(events, allCategories)
+
+    const meeting = result.find((g) => g.title === 'Weekly Meeting')!
+    expect(meeting.suggestedCategory).toBe('accent')
+
+    const lunch = result.find((g) => g.title === 'lunch break')!
+    expect(lunch.suggestedCategory).toBe('rose')
+
+    const study = result.find((g) => g.title === 'study math')!
+    expect(study.suggestedCategory).toBe('sky')
+
+    const random = result.find((g) => g.title === 'random stuff')!
+    expect(random.suggestedCategory).toBeNull()
+  })
+
+  it('returns empty array for empty input', () => {
+    const result = aggregateByName([], allCategories)
+    expect(result).toEqual([])
+  })
+
+  it('preserves all events in the group for expansion/overrides', () => {
+    const events = makeEvents(['meeting', 'meeting', 'meeting'])
+    const result = aggregateByName(events, allCategories)
+    expect(result[0].events).toHaveLength(3)
+    // Events are the same objects
+    expect(result[0].events[0]).toBe(events[0])
+    expect(result[0].events[1]).toBe(events[1])
+    expect(result[0].events[2]).toBe(events[2])
   })
 })
