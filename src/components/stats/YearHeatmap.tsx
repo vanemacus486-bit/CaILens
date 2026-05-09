@@ -97,7 +97,7 @@ export function buildHeatmapGrid(
   selectedId: CategoryId,
   year: number,
   now: number,
-): { grid: HeatmapCell[][]; monthLabels: MonthLabel[]; numWeeks: number } {
+): { grid: (HeatmapCell | null)[][]; monthLabels: MonthLabel[]; numWeeks: number } {
   const jan1 = new Date(year, 0, 1)
   const jan1Dow = jan1.getDay() // 0=Sun
   // Monday = row 0: offset makes firstMonday the Monday of the week containing Jan 1
@@ -130,8 +130,10 @@ export function buildHeatmapGrid(
     }
   }
 
-  // Build grid: 7 rows × numWeeks columns
-  const grid: HeatmapCell[][] = Array.from({ length: 7 }, () => [])
+  // Build grid: 7 rows × numWeeks columns (full matrix, null = outside year)
+  const grid: (HeatmapCell | null)[][] = Array.from({ length: 7 }, () =>
+    Array.from({ length: numWeeks }, () => null),
+  )
 
   for (let w = 0; w < numWeeks; w++) {
     for (let d = 0; d < 7; d++) {
@@ -141,19 +143,15 @@ export function buildHeatmapGrid(
       const jan1Ts = jan1.getTime()
       const dayIndex = Math.floor((dayTs - jan1Ts) / DAY_MS)
 
-      if (dayIndex < 0 || dayIndex >= numDays) {
-        // Outside the year — skip (grid cell left empty)
-        continue
-      }
+      if (dayIndex < 0 || dayIndex >= numDays) continue
 
-      const cell: HeatmapCell = {
+      grid[d][w] = {
         date: dayDate,
         ratio: days[dayIndex].byRatio[selectedId],
         hours: days[dayIndex].byCategory[selectedId],
         isFuture: dayTs > now,
         isToday: dayTs >= now && dayTs < now + DAY_MS && dayDate.getFullYear() === new Date(now).getFullYear(),
       }
-      grid[d].push(cell)
     }
   }
 
@@ -332,21 +330,32 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
       )
     }
 
-    // Data cells
+    // Data cells — use inline styles + inner span for color (avoids CSS variable cross-stylesheet issues in WebView2)
     for (let dow = 0; dow < 7; dow++) {
-      const row = grid[dow]
-      for (let col = 0; col < row.length; col++) {
-        const cell = row[col]
+      for (let w = 0; w < numWeeks; w++) {
+        const cell = grid[dow][w]
+        if (!cell) continue
         const level = getIntensityLevel(cell.ratio)
 
         items.push(
           <div
-            key={`c-${dow}-${col}`}
-            className={`heatmap-cell l${level}${cell.isToday ? ' cell-today' : ''}${cell.isFuture ? ' cell-future' : ''}`}
-            style={{ gridColumn: col + 2, gridRow: dow + 2 }}
+            key={`c-${dow}-${w}`}
+            className={`heatmap-cell${cell.isToday ? ' cell-today' : ''}${cell.isFuture ? ' cell-future' : ''}`}
+            style={{
+              gridColumn: w + 2,
+              gridRow: dow + 2,
+              backgroundColor: 'var(--bg-cell-empty)',
+            }}
             onPointerEnter={(e) => handlePointerEnter(cell, e)}
             onPointerLeave={handlePointerLeave}
-          />,
+          >
+            {level > 0 && (
+              <span
+                className="heatmap-cell-fill"
+                style={{ opacity: [0, 0.22, 0.48, 0.75, 1][level] }}
+              />
+            )}
+          </div>,
         )
       }
     }
@@ -461,11 +470,12 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
       {/* ── Legend ──────────────────────────────────────────── */}
       <div className="heatmap-legend">
         <span>{t('更少', 'Less')}</span>
-        <div className="l0 heatmap-legend-swatch" />
-        <div className="l1 heatmap-legend-swatch" />
-        <div className="l2 heatmap-legend-swatch" />
-        <div className="l3 heatmap-legend-swatch" />
-        <div className="l4 heatmap-legend-swatch" />
+        <div className="heatmap-legend-swatch" style={{ backgroundColor: 'var(--bg-cell-empty)' }} />
+        {[0.22, 0.48, 0.75, 1].map((opacity) => (
+          <div key={opacity} className="heatmap-legend-swatch" style={{ backgroundColor: 'var(--bg-cell-empty)' }}>
+            <span className="heatmap-cell-fill" style={{ opacity }} />
+          </div>
+        ))}
         <span>{t('更多', 'More')}</span>
       </div>
 
@@ -741,25 +751,25 @@ const HEATMAP_CSS = `
   border-radius: 2px;
   transition: transform 120ms ease-out;
   cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.heatmap-cell-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--c-active);
+  pointer-events: none;
 }
 .heatmap-cell:hover {
   transform: scale(1.6);
   z-index: 2;
-  position: relative;
   box-shadow: 0 0 0 1px #000, 0 2px 6px rgba(0,0,0,0.15);
 }
-
-/* Intensity levels — same class names for legend reuse */
-.l0 { background-color: var(--bg-cell-empty); }
-.l1 { background-color: color-mix(in oklab, var(--c-active) 22%, var(--bg-cell-empty)); }
-.l2 { background-color: color-mix(in oklab, var(--c-active) 48%, var(--bg-cell-empty)); }
-.l3 { background-color: color-mix(in oklab, var(--c-active) 75%, var(--bg-cell-empty)); }
-.l4 { background-color: var(--c-active); }
 
 .cell-today {
   box-shadow: 0 0 0 1.5px #000;
   z-index: 1;
-  position: relative;
 }
 .cell-today:hover {
   box-shadow: 0 0 0 1.5px #000, 0 2px 6px rgba(0,0,0,0.15);
@@ -768,6 +778,9 @@ const HEATMAP_CSS = `
 .cell-future {
   background: transparent !important;
   pointer-events: none;
+}
+.cell-future .heatmap-cell-fill {
+  display: none;
 }
 .cell-future:hover {
   transform: none;
@@ -789,6 +802,15 @@ const HEATMAP_CSS = `
   width: 13px;
   height: 13px;
   border-radius: 2px;
+  background-color: var(--bg-cell-empty);
+  position: relative;
+}
+.heatmap-legend-swatch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--c-active);
 }
 
 /* ── Stats bar ────────────────────────────── */

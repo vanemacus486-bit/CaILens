@@ -9,30 +9,15 @@ export async function getAdapter(): Promise<StorageAdapter> {
 
   if (isTauri()) {
     const { FileSystemAdapter } = await import('./adapters/FileSystemAdapter')
-    _adapter = new FileSystemAdapter()
-    await _adapter.initialize()
+    const fsAdapter = new FileSystemAdapter()
+    await fsAdapter.initialize()
 
-    // First run: no storage path configured — show native folder picker
-    if (!_adapter.storagePath) {
-      try {
-        const { open } = await import('@tauri-apps/plugin-dialog')
-        const selected = await open({
-          directory: true,
-          multiple: false,
-          title: 'Select Storage Folder',
-        })
-        if (selected) {
-          const path = Array.isArray(selected) ? selected[0] : selected
-          if (path) {
-            const fs = _adapter as any
-            fs.setRootPath(path)
-            await fs.fullScan()
-            await fs.persistConfig()
-          }
-        }
-      } catch {
-        // Dialog unavailable — user can set folder later from Settings
-      }
+    if (fsAdapter.storagePath) {
+      _adapter = fsAdapter
+    } else {
+      // No file-system storage configured — fall back to IndexedDB
+      _adapter = indexedDBAdapter
+      await _adapter.initialize()
     }
   } else {
     _adapter = indexedDBAdapter

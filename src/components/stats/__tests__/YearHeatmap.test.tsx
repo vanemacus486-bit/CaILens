@@ -264,7 +264,7 @@ describe('buildHeatmapGrid', () => {
     const days = make365Days()
     const now = new Date(2026, 0, 15).getTime() // Jan 15 — most of the year is future
     const { grid } = buildHeatmapGrid(days, 'accent', 2026, now)
-    const allCells = grid.flat()
+    const allCells = grid.flat().filter((c): c is NonNullable<typeof c> => c !== null)
     const futureCells = allCells.filter((c) => c.isFuture)
     expect(futureCells.length).toBeGreaterThan(200)
   })
@@ -281,7 +281,7 @@ describe('buildHeatmapGrid', () => {
     const days = make365Days()
     const now = new Date(2026, 6, 1).getTime()
     const { grid } = buildHeatmapGrid(days, 'accent', 2026, now)
-    const allCells = grid.flat()
+    const allCells = grid.flat().filter((c): c is NonNullable<typeof c> => c !== null)
     const year2026 = allCells.filter(
       (c) => c.date.getFullYear() === 2026 && !c.isFuture,
     )
