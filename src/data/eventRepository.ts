@@ -1,6 +1,6 @@
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
-import { type CailensDB, db as defaultDb } from './db'
+import type { StorageAdapter } from './adapters/StorageAdapter'
 
 export interface Clock {
   now(): number
@@ -11,31 +11,30 @@ export interface IdGenerator {
 }
 
 export class EventRepository {
-  private db: CailensDB
+  private adapter: StorageAdapter
   private clock: Clock
   private idGen: IdGenerator
 
   constructor(
-    db: CailensDB,
+    adapter: StorageAdapter,
     clock: Clock = { now: () => Date.now() },
     idGen: IdGenerator = { generate: () => crypto.randomUUID() },
   ) {
-    this.db    = db
-    this.clock = clock
-    this.idGen = idGen
+    this.adapter = adapter
+    this.clock   = clock
+    this.idGen   = idGen
   }
 
   async getByTimeRange(start: number, end: number): Promise<CalendarEvent[]> {
-    const results = await this.db.events
-      .where('startTime')
-      .below(end)
-      .and((e) => e.endTime > start)
-      .toArray()
+    const results = await this.adapter.events.query({
+      where: { key: 'startTime', op: 'below', value: end },
+      filter: (e) => e.endTime > start,
+    })
     return results.sort((a, b) => a.startTime - b.startTime)
   }
 
   async getById(id: string): Promise<CalendarEvent | undefined> {
-    return this.db.events.get(id)
+    return this.adapter.events.get(id)
   }
 
   async create(input: CreateEventInput): Promise<CalendarEvent> {
@@ -46,12 +45,12 @@ export class EventRepository {
       createdAt: now,
       updatedAt: now,
     }
-    await this.db.events.add(event)
+    await this.adapter.events.put(event)
     return event
   }
 
   async update(input: UpdateEventInput): Promise<CalendarEvent> {
-    const existing = await this.db.events.get(input.id)
+    const existing = await this.adapter.events.get(input.id)
     if (existing === undefined) {
       throw new Error(`Event not found: ${input.id}`)
     }
@@ -62,12 +61,12 @@ export class EventRepository {
       createdAt: existing.createdAt,
       updatedAt: this.clock.now(),
     }
-    await this.db.events.put(updated)
+    await this.adapter.events.put(updated)
     return updated
   }
 
   async delete(id: string): Promise<void> {
-    await this.db.events.delete(id)
+    await this.adapter.events.delete(id)
   }
 
   async bulkCreate(inputs: CreateEventInput[]): Promise<CalendarEvent[]> {
@@ -79,41 +78,41 @@ export class EventRepository {
       createdAt: now,
       updatedAt: now,
     }))
-    await this.db.events.bulkAdd(events)
+    await this.adapter.events.bulkPut(events)
     return events
   }
 
   async bulkUpdateTimes(updates: { id: string; startTime: number; endTime: number }[]): Promise<void> {
     if (updates.length === 0) return
     const now = this.clock.now()
-    await this.db.transaction('rw', this.db.events, async () => {
+    await this.adapter.events.transaction('rw', async () => {
       const ids = updates.map((u) => u.id)
-      const existing = await this.db.events.bulkGet(ids)
+      const existing = await this.adapter.events.bulkGet(ids)
       const patched = existing.flatMap((e, i) => {
         if (e === undefined) return []
         return [{ ...e, startTime: updates[i].startTime, endTime: updates[i].endTime, updatedAt: now }]
       })
-      await this.db.events.bulkPut(patched)
+      await this.adapter.events.bulkPut(patched)
     })
   }
 
   async getAll(): Promise<CalendarEvent[]> {
-    return this.db.events.toArray()
+    return this.adapter.events.getAll()
   }
 
   async search(query: string, limit = 50): Promise<CalendarEvent[]> {
     const q = query.trim().toLowerCase()
     if (!q) return []
 
-    const results = await this.db.events
-      .filter((e) => {
+    const results = await this.adapter.events.query({
+      filter: (e) => {
         if (e.title.toLowerCase().includes(q)) return true
         if (e.description && e.description.toLowerCase().includes(q)) return true
         if (e.location && e.location.toLowerCase().includes(q)) return true
         return false
-      })
-      .limit(limit)
-      .toArray()
+      },
+      limit,
+    })
 
     return results.sort((a, b) => b.startTime - a.startTime)
   }
@@ -123,21 +122,23 @@ export class EventRepository {
   ): Promise<void> {
     if (updates.length === 0) return
     const now = this.clock.now()
-    await this.db.transaction('rw', this.db.events, async () => {
+    await this.adapter.events.transaction('rw', async () => {
       const ids = updates.map((u) => u.id)
-      const existing = await this.db.events.bulkGet(ids)
+      const existing = await this.adapter.events.bulkGet(ids)
       const patched = existing.flatMap((e, i) => {
         if (e === undefined) return []
         return { ...e, color: updates[i].color, categoryId: updates[i].categoryId, updatedAt: now }
       })
-      await this.db.events.bulkPut(patched)
+      await this.adapter.events.bulkPut(patched)
     })
   }
 
   async getLatest(): Promise<CalendarEvent | null> {
-    const ev = await this.db.events.orderBy('endTime').reverse().first()
-    return ev ?? null
+    const results = await this.adapter.events.query({
+      orderBy: 'endTime',
+      orderDir: 'desc',
+      limit: 1,
+    })
+    return results[0] ?? null
   }
 }
-
-export const eventRepository = new EventRepository(defaultDb)

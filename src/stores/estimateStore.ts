@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { estimateRepository } from '@/data/estimateRepository'
+import { getEstimateRepo } from '@/data/getRepositories'
 import type { WeeklyEstimate } from '@/domain/estimate'
 import type { CategoryId } from '@/domain/category'
 
@@ -15,12 +15,12 @@ export const useEstimateStore = create<EstimateState>()((set) => ({
   isLoaded: false,
 
   loadEstimates: async (weekStart) => {
-    const estimates = await estimateRepository.getByWeek(weekStart)
+    const estimates = await getEstimateRepo().getByWeek(weekStart)
     set({ estimates, isLoaded: true })
   },
 
   saveEstimate: async (weekStart, categoryId, estimatedHours) => {
-    const updated = await estimateRepository.upsert(weekStart, categoryId, estimatedHours)
+    const updated = await getEstimateRepo().upsert(weekStart, categoryId, estimatedHours)
     set((state) => {
       const idx = state.estimates.findIndex((e) => e.id === updated.id)
       if (idx >= 0) {

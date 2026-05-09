@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { categoryRepository } from '@/data/categoryRepository'
+import { getCategoryRepo } from '@/data/getRepositories'
 import type { Category, CategoryId, CategoryName, KeywordFolder } from '@/domain/category'
 
 interface CategoryState {
@@ -16,26 +16,26 @@ export const useCategoryStore = create<CategoryState>()((set) => ({
   isLoaded:   false,
 
   loadCategories: async () => {
-    const categories = await categoryRepository.getAll()
+    const categories = await getCategoryRepo().getAll()
     set({ categories, isLoaded: true })
   },
 
   updateCategoryName: async (id, name) => {
-    const updated = await categoryRepository.updateName(id, name)
+    const updated = await getCategoryRepo().updateName(id, name)
     set((state) => ({
       categories: state.categories.map((c) => (c.id === id ? updated : c)),
     }))
   },
 
   updateCategoryFolders: async (id, folders) => {
-    const updated = await categoryRepository.updateFolders(id, folders)
+    const updated = await getCategoryRepo().updateFolders(id, folders)
     set((state) => ({
       categories: state.categories.map((c) => (c.id === id ? updated : c)),
     }))
   },
 
   updateCategoryBudget: async (id, weeklyBudget) => {
-    const updated = await categoryRepository.updateBudget(id, weeklyBudget)
+    const updated = await getCategoryRepo().updateBudget(id, weeklyBudget)
     set((state) => ({
       categories: state.categories.map((c) => (c.id === id ? updated : c)),
     }))

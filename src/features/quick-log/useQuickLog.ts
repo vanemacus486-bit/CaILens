@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import type { EventColor, CreateEventInput } from '@/domain/event'
 import { deriveDefaultTimes, deriveDefaultColor } from '@/domain/quickLog'
 import type { DefaultTimes } from '@/domain/quickLog'
-import { eventRepository } from '@/data/eventRepository'
+import { getEventRepo } from '@/data/getRepositories'
 import { useEventStore } from '@/stores/eventStore'
 import { showUndoSnackbar } from '@/components/ui/snackbar'
 
@@ -14,7 +14,7 @@ export function useQuickLog() {
   } | null>(null)
 
   const openDialog = useCallback(async () => {
-    const last = await eventRepository.getLatest()
+    const last = await getEventRepo().getLatest()
     setDefaults({
       times: deriveDefaultTimes(last),
       color: deriveDefaultColor(last),

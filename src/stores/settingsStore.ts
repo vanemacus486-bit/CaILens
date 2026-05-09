@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { settingsRepository } from '@/data/settingsRepository'
+import { getSettingsRepo } from '@/data/getRepositories'
 import type { AppSettings, AppLanguage, AppTheme } from '@/domain/settings'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import type { AccentPreset } from '@/domain/themes'
@@ -33,7 +33,7 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
   isLoaded: false,
 
   loadSettings: async () => {
-    let settings = await settingsRepository.get()
+    let settings = await getSettingsRepo().get()
     const storedTheme = localStorage.getItem(THEME_KEY) as AppTheme | null
 
     // Two cases where the DB theme isn't the source of truth:
@@ -45,7 +45,7 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
 
     if (!dbHasTheme || initialMismatch) {
       const theme = storedTheme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      settings = await settingsRepository.update({ theme })
+      settings = await getSettingsRepo().update({ theme })
     }
 
     const theme = settings.theme ?? 'light' as AppTheme
@@ -56,7 +56,7 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const storedAccent = localStorage.getItem(ACCENT_KEY) as AccentPreset | null
     if (!settings.accentColor || (storedAccent && settings.accentColor !== storedAccent)) {
       const accent = storedAccent ?? 'rust'
-      settings = await settingsRepository.update({ accentColor: accent })
+      settings = await getSettingsRepo().update({ accentColor: accent })
     }
     const accent = settings.accentColor ?? 'rust'
     localStorage.setItem(ACCENT_KEY, accent)
@@ -66,19 +66,19 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
   },
 
   setLanguage: async (lang) => {
-    const settings = await settingsRepository.update({ language: lang })
+    const settings = await getSettingsRepo().update({ language: lang })
     set({ settings })
   },
 
   setTheme: async (theme) => {
-    const settings = await settingsRepository.update({ theme })
+    const settings = await getSettingsRepo().update({ theme })
     localStorage.setItem(THEME_KEY, theme)
     applyTheme(theme)
     set({ settings })
   },
 
   setAccentColor: async (accent) => {
-    const settings = await settingsRepository.update({ accentColor: accent })
+    const settings = await getSettingsRepo().update({ accentColor: accent })
     localStorage.setItem(ACCENT_KEY, accent)
     applyAccent(accent)
     set({ settings })

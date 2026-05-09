@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { CailensDB } from '../db'
 import { EventRepository } from '../eventRepository'
+import { IndexedDBAdapter } from '../adapters/IndexedDBAdapter'
 import type { CreateEventInput } from '@/domain/event'
 
 // Each test gets an isolated in-memory DB via fake-indexeddb.
 // We open a fresh CailensDB instance per suite so IndexedDB names don't collide.
 let db: CailensDB
+let adapter: IndexedDBAdapter
 let repo: EventRepository
 
 const FIXED_NOW = 1_000_000
@@ -26,7 +28,8 @@ function makeInput(overrides: Partial<CreateEventInput> = {}): CreateEventInput 
 
 beforeEach(async () => {
   db = new CailensDB(`cailens-test-${Math.random()}`)
-  repo = new EventRepository(db, fixedClock, fixedIdGen)
+  adapter = new IndexedDBAdapter(db)
+  repo = new EventRepository(adapter, fixedClock, fixedIdGen)
 })
 
 // ── create ────────────────────────────────────────────────
@@ -47,7 +50,7 @@ describe('create', () => {
   it('uses the injected Clock and IdGenerator', async () => {
     const customClock = { now: () => 9999 }
     const customIdGen = { generate: () => 'custom-id' }
-    const customRepo = new EventRepository(db, customClock, customIdGen)
+    const customRepo = new EventRepository(adapter, customClock, customIdGen)
 
     const result = await customRepo.create(makeInput())
 
@@ -70,7 +73,7 @@ describe('bulkCreate', () => {
   it('creates multiple events with generated ids and timestamps', async () => {
     let counter = 0
     const idGen = { generate: () => `id-${++counter}` }
-    const bulkRepo = new EventRepository(db, fixedClock, idGen)
+    const bulkRepo = new EventRepository(adapter, fixedClock, idGen)
 
     const inputs = [
       makeInput({ title: 'A', startTime: 1000, endTime: 1100 }),
@@ -96,7 +99,7 @@ describe('bulkCreate', () => {
   it('persists all events to the database', async () => {
     let counter = 0
     const idGen = { generate: () => `persist-${++counter}` }
-    const bulkRepo = new EventRepository(db, fixedClock, idGen)
+    const bulkRepo = new EventRepository(adapter, fixedClock, idGen)
 
     const inputs = [
       makeInput({ title: 'Persist A' }),
@@ -114,7 +117,7 @@ describe('bulkCreate', () => {
     let counter = 0
     const customClock = { now: () => 9999 }
     const customIdGen = { generate: () => `cust-${++counter}` }
-    const customRepo = new EventRepository(db, customClock, customIdGen)
+    const customRepo = new EventRepository(adapter, customClock, customIdGen)
 
     const inputs = [
       makeInput({ title: 'X' }),
@@ -223,7 +226,7 @@ describe('update', () => {
     await repo.create(makeInput({ title: 'Original' }))
 
     const laterClock = { now: () => FIXED_NOW + 500 }
-    const updateRepo = new EventRepository(db, laterClock, fixedIdGen)
+    const updateRepo = new EventRepository(adapter, laterClock, fixedIdGen)
 
     const result = await updateRepo.update({ id: FIXED_UUID, title: 'Updated' })
 

@@ -1,6 +1,6 @@
 import { addDays } from 'date-fns'
 import { create } from 'zustand'
-import { eventRepository } from '@/data/eventRepository'
+import { getEventRepo } from '@/data/getRepositories'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput } from '@/domain/event'
 import { type CategoryId, addKeywordIfValid } from '@/domain/category'
 import { parseIcs, classifyEvent } from '@/domain/icsImport'
@@ -35,7 +35,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     try {
       const start = getDayStart(weekStart)
       const end   = getDayStart(addDays(weekStart, 7))  // exclusive: start of next Monday
-      const events = await eventRepository.getByTimeRange(start, end)
+      const events = await getEventRepo().getByTimeRange(start, end)
       set({ events, isLoading: false })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load events'
@@ -46,7 +46,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
   loadRange: async (start, end) => {
     set({ isLoading: true, loadError: null })
     try {
-      const rangeEvents = await eventRepository.getByTimeRange(start, end)
+      const rangeEvents = await getEventRepo().getByTimeRange(start, end)
       set({ rangeEvents, isLoading: false })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load events'
@@ -55,7 +55,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
   },
 
   createEvent: async (input) => {
-    const event = await eventRepository.create(input)
+    const event = await getEventRepo().create(input)
     set((state) => ({ events: [...state.events, event] }))
 
     // Auto-add event title as keyword to the first folder → reclassify
@@ -78,7 +78,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
   updateEvent: async (input) => {
     const prevEvent = get().events.find((e) => e.id === input.id)
-    const event = await eventRepository.update(input)
+    const event = await getEventRepo().update(input)
     set((state) => ({
       events: state.events.map((e) => (e.id === event.id ? event : e)),
     }))
@@ -103,7 +103,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
   },
 
   deleteEvent: async (id) => {
-    await eventRepository.delete(id)
+    await getEventRepo().delete(id)
     set((state) => ({ events: state.events.filter((e) => e.id !== id) }))
   },
 
@@ -112,7 +112,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     if (events.length === 0) return
     const shifted = shiftEventsByWeeks(events, direction)
     const updates = shifted.map((e) => ({ id: e.id, startTime: e.startTime, endTime: e.endTime }))
-    await eventRepository.bulkUpdateTimes(updates)
+    await getEventRepo().bulkUpdateTimes(updates)
     set({ events: shifted })
   },
 
@@ -136,7 +136,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
       }
     })
 
-    const created = await eventRepository.bulkCreate(inputs)
+    const created = await getEventRepo().bulkCreate(inputs)
     set((state) => ({ events: [...state.events, ...created] }))
     return result
   },
@@ -157,12 +157,12 @@ export const useEventStore = create<EventState>()((set, get) => ({
       }
     })
 
-    const created = await eventRepository.bulkCreate(inputs)
+    const created = await getEventRepo().bulkCreate(inputs)
     set((state) => ({ events: [...state.events, ...created] }))
   },
 
   reclassifyAllEvents: async () => {
-    const allEvents = await eventRepository.getAll()
+    const allEvents = await getEventRepo().getAll()
     if (allEvents.length === 0) return
 
     const { categories } = useCategoryStore.getState()
@@ -177,7 +177,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
     if (updates.length === 0) return
 
-    await eventRepository.bulkUpdateCategories(updates)
+    await getEventRepo().bulkUpdateCategories(updates)
 
     set((state) => ({
       events: state.events.map((e) => {

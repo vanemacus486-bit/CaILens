@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { eventRepository } from '@/data/eventRepository'
+import { getEventRepo } from '@/data/getRepositories'
 
 interface ExportSectionProps {
   language: 'zh' | 'en'
@@ -15,7 +15,7 @@ export function ExportSection({ language }: ExportSectionProps) {
 
     // Load all events from DB
     const now = Date.now()
-    const events = await eventRepository.getByTimeRange(0, now)
+    const events = await getEventRepo().getByTimeRange(0, now)
     events.sort((a, b) => a.startTime - b.startTime)
 
     let content: string

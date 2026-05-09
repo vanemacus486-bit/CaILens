@@ -4,7 +4,7 @@ import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatISODate, formatMonthDay, formatWeekday, getWeekStart } from '@/domain/time'
 import type { CalendarEvent } from '@/domain/event'
-import { eventRepository } from '@/data/eventRepository'
+import { getEventRepo } from '@/data/getRepositories'
 import { useUIStore } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 
@@ -56,7 +56,7 @@ export function SearchDialog() {
     }
     setStatus('loading')
     try {
-      const found = await eventRepository.search(trimmed)
+      const found = await getEventRepo().search(trimmed)
       setResults(found)
       setStatus(found.length === 0 ? 'empty' : 'idle')
     } catch {

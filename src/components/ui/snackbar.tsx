@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { eventRepository } from '@/data/eventRepository'
+import { getEventRepo } from '@/data/getRepositories'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 
 type Listener = (eventId: string) => void
@@ -32,7 +32,7 @@ export function SnackbarHost() {
   const undo = useCallback(async () => {
     if (!eventId) return
     if (timerRef.current) clearTimeout(timerRef.current)
-    await eventRepository.delete(eventId)
+    await getEventRepo().delete(eventId)
     setEventId(null)
   }, [eventId])
 

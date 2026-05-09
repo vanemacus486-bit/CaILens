@@ -11,6 +11,7 @@ import { ACCENT_PRESETS } from '@/domain/themes'
 import { CategoryNameEditor } from './CategoryNameEditor'
 import { FolderKeywordEditor } from './FolderKeywordEditor'
 import { ExportSection } from '@/components/stats/ExportSection'
+import { StorageFolderSelector } from './StorageFolderSelector'
 
 export function SettingsPage() {
   const categories           = useCategoryStore((s) => s.categories)
@@ -247,7 +248,15 @@ export function SettingsPage() {
           </div>
         </section>
 
-        {/* ── Section 3: Data ────────────────────────────── */}
+        {/* ── Section 3: Storage ─────────────────────────── */}
+        <section>
+          <h2 className="font-serif text-sm font-semibold text-text-primary mb-3">
+            {t('存储', 'Storage')}
+          </h2>
+          <StorageFolderSelector language={language} />
+        </section>
+
+        {/* ── Section 4: Data ─────────────────────────────── */}
         <section>
           <h2 className="font-serif text-sm font-semibold text-text-primary mb-3">
             {t('数据', 'Data')}

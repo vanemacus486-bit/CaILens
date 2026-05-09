@@ -1,17 +1,18 @@
 import type { WeeklyEstimate } from '@/domain/estimate'
 import type { CategoryId } from '@/domain/category'
-import type { CailensDB } from './db'
-import { db as defaultDb } from './db'
+import type { StorageAdapter } from './adapters/StorageAdapter'
 
 export class EstimateRepository {
-  private db: CailensDB
+  private adapter: StorageAdapter
 
-  constructor(db: CailensDB) {
-    this.db = db
+  constructor(adapter: StorageAdapter) {
+    this.adapter = adapter
   }
 
   async getByWeek(weekStart: number): Promise<WeeklyEstimate[]> {
-    return this.db.weeklyEstimates.where('weekStart').equals(weekStart).toArray()
+    return this.adapter.weeklyEstimates.query({
+      where: { key: 'weekStart', op: 'equals', value: weekStart },
+    })
   }
 
   async upsert(
@@ -19,16 +20,16 @@ export class EstimateRepository {
     categoryId: CategoryId,
     estimatedHours: number,
   ): Promise<WeeklyEstimate> {
-    return this.db.transaction('rw', this.db.weeklyEstimates, async () => {
-      const existing = await this.db.weeklyEstimates
-        .where({ weekStart, categoryId })
-        .first()
+    return this.adapter.weeklyEstimates.transaction('rw', async () => {
+      const existing = (await this.adapter.weeklyEstimates.query({
+        where: { key: 'weekStart', op: 'equals', value: weekStart },
+        filter: (e) => e.categoryId === categoryId,
+        limit: 1,
+      }))[0]
 
       if (existing) {
-        await this.db.weeklyEstimates.update(existing.id, {
-          estimatedHours,
-        })
-        return (await this.db.weeklyEstimates.get(existing.id))!
+        await this.adapter.weeklyEstimates.update(existing.id, { estimatedHours } as Partial<WeeklyEstimate>)
+        return (await this.adapter.weeklyEstimates.get(existing.id))!
       }
 
       const id = crypto.randomUUID()
@@ -39,17 +40,16 @@ export class EstimateRepository {
         estimatedHours,
         createdAt: Date.now(),
       }
-      await this.db.weeklyEstimates.put(record)
+      await this.adapter.weeklyEstimates.put(record)
       return record
     })
   }
 
   /** Returns the most recent N weeks of estimate data for bias detection */
   async getRecentHistory(weekStarts: number[]): Promise<WeeklyEstimate[][]> {
-    const rows = await this.db.weeklyEstimates
-      .where('weekStart')
-      .anyOf(weekStarts)
-      .toArray()
+    const rows = await this.adapter.weeklyEstimates.query({
+      where: { key: 'weekStart', op: 'anyOf', value: weekStarts },
+    })
     const map = new Map<number, WeeklyEstimate[]>()
     for (const row of rows) {
       let group = map.get(row.weekStart)
@@ -59,5 +59,3 @@ export class EstimateRepository {
     return weekStarts.map((ws) => map.get(ws) ?? [])
   }
 }
-
-export const estimateRepository = new EstimateRepository(defaultDb)

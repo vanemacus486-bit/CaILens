@@ -11,9 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
+    "tauri:build": "tauri build && node scripts/copy-release.mjs tauri",
     "android:sync": "npm run build && npx cap sync android",
-    "android:open": "npx cap open android"
+    "android:open": "npx cap open android",
+    "android:build": "cd android && gradlew assembleDebug && node ../scripts/copy-release.mjs android"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",
@@ -30,6 +31,7 @@
     "@radix-ui/react-popover": "^1.1.15",
     "@tailwindcss/vite": "^4.2.4",
     "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

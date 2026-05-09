@@ -1,14 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { CailensDB } from '../db'
 import { SettingsRepository } from '../settingsRepository'
+import { IndexedDBAdapter } from '../adapters/IndexedDBAdapter'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 
 let db:   CailensDB
+let adapter: IndexedDBAdapter
 let repo: SettingsRepository
 
-beforeEach(() => {
+beforeEach(async () => {
   db = new CailensDB(`cailens-test-${Math.random()}`)
-  repo = new SettingsRepository(db)
+  adapter = new IndexedDBAdapter(db)
+  repo = new SettingsRepository(adapter)
 })
 
 // ── get ───────────────────────────────────────────────────
