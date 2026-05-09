@@ -10,14 +10,14 @@ import { useAppSettingsStore } from '@/stores/settingsStore'
 import { getDataMaturity } from '@/domain/maturity'
 import type { Granularity } from '@/hooks/useStatsAggregation'
 import { useStatsAggregation } from '@/hooks/useStatsAggregation'
-import { CategoryBarChart } from '@/components/stats/CategoryBarChart'
-import { MultiPeriodComparison } from '@/components/stats/MultiPeriodComparison'
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
+import { DeficitDashboard } from '@/components/stats/DeficitDashboard'
+import { SmallMultiples } from '@/components/stats/SmallMultiples'
 import { EasternStatsShell } from '@/components/stats/EasternStatsShell'
 
 type Period = Exclude<Granularity, 'all'>
-type ViewMode = 'bar' | 'compare' | 'trend' | 'heatmap'
+type ViewMode = 'diagnosis' | 'small-multiples' | 'trend' | 'heatmap'
 
 function getAnchor(period: Granularity, date: Date): Date {
   switch (period) {
@@ -59,7 +59,7 @@ export function StatsPage() {
   // Parse URL params
   const period  = (searchParams.get('period') as Granularity | null) ?? 'week'
   const dateStr = searchParams.get('date') ?? formatISODate(new Date())
-  const view    = (searchParams.get('view') as ViewMode | null) ?? 'bar'
+  const view    = (searchParams.get('view') as ViewMode | null) ?? 'diagnosis'
 
   const date = useMemo(() => {
     const d = parseISODate(dateStr)
@@ -101,7 +101,7 @@ export function StatsPage() {
   }
 
   const setView = (v: ViewMode) => {
-    updateParams({ view: v === 'bar' ? undefined : v })
+    updateParams({ view: v === 'diagnosis' ? undefined : v })
   }
 
   const navigate = (dir: -1 | 1) => {
@@ -146,19 +146,20 @@ export function StatsPage() {
         </div>
       ) : (
         <>
-          {view === 'bar' && (
-            <CategoryBarChart
+          {view === 'diagnosis' && (
+            <DeficitDashboard
               current={current}
+              previous={history.length >= 2 ? history[history.length - 2] : null}
+              history={history}
               categories={categories}
-              periodType={period}
               language={language}
             />
           )}
-          {view === 'compare' && (
-            <MultiPeriodComparison
+          {view === 'small-multiples' && (
+            <SmallMultiples
               history={history}
               categories={categories}
-              periodType={period}
+              periodType={period === 'all' ? 'week' : period}
               language={language}
             />
           )}
