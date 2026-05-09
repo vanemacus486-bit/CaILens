@@ -10,8 +10,13 @@ export class CategoryRepository {
   }
 
   // Returns all 6 categories in DEFAULT_CATEGORIES order.
+  // Auto-seeds default categories if the table is empty (defense-in-depth).
   async getAll(): Promise<Category[]> {
-    const all   = await this.adapter.categories.getAll()
+    let all = await this.adapter.categories.getAll()
+    if (all.length === 0) {
+      await this.adapter.categories.bulkPut([...DEFAULT_CATEGORIES])
+      all = await this.adapter.categories.getAll()
+    }
     const order = DEFAULT_CATEGORIES.map((c) => c.id)
     return all.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
   }
