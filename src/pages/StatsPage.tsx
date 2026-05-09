@@ -12,12 +12,10 @@ import type { Granularity } from '@/hooks/useStatsAggregation'
 import { useStatsAggregation } from '@/hooks/useStatsAggregation'
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
-import { DeficitDashboard } from '@/components/stats/DeficitDashboard'
-import { SmallMultiples } from '@/components/stats/SmallMultiples'
 import { EasternStatsShell } from '@/components/stats/EasternStatsShell'
 
 type Period = Exclude<Granularity, 'all'>
-type ViewMode = 'diagnosis' | 'small-multiples' | 'trend' | 'heatmap'
+type ViewMode = 'trend' | 'heatmap'
 
 function getAnchor(period: Granularity, date: Date): Date {
   switch (period) {
@@ -59,7 +57,7 @@ export function StatsPage() {
   // Parse URL params
   const period  = (searchParams.get('period') as Granularity | null) ?? 'week'
   const dateStr = searchParams.get('date') ?? formatISODate(new Date())
-  const view    = (searchParams.get('view') as ViewMode | null) ?? 'diagnosis'
+  const view    = (searchParams.get('view') as ViewMode | null) ?? 'trend'
 
   const date = useMemo(() => {
     const d = parseISODate(dateStr)
@@ -78,7 +76,7 @@ export function StatsPage() {
   // Lookback buckets for history
   const lookback = period === 'all' ? 1 : period === 'week' ? 8 : period === 'month' ? 12 : period === 'quarter' ? 8 : 3
 
-  const { current, history } = useStatsAggregation({
+  const { history } = useStatsAggregation({
     granularity: period,
     anchorDate: anchor,
     lookbackBuckets: lookback,
@@ -101,7 +99,7 @@ export function StatsPage() {
   }
 
   const setView = (v: ViewMode) => {
-    updateParams({ view: v === 'diagnosis' ? undefined : v })
+    updateParams({ view: v === 'trend' ? undefined : v })
   }
 
   const navigate = (dir: -1 | 1) => {
@@ -146,23 +144,6 @@ export function StatsPage() {
         </div>
       ) : (
         <>
-          {view === 'diagnosis' && (
-            <DeficitDashboard
-              current={current}
-              previous={history.length >= 2 ? history[history.length - 2] : null}
-              history={history}
-              categories={categories}
-              language={language}
-            />
-          )}
-          {view === 'small-multiples' && (
-            <SmallMultiples
-              history={history}
-              categories={categories}
-              periodType={period === 'all' ? 'week' : period}
-              language={language}
-            />
-          )}
           {view === 'trend' && (
             <CategoryTrendChart
               history={history}

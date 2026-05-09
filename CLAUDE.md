@@ -388,6 +388,20 @@ npm run lint && npm run test && npm run build
 - 边界条件和非显然的不变量
 - 引用具体的设计决策来源
 
+### 9.6 index.html 的 `<style>` 标签：禁止全局选择器
+
+Tailwind v4 把所有样式（preflight、工具类、组件）放在 `@layer` 里。`index.html` 里的 `<style>` 标签没有 `@layer`，属于「非 layered 样式」。
+
+**CSS 级联层的铁律：非 layered 样式无条件优先于 layered 样式，无论选择器优先级多高。** `* { margin: 0 }`（非 layered, 0,0,0）会覆盖 `.mx-auto { margin: auto }`（layered, 0,1,0）。
+
+因此 `index.html` 的 `<style>` 中：
+
+- **禁止** `*`、`html`、`body`、裸标签选择器——会泄漏到整个应用，杀死所有 Tailwind 间距工具类
+- **必须**把所有规则 scope 到 `#splash-screen` 或 `.splash-*` 等容器选择器内
+- CSS 自定义属性（`--splash-*`）定义在 `:root` 上可以接受——仅声明变量、不设置属性，不影响布局
+
+**2026-05 事故记录：** 启动画面 `<style>` 里加了 `*, *::before, *::after { margin: 0; padding: 0; }`，导致三个页面的所有 Tailwind `m-*`/`p-*`/`mx-auto` 等间距工具类全部失效，内容贴左、内边距归零。修复就是删除这条全局 reset。
+
 ---
 
 ## 10. 当前版本 — v3（第三版）

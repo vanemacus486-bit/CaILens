@@ -4,6 +4,11 @@ import { WeekView } from '@/features/week-view/WeekView'
 import { DayView } from '@/features/day-view/DayView'
 import { Sidebar } from '@/features/app-shell/Sidebar'
 import { SettingsPage } from '@/features/settings/SettingsPage'
+import { SettingsCategories } from '@/features/settings/SettingsCategories'
+import { SettingsAppearance } from '@/features/settings/SettingsAppearance'
+import { SettingsData } from '@/features/settings/SettingsData'
+import { SettingsStorage } from '@/features/settings/SettingsStorage'
+import { SettingsAbout } from '@/features/settings/SettingsAbout'
 import { StatsPage } from '@/pages/StatsPage'
 import { SearchDialog } from '@/features/search/SearchDialog'
 import { useUIStore } from '@/stores/uiStore'
@@ -60,7 +65,13 @@ export default function App() {
           <Route path="/" element={<WeekView />} />
           <Route path="/day" element={<DayView />} />
           <Route path="/stats" element={<StatsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings" element={<SettingsPage />}>
+            <Route index element={<SettingsCategories />} />
+            <Route path="appearance" element={<SettingsAppearance />} />
+            <Route path="data" element={<SettingsData />} />
+            <Route path="storage" element={<SettingsStorage />} />
+            <Route path="about" element={<SettingsAbout />} />
+          </Route>
         </Route>
       </Routes>
     </HashRouter>

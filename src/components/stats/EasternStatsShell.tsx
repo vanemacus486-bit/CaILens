@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Granularity } from '@/hooks/useStatsAggregation'
 
-type ViewMode = 'diagnosis' | 'small-multiples' | 'trend' | 'heatmap'
+type ViewMode = 'trend' | 'heatmap'
 
 const PERIODS: { key: Granularity; label: string; labelZh: string }[] = [
   { key: 'week', label: 'Week', labelZh: '周' },
@@ -12,8 +12,6 @@ const PERIODS: { key: Granularity; label: string; labelZh: string }[] = [
 ]
 
 const VIEWS: { key: ViewMode; label: string; labelZh: string }[] = [
-  { key: 'diagnosis', label: 'Diagnosis', labelZh: '诊断' },
-  { key: 'small-multiples', label: 'Multiples', labelZh: '分项对比' },
   { key: 'trend', label: 'Trend', labelZh: '趋势' },
   { key: 'heatmap', label: 'Heatmap', labelZh: '热力图' },
 ]
