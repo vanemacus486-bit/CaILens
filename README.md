@@ -8,10 +8,6 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/7a408948-e7fd-4137-89a7-5361b12b64c5" />
 
-<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/85722717-8233-41ff-946b-ecc2f8fcf60a" />
-
-<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
-
 > **状态：** v3.7 ICS 导入重设计。事件名聚合——1369 行 → ~28 种类型；行内分类按钮（1-6 数字快捷键）；智能关键词预填建议 + 一键应用；事件覆盖度进度条；支持同组内单例覆盖。354 个测试。
 
 ## 下载
@@ -22,6 +18,7 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 | Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
 
 > Android APK 已更新，包含移动端响应式布局和最新功能改进。
+> 目前下载可能存在问题，exe文件准备修改成类似obsidian的阅读本地文件的形式
 
 ---
 
