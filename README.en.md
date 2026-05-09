@@ -8,10 +8,6 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/7a408948-e7fd-4137-89a7-5361b12b64c5" />
 
-<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/85722717-8233-41ff-946b-ecc2f8fcf60a" />
-
-<img width="1920" height="978" alt="image" src="https://github.com/user-attachments/assets/0c7ebf00-f893-4a3a-8f3b-2063cab143a2" />
-
 > **Status:** v3.7 — ICS Import Redesign. Event name aggregation (1369 rows → ~28 types); inline category buttons with 1-6 keyboard shortcuts; smart keyword suggestion with one-click apply; event coverage progress bar; per-instance override support. 354 tests.
 
 ## Downloads
@@ -22,6 +18,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 | Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
 
 > The Android APK has been rebuilt with the latest responsive layout and feature updates.
+> There may be a problem with the download at present. The browser version can be used normally. The exe file is waiting to be updated and modified to read local files similar to obsidan
 
 ---
 
