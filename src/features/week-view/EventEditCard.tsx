@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { addDays } from 'date-fns'
 import { X } from 'lucide-react'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
@@ -54,6 +54,7 @@ function pushDraft(
 interface EventEditCardProps {
   event:          CalendarEvent
   isNewlyCreated: boolean
+  anchorEl:       HTMLElement
   onSave:         (updates: UpdateEventInput) => void
   onDelete:       () => void
   onClose:        () => void
@@ -62,7 +63,7 @@ interface EventEditCardProps {
 }
 
 export function EventEditCard({
-  event, isNewlyCreated,
+  event, isNewlyCreated, anchorEl,
   onSave, onDelete, onClose, onCancel, onDraftChange,
 }: EventEditCardProps) {
   const categories = useCategoryStore((s) => s.categories)
@@ -80,7 +81,8 @@ export function EventEditCard({
   const currentEndIsNext = isNextDayEnd(startStr, endStr)
 
   const titleRef = useRef<HTMLTextAreaElement>(null)
-  const cardRef  = useRef<HTMLDivElement>(null)
+  const virtualRef = useRef<HTMLElement>(null!)
+  virtualRef.current = anchorEl
 
   function getError(startStr: string, endStr: string, date: Date): string | null {
     if (!startStr || !endStr) return t('请设置开始和结束时间', 'Set start and end times')
@@ -107,29 +109,6 @@ export function EventEditCard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Close on click outside the card
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
-        handleClose()
-      }
-    }
-    // Delay to avoid capturing the click that opened the card
-    const id = setTimeout(() => document.addEventListener('click', handleClick), 0)
-    return () => { clearTimeout(id); document.removeEventListener('click', handleClick) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, startStr, endStr, categoryId, desc])
-
-  // Close on Escape
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') { handleCancel() }
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, startStr, endStr, categoryId, desc])
-
   // ── Save / discard ────────────────────────────────────
 
   const doSave = () => {
@@ -146,7 +125,8 @@ export function EventEditCard({
     })
   }
 
-  const handleClose = () => {
+  // Save button / Enter key: save and close (or show error)
+  const handleSaveClick = () => {
     if (isNewlyCreated && title.trim() === '') {
       onDelete()
     } else if (title.trim() === '') {
@@ -159,7 +139,36 @@ export function EventEditCard({
     onClose()
   }
 
-  const handleCancel = () => {
+  // Cancel button / X button: discard and close
+  const handleCancelClick = () => {
+    if (isNewlyCreated) onDelete()
+    onCancel()
+  }
+
+  // Click outside Popover: save and close (or delete if blank new event).
+  // Must preventDefault on error so Radix does not auto-close the popover.
+  const handlePointerDownOutside = (e: CustomEvent) => {
+    if (isNewlyCreated && title.trim() === '') {
+      onDelete()
+      onClose()
+      return
+    }
+    if (title.trim() === '') {
+      onClose()
+      return
+    }
+    const err = getError(startStr, endStr, localDate)
+    if (err) {
+      setError(err)
+      e.preventDefault()
+      return
+    }
+    doSave()
+    onClose()
+  }
+
+  // Escape key: discard and close
+  const handleEscapeKeyDown = () => {
     if (isNewlyCreated) onDelete()
     onCancel()
   }
@@ -186,163 +195,163 @@ export function EventEditCard({
 
   // ── Render ───────────────────────────────────────────
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      {/* Dimmed backdrop */}
-      <div
-        className="absolute inset-0 bg-surface-base opacity-60"
-        onClick={handleClose}
-      />
-
-      {/* Card */}
-      <div
-        ref={cardRef}
-        className="relative bg-surface-raised border border-border-default rounded-lg shadow-dialog w-[calc(100vw-2rem)] max-w-[420px] px-5 md:px-7 py-5 md:py-7 flex flex-col gap-4 mx-4 md:mx-0"
+  return (
+    <Popover open>
+      <PopoverAnchor virtualRef={virtualRef} />
+      <PopoverContent
+        side="right"
+        sideOffset={8}
+        collisionPadding={16}
+        className="w-80 p-0 rounded-lg border-border-default max-md:!w-[calc(100vw-1rem)] max-md:max-w-80"
+        onPointerDownOutside={handlePointerDownOutside}
+        onEscapeKeyDown={handleEscapeKeyDown}
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div>
-            <div className="font-serif text-[17px] font-medium text-text-primary">
-              {fmtDateHeader(localDate, language)}
+        <div className="p-5 flex flex-col gap-4">
+          {/* Header */}
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="font-serif text-[17px] font-medium text-text-primary">
+                {fmtDateHeader(localDate, language)}
+              </div>
+              <div className="font-mono text-xs text-accent mt-[3px]">
+                {startStr} – {endStr}{currentEndIsNext ? <span className="text-text-tertiary ml-0.5">+1d</span> : ''}
+              </div>
             </div>
-            <div className="font-mono text-xs text-accent mt-[3px]">
-              {startStr} – {endStr}{currentEndIsNext ? <span className="text-text-tertiary ml-0.5">+1d</span> : ''}
-            </div>
+            <button
+              onClick={handleCancelClick}
+              className="text-text-tertiary hover:text-text-primary transition-colors duration-200 cursor-pointer p-1 leading-none text-lg"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
           </div>
-          <button
-            onClick={handleCancel}
-            className="text-text-tertiary hover:text-text-primary transition-colors duration-200 cursor-pointer p-1 leading-none text-lg"
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-        </div>
 
-        <div className="h-px bg-border-subtle -mx-1" />
+          <div className="h-px bg-border-subtle" />
 
-        {/* Prompt */}
-        <div className="font-serif text-sm text-text-secondary italic">
-          {t('你在做什么？', 'What were you doing?')}
-        </div>
-
-        {/* Title textarea */}
-        <textarea
-          ref={titleRef}
-          value={title}
-          onChange={handleTitle}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleClose() }
-          }}
-          placeholder={t('例如：重构 useTimeBlock hook', 'e.g. Refactored useTimeBlock hook')}
-          className={cn(
-            'w-full font-sans text-sm text-text-primary',
-            'bg-surface-sunken border border-border-subtle rounded-md',
-            'px-3 py-2.5 resize-none h-[72px]',
-            'focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
-            'placeholder:text-text-tertiary',
-          )}
-        />
-
-        {/* Time range */}
-        <div className="flex gap-2">
-          <input
-            type="time"
-            value={startStr}
-            onChange={handleStart}
-            className={cn(
-              'flex-1 font-mono text-xs text-text-primary',
-              'bg-surface-sunken border border-border-subtle rounded-md',
-              'px-2.5 py-2 focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
-            )}
-          />
-          <input
-            type="time"
-            value={endStr}
-            onChange={handleEnd}
-            className={cn(
-              'flex-1 font-mono text-xs text-text-primary',
-              'bg-surface-sunken border border-border-subtle rounded-md',
-              'px-2.5 py-2 focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
-            )}
-          />
-        </div>
-
-        {error && <p className="text-xs text-color-text-danger -mt-2 font-sans">{error}</p>}
-
-        {/* Category chips */}
-        {categories.length > 0 && (
-          <div>
-            <div className="text-body-xs font-sans font-semibold uppercase tracking-label text-text-tertiary mb-2.5 select-none">
-              {t('分类', 'Category')}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {categories.map((cat) => {
-                const isSelected = cat.id === categoryId
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleCategory(cat.id)}
-                    className={cn(
-                      'flex items-center gap-1.5 font-sans text-xs rounded-md px-2.5 py-1 cursor-pointer transition-colors duration-200',
-                      isSelected
-                        ? 'ring-1 ring-inset'
-                        : 'border border-border-subtle hover:bg-surface-sunken',
-                    )}
-                    style={{
-                      backgroundColor: isSelected ? `var(--event-${cat.id}-bg)` : 'transparent',
-                      borderColor: isSelected ? `var(--event-${cat.id}-fill)` : undefined,
-                      color: isSelected ? `var(--event-${cat.id}-text)` : 'var(--text-primary)',
-                    }}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: `var(--event-${cat.id}-fill)` }}
-                    />
-                    {cat.name[language]}
-                  </button>
-                )
-              })}
-            </div>
+          {/* Prompt */}
+          <div className="font-serif text-sm text-text-secondary italic">
+            {t('你在做什么？', 'What were you doing?')}
           </div>
-        )}
 
-        {/* Optional note */}
-        <div>
-          <div className="text-body-xs font-sans font-semibold uppercase tracking-label text-text-tertiary mb-2 select-none">
-            {t('添加备注', 'Add a note')}{' '}
-            <span className="normal-case tracking-normal font-normal">({t('可选', 'optional')})</span>
-          </div>
-          <input
-            value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-            placeholder={t('关于这段时间的一个想法…', 'A quick thought about this block…')}
+          {/* Title textarea */}
+          <textarea
+            ref={titleRef}
+            value={title}
+            onChange={handleTitle}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveClick() }
+            }}
+            placeholder={t('例如：重构 useTimeBlock hook', 'e.g. Refactored useTimeBlock hook')}
             className={cn(
-              'w-full font-sans text-body-sm text-text-primary',
+              'w-full font-sans text-sm text-text-primary',
               'bg-surface-sunken border border-border-subtle rounded-md',
-              'px-3 py-2',
+              'px-3 py-2.5 resize-none h-[72px]',
               'focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
               'placeholder:text-text-tertiary',
             )}
           />
-        </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-2 mt-1">
-          <button
-            onClick={handleCancel}
-            className="font-sans text-body-sm font-normal text-text-secondary bg-transparent border border-border-subtle rounded-md px-4 py-2 cursor-pointer hover:bg-surface-sunken transition-colors duration-200"
-          >
-            {t('取消', 'Cancel')}
-          </button>
-          <button
-            onClick={handleClose}
-            className="font-sans text-body-sm font-medium text-white bg-accent border-none rounded-md px-5 py-2 cursor-pointer hover:bg-accent-hover transition-colors duration-200"
-          >
-            {t('记录', 'Log it')}
-          </button>
+          {/* Time range */}
+          <div className="flex gap-2">
+            <input
+              type="time"
+              value={startStr}
+              onChange={handleStart}
+              className={cn(
+                'flex-1 font-mono text-xs text-text-primary',
+                'bg-surface-sunken border border-border-subtle rounded-md',
+                'px-2.5 py-2 focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
+              )}
+            />
+            <input
+              type="time"
+              value={endStr}
+              onChange={handleEnd}
+              className={cn(
+                'flex-1 font-mono text-xs text-text-primary',
+                'bg-surface-sunken border border-border-subtle rounded-md',
+                'px-2.5 py-2 focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
+              )}
+            />
+          </div>
+
+          {error && <p className="text-xs text-color-text-danger -mt-2 font-sans">{error}</p>}
+
+          {/* Category chips */}
+          {categories.length > 0 && (
+            <div>
+              <div className="text-body-xs font-sans font-semibold uppercase tracking-label text-text-tertiary mb-2.5 select-none">
+                {t('分类', 'Category')}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {categories.map((cat) => {
+                  const isSelected = cat.id === categoryId
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleCategory(cat.id)}
+                      className={cn(
+                        'flex items-center gap-1.5 font-sans text-xs rounded-md px-2.5 py-1 cursor-pointer transition-colors duration-200',
+                        isSelected
+                          ? 'ring-1 ring-inset'
+                          : 'border border-border-subtle hover:bg-surface-sunken',
+                      )}
+                      style={{
+                        backgroundColor: isSelected ? `var(--event-${cat.id}-bg)` : 'transparent',
+                        borderColor: isSelected ? `var(--event-${cat.id}-fill)` : undefined,
+                        color: isSelected ? `var(--event-${cat.id}-text)` : 'var(--text-primary)',
+                      }}
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: `var(--event-${cat.id}-fill)` }}
+                      />
+                      {cat.name[language]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Optional note */}
+          <div>
+            <div className="text-body-xs font-sans font-semibold uppercase tracking-label text-text-tertiary mb-2 select-none">
+              {t('添加备注', 'Add a note')}{' '}
+              <span className="normal-case tracking-normal font-normal">({t('可选', 'optional')})</span>
+            </div>
+            <input
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              placeholder={t('关于这段时间的一个想法…', 'A quick thought about this block…')}
+              className={cn(
+                'w-full font-sans text-body-sm text-text-primary',
+                'bg-surface-sunken border border-border-subtle rounded-md',
+                'px-3 py-2',
+                'focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
+                'placeholder:text-text-tertiary',
+              )}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 mt-1">
+            <button
+              onClick={handleCancelClick}
+              className="font-sans text-body-sm font-normal text-text-secondary bg-transparent border border-border-subtle rounded-md px-4 py-2 cursor-pointer hover:bg-surface-sunken transition-colors duration-200"
+            >
+              {t('取消', 'Cancel')}
+            </button>
+            <button
+              onClick={handleSaveClick}
+              className="font-sans text-body-sm font-medium text-white bg-accent border-none rounded-md px-5 py-2 cursor-pointer hover:bg-accent-hover transition-colors duration-200"
+            >
+              {t('记录', 'Log it')}
+            </button>
+          </div>
         </div>
-      </div>
-    </div>,
-    document.body,
+      </PopoverContent>
+    </Popover>
   )
 }

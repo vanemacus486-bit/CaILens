@@ -26,8 +26,10 @@ interface EventBlockProps {
   onClick:       (event: CalendarEvent, el: HTMLElement) => void
   onColorChange: (eventId: string, color: EventColor) => void
   onEdit:        (event: CalendarEvent, anchorEl: HTMLElement) => void
+  onDuplicate:   (eventId: string) => void
   onDelete:      (eventId: string) => void
   onDragMove:    (eventId: string, newStartTime: number, newEndTime: number) => void
+  onDragToEdge:  (eventId: string, newStartTime: number, newEndTime: number, direction: -1 | 1) => void
   onDragStart:   () => void
   /** Called when a resize completes; same signature as onDragMove. */
   onResize:      (eventId: string, newStartTime: number, newEndTime: number) => void
@@ -42,8 +44,8 @@ function fmtHM(ts: number): string {
 }
 
 export const EventBlock = React.memo(function EventBlock({
-  positioned, columnDate, onClick, onColorChange, onEdit, onDelete,
-  onDragMove, onDragStart, onResize, weekDays, gridRef, isCardOpen = false,
+  positioned, columnDate, onClick, onColorChange, onEdit, onDuplicate, onDelete,
+  onDragMove, onDragToEdge, onDragStart, onResize, weekDays, gridRef, isCardOpen = false,
 }: EventBlockProps) {
   const { event, rowStart, rowEnd, columnIndex, totalColumns, startsBeforeDay, endsAfterDay } = positioned
   const { bg, text } = EVENT_COLOR_CLASSES[event.color]
@@ -60,6 +62,7 @@ export const EventBlock = React.memo(function EventBlock({
     gridRef,
     onDragStart,
     onDragEnd: (start, end) => onDragMove(event.id, start, end),
+    onDragToEdge: (start, end, dir) => onDragToEdge(event.id, start, end, dir),
     onDragCancel: () => {},
   })
 
@@ -211,6 +214,8 @@ export const EventBlock = React.memo(function EventBlock({
         <ContextMenuSeparator />
 
         <ContextMenuItem onSelect={() => onEdit(event, divRef.current!)}>Edit</ContextMenuItem>
+        <ContextMenuItem onSelect={() => onDuplicate(event.id)}>Duplicate</ContextMenuItem>
+        <ContextMenuSeparator />
         <ContextMenuItem onSelect={() => onDelete(event.id)} className="text-color-text-danger focus:text-color-text-danger">
           Delete
         </ContextMenuItem>

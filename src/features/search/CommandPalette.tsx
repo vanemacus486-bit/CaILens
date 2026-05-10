@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fireAndForget } from '@/lib/fireAndForget'
 import { formatISODate, formatMonthDay, formatWeekday, getWeekStart } from '@/domain/time'
 import type { CalendarEvent } from '@/domain/event'
 import { getEventRepo } from '@/data/getRepositories'
@@ -28,10 +29,26 @@ function highlightMatch(text: string, query: string): React.ReactNode {
   )
 }
 
-export function SearchDialog() {
+interface Command {
+  id: string
+  label: string
+  labelZh: string
+  shortcut: string
+  invoke: () => void
+}
+
+interface CommandPaletteProps {
+  onQuickLog: () => void
+}
+
+export function CommandPalette({ onQuickLog }: CommandPaletteProps) {
   const navigate = useNavigate()
-  const setSearchOpen = useUIStore((s) => s.setSearchOpen)
+  const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen)
+  const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
   const language = useAppSettingsStore((s) => s.settings.language)
+  const setTheme = useAppSettingsStore((s) => s.setTheme)
+  const setLanguage = useAppSettingsStore((s) => s.setLanguage)
+  const settings = useAppSettingsStore((s) => s.settings)
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
   const [query, setQuery] = useState('')
@@ -45,6 +62,72 @@ export function SearchDialog() {
   useEffect(() => {
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
+
+  const close = useCallback(() => setCommandPaletteOpen(false), [setCommandPaletteOpen])
+
+  // Commands
+  const allCommands = useMemo<Command[]>(() => [
+    {
+      id: 'today',
+      label: 'Go to this week',
+      labelZh: '前往本周',
+      shortcut: '⌘K ↵',
+      invoke: () => { navigate('/'); close() },
+    },
+    {
+      id: 'stats',
+      label: 'Go to stats',
+      labelZh: '前往统计',
+      shortcut: '',
+      invoke: () => { navigate('/stats'); close() },
+    },
+    {
+      id: 'settings',
+      label: 'Open settings',
+      labelZh: '打开设置',
+      shortcut: '',
+      invoke: () => { setSettingsDrawerOpen(true); close() },
+    },
+    {
+      id: 'newevent',
+      label: 'New event',
+      labelZh: '新建事件',
+      shortcut: 'N',
+      invoke: () => { close(); onQuickLog() },
+    },
+    {
+      id: 'theme',
+      label: settings.theme === 'dark' ? 'Switch to light' : 'Switch to dark',
+      labelZh: settings.theme === 'dark' ? '切换浅色主题' : '切换深色主题',
+      shortcut: '',
+      invoke: () => {
+        fireAndForget(setTheme(settings.theme === 'dark' ? 'light' : 'dark'), 'toggle theme')
+        close()
+      },
+    },
+    {
+      id: 'lang',
+      label: language === 'zh' ? 'Switch to English' : '切换中文',
+      labelZh: language === 'zh' ? 'Switch to English' : '切换中文',
+      shortcut: '',
+      invoke: () => {
+        fireAndForget(setLanguage(language === 'zh' ? 'en' : 'zh'), 'toggle language')
+        close()
+      },
+    },
+  ], [navigate, close, setSettingsDrawerOpen, onQuickLog, setTheme, setLanguage, language, settings.theme])
+
+  // Filter commands based on query
+  const matchedCommands = useMemo(() => {
+    const trimmed = query.trim()
+    if (!trimmed) return allCommands
+    const lower = trimmed.toLowerCase()
+    return allCommands.filter(
+      (cmd) => cmd.id.toLowerCase().includes(lower)
+        || cmd.label.toLowerCase().includes(lower)
+        || cmd.labelZh.toLowerCase().includes(lower),
+    )
+  }, [allCommands, query])
 
   // Debounced search
   const doSearch = useCallback(async (q: string) => {
@@ -70,13 +153,9 @@ export function SearchDialog() {
     debounceRef.current = setTimeout(() => doSearch(value), 300)
   }, [doSearch])
 
-  // Cleanup debounce on unmount
   useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [])
-
-  // Close handlers
-  const close = useCallback(() => setSearchOpen(false), [setSearchOpen])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') close()
@@ -89,7 +168,6 @@ export function SearchDialog() {
         close()
       }
     }
-    // Delay adding listener so the click that opened the panel doesn't close it
     const id = setTimeout(() => document.addEventListener('click', handleClick), 0)
     return () => {
       clearTimeout(id)
@@ -105,13 +183,16 @@ export function SearchDialog() {
     navigate(`/?week=${weekStr}&openEvent=${event.id}`)
   }, [close, navigate])
 
+  // Determine if we're showing commands or events or neither
+  const showCommands = matchedCommands.length > 0 && results.length === 0 && status !== 'loading'
+
   return (
     <div className="fixed inset-0 z-50 flex justify-center bg-black/20 dark:bg-black/40" style={{ pointerEvents: 'none' }}>
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={t('搜索事件', 'Search events')}
+        aria-label={t('搜索事件或输入命令', 'Search events or type a command')}
         className={cn(
           'absolute top-[25%] w-[calc(100vw-2rem)] max-w-[420px]',
           'rounded-2xl border border-border-subtle bg-surface-raised shadow-lg',
@@ -128,8 +209,8 @@ export function SearchDialog() {
             value={query}
             onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            aria-label={t('搜索事件', 'Search events')}
-            placeholder={t('搜索事件...', 'Search events...')}
+            aria-label={t('搜索事件或输入命令', 'Search events or type a command')}
+            placeholder={t('搜索事件... (输入 / 查看命令)', 'Search events... (type / for commands)')}
             className={cn(
               'flex-1 bg-transparent border-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm',
               'text-sm font-sans text-text-primary placeholder:text-text-tertiary',
@@ -147,12 +228,41 @@ export function SearchDialog() {
           )}
         </div>
 
-        {/* Divider */}
-        {(results.length > 0 || status === 'empty') && (
+        {/* Commands section */}
+        {showCommands && (
+          <>
+            <div className="h-px bg-border-subtle flex-shrink-0" />
+            <div role="listbox" aria-label={t('命令', 'Commands')} className="max-h-80 overflow-y-auto">
+              {matchedCommands.map((cmd) => (
+                <button
+                  key={cmd.id}
+                  role="option"
+                  onClick={cmd.invoke}
+                  className={cn(
+                    'w-full flex items-center justify-between px-3.5 py-2.5 text-left',
+                    'hover:bg-surface-sunken transition-colors duration-150',
+                  )}
+                >
+                  <span className="text-sm font-sans text-text-primary">
+                    {language === 'zh' ? cmd.labelZh : cmd.label}
+                  </span>
+                  {cmd.shortcut && (
+                    <span className="text-xs font-mono text-text-tertiary ml-4 flex-shrink-0">
+                      {cmd.shortcut}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Divider between sections when both exist */}
+        {showCommands && results.length > 0 && (
           <div className="h-px bg-border-subtle flex-shrink-0" />
         )}
 
-        {/* Results */}
+        {/* Event search results */}
         {results.length > 0 && (
           <div role="listbox" aria-label={t('搜索结果', 'Search results')} className="max-h-80 overflow-y-auto">
             {results.map((event) => (
@@ -185,7 +295,7 @@ export function SearchDialog() {
         )}
 
         {/* Empty state */}
-        {status === 'empty' && (
+        {status === 'empty' && !showCommands && (
           <div className="px-3.5 py-6 text-center">
             <p className="text-sm text-text-tertiary">
               {t('没有匹配的事件', 'No matching events')}
@@ -193,11 +303,14 @@ export function SearchDialog() {
           </div>
         )}
 
-        {/* Idle hint — shown when input is empty */}
+        {/* Idle hint */}
         {status === 'idle' && query.trim() === '' && (
           <div className="px-3.5 py-6 text-center">
             <p className="text-sm text-text-tertiary">
               {t('输入关键词搜索历史事件', 'Type to search past events')}
+            </p>
+            <p className="text-xs text-text-tertiary mt-2">
+              {t('输入 / 可查看全部命令', 'Type / to see all commands')}
             </p>
           </div>
         )}

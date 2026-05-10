@@ -4,6 +4,8 @@ import { isSameDay, moveTimestampToDay } from '@/domain/time'
 /** Minimum pointer movement (px) before a press becomes a drag. */
 const DRAG_THRESHOLD = 5
 const DAY_MINUTES    = 24 * 60
+/** Distance from grid top/bottom edge (px) that triggers cross-week drop. */
+const EDGE_ZONE_PX   = 36
 
 interface UseDragToMoveParams {
   eventId:           string
@@ -24,6 +26,8 @@ interface UseDragToMoveParams {
   onDragStart:       () => void
   onDragEnd:         (newStartTime: number, newEndTime: number) => void
   onDragCancel:      () => void
+  /** Called when the drag ends in the top/bottom edge zone, triggering a week navigation. */
+  onDragToEdge?:     (newStartTime: number, newEndTime: number, direction: -1 | 1) => void
 }
 
 interface UseDragToMoveResult {
@@ -54,6 +58,7 @@ export function useDragToMove({
   onDragStart,
   onDragEnd,
   onDragCancel,
+  onDragToEdge,
 }: UseDragToMoveParams): UseDragToMoveResult {
   const [isDragging, setIsDragging] = useState(false)
 
@@ -74,6 +79,9 @@ export function useDragToMove({
   onDragStartRef.current  = onDragStart
   onDragEndRef.current    = onDragEnd
   onDragCancelRef.current = onDragCancel
+
+  const onDragToEdgeRef = useRef(onDragToEdge)
+  onDragToEdgeRef.current = onDragToEdge
 
   const originalStartRef    = useRef(originalStartTime)
   const originalEndRef      = useRef(originalEndTime)
@@ -219,7 +227,22 @@ export function useDragToMove({
       if (wasDraggingNow) {
         clearDragStyles()
         const result = computeSnapped(currentDeltaYRef.current, ev.clientX)
-        if (result) onDragEndRef.current(result.newStartTime, result.newEndTime)
+        if (!result) { setIsDragging(false); return }
+
+        // Check if pointer is near the grid top/bottom edge for cross-week drag
+        let direction: -1 | 1 | null = null
+        const gridEl = gridRef.current
+        if (gridEl && onDragToEdgeRef.current) {
+          const gridRect = gridEl.getBoundingClientRect()
+          if (ev.clientY < gridRect.top + EDGE_ZONE_PX) direction = -1
+          else if (ev.clientY > gridRect.bottom - EDGE_ZONE_PX) direction = 1
+        }
+
+        if (direction !== null && onDragToEdgeRef.current) {
+          onDragToEdgeRef.current(result.newStartTime, result.newEndTime, direction)
+        } else {
+          onDragEndRef.current(result.newStartTime, result.newEndTime)
+        }
         setIsDragging(false)
       }
       // If still pending (never dragged past threshold): do nothing —

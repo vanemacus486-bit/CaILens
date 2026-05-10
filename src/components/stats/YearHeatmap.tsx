@@ -322,7 +322,7 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
             gridColumn: 1,
             gridRow: dow + 2,
             fontSize: 10,
-            lineHeight: '13px',
+            lineHeight: '14px',
           }}
         >
           {language === 'zh' ? dayLabelsZh[i] : dayLabelsEn[i]}
@@ -379,6 +379,22 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
   const streakPips = Math.min(stats.streak, 5)
   const streakExtra = stats.streak > 5 ? stats.streak - 5 : 0
 
+  // Historical best streak (for encouraging text when current streak === 0)
+  const bestStreak = useMemo(() => {
+    let maxStreak = 0, current = 0
+    for (const day of days) {
+      if (day.byCategory[selectedId] > 0) current++
+      else { maxStreak = Math.max(maxStreak, current); current = 0 }
+    }
+    return Math.max(maxStreak, current)
+  }, [days, selectedId])
+
+  // Daily target hours for selected category
+  const targetHours = useMemo(() => {
+    const cat = catMap.get(selectedId)
+    return cat ? cat.weeklyBudget / 7 : 0
+  }, [catMap, selectedId])
+
   return (
     <div ref={containerRef} className="year-heatmap-root">
       <style>{HEATMAP_CSS}</style>
@@ -411,16 +427,6 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
               {t('· 年度热力图', ' · Annual Heatmap')}
             </span>
           </div>
-          <div className="heatmap-subtitle">
-            {(() => {
-              const cat = catMap.get(selectedId)
-              const target = cat ? (cat.weeklyBudget / 7) : 0
-              return t(
-                `每日目标 ${target.toFixed(1)}h · 由浅至深：0 → 超额完成`,
-                `Daily target ${target.toFixed(1)}h · Light to dark: 0 → Over target`,
-              )
-            })()}
-          </div>
         </div>
 
         {/* Category pills */}
@@ -449,18 +455,13 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
         </div>
       </div>
 
-      {/* ── Decorative separator ───────────────────────────── */}
-      <div className="heatmap-sep" style={{ marginTop: 56, marginBottom: 40 }}>
-        · · ·
-      </div>
-
       {/* ── Heatmap grid ───────────────────────────────────── */}
       <div className="heatmap-grid-scroll">
         <div
           className="heatmap-grid"
           style={{
-            gridTemplateColumns: `28px repeat(${numWeeks}, 13px)`,
-            gridTemplateRows: `18px repeat(7, 13px)`,
+            gridTemplateColumns: `28px repeat(${numWeeks}, minmax(14px, 1fr))`,
+            gridTemplateRows: `18px repeat(7, 14px)`,
           }}
         >
           {gridItems}
@@ -479,9 +480,9 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
         <span>{t('更多', 'More')}</span>
       </div>
 
-      {/* ── Decorative separator ───────────────────────────── */}
-      <div className="heatmap-sep" style={{ marginTop: 40, marginBottom: 56 }}>
-        · · ·
+      {/* ── Legend text ──────────────────────────────────────── */}
+      <div className="heatmap-legend-text">
+        {t('由浅至深：0 → 超额完成', 'Light to dark: 0 → Over target')}
       </div>
 
       {/* ── Stats bar ───────────────────────────────────────── */}
@@ -507,10 +508,8 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
           </div>
           <div className="heatmap-stat-detail">
             {(() => {
-              const cat = catMap.get(selectedId)
-              const target = cat ? cat.weeklyBudget / 7 : 0
-              const pct = target > 0 ? Math.round((stats.dailyAvg / target) * 100) : 0
-              return t(`目标 ${target.toFixed(1)}h · 达成 ${pct}%`, `Target ${target.toFixed(1)}h · ${pct}% achieved`)
+              const pct = targetHours > 0 ? Math.round((stats.dailyAvg / targetHours) * 100) : 0
+              return t(`达成 ${pct}%`, `${pct}% achieved`)
             })()}
           </div>
         </div>
@@ -529,7 +528,12 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
             {!isCurrentYear ? (
               t('仅当年有效', 'Current year only')
             ) : stats.streak === 0 ? (
-              t('已中断', 'Broken')
+              <>
+                <div>{t('再记一天即重启', 'One more day to restart')}</div>
+                {bestStreak > 0 && (
+                  <div style={{ marginTop: 2 }}>{t(`上次连续 ${bestStreak} 天`, `Last streak: ${bestStreak} days`)}</div>
+                )}
+              </>
             ) : (
               <span className="heatmap-streak-pips">
                 {Array.from({ length: streakPips }).map((_, i) => (
@@ -555,6 +559,18 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
             {stats.bestDay ? <span className="heatmap-stat-unit">h</span> : null}
           </div>
           <div className="heatmap-stat-detail">{bestDayStr}</div>
+        </div>
+
+        {/* Target */}
+        <div className="heatmap-stat">
+          <div className="heatmap-stat-label">{t('目 标', 'Target')}</div>
+          <div className="heatmap-stat-value">
+            {targetHours.toFixed(1)}
+            <span className="heatmap-stat-unit">h</span>
+          </div>
+          <div className="heatmap-stat-detail">
+            {t('每日', 'Daily')}
+          </div>
         </div>
       </div>
 
@@ -667,13 +683,6 @@ const HEATMAP_CSS = `
   color: var(--ink-1);
   white-space: nowrap;
 }
-.heatmap-subtitle {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--ink-2);
-  margin-top: 4px;
-}
-
 /* ── Category pills ───────────────────────── */
 .heatmap-pills {
   display: flex;
@@ -704,24 +713,15 @@ const HEATMAP_CSS = `
   font-weight: 600;
 }
 
-/* ── Separator ────────────────────────────── */
-.heatmap-sep {
-  text-align: center;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 14px;
-  color: var(--ink-3);
-  letter-spacing: 1.5em;
-  user-select: none;
-}
-
 /* ── Grid scroll wrapper ──────────────────── */
 .heatmap-grid-scroll {
   overflow-x: auto;
   padding-bottom: 8px;
+  margin-top: 24px;
 }
 .heatmap-grid {
   display: grid;
-  gap: 3px;
+  gap: 4px;
   min-width: fit-content;
 }
 
@@ -746,8 +746,8 @@ const HEATMAP_CSS = `
 
 /* ── Cells ────────────────────────────────── */
 .heatmap-cell {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   border-radius: 2px;
   transition: transform 120ms ease-out;
   cursor: default;
@@ -791,16 +791,16 @@ const HEATMAP_CSS = `
 .heatmap-legend {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 4px;
-  margin-top: 12px;
+  margin-top: 24px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ink-3);
 }
 .heatmap-legend-swatch {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   border-radius: 2px;
   background-color: var(--bg-cell-empty);
   position: relative;
@@ -813,12 +813,22 @@ const HEATMAP_CSS = `
   background-color: var(--c-active);
 }
 
+/* ── Legend text ──────────────────────────── */
+.heatmap-legend-text {
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 8px;
+}
+
 /* ── Stats bar ────────────────────────────── */
 .heatmap-stats-bar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   border-top: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
+  margin-top: 24px;
 }
 .heatmap-stats-compact {
   grid-template-columns: repeat(2, 1fr);
@@ -830,7 +840,7 @@ const HEATMAP_CSS = `
 .heatmap-stat:last-child {
   border-right: none;
 }
-.heatmap-stats-compact .heatmap-stat:nth-child(2) {
+.heatmap-stats-compact .heatmap-stat:nth-child(even) {
   border-right: none;
 }
 .heatmap-stat-label {

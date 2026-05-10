@@ -42,17 +42,9 @@ export function StatsPage() {
   const rangeEvents    = useEventStore((s) => s.rangeEvents)
   const isLoading      = useEventStore((s) => s.isLoading)
   const loadError      = useEventStore((s) => s.loadError)
-  const loadCategories = useCategoryStore((s) => s.loadCategories)
   const categories     = useCategoryStore((s) => s.categories)
-  const loadSettings   = useAppSettingsStore((s) => s.loadSettings)
   const language       = useAppSettingsStore((s) => s.settings.language)
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-  useEffect(() => {
-    fireAndForget(loadCategories(), 'load categories')
-    fireAndForget(loadSettings(), 'load settings')
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // Parse URL params
   const period  = (searchParams.get('period') as Granularity | null) ?? 'week'

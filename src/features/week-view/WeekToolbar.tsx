@@ -1,44 +1,32 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
-import { ArrowLeftRight, Menu, Search } from 'lucide-react'
+import { BarChart3, Search, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { addWeeks, formatISODate, formatMonthDay, getWeekStart, isSameDay } from '@/domain/time'
+import { formatISODate, formatMonthDay, getWeekStart, isSameDay } from '@/domain/time'
 import { addDays } from 'date-fns'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import {
-  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
-} from '@/components/ui/alert-dialog'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useUIStore } from '@/stores/uiStore'
 import { QuickLogTrigger } from '@/features/quick-log'
 
 interface WeekToolbarProps {
   weekStart: Date
-  eventCount: number
   onPrev: () => void
   onNext: () => void
   onToday: () => void
-  onShift: (direction: -1 | 1) => void
   onQuickLog: () => void
 }
 
 export function WeekToolbar({
   weekStart,
-  eventCount,
   onPrev,
   onNext,
   onToday,
-  onShift,
   onQuickLog,
 }: WeekToolbarProps) {
   const navigate = useNavigate()
   const language = useAppSettingsStore((s) => s.settings.language)
-  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
+  const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
-  const [shiftOpen, setShiftOpen] = useState(false)
-  const [pendingShift, setPendingShift] = useState<-1 | 1 | null>(null)
 
   const weekEnd = addDays(weekStart, 6)
   const weekNum = getISOWeek(weekStart)
@@ -46,28 +34,8 @@ export function WeekToolbar({
   const currentWeekStart = getWeekStart(new Date(), 1)
   const isCurrentWeek = isSameDay(weekStart, currentWeekStart)
 
-  function handleShift(direction: -1 | 1) {
-    setShiftOpen(false)
-    setPendingShift(direction)
-  }
-
-  function confirmShift() {
-    if (pendingShift === null) return
-    setPendingShift(null)
-    onShift(pendingShift)
-  }
-
   return (
     <div className="flex items-center justify-between px-3 md:px-7 py-3 border-b border-border-subtle flex-shrink-0 gap-2">
-      {/* Mobile hamburger */}
-      <button
-        onClick={() => setMobileSidebarOpen(true)}
-        aria-label="Open menu"
-        className="md:hidden w-8 h-8 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer flex-shrink-0"
-      >
-        <Menu size={18} strokeWidth={1.75} />
-      </button>
-
       {/* Left: Logo + tagline */}
       <div className="hidden md:flex items-baseline gap-2.5 select-none">
         <span className="font-serif text-[22px] font-semibold text-text-primary tracking-[-0.01em]">
@@ -109,7 +77,7 @@ export function WeekToolbar({
 
         {/* Search */}
         <button
-          onClick={() => useUIStore.getState().setSearchOpen(true)}
+          onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
           aria-label={t('搜索事件', 'Search events')}
           className={cn(
             'w-7 h-7 flex items-center justify-center rounded-md transition-colors duration-200',
@@ -134,43 +102,28 @@ export function WeekToolbar({
           {t('今天', 'Today')}
         </button>
 
-        {/* Bulk-shift */}
-        <Popover open={shiftOpen} onOpenChange={setShiftOpen}>
-          <PopoverTrigger asChild>
-            <button
-              disabled={eventCount === 0}
-              aria-label="Move events to another week"
-              className={cn(
-                'w-7 h-7 flex items-center justify-center rounded-md transition-colors duration-200',
-                eventCount === 0
-                  ? 'text-text-tertiary opacity-40 cursor-not-allowed'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-sunken cursor-pointer',
-              )}
-            >
-              <ArrowLeftRight size={14} strokeWidth={1.75} />
-            </button>
-          </PopoverTrigger>
-
-          <PopoverContent align="end" className="w-52 p-1.5">
-            <p className="px-2.5 py-1.5 text-body-xs font-sans text-text-tertiary select-none">
-              {t(`移动 ${eventCount} 个事件`, `Move ${eventCount} events`)}
-            </p>
-            <ShiftMenuItem
-              label={t('← 移到上一周', '← Move to previous week')}
-              weekLabel={formatMonthDay(addWeeks(weekStart, -1))}
-              onClick={() => handleShift(-1)}
-            />
-            <ShiftMenuItem
-              label={t('→ 移到下一周', '→ Move to next week')}
-              weekLabel={formatMonthDay(addWeeks(weekStart, 1))}
-              onClick={() => handleShift(1)}
-            />
-          </PopoverContent>
-        </Popover>
       </div>
 
-      {/* Right: View switcher pills */}
-      <div className="flex gap-1">
+      {/* Right: Global icon buttons + View switcher pills */}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => navigate('/stats')}
+          aria-label={t('统计', 'Stats')}
+          className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-200 cursor-pointer"
+        >
+          <BarChart3 size={16} strokeWidth={1.75} />
+        </button>
+        <button
+          onClick={() => setSettingsDrawerOpen(true)}
+          aria-label="Settings"
+          className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-200 cursor-pointer"
+        >
+          <Settings size={16} strokeWidth={1.75} />
+        </button>
+
+        <div className="w-px h-5 bg-border-subtle mx-1" />
+
+        <div className="flex gap-1">
         <button
           onClick={() => navigate('/')}
           className={cn(
@@ -187,47 +140,8 @@ export function WeekToolbar({
           D
         </button>
       </div>
+      </div>
 
-      {/* Bulk-shift confirmation dialog */}
-      <AlertDialog open={pendingShift !== null} onOpenChange={(open) => { if (!open) setPendingShift(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {pendingShift === -1
-                ? t(`将 ${eventCount} 个事件移到上一周？`, `Move ${eventCount} events to the previous week?`)
-                : t(`将 ${eventCount} 个事件移到下一周？`, `Move ${eventCount} events to the next week?`)
-              }
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('此操作不可撤销。', 'This action cannot be undone.')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('取消', 'Cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmShift}>
-              {t('移动', 'Move')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
-  )
-}
-
-interface ShiftMenuItemProps {
-  label: string
-  weekLabel: string
-  onClick: () => void
-}
-
-function ShiftMenuItem({ label, weekLabel, onClick }: ShiftMenuItemProps) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-sm font-sans text-text-primary hover:bg-surface-sunken transition-colors duration-200 cursor-pointer"
-    >
-      <span>{label}</span>
-      <span className="text-xs text-text-tertiary">{weekLabel}</span>
-    </button>
   )
 }

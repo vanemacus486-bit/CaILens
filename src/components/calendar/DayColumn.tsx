@@ -26,8 +26,10 @@ interface DayColumnProps {
   onEventClick:    (event: CalendarEvent, el: HTMLElement) => void
   onColorChange:   (eventId: string, color: EventColor) => void
   onEdit:          (event: CalendarEvent, anchorEl: HTMLElement) => void
+  onDuplicate:     (eventId: string) => void
   onDelete:        (eventId: string) => void
   onDragMove:      (eventId: string, newStartTime: number, newEndTime: number) => void
+  onDragToEdge:    (eventId: string, newStartTime: number, newEndTime: number, direction: -1 | 1) => void
   onDragStart:     () => void
   onResize:        (eventId: string, newStartTime: number, newEndTime: number) => void
 }
@@ -38,8 +40,8 @@ function slotToTimestamp(slotIndex: number, dayStart: number): number {
 
 function DayColumnInner({
   date, events, selectedEventId, weekDays, gridRef,
-  onSlotClick, onEventClick, onColorChange, onEdit, onDelete,
-  onDragMove, onDragStart, onResize,
+  onSlotClick, onEventClick, onColorChange, onEdit, onDuplicate, onDelete,
+  onDragMove, onDragToEdge, onDragStart, onResize,
 }: DayColumnProps) {
   const today    = isToday(date.getTime())
   const dayStart = getDayStart(date)
@@ -85,8 +87,10 @@ function DayColumnInner({
             onClick={onEventClick}
             onColorChange={onColorChange}
             onEdit={onEdit}
+            onDuplicate={onDuplicate}
             onDelete={onDelete}
             onDragMove={onDragMove}
+            onDragToEdge={onDragToEdge}
             onDragStart={onDragStart}
             onResize={onResize}
             weekDays={weekDays}
@@ -109,8 +113,10 @@ export const DayColumn = React.memo(DayColumnInner, (prev, next) =>
   prev.onEventClick      === next.onEventClick       &&
   prev.onColorChange     === next.onColorChange      &&
   prev.onEdit            === next.onEdit             &&
+  prev.onDuplicate       === next.onDuplicate        &&
   prev.onDelete          === next.onDelete           &&
   prev.onDragMove        === next.onDragMove         &&
+  prev.onDragToEdge      === next.onDragToEdge       &&
   prev.onDragStart       === next.onDragStart        &&
   prev.onResize          === next.onResize,
 )

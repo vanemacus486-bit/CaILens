@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { fireAndForget } from '@/lib/fireAndForget'
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, BarChart3, Loader2, AlertCircle, Settings } from 'lucide-react'
 import { formatWeekday as fmtWday } from '@/domain/time'
-import { addDays } from 'date-fns'
 import type { CalendarEvent } from '@/domain/event'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useUIStore } from '@/stores/uiStore'
 import { useDayFromURL, getPrevDay, getNextDay } from './hooks/useDayFromURL'
 
 function fmtTimeHM(ts: number): string {
@@ -31,33 +31,27 @@ export function DayView() {
   const navigate = useNavigate()
   const { dayStart, setDayStart } = useDayFromURL()
 
-  const events         = useEventStore((s) => s.events)
+  const rangeEvents   = useEventStore((s) => s.rangeEvents)
   const isLoading      = useEventStore((s) => s.isLoading)
   const loadError      = useEventStore((s) => s.loadError)
   const loadRange      = useEventStore((s) => s.loadRange)
-  const loadCategories = useCategoryStore((s) => s.loadCategories)
   const categories     = useCategoryStore((s) => s.categories)
-  const loadSettings   = useAppSettingsStore((s) => s.loadSettings)
   const language       = useAppSettingsStore((s) => s.settings.language)
+  const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
-  useEffect(() => {
-    fireAndForget(loadCategories(), 'load categories')
-    fireAndForget(loadSettings(), 'load settings')
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const dayEnd = addDays(dayStart, 1)
+  const dayStartMs = dayStart.getTime()
+  const dayEndMs   = dayStartMs + 86_400_000
 
   useEffect(() => {
-    fireAndForget(loadRange(dayStart.getTime(), dayEnd.getTime()), 'load day range')
-  }, [dayStart, dayEnd, loadRange])
+    fireAndForget(loadRange(dayStartMs, dayEndMs), 'load day range')
+  }, [dayStartMs, dayEndMs, loadRange])
 
   const dayEvents = useMemo(() => {
-    return events
-      .filter((e) => e.startTime < dayEnd.getTime() && e.endTime > dayStart.getTime())
+    return rangeEvents
+      .filter((e) => e.startTime < dayEndMs && e.endTime > dayStartMs)
       .sort((a, b) => a.startTime - b.startTime)
-  }, [events, dayStart, dayEnd])
+  }, [rangeEvents, dayStartMs, dayEndMs])
 
   const weekNum = getISOWeek(dayStart)
 
@@ -95,6 +89,21 @@ export function DayView() {
           >
             {fmtWday(getNextDay(dayStart), 'short')} ›
           </button>
+          <div className="w-px h-5 bg-border-subtle mx-1" />
+          <button
+            onClick={() => navigate('/stats')}
+            aria-label={t('统计', 'Stats')}
+            className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-200 cursor-pointer"
+          >
+            <BarChart3 size={16} strokeWidth={1.75} />
+          </button>
+          <button
+            onClick={() => setSettingsDrawerOpen(true)}
+            aria-label="Settings"
+            className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-200 cursor-pointer"
+          >
+            <Settings size={16} strokeWidth={1.75} />
+          </button>
         </div>
       </header>
 
@@ -108,7 +117,7 @@ export function DayView() {
           <AlertCircle className="h-10 w-10 text-color-text-danger" />
           <p className="font-sans text-sm text-text-secondary max-w-md text-center">{loadError}</p>
           <button
-            onClick={() => loadRange(dayStart.getTime(), dayEnd.getTime())}
+            onClick={() => loadRange(dayStartMs, dayEndMs)}
             className="inline-flex items-center justify-center rounded-lg bg-accent text-white px-4 py-2 text-sm font-medium transition-colors duration-200 cursor-pointer"
           >
             {t('重试', 'Retry')}
@@ -121,8 +130,6 @@ export function DayView() {
             const prevCat = i > 0 ? categories.find((c) => c.id === dayEvents[i - 1].categoryId) : null
             const showDivider = prevCat && prevCat.id !== event.categoryId
 
-            const dayStartMs = dayStart.getTime()
-            const dayEndMs = dayEnd.getTime()
             const startsBeforeDay = event.startTime < dayStartMs
             const endsAfterDay = event.endTime > dayEndMs
             const displayStart = startsBeforeDay ? dayStartMs : event.startTime

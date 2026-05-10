@@ -7,8 +7,7 @@ import { Loader2, AlertCircle } from 'lucide-react'
 import { DayColumn } from '@/components/calendar/DayColumn'
 import { TimeGrid } from '@/components/calendar/TimeGrid'
 import { useEventStore } from '@/stores/eventStore'
-import { useCategoryStore } from '@/stores/categoryStore'
-import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useUIStore } from '@/stores/uiStore'
 import { useWeekFromURL } from './hooks/useWeekFromURL'
 import { WeekDateHeader } from './WeekDateHeader'
 import { WeekToolbar } from './WeekToolbar'
@@ -31,16 +30,7 @@ export function WeekView() {
   const createEvent        = useEventStore((s) => s.createEvent)
   const updateEvent        = useEventStore((s) => s.updateEvent)
   const deleteEvent        = useEventStore((s) => s.deleteEvent)
-  const shiftCurrentWeek   = useEventStore((s) => s.shiftCurrentWeek)
-  const loadCategories     = useCategoryStore((s) => s.loadCategories)
-  const loadSettings       = useAppSettingsStore((s) => s.loadSettings)
-
-  // アプリ起動時に categories と settings を一度だけロード
-  useEffect(() => {
-    fireAndForget(loadCategories(), 'load categories')
-    fireAndForget(loadSettings(), 'load settings')
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const duplicateEvent     = useEventStore((s) => s.duplicateEvent)
 
   const [cardState,    setCardState]    = useState<CardState>({ mode: 'none' })
   const [draftPreview, setDraftPreview] = useState<DraftPreview | null>(null)
@@ -146,7 +136,7 @@ export function WeekView() {
   // Because onPointerDownOutside fires on pointerdown and slot onClick fires
   // on click (later), this callback still sees the pre-update cardState from
   // its closure — returning early prevents accidental double-create.
-  const handleSlotClick = useCallback((startTime: number, _slotEl: HTMLElement) => {
+  const handleSlotClick = useCallback((startTime: number, slotEl: HTMLElement) => {
     // Swallow the click that immediately follows closing a card — they're part
     // of the same pointer gesture (pointerdown closed the card, click hits here).
     if (justClosedCardRef.current) {
@@ -159,13 +149,14 @@ export function WeekView() {
       title: '', startTime, endTime: startTime + 60 * 60_000,
       color: 'stone', categoryId: 'stone',
     }).then((newEvent) => {
-      setCardState({ mode: 'edit', event: newEvent, isNewlyCreated: true })
+      setCardState({ mode: 'edit', event: newEvent, isNewlyCreated: true, anchorEl: slotEl })
     }).catch((err) => { console.error('[fire-and-forget] create event:', err) })
   }, [cardState.mode, createEvent])
 
   // ── Event click: open detail card ────────────────────
 
   const handleEventClick = useCallback((event: CalendarEvent, el: HTMLElement) => {
+    lastFocusedEventRef.current = event
     setDraftPreview(null)
     setCardState({ mode: 'detail', event, anchorEl: el })
   }, [])
@@ -175,7 +166,7 @@ export function WeekView() {
   const handleEdit = useCallback(() => {
     setCardState((prev) =>
       prev.mode === 'detail'
-        ? { mode: 'edit', event: prev.event, isNewlyCreated: false }
+        ? { mode: 'edit', event: prev.event, isNewlyCreated: false, anchorEl: prev.anchorEl }
         : prev,
     )
   }, [])
@@ -193,9 +184,9 @@ export function WeekView() {
   }, [updateEvent])
 
   // Jump straight to edit card (skips detail card).
-  const handleContextEdit = useCallback((event: CalendarEvent, _anchorEl: HTMLElement) => {
+  const handleContextEdit = useCallback((event: CalendarEvent, anchorEl: HTMLElement) => {
     setDraftPreview(null)
-    setCardState({ mode: 'edit', event, isNewlyCreated: false })
+    setCardState({ mode: 'edit', event, isNewlyCreated: false, anchorEl })
   }, [])
 
   // Delete via context menu. Uses ref so cardState isn't a dep (keeps this stable).
@@ -230,12 +221,56 @@ export function WeekView() {
     }
   }, [])
 
-  // ── Bulk shift ───────────────────────────────────────
+  // ── Duplicate ────────────────────────────────────────
 
-  const handleShift = useCallback(async (direction: -1 | 1) => {
-    await shiftCurrentWeek(direction)
-    setWeekStart(addWeeks(weekStart, direction))
-  }, [shiftCurrentWeek, weekStart, setWeekStart])
+  const handleDuplicate = useCallback((eventId: string) => {
+    fireAndForget(duplicateEvent(eventId), 'duplicate event')
+  }, [duplicateEvent])
+
+  // ── Cross-week drag ──────────────────────────────────
+
+  const handleDragToEdge = useCallback((
+    eventId: string, newStartTime: number, newEndTime: number, direction: -1 | 1,
+  ) => {
+    fireAndForget(
+      (async () => {
+        await updateEvent({ id: eventId, startTime: newStartTime, endTime: newEndTime })
+        setWeekStart(addWeeks(weekStart, direction))
+      })(),
+      'drag to edge',
+    )
+  }, [updateEvent, weekStart, setWeekStart])
+
+  // ── Keyboard shortcuts ───────────────────────────────
+
+  const lastFocusedEventRef = useRef<CalendarEvent | null>(null)
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === 'c') {
+        const event = lastFocusedEventRef.current
+        if (!event) return
+        e.preventDefault()
+        useUIStore.getState().setClipboardEvent({
+          title: event.title,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          color: event.color,
+          categoryId: event.categoryId,
+          description: event.description,
+          location: event.location,
+        })
+      }
+      if (e.ctrlKey && e.key === 'v') {
+        const clip = useUIStore.getState().clipboardEvent
+        if (!clip) return
+        e.preventDefault()
+        fireAndForget(createEvent(clip), 'paste event')
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [createEvent])
 
   // ── Edit card actions ────────────────────────────────
 
@@ -268,11 +303,9 @@ export function WeekView() {
         <header>
         <WeekToolbar
           weekStart={weekStart}
-          eventCount={events.length}
           onPrev={() => setWeekStart(addWeeks(weekStart, -1))}
           onNext={() => setWeekStart(addWeeks(weekStart, 1))}
           onToday={() => setWeekStart(getWeekStart(new Date(), 1))}
-          onShift={handleShift}
           onQuickLog={onQuickLog}
         />
         <WeekDateHeader days={days} />
@@ -311,8 +344,10 @@ export function WeekView() {
                     onEventClick={handleEventClick}
                     onColorChange={handleColorChange}
                     onEdit={handleContextEdit}
+                    onDuplicate={handleDuplicate}
                     onDelete={handleContextDelete}
                     onDragMove={handleDragMove}
+                    onDragToEdge={handleDragToEdge}
                     onDragStart={handleDragStart}
                     onResize={handleResize}
                   />
@@ -344,6 +379,7 @@ export function WeekView() {
         <EventEditCard
           event={cardState.event}
           isNewlyCreated={cardState.isNewlyCreated}
+          anchorEl={cardState.anchorEl}
           onSave={handleSave}
           onDelete={handleEditDelete}
           onClose={handleEditClose}

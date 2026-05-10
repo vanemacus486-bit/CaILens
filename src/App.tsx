@@ -1,31 +1,45 @@
-import { HashRouter, Route, Routes, Outlet } from 'react-router-dom'
 import { useEffect } from 'react'
+import { HashRouter, Route, Routes, Outlet, Navigate } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
 import { DayView } from '@/features/day-view/DayView'
-import { Sidebar } from '@/features/app-shell/Sidebar'
-import { SettingsPage } from '@/features/settings/SettingsPage'
-import { SettingsCategories } from '@/features/settings/SettingsCategories'
-import { SettingsAppearance } from '@/features/settings/SettingsAppearance'
-import { SettingsData } from '@/features/settings/SettingsData'
-import { SettingsStorage } from '@/features/settings/SettingsStorage'
-import { SettingsAbout } from '@/features/settings/SettingsAbout'
 import { StatsPage } from '@/pages/StatsPage'
-import { SearchDialog } from '@/features/search/SearchDialog'
+import { CommandPalette } from '@/features/search/CommandPalette'
+import { SettingsDrawer } from '@/features/settings/SettingsDrawer'
 import { useUIStore } from '@/stores/uiStore'
+import { useCategoryStore } from '@/stores/categoryStore'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { QuickLogDialog, useQuickLog } from '@/features/quick-log'
 import { useGlobalShortcut } from '@/lib/hooks/useGlobalShortcut'
 import { SnackbarHost } from '@/components/ui/snackbar'
+import { fireAndForget } from '@/lib/fireAndForget'
+
+function LegacySettingsRedirect() {
+  useEffect(() => {
+    useUIStore.getState().setSettingsDrawerOpen(true)
+  }, [])
+  return <Navigate to="/" replace />
+}
 
 function Layout() {
-  const searchOpen = useUIStore((s) => s.searchOpen)
+  const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen)
+  const settingsDrawerOpen = useUIStore((s) => s.settingsDrawerOpen)
   const { open, setOpen, defaults, openDialog, handleSave } = useQuickLog()
+
+  // Hoisted: load categories + settings once at the layout level
+  // instead of duplicating in every route component.
+  useEffect(() => {
+    const loadCategories = useCategoryStore.getState().loadCategories
+    const loadSettings = useAppSettingsStore.getState().loadSettings
+    fireAndForget(loadCategories(), 'load categories')
+    fireAndForget(loadSettings(), 'load settings')
+  }, [])
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        useUIStore.getState().setSearchOpen(true)
+        useUIStore.getState().setCommandPaletteOpen(true)
       }
     }
     document.addEventListener('keydown', handleKeyDown)
@@ -36,13 +50,13 @@ function Layout() {
 
   return (
     <div className="h-screen flex bg-surface-base text-text-primary overflow-hidden">
-      <Sidebar />
       <main className="flex-1 h-full overflow-hidden flex flex-col">
         <ErrorBoundary>
           <Outlet context={{ onQuickLog: openDialog }} />
         </ErrorBoundary>
       </main>
-      {searchOpen && <SearchDialog />}
+      {commandPaletteOpen && <CommandPalette onQuickLog={openDialog} />}
+      {settingsDrawerOpen && <SettingsDrawer />}
       {defaults && (
         <QuickLogDialog
           open={open}
@@ -65,13 +79,8 @@ export default function App() {
           <Route path="/" element={<WeekView />} />
           <Route path="/day" element={<DayView />} />
           <Route path="/stats" element={<StatsPage />} />
-          <Route path="/settings" element={<SettingsPage />}>
-            <Route index element={<SettingsCategories />} />
-            <Route path="appearance" element={<SettingsAppearance />} />
-            <Route path="data" element={<SettingsData />} />
-            <Route path="storage" element={<SettingsStorage />} />
-            <Route path="about" element={<SettingsAbout />} />
-          </Route>
+          <Route path="/settings" element={<LegacySettingsRedirect />} />
+          <Route path="/settings/*" element={<LegacySettingsRedirect />} />
         </Route>
       </Routes>
     </HashRouter>

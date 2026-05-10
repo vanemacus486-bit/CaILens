@@ -22,6 +22,7 @@ interface EventState {
   importEvents: (icsText: string, categoryId: CategoryId) => Promise<ImportResult>
   importParsedEvents: (parsedEvents: ImportedEvent[], resolveCategory: (event: ImportedEvent, index: number) => CategoryId) => Promise<void>
   reclassifyAllEvents: () => Promise<void>
+  duplicateEvent: (id: string) => Promise<CalendarEvent>
 }
 
 export const useEventStore = create<EventState>()((set, get) => ({
@@ -159,6 +160,23 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
     const created = await getEventRepo().bulkCreate(inputs)
     set((state) => ({ events: [...state.events, ...created] }))
+  },
+
+  duplicateEvent: async (id) => {
+    const original = get().events.find((e) => e.id === id) ?? await getEventRepo().getById(id)
+    if (!original) throw new Error(`Event not found: ${id}`)
+    const input: CreateEventInput = {
+      title: original.title,
+      startTime: original.startTime,
+      endTime: original.endTime,
+      color: original.color,
+      categoryId: original.categoryId,
+      description: original.description,
+      location: original.location,
+    }
+    const event = await getEventRepo().create(input)
+    set((state) => ({ events: [...state.events, event] }))
+    return event
   },
 
   reclassifyAllEvents: async () => {

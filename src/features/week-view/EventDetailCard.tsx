@@ -29,8 +29,6 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
   const [showConfirm, setShowConfirm] = useState(false)
 
   // Stable ref pointing to the anchor element — Radix reads this for positioning.
-  // useRef<HTMLElement>(null!) avoids union with null so the type matches
-  // Radix's RefObject<Measurable>. The initial value is never read before assignment.
   const virtualRef = useRef<HTMLElement>(null!)
   virtualRef.current = anchorEl
 
@@ -39,65 +37,77 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
   return (
     <>
       <Popover open>
-        {/* virtualRef positions the Popover relative to the event block */}
         <PopoverAnchor virtualRef={virtualRef} />
 
         <PopoverContent
           side="right"
-          className="w-64 p-0 max-md:!w-[calc(100vw-1rem)] max-md:max-w-64"
+          className="w-64 p-0 max-md:!w-[calc(100vw-1rem)] max-md:max-w-64 overflow-hidden"
           onPointerDownOutside={onClose}
           onEscapeKeyDown={onClose}
-          // Prevent Radix from auto-closing (we handle it ourselves)
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <div className="p-4 flex flex-col gap-2.5">
-            {/* Title */}
-            <p className={`text-base font-serif leading-snug ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary'}`}>
-              {isEmpty ? t('(无标题)', '(Untitled)') : event.title}
-            </p>
+          <div className="flex">
+            {/* Colored accent strip */}
+            <div
+              className="w-[3px] flex-shrink-0"
+              style={{ backgroundColor: `var(--event-${event.color}-fill)` }}
+            />
 
-            {/* Time */}
-            <p className="text-xs text-text-secondary font-mono">
-              {fmtTime(event.startTime)} – {fmtTime(event.endTime)}
-            </p>
-
-            {/* Colour dot */}
-            <div className="flex items-center gap-1.5">
-              <span
-                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: `var(--event-${event.color}-text)` }}
-              />
-              <span className="text-xs text-text-tertiary capitalize font-sans">{event.color}</span>
-            </div>
-
-            {/* Notes */}
-            {event.description && (
-              <p className="text-sm text-text-secondary line-clamp-2 font-sans leading-snug">
-                {event.description}
+            <div className="flex-1 p-4 flex flex-col gap-3">
+              {/* Title */}
+              <p className={`text-[16px] font-serif leading-snug ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary'}`}>
+                {isEmpty ? t('(无标题)', '(Untitled)') : event.title}
               </p>
-            )}
 
-            {/* Location */}
-            {event.location && (
-              <div className="flex items-start gap-1.5 text-xs text-text-secondary">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-text-tertiary" />
-                <span className="line-clamp-1">{event.location}</span>
+              {/* Time */}
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm text-accent font-medium tracking-tight">
+                  {fmtTime(event.startTime)}
+                </span>
+                <span className="text-text-tertiary text-xs">–</span>
+                <span className="font-mono text-sm text-text-secondary tracking-tight">
+                  {fmtTime(event.endTime)}
+                </span>
               </div>
-            )}
 
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-border-subtle mt-0.5">
-              <Button
-                variant="ghost" size="sm"
-                onClick={() => setShowConfirm(true)}
-                className="text-color-text-danger hover:bg-surface-sunken gap-1.5 px-2 h-8"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                {t('删除', 'Delete')}
-              </Button>
-              <Button variant="default" size="sm" onClick={onEdit} className="h-8">
-                {t('编辑', 'Edit')}
-              </Button>
+              {/* Colour indicator — dot + label */}
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: `var(--event-${event.color}-text)` }}
+                />
+                <span className="text-xs text-text-tertiary capitalize font-sans">{event.color}</span>
+              </div>
+
+              {/* Notes */}
+              {event.description && (
+                <p className="text-sm text-text-secondary line-clamp-2 font-sans leading-snug">
+                  {event.description}
+                </p>
+              )}
+
+              {/* Location */}
+              {event.location && (
+                <div className="flex items-start gap-1.5 text-xs text-text-secondary">
+                  <MapPin className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-text-tertiary" />
+                  <span className="line-clamp-1">{event.location}</span>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-2.5 border-t border-border-subtle mt-0.5">
+                <Button
+                  variant="ghost" size="sm"
+                  onClick={() => setShowConfirm(true)}
+                  className="text-color-text-danger hover:bg-surface-sunken gap-1.5 px-2 h-8"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {t('删除', 'Delete')}
+                </Button>
+                <Button variant="default" size="sm" onClick={onEdit} className="h-8">
+                  {t('编辑', 'Edit')}
+                </Button>
+              </div>
             </div>
           </div>
         </PopoverContent>

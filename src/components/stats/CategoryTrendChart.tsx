@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import {
-  LineChart,
+  ComposedChart,
+  Area,
   Line,
   XAxis,
   YAxis,
@@ -9,7 +10,6 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
-  Legend,
 } from 'recharts'
 import { cn } from '@/lib/utils'
 import { RechartsTooltip } from './RechartsTooltip'
@@ -19,6 +19,7 @@ import type { Granularity, Bucket } from '@/hooks/useStatsAggregation'
 
 const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
 const STORAGE_KEY = 'cailens-trend-categories'
+const TOTAL_STORAGE_KEY = 'cailens-trend-total'
 
 function loadSelection(): CategoryId[] {
   try {
@@ -36,6 +37,20 @@ function loadSelection(): CategoryId[] {
 function saveSelection(ids: CategoryId[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ids))
+  } catch { /* ignore */ }
+}
+
+function loadTotal(): boolean {
+  try {
+    const raw = localStorage.getItem(TOTAL_STORAGE_KEY)
+    if (raw !== null) return raw === 'true'
+  } catch { /* ignore */ }
+  return true
+}
+
+function saveTotal(v: boolean) {
+  try {
+    localStorage.setItem(TOTAL_STORAGE_KEY, String(v))
   } catch { /* ignore */ }
 }
 
@@ -63,10 +78,15 @@ export function CategoryTrendChart({
   maturity,
 }: CategoryTrendChartProps) {
   const [selected, setSelected] = useState<CategoryId[]>(loadSelection)
+  const [showTotal, setShowTotal] = useState<boolean>(loadTotal)
 
   useEffect(() => {
     saveSelection(selected)
   }, [selected])
+
+  useEffect(() => {
+    saveTotal(showTotal)
+  }, [showTotal])
 
   const toggleCategory = useCallback((id: CategoryId) => {
     setSelected((prev) => {
@@ -92,9 +112,28 @@ export function CategoryTrendChart({
       for (const id of CATEGORY_IDS) {
         row[id] = b.byCategory[id] ?? 0
       }
+      row.total = ((row.accent as number) || 0) + ((row.sage as number) || 0)
       return row
     })
   }, [history, periodType])
+
+  const dynamicMax = useMemo(() => {
+    if (chartData.length === 0) return 80
+    let maxVal = 0
+    for (const row of chartData) {
+      for (const id of selected) {
+        const v = row[id] as number
+        if (v > maxVal) maxVal = v
+      }
+      if (showTotal) {
+        const totalV = (row.total as number) || 0
+        if (totalV > maxVal) maxVal = totalV
+      }
+    }
+    if (maxVal === 0) return 80
+    const scaled = maxVal * 1.15
+    return Math.ceil(scaled / 10) * 10
+  }, [chartData, selected, showTotal])
 
   const budgetLine = useMemo(() => {
     if (categories.length === 0) return 0
@@ -159,12 +198,29 @@ export function CategoryTrendChart({
             </button>
           )
         })}
+
+        {/* Separator */}
+        <span className="w-px h-4 bg-border-subtle mx-1" />
+
+        {/* Total investment toggle */}
+        <button
+          onClick={() => setShowTotal((prev) => !prev)}
+          className={cn(
+            'inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-sans transition-colors duration-200 cursor-pointer border',
+            showTotal
+              ? 'border-border-default bg-surface-raised text-text-primary font-medium'
+              : 'border-border-subtle text-text-tertiary hover:text-text-secondary',
+          )}
+        >
+          {language === 'zh' ? '投入合计' : 'Core Total'}
+          <span className="text-[9px] text-event-accent-fill font-semibold leading-none ml-0.5">新</span>
+        </button>
       </div>
 
       {/* Chart */}
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+          <ComposedChart data={chartData} margin={{ top: 8, right: 72, left: 0, bottom: 8 }}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--border-subtle)"
@@ -183,14 +239,57 @@ export function CategoryTrendChart({
               axisLine={false}
               tickFormatter={(v: number) => `${v.toFixed(1)}h`}
               width={48}
+              domain={[0, dynamicMax]}
             />
             <Tooltip content={<RechartsTooltip decimals={1} />} />
-            <Legend
-              wrapperStyle={{ fontSize: '11px', fontFamily: 'Inter, sans-serif' }}
-              iconType="circle"
-              iconSize={8}
-            />
-            {CATEGORY_IDS.filter((id) => selected.includes(id)).map((id) => {
+
+            {/* Stacked areas for accent + sage when total investment is on */}
+            {showTotal && (
+              <>
+                {selected.includes('accent') && (
+                  <Area
+                    dataKey="accent"
+                    stackId="total"
+                    fill="var(--event-accent-fill)"
+                    fillOpacity={0.25}
+                    stroke="var(--event-accent-fill)"
+                    strokeWidth={1}
+                    name={catMap.get('accent')?.name?.[language] ?? 'accent'}
+                    dot={false}
+                    activeDot={{ r: 3, strokeWidth: 0 }}
+                    connectNulls={false}
+                  />
+                )}
+                {selected.includes('sage') && (
+                  <Area
+                    dataKey="sage"
+                    stackId="total"
+                    fill="var(--event-sage-fill)"
+                    fillOpacity={0.25}
+                    stroke="var(--event-sage-fill)"
+                    strokeWidth={1}
+                    name={catMap.get('sage')?.name?.[language] ?? 'sage'}
+                    dot={false}
+                    activeDot={{ r: 3, strokeWidth: 0 }}
+                    connectNulls={false}
+                  />
+                )}
+                <Line
+                  dataKey="total"
+                  name={language === 'zh' ? '投入合计' : 'Core Total'}
+                  stroke="#5C3D2E"
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={{ r: 3, strokeWidth: 0 }}
+                  connectNulls={false}
+                />
+              </>
+            )}
+
+            {/* Lines for categories not rendered as stacked areas */}
+            {selected
+              .filter((id) => !showTotal || (id !== 'accent' && id !== 'sage'))
+              .map((id) => {
               const cat = catMap.get(id)
               return (
                 <Line
@@ -213,14 +312,14 @@ export function CategoryTrendChart({
                 strokeDasharray="4 4"
                 strokeWidth={1}
                 label={{
-                  value: language === 'zh' ? '预算' : 'budget',
+                  value: `${language === 'zh' ? '预算' : 'Budget'} ${budgetLine.toFixed(1)}h`,
                   position: 'right',
                   fill: 'var(--color-text-warning)',
                   fontSize: 10,
                 }}
               />
             )}
-          </LineChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
 

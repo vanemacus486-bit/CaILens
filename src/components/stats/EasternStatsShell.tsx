@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import type { Granularity } from '@/hooks/useStatsAggregation'
 
 type ViewMode = 'trend' | 'heatmap'
@@ -52,28 +54,13 @@ export function EasternStatsShell({
         style={{ borderBottom: '1px solid rgba(46,40,35,0.10)' }}
       >
         {/* Back link */}
-        <a
-          href="#/"
-          className="inline-flex items-center justify-center w-8 h-8 rounded text-[#6F6453] hover:text-[#2E2823] transition-colors duration-200 flex-shrink-0 no-underline"
-          style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 18 }}
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm font-sans text-[#6F6453] hover:text-[#2E2823] transition-colors duration-200 flex-shrink-0 no-underline"
         >
-          &#8592;
-        </a>
-
-        {/* Brand */}
-        <span
-          className="flex-shrink-0 select-none"
-          style={{
-            fontFamily: "'Noto Serif SC', serif",
-            fontSize: 20,
-            fontStyle: 'italic',
-            color: 'var(--c-active, #C8693E)',
-            fontWeight: 600,
-            transition: 'color 0.4s ease',
-          }}
-        >
-          CaILens
-        </span>
+          <ArrowLeft size={16} strokeWidth={1.75} />
+          <span>{t('返回日历', 'Back to calendar')}</span>
+        </Link>
 
         <div style={{ width: 1, height: 20, backgroundColor: 'rgba(46,40,35,0.10)', flexShrink: 0 }} />
 
