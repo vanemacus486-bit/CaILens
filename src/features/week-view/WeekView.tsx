@@ -156,7 +156,7 @@ export function WeekView() {
   // ── Event click: open detail card ────────────────────
 
   const handleEventClick = useCallback((event: CalendarEvent, el: HTMLElement) => {
-    lastFocusedEventRef.current = event
+    useUIStore.getState().setLastFocusedEventId(event.id)
     setDraftPreview(null)
     setCardState({ mode: 'detail', event, anchorEl: el })
   }, [])
@@ -240,37 +240,6 @@ export function WeekView() {
       'drag to edge',
     )
   }, [updateEvent, weekStart, setWeekStart])
-
-  // ── Keyboard shortcuts ───────────────────────────────
-
-  const lastFocusedEventRef = useRef<CalendarEvent | null>(null)
-
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.ctrlKey && e.key === 'c') {
-        const event = lastFocusedEventRef.current
-        if (!event) return
-        e.preventDefault()
-        useUIStore.getState().setClipboardEvent({
-          title: event.title,
-          startTime: event.startTime,
-          endTime: event.endTime,
-          color: event.color,
-          categoryId: event.categoryId,
-          description: event.description,
-          location: event.location,
-        })
-      }
-      if (e.ctrlKey && e.key === 'v') {
-        const clip = useUIStore.getState().clipboardEvent
-        if (!clip) return
-        e.preventDefault()
-        fireAndForget(createEvent(clip), 'paste event')
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [createEvent])
 
   // ── Edit card actions ────────────────────────────────
 

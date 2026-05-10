@@ -3,6 +3,7 @@ import { getSettingsRepo } from '@/data/getRepositories'
 import type { AppSettings, AppLanguage, AppTheme } from '@/domain/settings'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import type { AccentPreset } from '@/domain/themes'
+import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
 
 const THEME_KEY  = 'cailens-theme'
 const ACCENT_KEY = 'cailens-accent'
@@ -26,6 +27,8 @@ interface AppSettingsState {
   setLanguage: (lang: AppLanguage) => Promise<void>
   setTheme: (theme: AppTheme) => Promise<void>
   setAccentColor: (accent: AccentPreset) => Promise<void>
+  setShortcut: (action: ShortcutAction, binding: ShortcutString | null) => Promise<void>
+  resetAllShortcuts: () => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
@@ -82,5 +85,24 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     localStorage.setItem(ACCENT_KEY, accent)
     applyAccent(accent)
     set({ settings })
+  },
+
+  setShortcut: async (action, binding) => {
+    const current = await getSettingsRepo().get()
+    const shortcuts = { ...(current.shortcuts ?? {}) }
+    if (binding === null) {
+      delete shortcuts[action]
+    } else {
+      shortcuts[action] = binding
+    }
+    const updated = await getSettingsRepo().update({
+      shortcuts: Object.keys(shortcuts).length > 0 ? shortcuts : undefined,
+    })
+    set({ settings: updated })
+  },
+
+  resetAllShortcuts: async () => {
+    const updated = await getSettingsRepo().update({ shortcuts: undefined })
+    set({ settings: updated })
   },
 }))

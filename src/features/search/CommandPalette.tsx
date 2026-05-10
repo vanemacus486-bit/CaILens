@@ -8,6 +8,7 @@ import type { CalendarEvent } from '@/domain/event'
 import { getEventRepo } from '@/data/getRepositories'
 import { useUIStore } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { resolveBindings, bindingToDisplayString } from '@/domain/shortcuts'
 
 function fmtHM(ts: number): string {
   const d = new Date(ts)
@@ -65,41 +66,51 @@ export function CommandPalette({ onQuickLog }: CommandPaletteProps) {
 
   const close = useCallback(() => setCommandPaletteOpen(false), [setCommandPaletteOpen])
 
+  // Resolve shortcut display strings from registry
+  const resolvedBindings = useMemo(() => resolveBindings(settings.shortcuts ?? {}), [settings.shortcuts])
+  const shortcutDisplay = useMemo(() => {
+    const m: Record<string, string> = {}
+    for (const [action, binding] of Object.entries(resolvedBindings)) {
+      m[action] = binding ? bindingToDisplayString(binding) : ''
+    }
+    return m
+  }, [resolvedBindings])
+
   // Commands
   const allCommands = useMemo<Command[]>(() => [
     {
       id: 'today',
       label: 'Go to this week',
       labelZh: '前往本周',
-      shortcut: '⌘K ↵',
+      shortcut: shortcutDisplay.goToThisWeek,
       invoke: () => { navigate('/'); close() },
     },
     {
       id: 'stats',
       label: 'Go to stats',
       labelZh: '前往统计',
-      shortcut: '',
+      shortcut: shortcutDisplay.goToStats,
       invoke: () => { navigate('/stats'); close() },
     },
     {
       id: 'settings',
       label: 'Open settings',
       labelZh: '打开设置',
-      shortcut: '',
+      shortcut: shortcutDisplay.openSettings,
       invoke: () => { setSettingsDrawerOpen(true); close() },
     },
     {
       id: 'newevent',
       label: 'New event',
       labelZh: '新建事件',
-      shortcut: 'N',
+      shortcut: shortcutDisplay.openQuickLog,
       invoke: () => { close(); onQuickLog() },
     },
     {
       id: 'theme',
       label: settings.theme === 'dark' ? 'Switch to light' : 'Switch to dark',
       labelZh: settings.theme === 'dark' ? '切换浅色主题' : '切换深色主题',
-      shortcut: '',
+      shortcut: shortcutDisplay.toggleTheme,
       invoke: () => {
         fireAndForget(setTheme(settings.theme === 'dark' ? 'light' : 'dark'), 'toggle theme')
         close()
@@ -109,13 +120,13 @@ export function CommandPalette({ onQuickLog }: CommandPaletteProps) {
       id: 'lang',
       label: language === 'zh' ? 'Switch to English' : '切换中文',
       labelZh: language === 'zh' ? 'Switch to English' : '切换中文',
-      shortcut: '',
+      shortcut: shortcutDisplay.toggleLanguage,
       invoke: () => {
         fireAndForget(setLanguage(language === 'zh' ? 'en' : 'zh'), 'toggle language')
         close()
       },
     },
-  ], [navigate, close, setSettingsDrawerOpen, onQuickLog, setTheme, setLanguage, language, settings.theme])
+  ], [navigate, close, setSettingsDrawerOpen, onQuickLog, setTheme, setLanguage, language, settings.theme, shortcutDisplay])
 
   // Filter commands based on query
   const matchedCommands = useMemo(() => {

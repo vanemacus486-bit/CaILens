@@ -10,7 +10,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/166d37d7-0634-47d9-aacb-768302dd767b" />
 
-> **Status:** v3.7 — ICS Import Redesign. Event name aggregation (1369 rows → ~28 types); inline category buttons with 1-6 keyboard shortcuts; smart keyword suggestion with one-click apply; event coverage progress bar; per-instance override support. 354 tests.
+> **Status:** v3.10.0 — Global keyboard shortcut system. All actions triggerable via shortcuts, fully customizable bindings. 387 tests.
 
 ## Downloads
 
@@ -35,7 +35,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
 - **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 354 tests, one-way dependency layers. The codebase should age well.
+- **Code quality over feature quantity.** Strict TypeScript, 387 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
@@ -77,6 +77,25 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Week navigation** — previous, next, jump to today.
 - **ICS import** and **Statistics dashboard** buttons.
 
+### Keyboard Shortcuts
+
+CaILens v3.10 ships with a global keyboard shortcut system. **All bindings are user-customizable**:
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+K` | Open command palette |
+| `N` | Quick log |
+| `Ctrl+C` | Copy focused event |
+| `Ctrl+V` | Paste event |
+| `Ctrl+←` / `Ctrl+→` | Previous / Next week |
+| `Ctrl+Shift+←` / `Ctrl+Shift+→` | Previous / Next day |
+
+- **16 bindable actions** — navigation, view switching, theme/language toggle, event copy/paste/delete/duplicate
+- **Settings → Shortcuts tab** — click a binding pill to record a new shortcut; conflict detection with inline warnings
+- **Reset** — per-action or reset all to defaults
+- Shortcuts are automatically suppressed when typing in input fields or text areas
+- The command palette shows currently active shortcuts for each action
+
 ### Day Diary
 
 - **Vertical timeline view** — one day at a time, with time labels, coloured dots, and serif entry text.
@@ -98,7 +117,7 @@ Users can rename categories in both Chinese and English. Each category has a con
 
 ### Settings Page
 
-- **3-section layout** — Interface (language), Categories (names + budgets + keywords), Data (export).
+- **6-tab drawer** — Categories, Appearance, Shortcuts, Data, Storage, About.
 - **Language toggle** — Chinese / English, using a segmented control.
 - **Theme toggle** — Light / Dark, using a segmented control, with automatic system preference detection on first visit.
 - **Accent colour** — rust / ocean / forest / plum. Switching shifts surfaces, borders, and brand colour as a cohesive whole — not just a button tint.
@@ -178,7 +197,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (354 tests)
+npm run test         # run unit tests once (387 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -196,7 +215,7 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 354 tests across 21 test files |
+| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 387 tests across 21 test files |
 | Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC | Fontsource, locally hosted |
 | Icons | lucide-react | |
 

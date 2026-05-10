@@ -6,14 +6,16 @@ import { SettingsAppearance } from '@/features/settings/SettingsAppearance'
 import { SettingsData } from '@/features/settings/SettingsData'
 import { SettingsStorage } from '@/features/settings/SettingsStorage'
 import { SettingsAbout } from '@/features/settings/SettingsAbout'
+import { SettingsShortcuts } from '@/features/settings/SettingsShortcuts'
 import { cn } from '@/lib/utils'
 
 const TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
-  { key: 'categories',  label: 'Categories',  labelZh: '分类' },
-  { key: 'appearance',  label: 'Appearance',  labelZh: '外观' },
-  { key: 'data',        label: 'Data',        labelZh: '数据' },
-  { key: 'storage',     label: 'Storage',     labelZh: '存储' },
-  { key: 'about',       label: 'About',       labelZh: '关于' },
+  { key: 'categories',  label: 'Categories',     labelZh: '分类' },
+  { key: 'appearance',  label: 'Appearance',     labelZh: '外观' },
+  { key: 'data',        label: 'Data',           labelZh: '数据' },
+  { key: 'storage',     label: 'Storage',        labelZh: '存储' },
+  { key: 'shortcuts',   label: 'Shortcuts',      labelZh: '快捷键' },
+  { key: 'about',       label: 'About',          labelZh: '关于' },
 ]
 
 const TAB_CONTENT: Record<SettingsTab, React.FC> = {
@@ -21,6 +23,7 @@ const TAB_CONTENT: Record<SettingsTab, React.FC> = {
   appearance: SettingsAppearance,
   data:       SettingsData,
   storage:    SettingsStorage,
+  shortcuts:  SettingsShortcuts,
   about:      SettingsAbout,
 }
 

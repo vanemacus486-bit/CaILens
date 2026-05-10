@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { HashRouter, Route, Routes, Outlet, Navigate } from 'react-router-dom'
+import { useEffect, useMemo } from 'react'
+import { HashRouter, Route, Routes, Outlet, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
 import { DayView } from '@/features/day-view/DayView'
 import { StatsPage } from '@/pages/StatsPage'
@@ -8,11 +8,15 @@ import { SettingsDrawer } from '@/features/settings/SettingsDrawer'
 import { useUIStore } from '@/stores/uiStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useEventStore } from '@/stores/eventStore'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { QuickLogDialog, useQuickLog } from '@/features/quick-log'
-import { useGlobalShortcut } from '@/lib/hooks/useGlobalShortcut'
 import { SnackbarHost } from '@/components/ui/snackbar'
 import { fireAndForget } from '@/lib/fireAndForget'
+import { addWeeks, getWeekStart, formatISODate } from '@/domain/time'
+import { useShortcutManager } from '@/hooks/useShortcutManager'
+import { subDays, addDays, parseISO } from 'date-fns'
+import type { ShortcutAction } from '@/domain/shortcuts'
 
 function LegacySettingsRedirect() {
   useEffect(() => {
@@ -24,7 +28,13 @@ function LegacySettingsRedirect() {
 function Layout() {
   const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen)
   const settingsDrawerOpen = useUIStore((s) => s.settingsDrawerOpen)
+  const language = useAppSettingsStore((s) => s.settings.language)
+  const theme = useAppSettingsStore((s) => s.settings.theme)
+  const setTheme = useAppSettingsStore((s) => s.setTheme)
+  const setLanguage = useAppSettingsStore((s) => s.setLanguage)
   const { open, setOpen, defaults, openDialog, handleSave } = useQuickLog()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   // Hoisted: load categories + settings once at the layout level
   // instead of duplicating in every route component.
@@ -35,18 +45,74 @@ function Layout() {
     fireAndForget(loadSettings(), 'load settings')
   }, [])
 
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        useUIStore.getState().setCommandPaletteOpen(true)
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  const shortcutHandlers = useMemo<Partial<Record<ShortcutAction, () => void>>>(() => ({
+    openCommandPalette: () => useUIStore.getState().setCommandPaletteOpen(true),
+    openQuickLog: () => { if (!open) openDialog() },
+    copyFocusedEvent: () => {
+      const eventId = useUIStore.getState().lastFocusedEventId
+      if (!eventId) return
+      const event = useEventStore.getState().events.find((e) => e.id === eventId)
+      if (!event) return
+      useUIStore.getState().setClipboardEvent({
+        title: event.title,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        color: event.color,
+        categoryId: event.categoryId,
+        description: event.description,
+        location: event.location,
+      })
+    },
+    pasteEvent: () => {
+      const clip = useUIStore.getState().clipboardEvent
+      if (!clip) return
+      fireAndForget(useEventStore.getState().createEvent(clip), 'paste event')
+    },
+    goToThisWeek: () => navigate('/'),
+    goToDayView: () => navigate('/day'),
+    goToStats: () => navigate('/stats'),
+    openSettings: () => useUIStore.getState().setSettingsDrawerOpen(true),
+    toggleTheme: () => fireAndForget(
+      setTheme(theme === 'dark' ? 'light' : 'dark'),
+      'toggle theme',
+    ),
+    toggleLanguage: () => fireAndForget(
+      setLanguage(language === 'zh' ? 'en' : 'zh'),
+      'toggle language',
+    ),
+    goToPreviousWeek: () => {
+      const weekParam = searchParams.get('week')
+      const current = weekParam ? parseISO(weekParam) : getWeekStart(new Date(), 1)
+      navigate(`/?week=${formatISODate(addWeeks(current, -1))}`)
+    },
+    goToNextWeek: () => {
+      const weekParam = searchParams.get('week')
+      const current = weekParam ? parseISO(weekParam) : getWeekStart(new Date(), 1)
+      navigate(`/?week=${formatISODate(addWeeks(current, 1))}`)
+    },
+    goToPreviousDay: () => {
+      const dateParam = searchParams.get('date')
+      const current = dateParam ? parseISO(dateParam) : new Date()
+      navigate(`/day?date=${formatISODate(subDays(current, 1))}`)
+    },
+    goToNextDay: () => {
+      const dateParam = searchParams.get('date')
+      const current = dateParam ? parseISO(dateParam) : new Date()
+      navigate(`/day?date=${formatISODate(addDays(current, 1))}`)
+    },
+    deleteFocusedEvent: () => {
+      const eventId = useUIStore.getState().lastFocusedEventId
+      if (!eventId) return
+      fireAndForget(useEventStore.getState().deleteEvent(eventId), 'delete event')
+    },
+    duplicateFocusedEvent: () => {
+      const eventId = useUIStore.getState().lastFocusedEventId
+      if (!eventId) return
+      fireAndForget(useEventStore.getState().duplicateEvent(eventId), 'duplicate event')
+    },
+  }), [open, openDialog, navigate, searchParams, setTheme, setLanguage, theme, language])
 
-  useGlobalShortcut('n', openDialog, { enabled: !open })
+  useShortcutManager(shortcutHandlers)
 
   return (
     <div className="h-screen flex bg-surface-base text-text-primary overflow-hidden">
