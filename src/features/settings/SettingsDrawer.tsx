@@ -7,6 +7,7 @@ import { SettingsData } from '@/features/settings/SettingsData'
 import { SettingsStorage } from '@/features/settings/SettingsStorage'
 import { SettingsAbout } from '@/features/settings/SettingsAbout'
 import { SettingsShortcuts } from '@/features/settings/SettingsShortcuts'
+import { SettingsAI } from '@/features/settings/SettingsAI'
 import { cn } from '@/lib/utils'
 
 const TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
@@ -15,6 +16,7 @@ const TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
   { key: 'data',        label: 'Data',           labelZh: '数据' },
   { key: 'storage',     label: 'Storage',        labelZh: '存储' },
   { key: 'shortcuts',   label: 'Shortcuts',      labelZh: '快捷键' },
+  { key: 'ai',          label: 'AI',             labelZh: 'AI' },
   { key: 'about',       label: 'About',          labelZh: '关于' },
 ]
 
@@ -24,6 +26,7 @@ const TAB_CONTENT: Record<SettingsTab, React.FC> = {
   data:       SettingsData,
   storage:    SettingsStorage,
   shortcuts:  SettingsShortcuts,
+  ai:         SettingsAI,
   about:      SettingsAbout,
 }
 

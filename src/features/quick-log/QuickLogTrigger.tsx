@@ -16,7 +16,7 @@ export function QuickLogTrigger({ onClick }: QuickLogTriggerProps) {
       aria-label={label}
       title={label}
       className={cn(
-        'w-7 h-7 flex items-center justify-center rounded-md transition-colors duration-200',
+        'w-7 h-7 max-sm:min-w-[44px] max-sm:min-h-[44px] flex items-center justify-center rounded-md transition-colors duration-200',
         'text-text-secondary hover:text-text-primary hover:bg-surface-sunken cursor-pointer',
       )}
     >

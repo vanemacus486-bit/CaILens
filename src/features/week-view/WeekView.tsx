@@ -14,6 +14,8 @@ import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
 import { EventEditCard } from './EventEditCard'
 import { WeekEmptyState } from './WeekEmptyState'
+import { MobileDayView } from '@/features/day-view/MobileDayView'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import type { CardState, DraftPreview } from './types'
 
 const EMPTY: CalendarEvent[] = []
@@ -114,6 +116,11 @@ export function WeekView() {
   // ── Derived ──────────────────────────────────────────
 
   const selectedEventId = cardState.mode !== 'none' ? cardState.event.id : null
+
+  // ── Mobile view mode ──────────────────────────────────
+
+  const isMobile = useIsMobile()
+  const [mobileViewMode, setMobileViewMode] = useState<'day' | 'week'>('day')
 
   // ── Helpers ───────────────────────────────────────────
 
@@ -276,11 +283,18 @@ export function WeekView() {
           onNext={() => setWeekStart(addWeeks(weekStart, 1))}
           onToday={() => setWeekStart(getWeekStart(new Date(), 1))}
           onQuickLog={onQuickLog}
+          mobileViewMode={isMobile ? mobileViewMode : undefined}
+          onMobileViewModeChange={isMobile ? setMobileViewMode : undefined}
         />
-        <WeekDateHeader days={days} />
+        {(isMobile && mobileViewMode === 'day') ? null : (
+          <WeekDateHeader days={days} />
+        )}
         </header>
 
-        {/* Calendar grid */}
+        {/* Calendar grid / Mobile day view */}
+        {isMobile && mobileViewMode === 'day' ? (
+          <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
+        ) : (
         <div className="relative flex-1 min-h-0 max-md:overflow-x-auto">
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -330,6 +344,7 @@ export function WeekView() {
             </>
           )}
         </div>
+        )}
       </div>
 
       {/* ── Cards (rendered in portals by Radix Popover) ─── */}

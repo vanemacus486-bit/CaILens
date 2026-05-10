@@ -167,8 +167,8 @@ export function CategoryTrendChart({
   return (
     <div className="h-full flex flex-col">
       {/* Category selector chips */}
-      <div className="flex flex-wrap items-center gap-1.5 mb-4">
-        <span className="text-xs text-text-tertiary font-sans mr-1">
+      <div className="flex flex-nowrap overflow-x-auto items-center gap-1.5 mb-4 pb-1 scrollbar-hide">
+        <span className="text-xs text-text-tertiary font-sans mr-1 flex-shrink-0">
           {language === 'zh' ? '分类' : 'Categories'}
         </span>
         {CATEGORY_IDS.map((id) => {
@@ -179,7 +179,7 @@ export function CategoryTrendChart({
               key={id}
               onClick={() => toggleCategory(id)}
               className={cn(
-                'inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-sans transition-colors duration-200 cursor-pointer border',
+                'inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-sans transition-colors duration-200 cursor-pointer border flex-shrink-0',
                 active
                   ? 'border-transparent text-white'
                   : 'border-border-subtle text-text-secondary hover:text-text-primary',
@@ -200,13 +200,13 @@ export function CategoryTrendChart({
         })}
 
         {/* Separator */}
-        <span className="w-px h-4 bg-border-subtle mx-1" />
+        <span className="w-px h-4 bg-border-subtle mx-1 flex-shrink-0" />
 
         {/* Total investment toggle */}
         <button
           onClick={() => setShowTotal((prev) => !prev)}
           className={cn(
-            'inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-sans transition-colors duration-200 cursor-pointer border',
+            'inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-sans transition-colors duration-200 cursor-pointer border flex-shrink-0',
             showTotal
               ? 'border-border-default bg-surface-raised text-text-primary font-medium'
               : 'border-border-subtle text-text-tertiary hover:text-text-secondary',

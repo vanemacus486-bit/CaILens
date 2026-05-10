@@ -1,10 +1,12 @@
 import { useEffect, useMemo } from 'react'
-import { HashRouter, Route, Routes, Outlet, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { HashRouter, Route, Routes, Outlet, useNavigate, useSearchParams } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
 import { DayView } from '@/features/day-view/DayView'
 import { StatsPage } from '@/pages/StatsPage'
 import { CommandPalette } from '@/features/search/CommandPalette'
 import { SettingsDrawer } from '@/features/settings/SettingsDrawer'
+import { SettingsPage } from '@/features/settings/SettingsPage'
+import { AiChatDrawer } from '@/features/ai-chat'
 import { useUIStore } from '@/stores/uiStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
@@ -17,13 +19,6 @@ import { addWeeks, getWeekStart, formatISODate } from '@/domain/time'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
 import { subDays, addDays, parseISO } from 'date-fns'
 import type { ShortcutAction } from '@/domain/shortcuts'
-
-function LegacySettingsRedirect() {
-  useEffect(() => {
-    useUIStore.getState().setSettingsDrawerOpen(true)
-  }, [])
-  return <Navigate to="/" replace />
-}
 
 function Layout() {
   const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen)
@@ -116,11 +111,12 @@ function Layout() {
 
   return (
     <div className="h-screen flex bg-surface-base text-text-primary overflow-hidden">
-      <main className="flex-1 h-full overflow-hidden flex flex-col">
+      <main className="flex-1 h-full overflow-hidden flex flex-col min-w-0">
         <ErrorBoundary>
           <Outlet context={{ onQuickLog: openDialog }} />
         </ErrorBoundary>
       </main>
+      <AiChatDrawer />
       {commandPaletteOpen && <CommandPalette onQuickLog={openDialog} />}
       {settingsDrawerOpen && <SettingsDrawer />}
       {defaults && (
@@ -145,8 +141,7 @@ export default function App() {
           <Route path="/" element={<WeekView />} />
           <Route path="/day" element={<DayView />} />
           <Route path="/stats" element={<StatsPage />} />
-          <Route path="/settings" element={<LegacySettingsRedirect />} />
-          <Route path="/settings/*" element={<LegacySettingsRedirect />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </HashRouter>

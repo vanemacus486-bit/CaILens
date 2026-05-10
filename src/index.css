@@ -141,7 +141,7 @@
   --event-rose-text:   #c08898;
   --event-rose-fill:   #c08898;
   --event-stone-bg:    #232323;
-  --event-stone-text:  #787878;
+  --event-stone-text:  #8a8a8a;
   --event-stone-fill:  #787878;
 
   --bg-cell-empty: #2a2a2a;
@@ -353,5 +353,28 @@ body {
     color: var(--text-primary);
     background-color: var(--surface-sunken);
     cursor: pointer;
+  }
+}
+
+/* ── Scrollbar hide (visual only, stays functional) ─────── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Mobile touch targets ─────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Slightly larger body text for mobile readability */
+  .text-body-sm { font-size: 0.8125rem; }
+
+  /* Mobile type scale adjustments */
+  .event-title-mobile { font-size: 0.875rem; }
+
+  /* Minimum tap targets for non-icon buttons */
+  button:not(.touch-small):not([class*="w-10"]):not([class*="w-9"]):not([class*="w-11"]) {
+    min-height: 44px;
   }
 }
