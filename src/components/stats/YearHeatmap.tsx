@@ -344,7 +344,7 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
             style={{
               gridColumn: w + 2,
               gridRow: dow + 2,
-              backgroundColor: 'var(--bg-cell-empty)',
+              backgroundColor: 'var(--heatmap-bg-cell-empty)',
             }}
             onPointerEnter={(e) => handlePointerEnter(cell, e)}
             onPointerLeave={handlePointerLeave}
@@ -471,9 +471,9 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
       {/* ── Legend ──────────────────────────────────────────── */}
       <div className="heatmap-legend">
         <span>{t('更少', 'Less')}</span>
-        <div className="heatmap-legend-swatch" style={{ backgroundColor: 'var(--bg-cell-empty)' }} />
+        <div className="heatmap-legend-swatch" style={{ backgroundColor: 'var(--heatmap-bg-cell-empty)' }} />
         {[0.22, 0.48, 0.75, 1].map((opacity) => (
-          <div key={opacity} className="heatmap-legend-swatch" style={{ backgroundColor: 'var(--bg-cell-empty)' }}>
+          <div key={opacity} className="heatmap-legend-swatch" style={{ backgroundColor: 'var(--heatmap-bg-cell-empty)' }}>
             <span className="heatmap-cell-fill" style={{ opacity }} />
           </div>
         ))}
@@ -619,19 +619,11 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
 
 const HEATMAP_CSS = `
 .year-heatmap-root {
-  --bg: #F1EADB;
-  --bg-card: #E8DFCC;
-  --bg-cell-empty: #E0D5BD;
-  --ink-1: #2E2823;
-  --ink-2: #6F6453;
-  --ink-3: #A89B83;
-  --rule: rgba(46,40,35,0.10);
-
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
   font-family: 'Noto Sans SC', sans-serif;
-  color: var(--ink-1);
+  color: var(--heatmap-ink-1);
 }
 
 /* ── Title area ──────────────────────────── */
@@ -657,7 +649,7 @@ const HEATMAP_CSS = `
 .heatmap-year-arrow {
   font-family: 'Noto Serif SC', serif;
   font-size: 40px;
-  color: var(--ink-3);
+  color: var(--heatmap-ink-3);
   background: none;
   border: none;
   cursor: pointer;
@@ -667,7 +659,7 @@ const HEATMAP_CSS = `
   user-select: none;
 }
 .heatmap-year-arrow:hover {
-  color: var(--ink-1);
+  color: var(--heatmap-ink-1);
 }
 .heatmap-year-num {
   font-family: 'Noto Serif SC', serif;
@@ -680,14 +672,14 @@ const HEATMAP_CSS = `
 .heatmap-year-label {
   font-family: 'Noto Serif SC', serif;
   font-size: 18px;
-  color: var(--ink-1);
+  color: var(--heatmap-ink-1);
   white-space: nowrap;
 }
 /* ── Category pills ───────────────────────── */
 .heatmap-pills {
   display: flex;
   gap: 6px;
-  background: var(--bg-card);
+  background: var(--heatmap-bg-card);
   border-radius: 999px;
   padding: 4px;
   flex-shrink: 0;
@@ -699,7 +691,7 @@ const HEATMAP_CSS = `
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 13px;
   font-weight: 500;
-  color: var(--ink-2);
+  color: var(--heatmap-ink-2);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -707,7 +699,7 @@ const HEATMAP_CSS = `
   white-space: nowrap;
 }
 .heatmap-pill:hover {
-  color: var(--ink-1);
+  color: var(--heatmap-ink-1);
 }
 .heatmap-pill-active {
   font-weight: 600;
@@ -729,7 +721,7 @@ const HEATMAP_CSS = `
 .heatmap-month-label {
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 10px;
-  color: var(--ink-3);
+  color: var(--heatmap-ink-3);
   text-align: left;
   user-select: none;
 }
@@ -738,7 +730,7 @@ const HEATMAP_CSS = `
 .heatmap-day-label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
-  color: var(--ink-3);
+  color: var(--heatmap-ink-3);
   text-align: right;
   padding-right: 4px;
   user-select: none;
@@ -796,13 +788,13 @@ const HEATMAP_CSS = `
   margin-top: 24px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
-  color: var(--ink-3);
+  color: var(--heatmap-ink-3);
 }
 .heatmap-legend-swatch {
   width: 14px;
   height: 14px;
   border-radius: 2px;
-  background-color: var(--bg-cell-empty);
+  background-color: var(--heatmap-bg-cell-empty);
   position: relative;
 }
 .heatmap-legend-swatch::after {
@@ -818,7 +810,7 @@ const HEATMAP_CSS = `
   text-align: center;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: var(--ink-3);
+  color: var(--heatmap-ink-3);
   margin-top: 8px;
 }
 
@@ -826,8 +818,8 @@ const HEATMAP_CSS = `
 .heatmap-stats-bar {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
+  border-top: 1px solid var(--heatmap-rule);
+  border-bottom: 1px solid var(--heatmap-rule);
   margin-top: 24px;
 }
 .heatmap-stats-compact {
@@ -835,7 +827,7 @@ const HEATMAP_CSS = `
 }
 .heatmap-stat {
   padding: 24px 20px;
-  border-right: 1px solid var(--rule);
+  border-right: 1px solid var(--heatmap-rule);
 }
 .heatmap-stat:last-child {
   border-right: none;
@@ -846,7 +838,7 @@ const HEATMAP_CSS = `
 .heatmap-stat-label {
   font-family: 'Noto Serif SC', serif;
   font-size: 11px;
-  color: var(--ink-3);
+  color: var(--heatmap-ink-3);
   letter-spacing: 0.4em;
   margin-bottom: 8px;
 }
@@ -854,19 +846,19 @@ const HEATMAP_CSS = `
   font-family: 'JetBrains Mono', monospace;
   font-size: 32px;
   font-weight: 400;
-  color: var(--ink-1);
+  color: var(--heatmap-ink-1);
   line-height: 1;
   margin-bottom: 6px;
 }
 .heatmap-stat-unit {
   font-size: 16px;
-  color: var(--ink-2);
+  color: var(--heatmap-ink-2);
   margin-left: 2px;
 }
 .heatmap-stat-detail {
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 11px;
-  color: var(--ink-3);
+  color: var(--heatmap-ink-3);
 }
 
 /* ── Streak pips ──────────────────────────── */
@@ -885,7 +877,7 @@ const HEATMAP_CSS = `
   margin-left: 6px;
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 11px;
-  color: var(--ink-2);
+  color: var(--heatmap-ink-2);
 }
 
 /* ── Footer ───────────────────────────────── */
@@ -894,7 +886,7 @@ const HEATMAP_CSS = `
   margin-top: 56px;
 }
 .heatmap-footer-rule {
-  color: var(--ink-3);
+  color: var(--heatmap-ink-3);
   font-family: 'Noto Serif SC', serif;
   font-size: 13px;
   letter-spacing: 0.5em;
@@ -904,7 +896,7 @@ const HEATMAP_CSS = `
   font-family: 'Noto Serif SC', serif;
   font-style: italic;
   font-size: 14px;
-  color: var(--ink-2);
+  color: var(--heatmap-ink-2);
   margin: 0;
 }
 
@@ -914,8 +906,8 @@ const HEATMAP_CSS = `
   z-index: 50;
   pointer-events: none;
   transform: translateX(-50%);
-  background: var(--ink-1);
-  color: var(--bg);
+  background: var(--heatmap-ink-1);
+  color: var(--heatmap-bg);
   padding: 8px 12px;
   border-radius: 4px;
   font-family: 'Noto Sans SC', sans-serif;

@@ -10,7 +10,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/166d37d7-0634-47d9-aacb-768302dd767b" />
 
-> **Status:** v3.10.0 — Global keyboard shortcut system. All actions triggerable via shortcuts, fully customizable bindings. 387 tests.
+> **Status:** v3.11.0 — Dark mode redesign: neutral gray theme, restrained palette, full dark-mode coverage across all views. 387 tests.
 
 ## Downloads
 

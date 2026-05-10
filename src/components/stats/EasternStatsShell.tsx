@@ -46,23 +46,23 @@ export function EasternStatsShell({
   return (
     <div
       className="h-full flex flex-col overflow-hidden"
-      style={{ backgroundColor: '#F1EADB', fontFamily: "'Noto Sans SC', sans-serif", color: '#2E2823' }}
+      style={{ backgroundColor: 'var(--stats-shell-bg)', fontFamily: "'Noto Sans SC', sans-serif", color: 'var(--stats-shell-ink-1)' }}
     >
       {/* Sticky header */}
       <header
         className="sticky top-0 z-50 flex items-center gap-3 h-[52px] px-4 md:px-12 flex-shrink-0"
-        style={{ borderBottom: '1px solid rgba(46,40,35,0.10)' }}
+        style={{ borderBottom: '1px solid var(--stats-shell-rule)' }}
       >
         {/* Back link */}
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-sm font-sans text-[#6F6453] hover:text-[#2E2823] transition-colors duration-200 flex-shrink-0 no-underline"
+          className="inline-flex items-center gap-1.5 text-sm font-sans text-[var(--stats-shell-ink-2)] hover:text-[var(--stats-shell-ink-1)] transition-colors duration-200 flex-shrink-0 no-underline"
         >
           <ArrowLeft size={16} strokeWidth={1.75} />
           <span>{t('返回日历', 'Back to calendar')}</span>
         </Link>
 
-        <div style={{ width: 1, height: 20, backgroundColor: 'rgba(46,40,35,0.10)', flexShrink: 0 }} />
+        <div style={{ width: 1, height: 20, backgroundColor: 'var(--stats-shell-rule)', flexShrink: 0 }} />
 
         {/* View tabs */}
         <div className="flex gap-0 flex-shrink-0" style={{ height: 52 }}>
@@ -77,8 +77,8 @@ export function EasternStatsShell({
                   fontFamily: "'Noto Sans SC', sans-serif",
                   fontSize: 13,
                   fontWeight: active ? 600 : 400,
-                  color: active ? '#2E2823' : '#A89B83',
-                  borderBottom: active ? '1.5px solid var(--c-active, #C8693E)' : '1.5px solid transparent',
+                  color: active ? 'var(--stats-shell-ink-1)' : 'var(--stats-shell-ink-3)',
+                  borderBottom: active ? '1.5px solid var(--c-active)' : '1.5px solid transparent',
                   transition: 'color 0.25s ease, border-color 0.4s ease',
                 }}
               >
@@ -91,10 +91,10 @@ export function EasternStatsShell({
         {/* Period selector (hidden for heatmap) */}
         {onPeriodChange && period && showNavigation !== false && (
           <>
-            <div style={{ width: 1, height: 20, backgroundColor: 'rgba(46,40,35,0.10)', flexShrink: 0 }} />
+            <div style={{ width: 1, height: 20, backgroundColor: 'var(--stats-shell-rule)', flexShrink: 0 }} />
             <div
               className="flex gap-0 flex-shrink-0 rounded-full"
-              style={{ backgroundColor: '#E8DFCC', padding: 4 }}
+              style={{ backgroundColor: 'var(--stats-shell-pill-bg)', padding: 4 }}
             >
               {PERIODS.map((p) => {
                 const active = period === p.key
@@ -107,8 +107,8 @@ export function EasternStatsShell({
                       fontFamily: "'Noto Sans SC', sans-serif",
                       fontSize: 12,
                       fontWeight: active ? 600 : 400,
-                      color: active ? '#2E2823' : '#A89B83',
-                      backgroundColor: active ? '#F1EADB' : 'transparent',
+                      color: active ? 'var(--stats-shell-ink-1)' : 'var(--stats-shell-ink-3)',
+                      backgroundColor: active ? 'var(--stats-shell-bg)' : 'transparent',
                     }}
                   >
                     {language === 'zh' ? p.labelZh : p.label}
@@ -122,32 +122,32 @@ export function EasternStatsShell({
         {/* Navigation arrows */}
         {onNavigate && onGoToday && showNavigation && period !== 'all' && (
           <>
-            <div style={{ width: 1, height: 20, backgroundColor: 'rgba(46,40,35,0.10)', flexShrink: 0 }} />
+            <div style={{ width: 1, height: 20, backgroundColor: 'var(--stats-shell-rule)', flexShrink: 0 }} />
             <div className="flex items-center gap-1 flex-shrink-0">
               <button
                 onClick={() => onNavigate(-1)}
                 className="w-7 h-7 flex items-center justify-center rounded bg-transparent border-none cursor-pointer transition-colors duration-200"
-                style={{ fontSize: 16, color: '#6F6453' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#2E2823')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#6F6453')}
+                style={{ fontSize: 16, color: 'var(--stats-shell-ink-2)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--stats-shell-ink-1)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--stats-shell-ink-2)')}
               >
                 &#8249;
               </button>
               <button
                 onClick={onGoToday}
                 className="px-2 py-1 rounded bg-transparent border-none cursor-pointer transition-colors duration-200"
-                style={{ fontFamily: "'Noto Sans SC', sans-serif", fontSize: 12, color: '#6F6453' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#2E2823')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#6F6453')}
+                style={{ fontFamily: "'Noto Sans SC', sans-serif", fontSize: 12, color: 'var(--stats-shell-ink-2)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--stats-shell-ink-1)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--stats-shell-ink-2)')}
               >
                 {t('今天', 'Today')}
               </button>
               <button
                 onClick={() => onNavigate(1)}
                 className="w-7 h-7 flex items-center justify-center rounded bg-transparent border-none cursor-pointer transition-colors duration-200"
-                style={{ fontSize: 16, color: '#6F6453' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#2E2823')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#6F6453')}
+                style={{ fontSize: 16, color: 'var(--stats-shell-ink-2)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--stats-shell-ink-1)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--stats-shell-ink-2)')}
               >
                 &#8250;
               </button>
@@ -158,7 +158,7 @@ export function EasternStatsShell({
         {period === 'all' && showNavigation && (
           <span
             className="flex-shrink-0"
-            style={{ fontFamily: "'Noto Sans SC', sans-serif", fontSize: 13, color: '#A89B83' }}
+            style={{ fontFamily: "'Noto Sans SC', sans-serif", fontSize: 13, color: 'var(--stats-shell-ink-3)' }}
           >
             {t('全部时间', 'All time')}
           </span>

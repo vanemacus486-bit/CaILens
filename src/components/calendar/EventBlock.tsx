@@ -115,8 +115,8 @@ export const EventBlock = React.memo(function EventBlock({
             }
           }}
           className={cn(
-            'relative px-2 py-1 overflow-hidden select-none',
-            'border-t-2 border border-border-subtle transition-colors duration-200 z-10',
+            'relative px-2 py-1 overflow-hidden select-none rounded-md',
+            'transition-colors duration-200 z-10',
             roundedClass, bg, text,
             isDragging
               ? 'cursor-grabbing'
@@ -129,7 +129,6 @@ export const EventBlock = React.memo(function EventBlock({
             gridRowEnd:   rowEnd,
             gridColumnStart,
             gridColumnEnd,
-            borderTopColor: `var(--event-${event.color}-fill)`,
             opacity: isDragging ? 0.85 : 1,
             zIndex:  isDragging ? 50   : undefined,
           }}

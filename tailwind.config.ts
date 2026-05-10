@@ -19,6 +19,7 @@ export default {
           primary:   'var(--text-primary)',
           secondary: 'var(--text-secondary)',
           tertiary:  'var(--text-tertiary)',
+          quaternary: 'var(--text-quaternary)',
         },
         accent: {
           DEFAULT: 'var(--accent)',
@@ -54,6 +55,8 @@ export default {
         'color-text-warning':  'var(--color-text-warning)',
         'color-bg-warning':    'var(--color-bg-warning)',
         'time-line':           'var(--time-line)',
+        'chart-grid':          'var(--chart-grid)',
+        'chart-budget-line':   'var(--chart-budget-line)',
       },
       boxShadow: {
         'pill':    'var(--shadow-pill)',

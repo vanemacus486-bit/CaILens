@@ -277,7 +277,7 @@ export function CategoryTrendChart({
                 <Line
                   dataKey="total"
                   name={language === 'zh' ? '投入合计' : 'Core Total'}
-                  stroke="#5C3D2E"
+                  stroke="var(--accent)"
                   strokeWidth={2.5}
                   dot={false}
                   activeDot={{ r: 3, strokeWidth: 0 }}

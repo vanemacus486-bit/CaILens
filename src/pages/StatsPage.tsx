@@ -118,18 +118,17 @@ export function StatsPage() {
     >
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px] flex-1">
-          <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#A89B83' }} />
+          <Loader2 className="h-8 w-8 animate-spin text-text-tertiary" />
         </div>
       ) : loadError ? (
         <div className="flex flex-col items-center justify-center gap-4 min-h-[400px] flex-1">
-          <AlertCircle className="h-10 w-10" style={{ color: '#B53535' }} />
-          <p className="text-sm max-w-md text-center" style={{ fontFamily: "'Noto Sans SC', sans-serif", color: '#6F6453' }}>
+          <AlertCircle className="h-10 w-10 text-color-text-danger" />
+          <p className="text-sm max-w-md text-center text-text-secondary" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
             {loadError}
           </p>
           <button
             onClick={() => loadRange(Date.now() - 3 * 365 * 24 * 60 * 60_000, Date.now())}
-            className="inline-flex items-center justify-center rounded-lg text-white px-4 py-2 text-sm font-medium transition-colors duration-200 cursor-pointer border-none"
-            style={{ backgroundColor: '#C8693E' }}
+            className="inline-flex items-center justify-center rounded-lg text-white bg-accent px-4 py-2 text-sm font-medium transition-colors duration-200 cursor-pointer border-none"
           >
             {t('重试', 'Retry')}
           </button>
