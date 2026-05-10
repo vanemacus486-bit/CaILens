@@ -21,7 +21,6 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 | Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
 
 > Android APK 已更新，包含移动端响应式布局和最新功能改进。
-> 目前下载可能存在问题，exe文件准备修改成类似obsidian的阅读本地文件的形式
 
 ---
 
