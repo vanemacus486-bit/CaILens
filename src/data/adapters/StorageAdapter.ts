@@ -2,6 +2,7 @@ import type { CalendarEvent } from '@/domain/event'
 import type { Category } from '@/domain/category'
 import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
+import type { AiConversation, AiChatMessage, PinnedAnalysis, MessageFeedback } from '@/domain/aiChat'
 
 export interface WhereCondition {
   key: string
@@ -34,6 +35,10 @@ export interface StorageAdapter {
   categories: StorageTable<Category>
   settings: StorageTable<AppSettings>
   weeklyEstimates: StorageTable<WeeklyEstimate>
+  conversations: StorageTable<AiConversation>
+  chatMessages: StorageTable<AiChatMessage>
+  pinnedAnalyses: StorageTable<PinnedAnalysis>
+  messageFeedback: StorageTable<MessageFeedback>
   initialize(): Promise<void>
   /** Path to the storage root, or null if not configured (e.g. in-memory / IndexedDB). */
   readonly storagePath: string | null

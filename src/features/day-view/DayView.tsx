@@ -1,15 +1,17 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { fireAndForget } from '@/lib/fireAndForget'
-import { ArrowLeft, BarChart3, Loader2, AlertCircle, Settings } from 'lucide-react'
+import { ArrowLeft, BarChart3, Loader2, AlertCircle, Settings, Sparkles, X, Pin } from 'lucide-react'
 import { formatWeekday as fmtWday } from '@/domain/time'
 import type { CalendarEvent } from '@/domain/event'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useUIStore } from '@/stores/uiStore'
+import { useAiChatStore } from '@/stores/aiChatStore'
+import type { PinnedAnalysis } from '@/domain/aiChat'
 import { useDayFromURL, getPrevDay, getNextDay } from './hooks/useDayFromURL'
 
 function fmtTimeHM(ts: number): string {
@@ -47,6 +49,58 @@ export function DayView() {
     fireAndForget(loadRange(dayStartMs, dayEndMs), 'load day range')
   }, [dayStartMs, dayEndMs, loadRange])
 
+  // ── Reverse Anchoring: opacity mute ────────────────────
+
+  const hoveredAnchor = useUIStore((s) => s.hoveredAnchor)
+
+  useEffect(() => {
+    // Remove dimming from all events
+    document.querySelectorAll('[data-event-id]').forEach((el) => {
+      el.classList.remove('opacity-40')
+    })
+
+    if (!hoveredAnchor) return
+
+    if (hoveredAnchor.type === 'category') {
+      // Dim all events, then restore matching ones
+      document.querySelectorAll('[data-event-id]').forEach((el) => {
+        el.classList.add('opacity-40')
+      })
+      document.querySelectorAll(`[data-event-category="${hoveredAnchor.categoryId}"]`).forEach((el) => {
+        el.classList.remove('opacity-40')
+      })
+    } else if (hoveredAnchor.type === 'event' && hoveredAnchor.eventTitle) {
+      const events = useEventStore.getState().rangeEvents
+      document.querySelectorAll('[data-event-id]').forEach((el) => {
+        const eventId = el.getAttribute('data-event-id')
+        const event = events.find((e) => e.id === eventId)
+        if (!event || event.title !== hoveredAnchor.eventTitle) {
+          el.classList.add('opacity-40')
+        }
+      })
+    }
+  }, [hoveredAnchor])
+
+  // ── Pinned Insights ─────────────────────────────────────
+
+  const [pinnedInsights, setPinnedInsights] = useState<PinnedAnalysis[]>([])
+  const getPinsForDate = useAiChatStore((s) => s.getPinsForDate)
+
+  useEffect(() => {
+    fireAndForget(
+      getPinsForDate(dayStartMs).then(setPinnedInsights),
+      'load pinned insights',
+    )
+  }, [dayStartMs, getPinsForDate])
+
+  const handleUnpin = async (pinId: string) => {
+    setPinnedInsights((prev) => prev.filter((p) => p.id !== pinId))
+    try {
+      const repo = (await import('@/data/getRepositories')).getConversationRepo()
+      await repo.deletePin(pinId)
+    } catch { /* ignore */ }
+  }
+
   const dayEvents = useMemo(() => {
     return rangeEvents
       .filter((e) => e.startTime < dayEndMs && e.endTime > dayStartMs)
@@ -54,6 +108,19 @@ export function DayView() {
   }, [rangeEvents, dayStartMs, dayEndMs])
 
   const weekNum = getISOWeek(dayStart)
+
+  const handleEventClick = (event: CalendarEvent) => {
+    useAiChatStore.getState().addCalendarContext([{
+      id: event.id,
+      type: 'event',
+      eventId: event.id,
+      eventTitle: event.title || undefined,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      categoryId: event.color,
+    }])
+    useUIStore.getState().setAiChatDrawerOpen(true)
+  }
 
   return (
     <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">
@@ -107,6 +174,45 @@ export function DayView() {
         </div>
       </header>
 
+      {/* Pinned Insights */}
+      {pinnedInsights.length > 0 && (
+        <div className="px-4 md:px-12 pt-4 pb-2 max-w-[680px]">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Pin size={12} className="text-text-tertiary" />
+            <span className="text-[11px] font-sans font-medium text-text-tertiary tracking-wide uppercase">
+              {t('固定洞察', 'Pinned Insights')}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {pinnedInsights.map((pin) => (
+              <div
+                key={pin.id}
+                className="rounded-lg border-l-[3px] border-accent bg-surface-raised border border-border-subtle border-l-accent px-3.5 py-2.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-serif text-sm leading-relaxed text-text-primary line-clamp-3 flex-1">
+                    {pin.content.length > 200
+                      ? pin.content.slice(0, 200) + '...'
+                      : pin.content}
+                  </p>
+                  <button
+                    onClick={() => handleUnpin(pin.id)}
+                    className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded text-text-tertiary hover:text-color-text-danger transition-colors cursor-pointer border-none bg-transparent"
+                    title={t('取消固定', 'Unpin')}
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+                <div className="mt-1.5 text-[11px] font-mono text-text-tertiary">
+                  {t('固定于', 'Pinned')} {new Date(pin.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="h-px bg-border-subtle my-4" />
+        </div>
+      )}
+
       {/* Diary entries */}
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
@@ -135,7 +241,7 @@ export function DayView() {
             const displayStart = startsBeforeDay ? dayStartMs : event.startTime
 
             return (
-              <article key={event.id}>
+              <article key={event.id} data-event-id={event.id} data-event-category={event.categoryId}>
                 {showDivider && (
                   <div className="h-px bg-border-subtle my-1 ml-[72px]" />
                 )}
@@ -145,6 +251,7 @@ export function DayView() {
                   startsBeforeDay={startsBeforeDay}
                   endsAfterDay={endsAfterDay}
                   displayStart={displayStart}
+                  onAskAi={handleEventClick}
                 />
               </article>
             )
@@ -162,19 +269,20 @@ export function DayView() {
 }
 
 function DiaryEntry({
-  event, catColor, startsBeforeDay, endsAfterDay, displayStart,
+  event, catColor, startsBeforeDay, endsAfterDay, displayStart, onAskAi,
 }: {
   event: CalendarEvent
   catColor: string
   startsBeforeDay: boolean
   endsAfterDay: boolean
   displayStart: number
+  onAskAi: (event: CalendarEvent) => void
 }) {
   const timeLabel = fmtTimeHM(displayStart)
   const isCrossDay = startsBeforeDay || endsAfterDay
 
   return (
-    <div className="flex gap-0 mb-1 items-start">
+    <div className="flex gap-0 mb-1 items-start group">
       {/* Time */}
       <div className="w-12 flex-shrink-0 pt-0.5">
         <span className={cn('font-mono text-body-xs', isCrossDay ? 'text-text-secondary' : 'text-text-tertiary')}>{timeLabel}</span>
@@ -216,6 +324,15 @@ function DiaryEntry({
           </div>
         )}
       </div>
+
+      {/* Ask AI button (visible on hover) */}
+      <button
+        onClick={() => onAskAi(event)}
+        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 mt-0.5 w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-accent hover:bg-surface-sunken cursor-pointer border-none flex-shrink-0"
+        title="Ask AI"
+      >
+        <Sparkles size={14} />
+      </button>
     </div>
   )
 }

@@ -10,7 +10,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/166d37d7-0634-47d9-aacb-768302dd767b" />
 
-> **Status:** v3.11.0 — Dark mode redesign: neutral gray theme, restrained palette, full dark-mode coverage across all views. 387 tests.
+> **Status:** v3.12.0 — AI Time Assistant: @mentions, calendar context, markdown rendering, inline data viz, reverse anchoring, analysis pinning. 402 tests.
 
 ## Downloads
 
@@ -167,9 +167,23 @@ Click the chart icon in the sidebar. A **segmented control at the top** switches
 - **Per-instance override** — expandable rows allow overriding individual events that share the same name but differ in category.
 - **Re-classify on keyword change** — updating keywords re-scans all existing events.
 
+### AI Time Assistant
+
+Right-side slide-in panel that turns your time data into a conversation. Multi-provider support (DeepSeek / OpenAI / Claude / custom compatible).
+
+- **@mentions** — Type `@` to reference categories, events, days, or weeks. Mentions resolve into structured context injected into the system prompt.
+- **Calendar integration** — Click an event or select a time range to auto-import as chat context. "Ask AI" buttons appear on event cards and diary entries.
+- **Reverse anchoring** — Hover AI-mentioned terms like "Python learning" to highlight matching event blocks in the calendar. Non-matching events dim to 40% opacity — eyes snap to what matters.
+- **Markdown rendering** — Bold, lists, blockquotes, code blocks, and tables render properly. No more raw markdown text.
+- **Inline data visualization** — Percentages become mini progress bars, time values become coloured badges, comparison data renders as tiny bar charts (recharts).
+- **Context-sensitive buttons** — Bottom action buttons adapt to conversation state: starter prompts when empty → deep-dive questions after analysis → analysis requests after general chat.
+- **History by week** — The clock icon opens conversations grouped by week in collapsible sections, with date ranges, message counts, search filtering, and auto-extracted topic summaries.
+- **Pin analysis to diary** — The pin button attaches important AI insights to a specific day, appearing as reviewable cards in the Day View. Unpin anytime.
+- **Feedback system** — Every AI reply has 👍 / 👎 / 🔄 buttons. Ratings stored locally — user control and future prompt optimization data combined.
+
 ### Data
 
-- **Persistent local storage** — IndexedDB via Dexie v4. Schema at version 7 (v7 adds endTime index). Migrations run automatically.
+- **Persistent local storage** — IndexedDB via Dexie v4. Schema at version 9. Migrations run automatically.
 - **Streak tracking** — `computeStreak()` counts consecutive weeks with at least one logged event.
 - **Data export** — CSV and JSON, available in Settings.
 
@@ -194,7 +208,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (387 tests)
+npm run test         # run unit tests once (402 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -212,7 +226,9 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 387 tests across 21 test files |
+| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 402 tests across 24 test files |
+| AI | react-markdown + remark-gfm | Markdown rendering + inline data visualization |
+| AI SDK | native fetch + SSE streaming | DeepSeek / OpenAI / Claude / custom providers |
 | Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC | Fontsource, locally hosted |
 | Icons | lucide-react | |
 
@@ -235,7 +251,7 @@ Notable details:
 - **Drag system** built on raw Pointer Events. Hit-testing and snapping compute against the layout grid, not the DOM.
 - **Render performance** — `React.memo`, stable callbacks, Zustand sliced subscriptions keep drags from re-rendering unrelated events.
 - **QuickLog** — `n` global shortcut + `QuickLogDialog` form. Default times and colour derived by `deriveDefaultTimes` / `deriveDefaultColor` pure functions; global shortcut hook is standalone and reusable.
-- **Statistics engine** — pure functions for week stats, bucket aggregation, interval merging, Type I/II split, streak computation, annual projection, data maturity, reflection generation, deviation analysis, and recording quality metrics.
+- **AI integration** — Streaming SSE multi-provider client, prompt composer (system + profile + skills + custom), context injection (mentions + calendar selections), conversation storage and archiving, analysis pinning system.
 
 
 ## License

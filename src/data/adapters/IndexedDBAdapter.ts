@@ -3,6 +3,8 @@ import type { CalendarEvent } from '@/domain/event'
 import type { Category } from '@/domain/category'
 import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
+import type { AiConversation, AiChatMessage } from '@/domain/aiChat'
+import type { PinnedAnalysis, MessageFeedback } from '@/domain/aiChat'
 import type { StorageAdapter, StorageTable, QueryOptions } from './StorageAdapter'
 import { CailensDB, db as dexieDb } from '../db'
 
@@ -108,6 +110,10 @@ export class IndexedDBAdapter implements StorageAdapter {
   categories: StorageTable<Category>
   settings: StorageTable<AppSettings>
   weeklyEstimates: StorageTable<WeeklyEstimate>
+  conversations: StorageTable<AiConversation>
+  chatMessages: StorageTable<AiChatMessage>
+  pinnedAnalyses: StorageTable<PinnedAnalysis>
+  messageFeedback: StorageTable<MessageFeedback>
 
   private db: CailensDB
 
@@ -117,6 +123,10 @@ export class IndexedDBAdapter implements StorageAdapter {
     this.categories = new IndexedDBTable(db.categories)
     this.settings = new IndexedDBTable(db.settings)
     this.weeklyEstimates = new IndexedDBTable(db.weeklyEstimates)
+    this.conversations = new IndexedDBTable(db.conversations)
+    this.chatMessages = new IndexedDBTable(db.chatMessages)
+    this.pinnedAnalyses = new IndexedDBTable(db.pinnedAnalyses)
+    this.messageFeedback = new IndexedDBTable(db.messageFeedback)
   }
 
   readonly storagePath: string | null = null

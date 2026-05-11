@@ -4,6 +4,8 @@ import type { AppSettings, AppLanguage, AppTheme } from '@/domain/settings'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import type { AccentPreset } from '@/domain/themes'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
+import type { AiModel } from '@/domain/ai'
+import type { AiProvider, AiUserProfile, AiSkill } from '@/domain/aiChat'
 
 const THEME_KEY  = 'cailens-theme'
 const ACCENT_KEY = 'cailens-accent'
@@ -29,6 +31,17 @@ interface AppSettingsState {
   setAccentColor: (accent: AccentPreset) => Promise<void>
   setShortcut: (action: ShortcutAction, binding: ShortcutString | null) => Promise<void>
   resetAllShortcuts: () => Promise<void>
+  setAiApiKey: (key: string) => Promise<void>
+  setAiModel: (model: AiModel) => Promise<void>
+  setAiEnabled: (enabled: boolean) => Promise<void>
+  setAiProvider: (provider: AiProvider) => Promise<void>
+  setAiEndpoint: (endpoint: string) => Promise<void>
+  setAiTemperature: (temp: number) => Promise<void>
+  setAiMaxTokens: (tokens: number) => Promise<void>
+  setAiUserProfile: (profile: AiUserProfile) => Promise<void>
+  setAiUseProfile: (use: boolean) => Promise<void>
+  setAiCustomSystemPrompt: (prompt?: string) => Promise<void>
+  setAiSkills: (skills: AiSkill[]) => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
@@ -104,5 +117,60 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
   resetAllShortcuts: async () => {
     const updated = await getSettingsRepo().update({ shortcuts: undefined })
     set({ settings: updated })
+  },
+
+  setAiApiKey: async (key) => {
+    const settings = await getSettingsRepo().update({ aiApiKey: key || undefined })
+    set({ settings })
+  },
+
+  setAiModel: async (model) => {
+    const settings = await getSettingsRepo().update({ aiModel: model })
+    set({ settings })
+  },
+
+  setAiEnabled: async (enabled) => {
+    const settings = await getSettingsRepo().update({ aiEnabled: enabled })
+    set({ settings })
+  },
+
+  setAiProvider: async (provider: AiProvider) => {
+    const settings = await getSettingsRepo().update({ aiProvider: provider })
+    set({ settings })
+  },
+
+  setAiEndpoint: async (endpoint) => {
+    const settings = await getSettingsRepo().update({ aiEndpoint: endpoint || undefined })
+    set({ settings })
+  },
+
+  setAiTemperature: async (temp) => {
+    const settings = await getSettingsRepo().update({ aiTemperature: temp })
+    set({ settings })
+  },
+
+  setAiMaxTokens: async (tokens) => {
+    const settings = await getSettingsRepo().update({ aiMaxTokens: tokens })
+    set({ settings })
+  },
+
+  setAiUserProfile: async (profile) => {
+    const settings = await getSettingsRepo().update({ aiUserProfile: profile })
+    set({ settings })
+  },
+
+  setAiUseProfile: async (use) => {
+    const settings = await getSettingsRepo().update({ aiUseProfile: use })
+    set({ settings })
+  },
+
+  setAiCustomSystemPrompt: async (prompt) => {
+    const settings = await getSettingsRepo().update({ aiCustomSystemPrompt: prompt || undefined })
+    set({ settings })
+  },
+
+  setAiSkills: async (skills) => {
+    const settings = await getSettingsRepo().update({ aiSkills: skills })
+    set({ settings })
   },
 }))

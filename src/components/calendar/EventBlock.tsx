@@ -108,6 +108,7 @@ export const EventBlock = React.memo(function EventBlock({
           role="button"
           tabIndex={0}
           data-event-id={event.id}
+          data-event-category={event.categoryId}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault()

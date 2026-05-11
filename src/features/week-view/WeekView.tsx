@@ -8,6 +8,7 @@ import { DayColumn } from '@/components/calendar/DayColumn'
 import { TimeGrid } from '@/components/calendar/TimeGrid'
 import { useEventStore } from '@/stores/eventStore'
 import { useUIStore } from '@/stores/uiStore'
+import { useAiChatStore } from '@/stores/aiChatStore'
 import { useWeekFromURL } from './hooks/useWeekFromURL'
 import { WeekDateHeader } from './WeekDateHeader'
 import { WeekToolbar } from './WeekToolbar'
@@ -160,10 +161,20 @@ export function WeekView() {
     }).catch((err) => { console.error('[fire-and-forget] create event:', err) })
   }, [cardState.mode, createEvent])
 
-  // ── Event click: open detail card ────────────────────
+  // ── Event click: open detail card + inject context ────
 
   const handleEventClick = useCallback((event: CalendarEvent, el: HTMLElement) => {
     useUIStore.getState().setLastFocusedEventId(event.id)
+    // Inject event as calendar context
+    useAiChatStore.getState().addCalendarContext([{
+      id: event.id,
+      type: 'event',
+      eventId: event.id,
+      eventTitle: event.title || undefined,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      categoryId: event.color,
+    }])
     setDraftPreview(null)
     setCardState({ mode: 'detail', event, anchorEl: el })
   }, [])
@@ -266,6 +277,37 @@ export function WeekView() {
   const handleEditCancel = useCallback(() => {
     closeCard()
   }, [closeCard])
+
+  // ── Reverse Anchoring: opacity mute ────────────────────
+
+  const hoveredAnchor = useUIStore((s) => s.hoveredAnchor)
+
+  useEffect(() => {
+    // Remove dimming from all events
+    document.querySelectorAll('[data-event-id]').forEach((el) => {
+      el.classList.remove('opacity-40')
+    })
+
+    if (!hoveredAnchor) return
+
+    if (hoveredAnchor.type === 'category') {
+      // Dim all events, then restore matching ones
+      document.querySelectorAll('[data-event-id]').forEach((el) => {
+        el.classList.add('opacity-40')
+      })
+      document.querySelectorAll(`[data-event-category="${hoveredAnchor.categoryId}"]`).forEach((el) => {
+        el.classList.remove('opacity-40')
+      })
+    } else if (hoveredAnchor.type === 'event' && hoveredAnchor.eventTitle) {
+      document.querySelectorAll('[data-event-id]').forEach((el) => {
+        const eventId = el.getAttribute('data-event-id')
+        const event = events.find((e) => e.id === eventId)
+        if (!event || event.title !== hoveredAnchor.eventTitle) {
+          el.classList.add('opacity-40')
+        }
+      })
+    }
+  }, [hoveredAnchor, events])
 
   // ── Render ───────────────────────────────────────────
 

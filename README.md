@@ -11,7 +11,7 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/166d37d7-0634-47d9-aacb-768302dd767b" />
 
 
-> **状态：** v3.11.0 深色模式重做——中性灰主题、克制配色、完整深色覆盖。387 个测试。
+> **状态：** v3.12.0 AI 时间助手——@提及上下文、日历联动、markdown 渲染、数据可视化、反向锚定、分析沉淀。402 个测试。
 
 ## 下载
 
@@ -159,9 +159,23 @@ CaILens v3.10 内置全局快捷键系统，支持**自定义所有绑定**：
 - **同名单例覆盖**——展开按钮支持对同名事件中的个别实例单独覆盖。
 - **关键词修改自动重归类**——修改关键词后全库事件自动重新匹配。
 
+### AI 时间助手
+
+右侧滑入面板，把你的时间数据变成对话。支持多 AI 提供商（DeepSeek / OpenAI / Claude / 自定义兼容）。
+
+- **@ 提及**——输入 `@` 快速引用分类、事件、日期或周。提及自动解析为结构化上下文注入提示词。
+- **日历联动**——点击日历事件或框选时间段，自动带入对话作为引用上下文。事件卡片和日记条目上出现「Ask AI」按钮。
+- **反向锚定**——AI 提到"Python 学习"等关键词时，鼠标 hover 对应文字，日历中匹配的事件块保留不透明度，非匹配事件变暗，一眼定位。
+- **Markdown 渲染**——加粗、列表、引用块、代码块、表格正常渲染，不再显示为纯文本。
+- **内联数据可视化**——回复中的百分比自动转为迷你进度条，时间数字转为彩色标签，对比数据渲染为微型柱状图（基于 recharts）。
+- **上下文自适应按钮**——对话底部按钮不再固定，根据对话状态动态变化：空白时提供开场问题 → 分析后有深入追问 → 聊天后可请求本周分析。
+- **历史按周归档**——历史图标点开后，会话按周分组可折叠，含日期范围和会话数，支持搜索过滤，自动提取话题摘要。
+- **分析沉淀到日记**——Pin 按钮将重要 AI 分析固定到当天的日视图，成为可回顾的资产。日视图中可取消固定。
+- **反馈系统**——每条 AI 回复下有 👍 / 👎 / 🔄 按钮，评价数据存储于本地，既是用户控制权，也是未来 prompt 优化的数据来源。
+
 ### 数据
 
-- **本地持久存储**——IndexedDB（Dexie v4）。Schema 已到 version 7（v7 新增加 endTime 索引）。迁移自动执行。
+- **本地持久存储**——IndexedDB（Dexie v4）。Schema 已到 version 9。迁移自动执行。
 - **连续记录统计**——`computeStreak()` 计算连续有记录的周数。
 - **数据导出**——CSV 和 JSON，在设置页可用。
 
@@ -186,7 +200,7 @@ npm run dev
 npm run dev          # 启动开发服务器
 npm run build        # 类型检查 (tsc) + 生产构建 (vite)
 npm run preview      # 本地预览构建结果
-npm run test         # 跑一次单元测试（387 个测试）
+npm run test         # 跑一次单元测试（402 个测试）
 npm run test:watch   # 监听模式
 npm run lint         # 跑 ESLint
 ```
@@ -204,7 +218,9 @@ npm run lint         # 跑 ESLint
 | 存储 | IndexedDB（Dexie v4） | 本地优先，无后端 |
 | 图表 | Recharts 3 | 饼图、柱状图、面积图、折线图 |
 | 时间 | date-fns v4 | 不引入 dayjs / moment |
-| 测试 | Vitest 4 + React Testing Library + fake-indexeddb | 387 个测试，21 个测试文件 |
+| 测试 | Vitest 4 + React Testing Library + fake-indexeddb | 402 个测试，24 个测试文件 |
+| AI | react-markdown + remark-gfm | Markdown 渲染 + 内联数据可视化 |
+| AI SDK | 原生 fetch + SSE 流式解析 | 支持 DeepSeek / OpenAI / Claude / 自定义 |
 | 字体 | Inter、Source Serif 4、JetBrains Mono、Noto Serif SC、Noto Sans SC | Fontsource 本地托管 |
 | 图标 | lucide-react | |
 
@@ -228,6 +244,7 @@ domain/  ──→  data/  ──→  stores/  ──→  features/ + components
 - **渲染性能**——`React.memo`、稳定 callback、Zustand 切片订阅，拖一个事件不会让整周重渲染。
 - **快速记录**——`n` 键全局快捷键 + `QuickLogDialog` 表单。默认时间和颜色由 `deriveDefaultTimes` / `deriveDefaultColor` 纯函数推导，全局快捷键 hook 独立可复用。
 - **统计引擎**——纯函数构成的周统计、时段聚合、区间合并、Type I/II 分离、连续记录、年度推演、数据成熟度、回顾生成、偏差分析、记录质量指标。
+- **AI 集成**——流式 SSE 多提供商、提示词构建器（系统 + 画像 + 技能 + 自定义）、上下文注入（提及 + 日历选区）、对话存储与归档、分析沉淀系统。
 
 ## 开源协议
 

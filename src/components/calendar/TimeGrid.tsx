@@ -5,6 +5,8 @@ interface TimeGridProps {
   hourEnd?:   number
 }
 
+const ANCHOR_HOURS = new Set([0, 6, 12, 18])
+
 function formatHour24(h: number): string {
   return `${String(h).padStart(2, '0')}:00`
 }
@@ -27,12 +29,14 @@ export function TimeGrid({
             <div className="absolute inset-x-0 top-0 border-t border-border-subtle" />
           )}
 
-          {/* Time label — every hour, skip 00:00 */}
-          {h > 0 && (
-            <span className="absolute top-0.5 right-2 text-xs-alt font-mono text-text-tertiary select-none leading-none">
-              {formatHour24(h)}
-            </span>
-          )}
+          {/* Time label */}
+          <span
+            className={`absolute top-1/2 -translate-y-1/2 left-0 pl-2 pr-2 text-xs-alt font-mono select-none leading-none ${
+              ANCHOR_HOURS.has(h) ? 'font-medium text-text-primary' : 'font-normal text-text-tertiary'
+            }`}
+          >
+            {formatHour24(h)}
+          </span>
         </div>
       ))}
     </div>
