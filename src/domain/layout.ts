@@ -1,4 +1,5 @@
 import type { CalendarEvent } from './event'
+import type { EventSegment } from './eventSegment'
 import { getDayStart, getDayEnd, isRangeOverlapping } from './time'
 import { SLOTS_PER_HOUR } from './constants'
 
@@ -10,6 +11,16 @@ export interface PositionedEvent {
   totalColumns: number  // column count for the conflict group
   startsBeforeDay: boolean  // true when event starts before this day
   endsAfterDay: boolean     // true when event ends after this day
+}
+
+/** Segment + event + layout info，用于渲染单个段。 */
+export interface PositionedSegment {
+  segment: EventSegment
+  event: CalendarEvent
+  rowStart: number
+  rowEnd: number
+  columnIndex: number
+  totalColumns: number
 }
 
 /** Minutes from midnight for a timestamp, clamped to the range [0, 1440]. */
@@ -104,4 +115,82 @@ export function layoutDayEvents(
       endsAfterDay,
     }
   })
+}
+
+// ── Segment-based layout ──────────────────────────────────────
+
+/**
+ * 为一组 EventSegment 做列布局。
+ * 与 layoutDayEvents 的区别：
+ *   - 输入是已 clamp 到当天的 EventSegment[]，无需再做范围过滤和 clamp
+ *   - 输出是 PositionedSegment，同时携带 segment 和 event
+ *   - 重叠判断基于 segmentStart/segmentEnd（已在当天内）
+ *
+ * @param segments  当天的 EventSegment[]（已过滤、已排序）
+ * @param eventMap  通过 eventId 查找 CalendarEvent
+ */
+export function layoutDaySegments(
+  segments: EventSegment[],
+  eventMap: Map<string, CalendarEvent>,
+): PositionedSegment[] {
+  if (segments.length === 0) return []
+
+  // 按 segmentStart 排序
+  const sorted = [...segments].sort((a, b) => a.segmentStart - b.segmentStart)
+
+  // greedy column assignment
+  const columnEnds: number[] = []
+  const colAssigned: number[] = []
+
+  for (const seg of sorted) {
+    let placed = -1
+    for (let col = 0; col < columnEnds.length; col++) {
+      if (columnEnds[col] <= seg.segmentStart) {
+        placed = col
+        columnEnds[col] = seg.segmentEnd
+        break
+      }
+    }
+    if (placed === -1) {
+      placed = columnEnds.length
+      columnEnds.push(seg.segmentEnd)
+    }
+    colAssigned.push(placed)
+  }
+
+  // totalColumns = max column among directly overlapping segments + 1
+  return sorted.map((seg, i) => {
+    let maxCol = colAssigned[i]
+    for (let j = 0; j < sorted.length; j++) {
+      if (j !== i && isRangeOverlapping(
+        { start: seg.segmentStart, end: seg.segmentEnd },
+        { start: sorted[j].segmentStart, end: sorted[j].segmentEnd },
+      )) {
+        maxCol = Math.max(maxCol, colAssigned[j])
+      }
+    }
+
+    const dayStart = getDayStart(new Date(seg.segmentStart))
+    const startMinutes = Math.floor((seg.segmentStart - dayStart) / 60_000)
+    const endMinutes   = Math.floor((seg.segmentEnd   - dayStart) / 60_000)
+    const minutesPerSlot = 60 / SLOTS_PER_HOUR
+
+    const rowStart = Math.floor(startMinutes / minutesPerSlot) + 1
+    const rowEnd   = Math.max(
+      Math.ceil(endMinutes / minutesPerSlot) + 1,
+      rowStart + 1,
+    )
+
+    const event = eventMap.get(seg.eventId)
+    if (!event) return null as unknown as PositionedSegment
+
+    return {
+      segment: seg,
+      event,
+      rowStart,
+      rowEnd,
+      columnIndex: colAssigned[i],
+      totalColumns: maxCol + 1,
+    }
+  }).filter(Boolean)
 }

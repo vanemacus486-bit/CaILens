@@ -1,10 +1,10 @@
-import React, { useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import type { PositionedEvent } from '@/domain/layout'
 import type { CalendarEvent, EventColor } from '@/domain/event'
 import { EVENT_COLORS } from '@/domain/event'
 import { MAX_OVERLAP_COLUMNS } from '@/features/week-view/constants'
-import { useDragToMove } from '@/features/week-view/hooks/useDragToMove'
+import { useEventDrag, type DragState } from '@/features/week-view/hooks/useEventDrag'
 import { useDragToResize } from '@/features/week-view/hooks/useDragToResize'
 import { EVENT_COLOR_CLASSES } from './eventColors'
 import {
@@ -31,6 +31,7 @@ interface EventBlockProps {
   onDragMove:    (eventId: string, newStartTime: number, newEndTime: number) => void
   onDragToEdge:  (eventId: string, newStartTime: number, newEndTime: number, direction: -1 | 1) => void
   onDragStart:   () => void
+  onDragStateChange?: (dragState: DragState) => void
   /** Called when a resize completes; same signature as onDragMove. */
   onResize:      (eventId: string, newStartTime: number, newEndTime: number) => void
   weekDays:      Date[]
@@ -45,7 +46,7 @@ function fmtHM(ts: number): string {
 
 export const EventBlock = React.memo(function EventBlock({
   positioned, columnDate, onClick, onColorChange, onEdit, onDuplicate, onDelete,
-  onDragMove, onDragToEdge, onDragStart, onResize, weekDays, gridRef, isCardOpen = false,
+  onDragMove, onDragStart, onDragStateChange, onResize, weekDays, gridRef, isCardOpen = false,
 }: EventBlockProps) {
   const { event, rowStart, rowEnd, columnIndex, totalColumns, startsBeforeDay, endsAfterDay } = positioned
   const { bg, text } = EVENT_COLOR_CLASSES[event.color]
@@ -53,18 +54,19 @@ export const EventBlock = React.memo(function EventBlock({
 
   const divRef = useRef<HTMLDivElement>(null)
 
-  const { onPointerDown: onDragPointerDown, isDragging, wasDragging } = useDragToMove({
-    eventId:           event.id,
-    originalStartTime: event.startTime,
-    originalEndTime:   event.endTime,
-    eventBlockRef:     divRef,
-    weekDays,
+  const { onPointerDown: onDragPointerDown, dragState, isDragging, wasDragging } = useEventDrag({
+    event,
+    visibleDateRange: weekDays,
     gridRef,
     onDragStart,
-    onDragEnd: (start, end) => onDragMove(event.id, start, end),
-    onDragToEdge: (start, end, dir) => onDragToEdge(event.id, start, end, dir),
-    onDragCancel: () => {},
+    onCommit: (eventId, start, end) => onDragMove(eventId, start, end),
+    onCancel: () => {},
   })
+
+  // Report drag state changes upward for ghost rendering.
+  useEffect(() => {
+    onDragStateChange?.(dragState)
+  }, [dragState, onDragStateChange])
 
   // Show resize handles only for events ≥ 60 minutes. Shorter events
   // don't have enough height for usable handles.

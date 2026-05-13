@@ -10,6 +10,7 @@ import { useEventStore } from '@/stores/eventStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useAiChatStore } from '@/stores/aiChatStore'
 import { useWeekFromURL } from './hooks/useWeekFromURL'
+import type { DragState } from './hooks/useEventDrag'
 import { WeekDateHeader } from './WeekDateHeader'
 import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
@@ -37,6 +38,7 @@ export function WeekView() {
 
   const [cardState,    setCardState]    = useState<CardState>({ mode: 'none' })
   const [draftPreview, setDraftPreview] = useState<DraftPreview | null>(null)
+  const [activeDragState, setActiveDragState] = useState<DragState>({ phase: 'idle', ghostStyle: null })
 
   // Ref so context-menu handlers don't need cardState as a dependency
   // (keeps the callbacks stable across card open/close cycles).
@@ -245,6 +247,12 @@ export function WeekView() {
     fireAndForget(duplicateEvent(eventId), 'duplicate event')
   }, [duplicateEvent])
 
+  // ── Drag state relay (for ghost rendering) ───────────
+
+  const handleDragStateChange = useCallback((ds: DragState) => {
+    setActiveDragState(ds)
+  }, [])
+
   // ── Cross-week drag ──────────────────────────────────
 
   const handleDragToEdge = useCallback((
@@ -374,9 +382,23 @@ export function WeekView() {
                     onDragMove={handleDragMove}
                     onDragToEdge={handleDragToEdge}
                     onDragStart={handleDragStart}
+                    onDragStateChange={handleDragStateChange}
                     onResize={handleResize}
                   />
                 ))}
+                {/* Drag ghost overlay */}
+                {activeDragState.ghostStyle && (
+                  <div
+                    className="absolute pointer-events-none z-40 rounded-md opacity-80"
+                    style={{
+                      left: activeDragState.ghostStyle.left,
+                      top: activeDragState.ghostStyle.top,
+                      width: activeDragState.ghostStyle.width,
+                      height: activeDragState.ghostStyle.height,
+                      backgroundColor: 'var(--accent)',
+                    }}
+                  />
+                )}
               </div>
               {events.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

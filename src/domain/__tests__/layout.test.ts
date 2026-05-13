@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { layoutDayEvents } from '../layout'
+import { layoutDayEvents, layoutDaySegments } from '../layout'
 import type { CalendarEvent } from '../event'
+import type { EventSegment } from '../eventSegment'
 
 // Reference days
 const DAY   = new Date(2026, 3, 20) // Monday
@@ -250,5 +251,95 @@ describe('cross-day events', () => {
     // 23:00 = 1380 min / 30 = 46 → rowStart 47. 24:00 = 1440 min / 30 = 48 → rowEnd 49.
     expect(result[0].rowStart).toBe(47)
     expect(result[0].rowEnd).toBe(49)
+  })
+})
+
+// ── Segment-based layout ───────────────────────────────────
+
+function makeSeg(
+  eventId: string,
+  dayIndex: number,
+  startHour: number,
+  endHour: number,
+  overrides: Partial<EventSegment> = {},
+): EventSegment {
+  return {
+    eventId,
+    segmentStart: new Date(2026, 3, 20 + dayIndex, startHour, 0, 0, 0).getTime(),
+    segmentEnd:   new Date(2026, 3, 20 + dayIndex, endHour,   0, 0, 0).getTime(),
+    dayIndex,
+    isFirstSegment: true,
+    isLastSegment:  true,
+    ...overrides,
+  }
+}
+
+function makeEventMap(events: CalendarEvent[]): Map<string, CalendarEvent> {
+  return new Map(events.map((e) => [e.id, e]))
+}
+
+describe('layoutDaySegments', () => {
+  it('returns empty array for no segments', () => {
+    expect(layoutDaySegments([], new Map())).toHaveLength(0)
+  })
+
+  it('positions a single segment at column 0 with totalColumns=1', () => {
+    const seg = makeSeg('a', 0, 8, 9)
+    const eventMap = makeEventMap([makeEvent('a', 8, 9)])
+    const result = layoutDaySegments([seg], eventMap)
+    expect(result).toHaveLength(1)
+    expect(result[0].columnIndex).toBe(0)
+    expect(result[0].totalColumns).toBe(1)
+    expect(result[0].event.id).toBe('a')
+    expect(result[0].segment).toBe(seg)
+  })
+
+  it('places non-overlapping segments both in column 0', () => {
+    const segA = makeSeg('a', 0, 8, 9)
+    const segB = makeSeg('b', 0, 10, 11)
+    const eventMap = makeEventMap([makeEvent('a', 8, 9), makeEvent('b', 10, 11)])
+    const result = layoutDaySegments([segA, segB], eventMap)
+    expect(result[0].columnIndex).toBe(0)
+    expect(result[1].columnIndex).toBe(0)
+    expect(result[0].totalColumns).toBe(1)
+    expect(result[1].totalColumns).toBe(1)
+  })
+
+  it('places overlapping segments in separate columns', () => {
+    const segA = makeSeg('a', 0, 8, 10)
+    const segB = makeSeg('b', 0, 9, 11)
+    const eventMap = makeEventMap([makeEvent('a', 8, 10), makeEvent('b', 9, 11)])
+    const result = layoutDaySegments([segA, segB], eventMap)
+    const a = result.find((r) => r.event.id === 'a')!
+    const b = result.find((r) => r.event.id === 'b')!
+    expect(a.columnIndex).toBe(0)
+    expect(b.columnIndex).toBe(1)
+    expect(a.totalColumns).toBe(2)
+    expect(b.totalColumns).toBe(2)
+  })
+
+  it('filters out segments whose eventId is missing from the event map', () => {
+    const seg = makeSeg('ghost', 0, 8, 9)
+    const result = layoutDaySegments([seg], new Map())
+    expect(result).toHaveLength(0)
+  })
+
+  it('computes rowStart and rowEnd correctly', () => {
+    const seg = makeSeg('a', 0, 8, 9)
+    const eventMap = makeEventMap([makeEvent('a', 8, 9)])
+    const result = layoutDaySegments([seg], eventMap)
+    // 8:00 = 480 min / 30 = 16 → rowStart 17
+    expect(result[0].rowStart).toBe(17)
+    // 9:00 = 540 min / 30 = 18 → rowEnd 19
+    expect(result[0].rowEnd).toBe(19)
+  })
+
+  it('sorts segments by segmentStart', () => {
+    const segB = makeSeg('b', 0, 10, 11)
+    const segA = makeSeg('a', 0, 8, 9)
+    const eventMap = makeEventMap([makeEvent('a', 8, 9), makeEvent('b', 10, 11)])
+    const result = layoutDaySegments([segB, segA], eventMap)
+    expect(result[0].event.id).toBe('a')
+    expect(result[1].event.id).toBe('b')
   })
 })
