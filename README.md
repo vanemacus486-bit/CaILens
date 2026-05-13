@@ -11,7 +11,7 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/166d37d7-0634-47d9-aacb-768302dd767b" />
 
 
-> **状态：** v3.12.0 AI 时间助手——@提及上下文、日历联动、markdown 渲染、数据可视化、反向锚定、分析沉淀。402 个测试。
+> **状态：** v3.13.0 分钟轴拖拽系统——连续坐标轴跨天拖拽、ghost 浮层渲染、事件切片。440 个测试。
 
 ## 下载
 
@@ -35,7 +35,7 @@ CaILens 就是这个工具在浏览器里的一个尝试。
 - **记录，不规划。** 这里没有日程。你记录的是已经发生的事，不是对明天的承诺。
 - **本地优先。** 数据存在 IndexedDB 里。没有账号、没有服务器、没有数据上报。你的时间日记只属于你。
 - **安静的设计。** 暖中性色调，衬线标题，克制的主色。应用不催促、不评价、不打扰。
-- **代码质量优先于功能数量。** TypeScript 严格模式，387 个测试，单向依赖分层。代码库应该经得起时间考验。
+- **代码质量优先于功能数量。** TypeScript 严格模式，440 个测试，单向依赖分层。代码库应该经得起时间考验。
 
 ---
 
@@ -45,7 +45,7 @@ CaILens 就是这个工具在浏览器里的一个尝试。
 
 - **24 小时一屏可见**（周一至周日，带时间刻度栏）。
 - **点击空白创建**——弹出卡片覆盖层，一句话提示：*"你在做什么？"*
-- **拖拽移动**——指针跟随，支持跨天。基于原生 Pointer Events 手写，没用库。
+- **拖拽移动**——分钟轴连续坐标系统，跨天无缝。基于原生 Pointer Events 手写，ghost 浮层 60fps 渲染。
 - **拖拽边缘改时长**——上下手柄调整起止时间，可拖过午夜变为跨天事件。
 - **跨天事件**——睡眠等跨越午夜的记录自动跨天显示，带箭头指示器和连续圆角。
 - **实时预览 60fps**——编辑或拖动时，草稿事件即时渲染。
@@ -200,7 +200,7 @@ npm run dev
 npm run dev          # 启动开发服务器
 npm run build        # 类型检查 (tsc) + 生产构建 (vite)
 npm run preview      # 本地预览构建结果
-npm run test         # 跑一次单元测试（402 个测试）
+npm run test         # 跑一次单元测试（440 个测试）
 npm run test:watch   # 监听模式
 npm run lint         # 跑 ESLint
 ```
@@ -218,7 +218,7 @@ npm run lint         # 跑 ESLint
 | 存储 | IndexedDB（Dexie v4） | 本地优先，无后端 |
 | 图表 | Recharts 3 | 饼图、柱状图、面积图、折线图 |
 | 时间 | date-fns v4 | 不引入 dayjs / moment |
-| 测试 | Vitest 4 + React Testing Library + fake-indexeddb | 402 个测试，24 个测试文件 |
+| 测试 | Vitest 4 + React Testing Library + fake-indexeddb | 440 个测试，26 个测试文件 |
 | AI | react-markdown + remark-gfm | Markdown 渲染 + 内联数据可视化 |
 | AI SDK | 原生 fetch + SSE 流式解析 | 支持 DeepSeek / OpenAI / Claude / 自定义 |
 | 字体 | Inter、Source Serif 4、JetBrains Mono、Noto Serif SC、Noto Sans SC | Fontsource 本地托管 |
@@ -240,7 +240,7 @@ domain/  ──→  data/  ──→  stores/  ──→  features/ + components
 
 几个值得一提的实现：
 
-- **拖拽系统**完全基于原生 Pointer Events 手写。命中检测和吸附对的是布局网格，不是 DOM。
+- **拖拽系统**——分钟轴坐标系（0..7×1440），跨天拖拽只是加减法。ghost 浮层基于 rAF 直接操作 DOM，不触发 React 重渲染。
 - **渲染性能**——`React.memo`、稳定 callback、Zustand 切片订阅，拖一个事件不会让整周重渲染。
 - **快速记录**——`n` 键全局快捷键 + `QuickLogDialog` 表单。默认时间和颜色由 `deriveDefaultTimes` / `deriveDefaultColor` 纯函数推导，全局快捷键 hook 独立可复用。
 - **统计引擎**——纯函数构成的周统计、时段聚合、区间合并、Type I/II 分离、连续记录、年度推演、数据成熟度、回顾生成、偏差分析、记录质量指标。

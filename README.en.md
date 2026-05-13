@@ -10,7 +10,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/166d37d7-0634-47d9-aacb-768302dd767b" />
 
-> **Status:** v3.12.0 — AI Time Assistant: @mentions, calendar context, markdown rendering, inline data viz, reverse anchoring, analysis pinning. 402 tests.
+> **Status:** v3.13.0 — Minute-axis drag system: continuous coordinate axis, cross-day ghost overlay, event segments. 440 tests.
 
 ## Downloads
 
@@ -32,7 +32,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
 - **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 387 tests, one-way dependency layers. The codebase should age well.
+- **Code quality over feature quantity.** Strict TypeScript, 440 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
@@ -42,7 +42,7 @@ CaILens is a small attempt at that instrument, for the browser.
 
 - **24-hour, single-screen week view** (Mon–Sun, with time gutter).
 - **Click-to-create** — click any empty slot, a modal overlay card appears with a prompt: *"What were you doing?"*
-- **Drag to move** — events follow the pointer, including cross-day drag. Built on raw Pointer Events, no library.
+- **Drag to move** — continuous minute-axis coordinate system for seamless cross-day drag. Built on raw Pointer Events, ghost overlay at 60fps.
 - **Drag edges to resize** — top and bottom handles for adjusting duration; drag past midnight to create cross-day events.
 - **Cross-day events** — events spanning midnight (e.g. sleep) display across days with arrow indicators and continuous rounded corners.
 - **Live preview at 60fps** — draft events render in real-time as you edit or drag.
@@ -208,7 +208,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (402 tests)
+npm run test         # run unit tests once (440 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -226,7 +226,7 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 402 tests across 24 test files |
+| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 440 tests across 26 test files |
 | AI | react-markdown + remark-gfm | Markdown rendering + inline data visualization |
 | AI SDK | native fetch + SSE streaming | DeepSeek / OpenAI / Claude / custom providers |
 | Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC | Fontsource, locally hosted |
@@ -248,7 +248,7 @@ domain/  ──→  data/  ──→  stores/  ──→  features/ + components
 
 Notable details:
 
-- **Drag system** built on raw Pointer Events. Hit-testing and snapping compute against the layout grid, not the DOM.
+- **Drag system** — minute-axis coordinate system (0..7×1440), cross-day drag is just arithmetic. Ghost overlay rendered via rAF with direct DOM manipulation, bypassing React re-renders.
 - **Render performance** — `React.memo`, stable callbacks, Zustand sliced subscriptions keep drags from re-rendering unrelated events.
 - **QuickLog** — `n` global shortcut + `QuickLogDialog` form. Default times and colour derived by `deriveDefaultTimes` / `deriveDefaultColor` pure functions; global shortcut hook is standalone and reusable.
 - **AI integration** — Streaming SSE multi-provider client, prompt composer (system + profile + skills + custom), context injection (mentions + calendar selections), conversation storage and archiving, analysis pinning system.
