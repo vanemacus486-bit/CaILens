@@ -8,6 +8,12 @@ export interface FileEntry {
   modified: number
 }
 
+export interface FileEntryWithContent {
+  path: string
+  modified: number
+  content: string
+}
+
 export interface FsChangeEvent {
   kind: 'create' | 'modify' | 'remove'
   path: string
@@ -31,6 +37,11 @@ async function ensureTauriListen() {
 export async function readDirRecursive(path: string): Promise<FileEntry[]> {
   await ensureTauri()
   return _tauriInvoke!('read_dir_recursive', { path })
+}
+
+export async function readDirWithContent(path: string): Promise<FileEntryWithContent[]> {
+  await ensureTauri()
+  return _tauriInvoke!('read_dir_with_content', { path })
 }
 
 export async function readTextFile(path: string): Promise<string> {

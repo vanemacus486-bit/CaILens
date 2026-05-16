@@ -7,7 +7,7 @@ import type { PinnedAnalysis, MessageFeedback } from '@/domain/aiChat'
 import type { StorageAdapter, StorageTable, QueryOptions } from './StorageAdapter'
 import {
   isTauri,
-  readDirRecursive,
+  readDirWithContent,
   readTextFile,
   writeTextFile,
   deleteFile as tauriDeleteFile,
@@ -16,7 +16,7 @@ import {
   watchDir,
   stopWatching as stopTauriWatching,
   onFsChange,
-  type FileEntry,
+  type FileEntryWithContent,
 } from '../tauriFs'
 
 const CURRENT_SCHEMA_VERSION = 1
@@ -189,15 +189,14 @@ class EventsFsTable implements StorageTable<CalendarEvent> {
       .sort((a, b) => a.ts - b.ts)
   }
 
-  async loadFromScan(files: FileEntry[]): Promise<void> {
-    for (const file of files) {
-      if (!file.path.endsWith('.json')) continue
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    for (const entry of entries) {
+      if (!entry.path.endsWith('.json')) continue
       try {
-        const content = await readTextFile(file.path)
-        const parsed = JSON.parse(content)
+        const parsed = JSON.parse(entry.content)
         if (parsed.type === 'event' && parsed.data) {
           const event = parsed.data as CalendarEvent
-          this.index.events.set(event.id, { event, filePath: file.path })
+          this.index.events.set(event.id, { event, filePath: entry.path })
         }
       } catch {
         // skip unparseable files
@@ -283,12 +282,11 @@ class CategoriesFsTable implements StorageTable<Category> {
     await writeTextFile(this.filePath, content)
   }
 
-  async loadFromScan(files: FileEntry[]): Promise<void> {
-    const catFile = files.find((f) => f.path.endsWith('categories.json'))
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    const catFile = entries.find((e) => e.path.endsWith('categories.json'))
     if (catFile) {
       try {
-        const content = await readTextFile(catFile.path)
-        const parsed = JSON.parse(content)
+        const parsed = JSON.parse(catFile.content)
         if (parsed.type === 'categories' && Array.isArray(parsed.data)) {
           for (const cat of parsed.data as Category[]) {
             this.index.categories.set(cat.id, cat)
@@ -361,12 +359,11 @@ class SettingsFsTable implements StorageTable<AppSettings> {
     return fn()
   }
 
-  async loadFromScan(files: FileEntry[]): Promise<void> {
-    const sFile = files.find((f) => f.path.endsWith('settings.json'))
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    const sFile = entries.find((e) => e.path.endsWith('settings.json'))
     if (sFile) {
       try {
-        const content = await readTextFile(sFile.path)
-        const parsed = JSON.parse(content)
+        const parsed = JSON.parse(sFile.content)
         if (parsed.type === 'settings' && parsed.data) {
           this.index.settings = parsed.data as AppSettings
         }
@@ -483,12 +480,11 @@ class EstimatesFsTable implements StorageTable<WeeklyEstimate> {
     await writeTextFile(filePath, content)
   }
 
-  async loadFromScan(files: FileEntry[]): Promise<void> {
-    for (const file of files) {
-      if (!file.path.endsWith('.json') || !file.path.replace(/\\/g, '/').includes('/estimates/')) continue
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    for (const entry of entries) {
+      if (!entry.path.endsWith('.json') || !entry.path.replace(/\\/g, '/').includes('/estimates/')) continue
       try {
-        const content = await readTextFile(file.path)
-        const parsed = JSON.parse(content)
+        const parsed = JSON.parse(entry.content)
         if (parsed.type === 'estimates' && Array.isArray(parsed.data)) {
           for (const est of parsed.data as WeeklyEstimate[]) {
             this.index.estimates.set(est.id, est)
@@ -583,12 +579,11 @@ class ConversationsFsTable implements StorageTable<AiConversation> {
     await writeTextFile(this.filePath, content)
   }
 
-  async loadFromScan(files: FileEntry[]): Promise<void> {
-    const file = files.find((f) => f.path.endsWith('conversations.json'))
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    const file = entries.find((e) => e.path.endsWith('conversations.json'))
     if (file) {
       try {
-        const content = await readTextFile(file.path)
-        const parsed = JSON.parse(content)
+        const parsed = JSON.parse(file.content)
         if (parsed.type === 'conversations' && Array.isArray(parsed.data)) {
           for (const conv of parsed.data as AiConversation[]) {
             this.index.conversations.set(conv.id, conv)
@@ -706,12 +701,11 @@ class ChatMessagesFsTable implements StorageTable<AiChatMessage> {
     await writeTextFile(filePath, content)
   }
 
-  async loadFromScan(files: FileEntry[]): Promise<void> {
-    for (const file of files) {
-      if (!file.path.endsWith('.json') || !file.path.replace(/\\/g, '/').includes('/chat-messages/')) continue
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    for (const entry of entries) {
+      if (!entry.path.endsWith('.json') || !entry.path.replace(/\\/g, '/').includes('/chat-messages/')) continue
       try {
-        const content = await readTextFile(file.path)
-        const parsed = JSON.parse(content)
+        const parsed = JSON.parse(entry.content)
         if (parsed.type === 'chatMessages' && Array.isArray(parsed.data)) {
           const convId = parsed.conversationId as string
           this.index.chatMessages.set(convId, parsed.data as AiChatMessage[])
@@ -795,12 +789,11 @@ class PinnedAnalysesFsTable implements StorageTable<PinnedAnalysis> {
     await writeTextFile(this.filePath, content)
   }
 
-  async loadFromScan(files: FileEntry[]): Promise<void> {
-    const file = files.find((f) => f.path.endsWith('pinned-analyses.json'))
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    const file = entries.find((e) => e.path.endsWith('pinned-analyses.json'))
     if (file) {
       try {
-        const content = await readTextFile(file.path)
-        const parsed = JSON.parse(content)
+        const parsed = JSON.parse(file.content)
         if (parsed.type === 'pinnedAnalyses' && Array.isArray(parsed.data)) {
           for (const item of parsed.data as PinnedAnalysis[]) {
             this.index.pinnedAnalyses.set(item.id, item)
@@ -876,12 +869,11 @@ class MessageFeedbackFsTable implements StorageTable<MessageFeedback> {
     await writeTextFile(this.filePath, content)
   }
 
-  async loadFromScan(files: FileEntry[]): Promise<void> {
-    const file = files.find((f) => f.path.endsWith('message-feedback.json'))
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    const file = entries.find((e) => e.path.endsWith('message-feedback.json'))
     if (file) {
       try {
-        const content = await readTextFile(file.path)
-        const parsed = JSON.parse(content)
+        const parsed = JSON.parse(file.content)
         if (parsed.type === 'messageFeedback' && Array.isArray(parsed.data)) {
           for (const item of parsed.data as MessageFeedback[]) {
             this.index.messageFeedback.set(item.id, item)
@@ -983,17 +975,17 @@ export class FileSystemAdapter implements StorageAdapter {
 
   async fullScan(): Promise<void> {
     if (!this.rootPath) return
-    const files = await readDirRecursive(this.rootPath)
+    const entries = await readDirWithContent(this.rootPath)
 
-    // Load each table from the scanned files
-    await (this.categories as CategoriesFsTable).loadFromScan(files)
-    await (this.settings as SettingsFsTable).loadFromScan(files)
-    await (this.weeklyEstimates as EstimatesFsTable).loadFromScan(files)
-    await (this.conversations as ConversationsFsTable).loadFromScan(files)
-    await (this.chatMessages as ChatMessagesFsTable).loadFromScan(files)
-    await (this.pinnedAnalyses as PinnedAnalysesFsTable).loadFromScan(files)
-    await (this.messageFeedback as MessageFeedbackFsTable).loadFromScan(files)
-    await (this.events as EventsFsTable).loadFromScan(files)
+    // Load each table from the in-memory entries (no per-file IPC)
+    await (this.categories as CategoriesFsTable).loadFromScan(entries)
+    await (this.settings as SettingsFsTable).loadFromScan(entries)
+    await (this.weeklyEstimates as EstimatesFsTable).loadFromScan(entries)
+    await (this.conversations as ConversationsFsTable).loadFromScan(entries)
+    await (this.chatMessages as ChatMessagesFsTable).loadFromScan(entries)
+    await (this.pinnedAnalyses as PinnedAnalysesFsTable).loadFromScan(entries)
+    await (this.messageFeedback as MessageFeedbackFsTable).loadFromScan(entries)
+    await (this.events as EventsFsTable).loadFromScan(entries)
   }
 
   async startWatching(onChange: () => void): Promise<void> {

@@ -27,7 +27,7 @@ tauri-plugin-dialog = "2"
 notify = { version = "7", features = [] }
 
 [profile.release]
-opt-level = "s"
+opt-level = 3
 lto = true
 codegen-units = 1
 strip = true

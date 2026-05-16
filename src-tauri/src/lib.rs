@@ -16,6 +16,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             fs_commands::read_dir_recursive,
+            fs_commands::read_dir_with_content,
             fs_commands::read_text_file,
             fs_commands::write_text_file,
             fs_commands::delete_file,

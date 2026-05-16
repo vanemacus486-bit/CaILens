@@ -7,6 +7,13 @@ pub struct FileEntry {
     pub modified: u64, // unix timestamp milliseconds
 }
 
+#[derive(Serialize)]
+pub struct FileEntryWithContent {
+    pub path: String,
+    pub modified: u64,
+    pub content: String,
+}
+
 #[tauri::command]
 pub fn read_dir_recursive(path: String) -> Result<Vec<FileEntry>, String> {
     let root = Path::new(&path);
@@ -35,6 +42,45 @@ fn scan_dir(dir: &Path, entries: &mut Vec<FileEntry>) -> std::io::Result<()> {
             entries.push(FileEntry {
                 path: path.to_string_lossy().to_string(),
                 modified,
+            });
+        }
+    }
+    Ok(())
+}
+
+/// Like read_dir_recursive but also reads file contents in a single pass.
+/// Eliminates N per-file IPC round-trips that would otherwise dominate startup.
+#[tauri::command]
+pub fn read_dir_with_content(path: String) -> Result<Vec<FileEntryWithContent>, String> {
+    let root = Path::new(&path);
+    let mut entries = Vec::new();
+    scan_dir_with_content(root, &mut entries)
+        .map_err(|e| format!("Failed to scan directory: {}", e))?;
+    Ok(entries)
+}
+
+fn scan_dir_with_content(dir: &Path, entries: &mut Vec<FileEntryWithContent>) -> std::io::Result<()> {
+    if !dir.is_dir() {
+        return Ok(());
+    }
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            scan_dir_with_content(&path, entries)?;
+        } else if path.extension().map(|e| e == "json").unwrap_or(false) {
+            let metadata = std::fs::metadata(&path)?;
+            let modified = metadata
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0);
+            let content = std::fs::read_to_string(&path)?;
+            entries.push(FileEntryWithContent {
+                path: path.to_string_lossy().to_string(),
+                modified,
+                content,
             });
         }
     }
