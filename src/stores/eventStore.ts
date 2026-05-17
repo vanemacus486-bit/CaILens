@@ -11,10 +11,12 @@ import { getDayStart, shiftEventsByWeeks } from '@/domain/time'
 interface EventState {
   events: CalendarEvent[]
   rangeEvents: CalendarEvent[]
+  allEvents: CalendarEvent[]
   isLoading: boolean
   loadError: string | null
   loadWeek: (weekStart: Date) => Promise<void>
   loadRange: (start: number, end: number) => Promise<void>
+  loadAllEvents: () => Promise<void>
   createEvent: (input: CreateEventInput) => Promise<CalendarEvent>
   updateEvent: (input: UpdateEventInput) => Promise<CalendarEvent>
   deleteEvent: (id: string) => Promise<void>
@@ -28,6 +30,7 @@ interface EventState {
 export const useEventStore = create<EventState>()((set, get) => ({
   events: [],
   rangeEvents: [],
+  allEvents: [],
   isLoading: true,
   loadError: null,
 
@@ -52,6 +55,15 @@ export const useEventStore = create<EventState>()((set, get) => ({
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load events'
       set({ isLoading: false, loadError: message })
+    }
+  },
+
+  loadAllEvents: async () => {
+    try {
+      const allEvents = await getEventRepo().getByTimeRange(0, Date.now() + 365 * 24 * 60 * 60 * 1000)
+      set({ allEvents })
+    } catch {
+      // silent — standard week will show empty buckets
     }
   },
 

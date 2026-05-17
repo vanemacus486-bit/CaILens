@@ -94,8 +94,13 @@ export const EventBlock = React.memo(function EventBlock({
     onResizeCancel: () => {},
   })
 
-  const durationMinutes = (event.endTime - event.startTime) / 60_000
-  const isCompact = durationMinutes <= 60
+  // Segment duration on this column's day — for cross-day events this may be
+  // much shorter than the full event, so we base the compact decision on it.
+  const dayStartMs = new Date(columnDate.getFullYear(), columnDate.getMonth(), columnDate.getDate()).getTime()
+  const dayEndMs = dayStartMs + 24 * 60 * 60 * 1000
+  const segStart = Math.max(event.startTime, dayStartMs)
+  const segEnd = Math.min(event.endTime, dayEndMs)
+  const isCompact = (segEnd - segStart) / 60_000 <= 60
 
   const roundedClass = !startsBeforeDay && !endsAfterDay ? 'rounded-md'
     : !startsBeforeDay ? 'rounded-t-md'
@@ -163,9 +168,13 @@ export const EventBlock = React.memo(function EventBlock({
           <p className={cn('font-sans font-normal leading-tight truncate', isCompact ? 'text-body-xs' : 'text-xs')}>
             {event.title || <span className="opacity-50 italic">Untitled</span>}
           </p>
-          {!isCompact && (
+          {!isCompact && !(startsBeforeDay && endsAfterDay) && (
             <p className="text-xs-alt opacity-80 font-mono leading-tight mt-0.5">
-              {fmtHM(event.startTime)} – {fmtHM(event.endTime)}
+              {startsBeforeDay
+                ? `– ${fmtHM(segEnd)}`
+                : endsAfterDay
+                  ? `${fmtHM(segStart)} –`
+                  : `${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
             </p>
           )}
           {!isCompact && event.description && (
