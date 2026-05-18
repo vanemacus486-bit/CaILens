@@ -15,4 +15,3 @@ export type CardState =
   | { mode: 'none' }
   | { mode: 'detail'; event: CalendarEvent; anchorEl: HTMLElement }
   | { mode: 'edit';   event: CalendarEvent; isNewlyCreated: boolean; anchorEl: HTMLElement }
-  | { mode: 'inline'; event: CalendarEvent; anchorEl: HTMLElement; isNewlyCreated: boolean }

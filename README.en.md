@@ -10,7 +10,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/166d37d7-0634-47d9-aacb-768302dd767b" />
 
-> **Status:** v3.16.0 — Encrypted export, AI event backlinks, conversation summaries, LXGW WenKai font — batch paste, encrypted .cailens backup, clickable AI event links, editable summaries, second font option, keyboard accessibility. 945 tests.
+> **Status:** v3.18.0 — Unified QuickLog dialog (keyboard shortcuts, focus trap, 2×3 category grid, edit mode), Morandi color palette, softer focus rings, streamlined stats page. 960 tests.
 
 ## Downloads
 

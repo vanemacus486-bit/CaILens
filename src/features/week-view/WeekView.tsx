@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams, useOutletContext } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
 import { addWeeks, getWeekDays, getWeekStart, isEventOnDay } from '@/domain/time'
-import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
+import type { CalendarEvent, EventColor, CreateEventInput, UpdateEventInput } from '@/domain/event'
+import type { DefaultTimes } from '@/domain/quickLog'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { DayColumn } from '@/components/calendar/DayColumn'
@@ -19,7 +20,7 @@ import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
 import { EventEditCard } from './EventEditCard'
 import { WeekEmptyState } from './WeekEmptyState'
-import { InlineEventCard } from './InlineEventCard'
+import { QuickLogDialog } from '@/features/quick-log/QuickLogDialog'
 import { MobileDayView } from '@/features/day-view/MobileDayView'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { saveSession, useScrollSave, useScrollRestore } from '@/hooks/useSessionRestore'
@@ -57,6 +58,12 @@ export function WeekView() {
   const [cardState,    setCardState]    = useState<CardState>({ mode: 'none' })
   const [draftPreview, setDraftPreview] = useState<DraftPreview | null>(null)
   const [activeDragState, setActiveDragState] = useState<DragState>({ phase: 'idle', ghostStyle: null })
+
+  // QuickLogDialog state (replaces InlineEventCard)
+  const [quickLogOpen, setQuickLogOpen] = useState(false)
+  const [quickLogTimes, setQuickLogTimes] = useState<DefaultTimes | null>(null)
+  const [quickLogColor, setQuickLogColor] = useState<EventColor>('accent')
+  const [quickLogEditEvent, setQuickLogEditEvent] = useState<Pick<CalendarEvent, 'id' | 'title' | 'description' | 'location' | 'color' | 'startTime' | 'endTime'> | null>(null)
 
   const cardStateRef = useRef(cardState)
   cardStateRef.current = cardState
@@ -196,23 +203,22 @@ export function WeekView() {
     setDraftPreview(null)
   }, [])
 
-  const handleSlotClick = useCallback((startTime: number, slotEl: HTMLElement) => {
-    if (isStandardWeek) return // no slot clicks in standard week
+  const handleSlotClick = useCallback((startTime: number, _slotEl: HTMLElement) => {
+    if (isStandardWeek) return
     if (justClosedCardRef.current) {
       justClosedCardRef.current = false
       return
     }
     if (cardState.mode !== 'none') return
 
-    void createEvent({
-      title: '', startTime, endTime: startTime + 60 * 60_000,
-      color: 'stone', categoryId: 'stone',
-    }).then((newEvent) => {
-      setCardState({ mode: 'inline', event: newEvent, isNewlyCreated: true, anchorEl: slotEl })
-    }).catch((err) => { console.error('[fire-and-forget] create event:', err) })
-  }, [cardState.mode, createEvent, isStandardWeek])
+    // Open QuickLogDialog for new event creation
+    setQuickLogTimes({ start: startTime, end: startTime + 60 * 60_000 })
+    setQuickLogColor('stone')
+    setQuickLogEditEvent(null)
+    setQuickLogOpen(true)
+  }, [cardState.mode, isStandardWeek])
 
-  const handleEventClick = useCallback((event: CalendarEvent, el: HTMLElement) => {
+  const handleEventClick = useCallback((event: CalendarEvent, _el: HTMLElement) => {
     useUIStore.getState().setLastFocusedEventId(event.id)
     useAiChatStore.getState().addCalendarContext([{
       id: event.id,
@@ -226,12 +232,15 @@ export function WeekView() {
     }])
     setDraftPreview(null)
 
-    // Toggle inline expand: if same event is already inline, close; otherwise open inline
-    if (cardStateRef.current.mode === 'inline' && cardStateRef.current.event.id === event.id) {
-      setCardState({ mode: 'none' })
-    } else {
-      setCardState({ mode: 'inline', event, anchorEl: el, isNewlyCreated: false })
-    }
+    // Open QuickLogDialog in edit mode
+    setQuickLogTimes({ start: event.startTime, end: event.endTime })
+    setQuickLogColor(event.color)
+    setQuickLogEditEvent({
+      id: event.id, title: event.title,
+      description: event.description, location: event.location,
+      color: event.color, startTime: event.startTime, endTime: event.endTime,
+    })
+    setQuickLogOpen(true)
   }, [])
 
   const handleEdit = useCallback(() => {
@@ -318,22 +327,27 @@ export function WeekView() {
     closeCard()
   }, [closeCard])
 
-  // ── Inline card handlers ─────────────────────────────────
+  // ── QuickLogDialog handlers ──────────────────────────────
 
-  const handleInlineSave = useCallback((updates: UpdateEventInput) => {
-    fireAndForget(updateEvent(updates), 'save event (inline)')
+  const handleQuickLogSave = useCallback(async (input: CreateEventInput): Promise<string> => {
+    const event = await createEvent(input)
+    return event.id
+  }, [createEvent])
+
+  const handleQuickLogUpdate = useCallback(async (input: UpdateEventInput) => {
+    await updateEvent(input)
   }, [updateEvent])
 
-  const handleInlineDelete = useCallback(() => {
-    const cs = cardStateRef.current
-    if (cs.mode === 'inline') {
-      fireAndForget(deleteEvent(cs.event.id), 'delete event (inline)')
-    }
+  const handleQuickLogDelete = useCallback(async (id: string) => {
+    await deleteEvent(id)
   }, [deleteEvent])
 
-  const handleInlineClose = useCallback(() => {
-    setCardState({ mode: 'none' })
-    setDraftPreview(null)
+  const handleQuickLogOpenChange = useCallback((open: boolean) => {
+    setQuickLogOpen(open)
+    if (!open) {
+      setQuickLogTimes(null)
+      setQuickLogEditEvent(null)
+    }
   }, [])
 
   // Reverse Anchoring: opacity mute
@@ -500,18 +514,6 @@ export function WeekView() {
                         }}
                       />
                     )}
-                    {cardState.mode === 'inline' && gridRef.current && (
-                      <InlineEventCard
-                        event={cardState.event}
-                        isNewlyCreated={cardState.isNewlyCreated}
-                        anchorEl={cardState.anchorEl}
-                        containerEl={gridRef.current}
-                        onSave={handleInlineSave}
-                        onDelete={handleInlineDelete}
-                        onClose={handleInlineClose}
-                        onDraftChange={setDraftPreview}
-                      />
-                    )}
                   </div>
                   {events.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -546,6 +548,19 @@ export function WeekView() {
           onClose={handleEditClose}
           onCancel={handleEditCancel}
           onDraftChange={setDraftPreview}
+        />
+      )}
+
+      {quickLogOpen && quickLogTimes && (
+        <QuickLogDialog
+          open={quickLogOpen}
+          onOpenChange={handleQuickLogOpenChange}
+          defaultTimes={quickLogTimes}
+          defaultColor={quickLogColor}
+          onSave={handleQuickLogSave}
+          editingEvent={quickLogEditEvent ?? undefined}
+          onUpdate={handleQuickLogUpdate}
+          onDelete={handleQuickLogDelete}
         />
       )}
     </>

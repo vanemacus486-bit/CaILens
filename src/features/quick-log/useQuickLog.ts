@@ -28,13 +28,5 @@ export function useQuickLog() {
     return event.id
   }, [])
 
-  const handleUpdate = useCallback(async (id: string, description: string, location: string) => {
-    await useEventStore.getState().updateEvent({
-      id,
-      description: description || undefined,
-      location: location || undefined,
-    })
-  }, [])
-
-  return { open, setOpen, defaults, openDialog, handleSave, handleUpdate }
+  return { open, setOpen, defaults, openDialog, handleSave }
 }

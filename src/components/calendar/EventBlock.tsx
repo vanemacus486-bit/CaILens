@@ -169,7 +169,7 @@ export const EventBlock = React.memo(function EventBlock({
             }
           }}
           className={cn(
-            'relative px-2 py-1 overflow-hidden select-none rounded-md',
+            'relative px-2 py-1 overflow-hidden select-none rounded-md my-[2px]',
             'transition-colors duration-200 z-10',
             event.description ? 'border-l-[5px]' : 'border-l-[3px]',
             roundedClass, bg, text,
