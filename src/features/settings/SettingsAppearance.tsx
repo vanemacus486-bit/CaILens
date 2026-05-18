@@ -2,6 +2,8 @@ import { cn } from '@/lib/utils'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { ACCENT_PRESETS } from '@/domain/themes'
+import type { UiFont } from '@/domain/settings'
+const FONT_OPTIONS: UiFont[] = ['default', 'wenkai']
 
 export function SettingsAppearance() {
   const settings = useAppSettingsStore((s) => s.settings)
@@ -9,6 +11,7 @@ export function SettingsAppearance() {
   const setLanguage = useAppSettingsStore((s) => s.setLanguage)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
   const setAccentColor = useAppSettingsStore((s) => s.setAccentColor)
+  const setUiFont = useAppSettingsStore((s) => s.setUiFont)
 
   const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
@@ -84,6 +87,29 @@ export function SettingsAppearance() {
                 style={{ backgroundColor: preset.hex }}
                 title={t(preset.name.zh, preset.name.en)}
               />
+            ))}
+          </div>
+        </fieldset>
+
+        {/* Font */}
+        <fieldset className="flex flex-col gap-1.5 border-none p-0">
+          <label className="text-xs text-text-tertiary font-sans">
+            {t('字体', 'Font')}
+          </label>
+          <div className="flex gap-0.5 bg-surface-sunken rounded-lg p-0.5 w-fit">
+            {FONT_OPTIONS.map((font) => (
+              <button
+                key={font}
+                onClick={() => fireAndForget(setUiFont(font), 'set font')}
+                className={cn(
+                  'px-4 py-1.5 rounded-md text-sm font-sans font-medium transition-colors duration-200 cursor-pointer border-none',
+                  (settings.uiFont ?? 'default') === font
+                    ? 'bg-surface-base text-text-primary shadow-pill'
+                    : 'text-text-secondary hover:text-text-primary bg-transparent',
+                )}
+              >
+                {font === 'default' ? t('默认', 'Default') : t('霞鹜文楷', 'WenKai')}
+              </button>
             ))}
           </div>
         </fieldset>

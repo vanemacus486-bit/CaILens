@@ -28,7 +28,10 @@ export const ANALYSIS_SYSTEM_PROMPT = [
   '- observation: 数据陈述，克制客观，一段话',
   '- pattern: 观察到一个模式，不做价值判断，一句话',
   '- suggestion: 一条温和的微调建议，不超过两句话。只给一条，不多给。',
+  '- 当引用具体事件时，使用 [事件标题](event:事件ID) 格式。事件 ID 会在上下文中提供。',
 ].join('\n')
+
+/** @deprecated Use ANALYSIS_SYSTEM_PROMPT instead */
 
 /** @deprecated Use ANALYSIS_SYSTEM_PROMPT instead */
 export const BASE_SYSTEM_PROMPT = ANALYSIS_SYSTEM_PROMPT
@@ -48,6 +51,7 @@ export const CHAT_SYSTEM_PROMPT = [
   '- 用户闲聊时简短回应，不把话题硬拽回时间数据',
   '- 用户问数据时，先给关键数字，再给一句话解读',
   '- 用户问建议时，只给一条，不多给',
+  '- 当引用具体事件时，使用 [事件标题](event:事件ID) 格式创建可点击链接。事件 ID 会由系统在上下文中提供。',
 ].join('\n')
 
 export function buildProfilePrompt(profile: AiUserProfile): string {
@@ -81,6 +85,7 @@ export function buildSkillsPrompt(skills: AiSkill[]): string {
 export function buildContextPrompt(
   mentions: ChatMention[],
   calendarContext: CalendarContextItem[],
+  eventsMap?: Record<string, string>,
 ): string {
   const parts: string[] = []
 
@@ -116,6 +121,15 @@ export function buildContextPrompt(
       } else if (ctx.type === 'range' && ctx.startTime && ctx.endTime) {
         parts.push(`- 选中时间段从 ${new Date(ctx.startTime).toLocaleString()} 到 ${new Date(ctx.endTime).toLocaleString()}`)
       }
+    }
+    parts.push('')
+  }
+
+  if (eventsMap && Object.keys(eventsMap).length > 0) {
+    parts.push('## 事件引用 / Event References')
+    parts.push('When referring to these events, use the provided IDs:')
+    for (const [title, id] of Object.entries(eventsMap)) {
+      parts.push(`- "${title}" → event:${id}`)
     }
     parts.push('')
   }

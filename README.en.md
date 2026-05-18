@@ -10,7 +10,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/166d37d7-0634-47d9-aacb-768302dd767b" />
 
-> **Status:** v3.13.0 — Minute-axis drag system: continuous coordinate axis, cross-day ghost overlay, event segments. 440 tests.
+> **Status:** v3.16.0 — Encrypted export, AI event backlinks, conversation summaries, LXGW WenKai font — batch paste, encrypted .cailens backup, clickable AI event links, editable summaries, second font option, keyboard accessibility. 945 tests.
 
 ## Downloads
 
@@ -32,7 +32,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
 - **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 440 tests, one-way dependency layers. The codebase should age well.
+- **Code quality over feature quantity.** Strict TypeScript, 945 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
@@ -118,6 +118,7 @@ Users can rename categories in both Chinese and English. Each category has a con
 - **Language toggle** — Chinese / English, using a segmented control.
 - **Theme toggle** — Light / Dark, using a segmented control, with automatic system preference detection on first visit.
 - **Accent colour** — rust / ocean / forest / plum. Switching shifts surfaces, borders, and brand colour as a cohesive whole — not just a button tint.
+- **Font selector** — Default (Inter) or LXGW WenKai (霞鹜文楷), a calligraphic Chinese font.
 - **Per-category budget** — number input for weekly hour targets.
 - **Collapsible keywords** — show preview with count badge; expand to full keyword folder editor.
 - **Data export** — one-click CSV and JSON download.
@@ -179,13 +180,17 @@ Right-side slide-in panel that turns your time data into a conversation. Multi-p
 - **Context-sensitive buttons** — Bottom action buttons adapt to conversation state: starter prompts when empty → deep-dive questions after analysis → analysis requests after general chat.
 - **History by week** — The clock icon opens conversations grouped by week in collapsible sections, with date ranges, message counts, search filtering, and auto-extracted topic summaries.
 - **Pin analysis to diary** — The pin button attaches important AI insights to a specific day, appearing as reviewable cards in the Day View. Unpin anytime.
+- **Event backlinks** — AI-generated event references become clickable `[title](event:ID)` links, navigating to the calendar event on click.
+- **Conversation summaries** — Auto-generated from the first user message; editable inline alongside the conversation title.
 - **Feedback system** — Every AI reply has 👍 / 👎 / 🔄 buttons. Ratings stored locally — user control and future prompt optimization data combined.
 
 ### Data
 
 - **Persistent local storage** — IndexedDB via Dexie v4. Schema at version 9. Migrations run automatically.
 - **Streak tracking** — `computeStreak()` counts consecutive weeks with at least one logged event.
-- **Data export** — CSV and JSON, available in Settings.
+- **Data export** — CSV, JSON, and **encrypted .cailens backup** (gzip + age-encryption passphrase).
+- **Data import** — Restore events from CSV or JSON files.
+- **Encrypted backup** — .cailens format: gzip compressed + passphrase encrypted (age-encryption), full import/export round-trip.
 
 ---
 
@@ -208,7 +213,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (440 tests)
+npm run test         # run unit tests once (945 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -226,10 +231,10 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 440 tests across 26 test files |
+| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 945 tests across 56 test files |
 | AI | react-markdown + remark-gfm | Markdown rendering + inline data visualization |
 | AI SDK | native fetch + SSE streaming | DeepSeek / OpenAI / Claude / custom providers |
-| Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC | Fontsource, locally hosted |
+| Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC, **LXGW WenKai** | Fontsource, locally hosted |
 | Icons | lucide-react | |
 
 ---

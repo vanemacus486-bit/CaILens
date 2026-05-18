@@ -198,7 +198,14 @@ export const useAiChatStore = create<AiChatState>()((set, get) => ({
       weekStart,
       weekStart + 6 * 86400000,
     )
-    const contextPrompt = buildContextPrompt(mentions, calendarContext)
+    // Collect event references from calendar context for AI link generation
+    const eventsMap: Record<string, string> = {}
+    for (const ctx of calendarContext) {
+      if (ctx.type === 'event' && ctx.eventId && ctx.eventTitle) {
+        eventsMap[ctx.eventTitle] = ctx.eventId
+      }
+    }
+    const contextPrompt = buildContextPrompt(mentions, calendarContext, eventsMap)
     const enrichedUserContent = contextPrompt
       ? `${content}\n\n${contextPrompt}`
       : content

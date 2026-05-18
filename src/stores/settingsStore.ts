@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { getSettingsRepo } from '@/data/getRepositories'
-import type { AppSettings, AppLanguage, AppTheme } from '@/domain/settings'
+import type { AppSettings, AppLanguage, AppTheme, UiFont } from '@/domain/settings'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import type { AccentPreset } from '@/domain/themes'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
@@ -9,6 +9,7 @@ import type { AiProvider, AiUserProfile, AiSkill } from '@/domain/aiChat'
 
 const THEME_KEY  = 'cailens-theme'
 const ACCENT_KEY = 'cailens-accent'
+const FONT_KEY   = 'cailens-font'
 
 function applyTheme(theme: AppTheme) {
   if (theme === 'dark') {
@@ -20,6 +21,10 @@ function applyTheme(theme: AppTheme) {
 
 function applyAccent(accent: AccentPreset) {
   document.documentElement.setAttribute('data-accent', accent)
+}
+
+function applyFont(font: UiFont) {
+  document.documentElement.setAttribute('data-font', font)
 }
 
 interface AppSettingsState {
@@ -42,6 +47,7 @@ interface AppSettingsState {
   setAiUseProfile: (use: boolean) => Promise<void>
   setAiCustomSystemPrompt: (prompt?: string) => Promise<void>
   setAiSkills: (skills: AiSkill[]) => Promise<void>
+  setUiFont: (font: UiFont) => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
@@ -78,7 +84,17 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     localStorage.setItem(ACCENT_KEY, accent)
     applyAccent(accent)
 
-    set({ settings: { ...settings, theme, accentColor: accent }, isLoaded: true })
+    // Font — reconcile localStorage with DB
+    const storedFont = localStorage.getItem(FONT_KEY) as UiFont | null
+    if (!settings.uiFont || (storedFont && settings.uiFont !== storedFont)) {
+      const font = storedFont ?? 'default'
+      settings = await getSettingsRepo().update({ uiFont: font })
+    }
+    const font = settings.uiFont ?? 'default'
+    localStorage.setItem(FONT_KEY, font)
+    applyFont(font)
+
+    set({ settings: { ...settings, theme, accentColor: accent, uiFont: font }, isLoaded: true })
   },
 
   setLanguage: async (lang) => {
@@ -171,6 +187,13 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
 
   setAiSkills: async (skills) => {
     const settings = await getSettingsRepo().update({ aiSkills: skills })
+    set({ settings })
+  },
+
+  setUiFont: async (font) => {
+    const settings = await getSettingsRepo().update({ uiFont: font })
+    localStorage.setItem(FONT_KEY, font)
+    applyFont(font)
     set({ settings })
   },
 }))

@@ -5,12 +5,14 @@ import type { AiProvider, AiUserProfile, AiSkill } from './aiChat'
 
 export type AppLanguage = 'zh' | 'en'
 export type AppTheme = 'light' | 'dark'
+export type UiFont = 'default' | 'wenkai'
 
 export interface AppSettings {
   id: 'default'   // singleton — Dexie primary key is always 'default'
   language: AppLanguage
   theme?: AppTheme
   accentColor?: AccentPreset
+  uiFont?: UiFont
   shortcuts?: Partial<Record<ShortcutAction, ShortcutString>>
   aiApiKey?: string
   aiModel?: AiModel

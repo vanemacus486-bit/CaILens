@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Upload } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { ExportSection } from '@/components/stats/ExportSection'
+import { ImportSection } from '@/components/stats/ImportSection'
 import { ImportIcsDialog } from '@/features/import-ics/ImportIcsDialog'
 
 export function SettingsData() {
@@ -27,6 +28,7 @@ export function SettingsData() {
         <ImportIcsDialog open={importOpen} onOpenChange={setImportOpen} />
       </div>
 
+      <ImportSection language={language} />
       <ExportSection language={language} />
     </div>
   )

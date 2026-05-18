@@ -7,7 +7,8 @@
       "Bash(curl -s http://localhost:4173)",
       "Bash(git restore *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(npm install *)"
     ]
   }
 }

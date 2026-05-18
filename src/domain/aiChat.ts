@@ -16,6 +16,7 @@ export interface AiConversation {
   id: string
   weekStart: number
   title: string
+  summary?: string
   createdAt: number
   updatedAt: number
 }

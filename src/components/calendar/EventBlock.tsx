@@ -121,6 +121,14 @@ export const EventBlock = React.memo(function EventBlock({
               e.preventDefault()
               onClick(event, e.currentTarget as HTMLElement)
             }
+            if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
+              e.preventDefault()
+              e.currentTarget.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 0, clientY: 0 }))
+            }
+            if (e.key === 'Delete') {
+              e.preventDefault()
+              onDelete(event.id)
+            }
           }}
           className={cn(
             'relative px-2 py-1 overflow-hidden select-none rounded-md',

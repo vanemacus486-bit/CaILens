@@ -4,7 +4,9 @@ import { getISOWeek } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { ArrowLeft, BarChart3, Loader2, AlertCircle, Settings, Sparkles, X, Pin } from 'lucide-react'
-import { formatWeekday as fmtWday } from '@/domain/time'
+import { formatWeekday as fmtWday, isToday } from '@/domain/time'
+import { computeRecordQuality } from '@/domain/quality'
+import { getEventRepo } from '@/data/getRepositories'
 import type { CalendarEvent } from '@/domain/event'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
@@ -13,6 +15,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { useAiChatStore } from '@/stores/aiChatStore'
 import type { PinnedAnalysis } from '@/domain/aiChat'
 import { useDayFromURL, getPrevDay, getNextDay } from './hooks/useDayFromURL'
+import { BatchPasteZone } from './BatchPasteZone'
 
 function fmtTimeHM(ts: number): string {
   const d = new Date(ts)
@@ -84,6 +87,7 @@ export function DayView() {
   // ── Pinned Insights ─────────────────────────────────────
 
   const [pinnedInsights, setPinnedInsights] = useState<PinnedAnalysis[]>([])
+  const [yesterdayCoverage, setYesterdayCoverage] = useState<number | null>(null)
   const getPinsForDate = useAiChatStore((s) => s.getPinsForDate)
 
   useEffect(() => {
@@ -92,6 +96,25 @@ export function DayView() {
       'load pinned insights',
     )
   }, [dayStartMs, getPinsForDate])
+
+  // ── Yesterday catch-up reminder ────────────────────────────
+
+  useEffect(() => {
+    if (!isToday(dayStartMs)) {
+      setYesterdayCoverage(null)
+      return
+    }
+    const yesterdayStart = dayStartMs - 86_400_000
+    fireAndForget(
+      getEventRepo()
+        .getByTimeRange(yesterdayStart, dayStartMs)
+        .then((events) => {
+          const q = computeRecordQuality(events, yesterdayStart, dayStartMs)
+          setYesterdayCoverage(q.coverage)
+        }),
+      'yesterday coverage',
+    )
+  }, [dayStartMs])
 
   const handleUnpin = async (pinId: string) => {
     setPinnedInsights((prev) => prev.filter((p) => p.id !== pinId))
@@ -174,6 +197,19 @@ export function DayView() {
         </div>
       </header>
 
+      {/* Yesterday catch-up reminder */}
+      {yesterdayCoverage !== null && yesterdayCoverage < 0.5 && (
+        <div className="px-4 md:px-12 pt-4 pb-0 max-w-[680px]">
+          <div className="flex items-center gap-2">
+            <span className="w-1 h-1 rounded-full bg-text-tertiary/30 flex-shrink-0" />
+            <span className="font-serif text-body-sm text-text-tertiary italic">
+              {t('昨日记录不足，待补录', 'Low coverage yesterday — catch-up needed')}
+            </span>
+          </div>
+          <div className="h-px bg-border-subtle mt-3" />
+        </div>
+      )}
+
       {/* Pinned Insights */}
       {pinnedInsights.length > 0 && (
         <div className="px-4 md:px-12 pt-4 pb-2 max-w-[680px]">
@@ -212,6 +248,8 @@ export function DayView() {
           <div className="h-px bg-border-subtle my-4" />
         </div>
       )}
+
+      <BatchPasteZone dayStartMs={dayStartMs} />
 
       {/* Diary entries */}
       {isLoading ? (

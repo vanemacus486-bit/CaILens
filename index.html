@@ -15,6 +15,10 @@
         if (accent) {
           document.documentElement.setAttribute('data-accent', accent);
         }
+        var font = localStorage.getItem('cailens-font');
+        if (font) {
+          document.documentElement.setAttribute('data-font', font);
+        }
       })();
     </script>
     <meta charset="UTF-8" />

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import type { Granularity } from '@/hooks/useStatsAggregation'
 
-type ViewMode = 'trend' | 'heatmap'
+type ViewMode = 'trend' | 'heatmap' | 'sleep' | 'gaps' | 'type'
 
 const PERIODS: { key: Granularity; label: string; labelZh: string }[] = [
   { key: 'week', label: 'Week', labelZh: '周' },
@@ -16,6 +16,9 @@ const PERIODS: { key: Granularity; label: string; labelZh: string }[] = [
 const VIEWS: { key: ViewMode; label: string; labelZh: string }[] = [
   { key: 'trend', label: 'Trend', labelZh: '趋势' },
   { key: 'heatmap', label: 'Heatmap', labelZh: '热力图' },
+  { key: 'sleep', label: 'Sleep', labelZh: '睡眠' },
+  { key: 'gaps', label: 'Gaps', labelZh: '缺口' },
+  { key: 'type', label: 'I/II', labelZh: 'I/II型' },
 ]
 
 interface EasternStatsShellProps {

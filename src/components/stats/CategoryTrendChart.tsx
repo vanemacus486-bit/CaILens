@@ -106,6 +106,12 @@ export function CategoryTrendChart({
     if (!editingGroupId) return
     const handler = (e: MouseEvent) => {
       if (editRef.current && !editRef.current.contains(e.target as Node)) {
+        // Don't close if clicking the pencil toggle for the currently-editing group —
+        // the onClick handler manages toggle, and closing here would race with it:
+        // native mousedown fires before React synthetic events, so the onClick
+        // would see a just-cleared editingGroupId and reopen the editor.
+        const toggleBtn = (e.target as Element).closest('[data-edit-group]')
+        if (toggleBtn && toggleBtn.getAttribute('data-edit-group') === editingGroupId) return
         setEditingGroupId(null)
       }
     }
@@ -246,10 +252,6 @@ export function CategoryTrendChart({
           )
         })}
 
-        {/* Separator */}
-        <span className="w-px h-4 bg-border-subtle mx-1 flex-shrink-0" />
-        <span className="text-[9px] text-event-accent-fill font-semibold leading-none flex-shrink-0">新</span>
-
         {/* Merged group chips */}
         {groups.map((group, idx) => (
           <div key={group.id} className="relative flex-shrink-0 flex items-center gap-0.5">
@@ -270,6 +272,7 @@ export function CategoryTrendChart({
               {language === 'zh' ? group.nameZh : group.nameEn}
             </button>
             <button
+              data-edit-group={group.id}
               onClick={() => setEditingGroupId(editingGroupId === group.id ? null : group.id)}
               className={cn(
                 'px-1 py-1 rounded-r border border-l-0 text-xs transition-colors duration-200 cursor-pointer flex-shrink-0',

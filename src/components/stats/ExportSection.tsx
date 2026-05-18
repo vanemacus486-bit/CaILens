@@ -1,5 +1,8 @@
 import { useState } from 'react'
+import { Lock, Calendar } from 'lucide-react'
 import { getEventRepo } from '@/data/getRepositories'
+import { generateIcs, downloadIcs } from '@/lib/icsExport'
+import { EncryptedExportDialog } from './EncryptedExportDialog'
 
 interface ExportSectionProps {
   language: 'zh' | 'en'
@@ -7,13 +10,14 @@ interface ExportSectionProps {
 
 export function ExportSection({ language }: ExportSectionProps) {
   const [expClk, setExpClk] = useState<string | null>(null)
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
+  const [encDialogOpen, setEncDialogOpen] = useState(false)
+  const [icsBusy, setIcsBusy] = useState(false)
+  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   async function doExport(format: 'csv' | 'json') {
     setExpClk(format)
     setTimeout(() => setExpClk(null), 1400)
 
-    // Load all events from DB
     const now = Date.now()
     const events = await getEventRepo().getByTimeRange(0, now)
     events.sort((a, b) => a.startTime - b.startTime)
@@ -27,7 +31,6 @@ export function ExportSection({ language }: ExportSectionProps) {
       mime = 'application/json'
       ext = 'json'
     } else {
-      // CSV
       const header = 'Date,Start,End,Title,Category,Description'
       const rows = events.map((e) => {
         const date  = new Date(e.startTime).toISOString().slice(0, 10)
@@ -51,6 +54,19 @@ export function ExportSection({ language }: ExportSectionProps) {
     URL.revokeObjectURL(url)
   }
 
+  async function doExportIcs() {
+    setIcsBusy(true)
+    try {
+      const now = Date.now()
+      const events = await getEventRepo().getByTimeRange(0, now)
+      events.sort((a, b) => a.startTime - b.startTime)
+      const ics = generateIcs(events)
+      downloadIcs(ics)
+    } finally {
+      setIcsBusy(false)
+    }
+  }
+
   return (
     <div className="bg-surface-raised border border-border-subtle p-6">
       <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
@@ -70,10 +86,32 @@ export function ExportSection({ language }: ExportSectionProps) {
             {expClk === fmt.toLowerCase() ? t('已准备 ✓', 'Prepared ✓') : t(`导出为 ${fmt}`, `Export as ${fmt}`)}
           </button>
         ))}
+
+        {/* ICS export */}
+        <button
+          onClick={doExportIcs}
+          disabled={icsBusy}
+          className="inline-flex items-center gap-1.5 bg-surface-base border border-border-default px-[18px] py-2 text-xs font-sans font-medium text-text-secondary cursor-pointer rounded-sm transition-colors duration-200 hover:bg-surface-sunken hover:border-border-default hover:text-text-primary disabled:opacity-50"
+        >
+          <Calendar size={12} strokeWidth={1.75} />
+          {icsBusy ? t('生成中…', 'Generating…') : t('导出为 ICS', 'Export as ICS')}
+        </button>
+
+        {/* .cailens encrypted export */}
+        <button
+          onClick={() => setEncDialogOpen(true)}
+          className="inline-flex items-center gap-1.5 bg-surface-base border border-border-default px-[18px] py-2 text-xs font-sans font-medium text-text-secondary cursor-pointer rounded-sm transition-colors duration-200 hover:bg-surface-sunken hover:border-border-default hover:text-text-primary"
+        >
+          <Lock size={12} strokeWidth={1.75} />
+          {t('加密导出 (.cailens)', 'Encrypted (.cailens)')}
+        </button>
+
         <span className="text-body-xs text-text-tertiary italic">
           {t('所有数据存储在本地。不会离开你的设备。', 'All data lives locally. Nothing leaves your device.')}
         </span>
       </div>
+
+      <EncryptedExportDialog open={encDialogOpen} onOpenChange={setEncDialogOpen} language={language} />
     </div>
   )
 }

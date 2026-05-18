@@ -12,10 +12,13 @@ import type { Granularity } from '@/hooks/useStatsAggregation'
 import { useStatsAggregation } from '@/hooks/useStatsAggregation'
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
+import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
+import { GapDistributionChart } from '@/components/stats/GapDistributionChart'
+import { TypeTrendChart } from '@/components/stats/TypeTrendChart'
 import { EasternStatsShell } from '@/components/stats/EasternStatsShell'
 
 type Period = Exclude<Granularity, 'all'>
-type ViewMode = 'trend' | 'heatmap'
+type ViewMode = 'trend' | 'heatmap' | 'sleep' | 'gaps' | 'type'
 
 function getAnchor(period: Granularity, date: Date): Date {
   switch (period) {
@@ -104,6 +107,10 @@ export function StatsPage() {
   }
 
   const isHeatmap = view === 'heatmap'
+  const isSleep = view === 'sleep'
+  const isGaps = view === 'gaps'
+  const isType = view === 'type'
+  const noNav = isHeatmap || isSleep || isGaps || isType
 
   return (
     <EasternStatsShell
@@ -111,10 +118,10 @@ export function StatsPage() {
       currentView={view}
       onViewChange={setView}
       period={isHeatmap ? 'year' : period}
-      onPeriodChange={isHeatmap ? undefined : setPeriod}
-      onNavigate={isHeatmap ? undefined : navigate}
-      onGoToday={isHeatmap ? undefined : goToday}
-      showNavigation={!isHeatmap}
+      onPeriodChange={noNav ? undefined : setPeriod}
+      onNavigate={noNav ? undefined : navigate}
+      onGoToday={noNav ? undefined : goToday}
+      showNavigation={!noNav}
     >
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px] flex-1">
@@ -149,6 +156,26 @@ export function StatsPage() {
               rangeEvents={rangeEvents}
               categories={categories}
               language={language}
+            />
+          )}
+          {view === 'sleep' && (
+            <SleepScatterChart
+              rangeEvents={rangeEvents}
+              language={language}
+            />
+          )}
+          {view === 'gaps' && (
+            <GapDistributionChart
+              rangeEvents={rangeEvents}
+              language={language}
+            />
+          )}
+          {view === 'type' && (
+            <TypeTrendChart
+              history={history}
+              periodType={period}
+              language={language}
+              rangeEvents={rangeEvents}
             />
           )}
         </>
