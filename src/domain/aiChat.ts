@@ -68,6 +68,7 @@ export interface CalendarContextItem {
   type: 'event' | 'range'
   eventId?: string
   eventTitle?: string
+  eventDescription?: string
   startTime?: number
   endTime?: number
   categoryId?: EventColor

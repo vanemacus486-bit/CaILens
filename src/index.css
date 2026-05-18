@@ -133,18 +133,18 @@
   --event-sage-bg:     #243024;
   --event-sage-text:   #95b890;
   --event-sage-fill:   #95b890;
-  --event-sand-bg:     #322a1c;
-  --event-sand-text:   #c4a878;
-  --event-sand-fill:   #c4a878;
-  --event-sky-bg:      #2a2a2a;
-  --event-sky-text:    #a0a0a0;
-  --event-sky-fill:    #a0a0a0;
+  --event-sand-bg:     #352a18;
+  --event-sand-text:   #d4b878;
+  --event-sand-fill:   #d4b878;
+  --event-sky-bg:      #25282c;
+  --event-sky-text:    #a8aeb4;
+  --event-sky-fill:    #a8aeb4;
   --event-rose-bg:     #322028;
   --event-rose-text:   #c08898;
   --event-rose-fill:   #c08898;
-  --event-stone-bg:    #232323;
-  --event-stone-text:  #8a8a8a;
-  --event-stone-fill:  #787878;
+  --event-stone-bg:    #222222;
+  --event-stone-text:  #969696;
+  --event-stone-fill:  #909090;
 
   --bg-cell-empty: #2a2a2a;
 
@@ -189,6 +189,36 @@
   --shadow-dialog:     0 8px 32px rgba(0,0,0,0.40);
 
   --transition-default: 200ms ease-out;
+}
+
+/* ── Current-time breathing animation ──────────────────── */
+@keyframes time-line-breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.88; }
+}
+
+/* ── Settings tab fade-in ──────────────────────────────── */
+@keyframes settings-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-settings-fade-in {
+  animation: settings-fade-in 120ms ease-out;
+}
+
+/* ── Unified focus ring ────────────────────────────────── */
+button:focus-visible:not(.focus-ring-custom),
+a:focus-visible:not(.focus-ring-custom),
+input:focus-visible:not(.focus-ring-custom),
+textarea:focus-visible:not(.focus-ring-custom),
+select:focus-visible:not(.focus-ring-custom),
+summary:focus-visible:not(.focus-ring-custom),
+[role="button"]:focus-visible:not(.focus-ring-custom),
+[tabindex]:focus-visible:not(.focus-ring-custom) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 1px var(--accent);
+  border-radius: 3px;
 }
 
 /* ── Accent themes ──────────────────────────────────────── */
@@ -317,15 +347,8 @@ body.resizing-event * {
 }
 
 /* ── Base ───────────────────────────────────────────────── */
-@layer base {
-  button:focus-visible,
-  a:focus-visible,
-  [role='button']:focus-visible,
-  summary:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
+/* Focus ring is handled by the unified non-layered block below.
+   Keep only box-sizing reset here. */
 
 *, *::before, *::after {
   box-sizing: border-box;

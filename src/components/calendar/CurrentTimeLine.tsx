@@ -2,8 +2,8 @@ import { getDayStart } from '@/domain/time'
 import { useCurrentTime } from '@/lib/hooks/useCurrentTime'
 
 /**
- * Self-contained: calls useCurrentTime() internally so only this component
- * re-renders every minute. DayColumn and everything above it stay unaffected.
+ * Refined current-time indicator: 1px solid line + 3px dot with breathing animation.
+ * The only animated element in the product — it represents "now."
  */
 export function CurrentTimeLine() {
   const now      = useCurrentTime()
@@ -16,7 +16,16 @@ export function CurrentTimeLine() {
       className="absolute left-0 right-0 z-20 pointer-events-none"
       style={{ top: `${topPct}%` }}
     >
-      <div className="absolute -left-1 -translate-y-1/2 w-2 h-2 rounded-full bg-time-line" />
+      {/* 3px dot with breathing animation */}
+      <span
+        className="absolute -left-[5px] -translate-y-1/2 block rounded-full bg-time-line"
+        style={{
+          width: '3px',
+          height: '3px',
+          animation: 'time-line-breathe 2s ease-in-out infinite',
+        }}
+      />
+      {/* 1px solid line */}
       <div className="border-t border-time-line" />
     </div>
   )

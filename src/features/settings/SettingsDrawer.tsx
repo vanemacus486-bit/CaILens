@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Drawer } from '@/components/ui/Drawer'
 import { useUIStore, type SettingsTab } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
@@ -37,6 +38,11 @@ export function SettingsDrawer() {
   const setActiveSettingsTab = useUIStore((s) => s.setActiveSettingsTab)
   const language = useAppSettingsStore((s) => s.settings.language)
 
+  // Tab title
+  useEffect(() => {
+    document.title = language === 'zh' ? 'CaILens · 设置' : 'CaILens · Settings'
+  }, [language])
+
   const ActiveTab = TAB_CONTENT[activeSettingsTab]
 
   return (
@@ -69,7 +75,9 @@ export function SettingsDrawer() {
 
       {/* Tab content */}
       <div className="px-5 py-5 flex-1 overflow-y-auto">
-        <ActiveTab />
+        <div key={activeSettingsTab} className="animate-settings-fade-in">
+          <ActiveTab />
+        </div>
       </div>
     </Drawer>
   )

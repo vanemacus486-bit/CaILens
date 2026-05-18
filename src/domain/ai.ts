@@ -117,7 +117,11 @@ export function buildContextPrompt(
     parts.push('## 日历选中上下文')
     for (const ctx of calendarContext) {
       if (ctx.type === 'event' && ctx.eventTitle) {
-        parts.push(`- 选中事件: "${ctx.eventTitle}"`)
+        let line = `- 选中事件: "${ctx.eventTitle}"`
+        if (ctx.eventDescription) {
+          line += `\n  描述: ${ctx.eventDescription}`
+        }
+        parts.push(line)
       } else if (ctx.type === 'range' && ctx.startTime && ctx.endTime) {
         parts.push(`- 选中时间段从 ${new Date(ctx.startTime).toLocaleString()} 到 ${new Date(ctx.endTime).toLocaleString()}`)
       }

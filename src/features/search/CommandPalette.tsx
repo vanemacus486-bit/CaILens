@@ -30,6 +30,22 @@ function highlightMatch(text: string, query: string): React.ReactNode {
   )
 }
 
+/** Extract a snippet of ±contextLen chars around the first match of query in text. */
+function descriptionSnippet(text: string, query: string, contextLen = 20): string | null {
+  if (!query.trim() || !text) return null
+  const lower = text.toLowerCase()
+  const qLower = query.toLowerCase()
+  const idx = lower.indexOf(qLower)
+  if (idx === -1) return null
+  const start = Math.max(0, idx - contextLen)
+  const end = Math.min(text.length, idx + query.length + contextLen)
+  let snippet = ''
+  if (start > 0) snippet += '…'
+  snippet += text.slice(start, end)
+  if (end < text.length) snippet += '…'
+  return snippet
+}
+
 interface Command {
   id: string
   label: string
@@ -268,11 +284,6 @@ export function CommandPalette({ onQuickLog }: CommandPaletteProps) {
           </>
         )}
 
-        {/* Divider between sections when both exist */}
-        {showCommands && results.length > 0 && (
-          <div className="h-px bg-border-subtle flex-shrink-0" />
-        )}
-
         {/* Event search results */}
         {results.length > 0 && (
           <div role="listbox" aria-label={t('搜索结果', 'Search results')} className="max-h-80 overflow-y-auto">
@@ -294,6 +305,21 @@ export function CommandPalette({ onQuickLog }: CommandPaletteProps) {
                   <p className="text-sm font-sans text-text-primary truncate">
                     {highlightMatch(event.title || t('(无标题)', '(Untitled)'), query)}
                   </p>
+                  {/* Description hit snippet */}
+                  {event.description && (() => {
+                    const snippet = descriptionSnippet(event.description, query)
+                    if (!snippet) return null
+                    const titleHit = event.title.toLowerCase().includes(query.toLowerCase())
+                    return (
+                      <p className="text-xs font-sans text-text-tertiary mt-0.5 line-clamp-1">
+                        {titleHit ? (
+                          <span className="italic">{snippet}</span>
+                        ) : (
+                          highlightMatch(snippet, query)
+                        )}
+                      </p>
+                    )
+                  })()}
                   <p className="text-xs font-mono text-text-secondary mt-0.5">
                     {formatMonthDay(new Date(event.startTime))}{' '}
                     {formatWeekday(new Date(event.startTime), 'short')}{' '}

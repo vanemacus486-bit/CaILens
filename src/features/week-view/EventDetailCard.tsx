@@ -81,10 +81,10 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
                 <span className="text-xs text-text-tertiary capitalize font-sans">{event.color}</span>
               </div>
 
-              {/* Notes */}
+              {/* Notes — plain-text truncated to avoid line-clamp issues with block HTML */}
               {event.description && (
                 <p className="text-sm text-text-secondary line-clamp-2 font-sans leading-snug">
-                  {event.description}
+                  {event.description.slice(0, 120)}
                 </p>
               )}
 
@@ -115,6 +115,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
                         type: 'event',
                         eventId: event.id,
                         eventTitle: event.title || undefined,
+                        eventDescription: event.description || undefined,
                         startTime: event.startTime,
                         endTime: event.endTime,
                         categoryId: event.color,

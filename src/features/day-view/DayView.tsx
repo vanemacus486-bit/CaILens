@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
-import { cn } from '@/lib/utils'
+import { renderDescription } from '@/domain/descriptionMd'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { ArrowLeft, BarChart3, Loader2, AlertCircle, Settings, Sparkles, X, Pin } from 'lucide-react'
 import { formatWeekday as fmtWday, isToday } from '@/domain/time'
@@ -13,6 +13,7 @@ import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useAiChatStore } from '@/stores/aiChatStore'
+import { saveSession } from '@/hooks/useSessionRestore'
 import type { PinnedAnalysis } from '@/domain/aiChat'
 import { useDayFromURL, getPrevDay, getNextDay } from './hooks/useDayFromURL'
 import { BatchPasteZone } from './BatchPasteZone'
@@ -48,9 +49,23 @@ export function DayView() {
   const dayStartMs = dayStart.getTime()
   const dayEndMs   = dayStartMs + 86_400_000
 
+  // Session state: save day + view
+  useEffect(() => {
+    saveSession({ dayStart: dayStartMs, view: 'day' })
+  }, [dayStartMs])
+
   useEffect(() => {
     fireAndForget(loadRange(dayStartMs, dayEndMs), 'load day range')
   }, [dayStartMs, dayEndMs, loadRange])
+
+  // Tab title
+  useEffect(() => {
+    const wn = getISOWeek(dayStart)
+    const label = fmtFullDate(dayStart, language)
+    document.title = language === 'zh'
+      ? `CaILens · ${label} · 第 ${wn} 周`
+      : `CaILens · ${label} · W${wn}`
+  }, [dayStart, language])
 
   // ── Reverse Anchoring: opacity mute ────────────────────
 
@@ -138,6 +153,7 @@ export function DayView() {
       type: 'event',
       eventId: event.id,
       eventTitle: event.title || undefined,
+      eventDescription: event.description || undefined,
       startTime: event.startTime,
       endTime: event.endTime,
       categoryId: event.color,
@@ -321,44 +337,42 @@ function DiaryEntry({
 
   return (
     <div className="flex gap-0 mb-1 items-start group">
-      {/* Time */}
-      <div className="w-12 flex-shrink-0 pt-0.5">
-        <span className={cn('font-mono text-body-xs', isCrossDay ? 'text-text-secondary' : 'text-text-tertiary')}>{timeLabel}</span>
-        {startsBeforeDay && (
-          <div className="font-mono text-xs-alt text-text-tertiary opacity-60 mt-0.5">
-            ▲ {fmtTimeHM(event.startTime).split(':')[0]}h
-          </div>
-        )}
-      </div>
-
-      {/* Dot + line */}
-      <div className="w-6 flex-shrink-0 flex flex-col items-center pt-[5px]">
-        <span
-          className={cn(
-            'w-2 h-2 rounded-full flex-shrink-0 border-2',
-            isCrossDay && 'opacity-50',
-          )}
-          style={{
-            backgroundColor: catColor,
-            borderColor: 'var(--surface-raised)',
-            outline: `1px solid ${catColor}`,
-          }}
-        />
-      </div>
+      {/* Left color strip */}
+      <div
+        className="w-[3px] flex-shrink-0 self-stretch rounded-full mr-3 mt-0.5"
+        style={{ backgroundColor: catColor, opacity: isCrossDay ? 0.5 : 1 }}
+      />
 
       {/* Content */}
-      <div className="flex-1 pb-2">
-        <div className="font-serif text-base text-text-primary font-normal leading-[1.4]">
-          {event.title || <span className="opacity-50 italic">(Untitled)</span>}
+      <div className="flex-1 pb-3 min-w-0">
+        {/* Time label — secondary */}
+        <div className="font-mono text-[10px] text-text-tertiary mb-1 tracking-wide">
+          {timeLabel}
+          {startsBeforeDay && (
+            <span className="opacity-60 ml-1">▲ {fmtTimeHM(event.startTime).split(':')[0]}h</span>
+          )}
+          {endsAfterDay && (
+            <span className="opacity-60 ml-1">▼ {fmtTimeHM(event.endTime).split(':')[0]}h</span>
+          )}
         </div>
+
+        {/* Title — serif heading */}
+        <div className="font-serif text-[17px] text-text-primary font-semibold leading-snug">
+          {event.title || <span className="opacity-50 italic font-normal">{'(Untitled)'}</span>}
+        </div>
+
+        {/* Description — serif body paragraph, markdown rendered */}
         {event.description && (
-          <div className="font-serif text-body-sm text-text-secondary italic mt-1 leading-[1.6]">
-            {event.description}
-          </div>
+          <div
+            className="font-serif text-[14px] text-text-secondary leading-relaxed mt-1.5"
+            dangerouslySetInnerHTML={{ __html: renderDescription(event.description) }}
+          />
         )}
-        {endsAfterDay && (
-          <div className="font-mono text-xs-alt text-text-tertiary opacity-60 mt-1">
-            ▼ {fmtTimeHM(event.endTime).split(':')[0]}h
+
+        {/* Location — sans-serif footnote */}
+        {event.location && (
+          <div className="font-sans text-[11px] text-text-tertiary mt-1.5 tracking-wide">
+            {event.location}
           </div>
         )}
       </div>

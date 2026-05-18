@@ -68,6 +68,11 @@ export function StatsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Tab title
+  useEffect(() => {
+    document.title = language === 'zh' ? 'CaILens · 统计' : 'CaILens · Statistics'
+  }, [language])
+
   // Lookback buckets for history
   const lookback = period === 'all' ? 1 : period === 'week' ? 8 : period === 'month' ? 12 : period === 'quarter' ? 8 : 3
 

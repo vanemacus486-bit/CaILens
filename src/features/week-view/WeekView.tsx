@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams, useOutletContext } from 'react-router-dom'
+import { getISOWeek } from 'date-fns'
 import { addWeeks, getWeekDays, getWeekStart, isEventOnDay } from '@/domain/time'
 import type { CalendarEvent, EventColor, UpdateEventInput } from '@/domain/event'
 import { fireAndForget } from '@/lib/fireAndForget'
@@ -18,8 +19,10 @@ import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
 import { EventEditCard } from './EventEditCard'
 import { WeekEmptyState } from './WeekEmptyState'
+import { InlineEventCard } from './InlineEventCard'
 import { MobileDayView } from '@/features/day-view/MobileDayView'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { saveSession, useScrollSave, useScrollRestore } from '@/hooks/useSessionRestore'
 import { computeStandardWeek, mergeConsecutiveBuckets } from '@/domain/standardWeek'
 import type { MergedBlock } from '@/domain/standardWeek'
 import type { CardState, DraftPreview } from './types'
@@ -86,6 +89,15 @@ export function WeekView() {
   }, [effectiveEvents, days])
 
   useEffect(() => { fireAndForget(loadWeek(weekStart), 'load week') }, [weekStart, loadWeek])
+
+  // Tab title
+  useEffect(() => {
+    const year = weekStart.getFullYear()
+    const weekNum = getISOWeek(weekStart)
+    document.title = language === 'zh'
+      ? `CaILens · ${year} 第 ${weekNum} 周`
+      : `CaILens · ${year} W${weekNum}`
+  }, [weekStart, language])
 
   // Load all events when entering standard week mode.
   useEffect(() => {
@@ -196,7 +208,7 @@ export function WeekView() {
       title: '', startTime, endTime: startTime + 60 * 60_000,
       color: 'stone', categoryId: 'stone',
     }).then((newEvent) => {
-      setCardState({ mode: 'edit', event: newEvent, isNewlyCreated: true, anchorEl: slotEl })
+      setCardState({ mode: 'inline', event: newEvent, isNewlyCreated: true, anchorEl: slotEl })
     }).catch((err) => { console.error('[fire-and-forget] create event:', err) })
   }, [cardState.mode, createEvent, isStandardWeek])
 
@@ -207,12 +219,19 @@ export function WeekView() {
       type: 'event',
       eventId: event.id,
       eventTitle: event.title || undefined,
+      eventDescription: event.description || undefined,
       startTime: event.startTime,
       endTime: event.endTime,
       categoryId: event.color,
     }])
     setDraftPreview(null)
-    setCardState({ mode: 'detail', event, anchorEl: el })
+
+    // Toggle inline expand: if same event is already inline, close; otherwise open inline
+    if (cardStateRef.current.mode === 'inline' && cardStateRef.current.event.id === event.id) {
+      setCardState({ mode: 'none' })
+    } else {
+      setCardState({ mode: 'inline', event, anchorEl: el, isNewlyCreated: false })
+    }
   }, [])
 
   const handleEdit = useCallback(() => {
@@ -299,6 +318,24 @@ export function WeekView() {
     closeCard()
   }, [closeCard])
 
+  // ── Inline card handlers ─────────────────────────────────
+
+  const handleInlineSave = useCallback((updates: UpdateEventInput) => {
+    fireAndForget(updateEvent(updates), 'save event (inline)')
+  }, [updateEvent])
+
+  const handleInlineDelete = useCallback(() => {
+    const cs = cardStateRef.current
+    if (cs.mode === 'inline') {
+      fireAndForget(deleteEvent(cs.event.id), 'delete event (inline)')
+    }
+  }, [deleteEvent])
+
+  const handleInlineClose = useCallback(() => {
+    setCardState({ mode: 'none' })
+    setDraftPreview(null)
+  }, [])
+
   // Reverse Anchoring: opacity mute
   const hoveredAnchor = useUIStore((s) => s.hoveredAnchor)
 
@@ -329,6 +366,15 @@ export function WeekView() {
 
   const gridRef = useRef<HTMLDivElement>(null)
 
+  // Session state: save week + view, restore scroll
+  useEffect(() => {
+    saveSession({ weekStart: weekStart.getTime(), view: 'week' })
+  }, [weekStart])
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  useScrollSave(scrollContainerRef, 'week')
+  useScrollRestore(scrollContainerRef, 'week')
+
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
   return (
@@ -341,6 +387,17 @@ export function WeekView() {
           onNext={() => setWeekStart(addWeeks(weekStart, 1))}
           onToday={() => {
             if (!isStandardWeek) setWeekStart(getWeekStart(new Date(), 1))
+            // Scroll to current time at ~1/3 viewport
+            requestAnimationFrame(() => {
+              const grid = gridRef.current
+              if (!grid) return
+              const now = new Date()
+              const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes()
+              const totalMinutes = 24 * 60
+              const proportion = minutesSinceMidnight / totalMinutes
+              const targetScroll = proportion * grid.scrollHeight - grid.clientHeight / 3
+              grid.parentElement?.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' })
+            })
           }}
           onQuickLog={onQuickLog}
           mobileViewMode={isMobile ? mobileViewMode : undefined}
@@ -361,7 +418,7 @@ export function WeekView() {
         {isMobile && mobileViewMode === 'day' ? (
           <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
         ) : (
-        <div className="relative flex-1 min-h-0 max-md:overflow-x-auto">
+        <div ref={scrollContainerRef} className="relative flex-1 min-h-0 max-md:overflow-x-auto overflow-y-auto">
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-text-tertiary" />
@@ -441,6 +498,18 @@ export function WeekView() {
                           height: activeDragState.ghostStyle.height,
                           backgroundColor: 'var(--accent)',
                         }}
+                      />
+                    )}
+                    {cardState.mode === 'inline' && gridRef.current && (
+                      <InlineEventCard
+                        event={cardState.event}
+                        isNewlyCreated={cardState.isNewlyCreated}
+                        anchorEl={cardState.anchorEl}
+                        containerEl={gridRef.current}
+                        onSave={handleInlineSave}
+                        onDelete={handleInlineDelete}
+                        onClose={handleInlineClose}
+                        onDraftChange={setDraftPreview}
                       />
                     )}
                   </div>

@@ -27,7 +27,7 @@ function Layout() {
   const theme = useAppSettingsStore((s) => s.settings.theme)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
   const setLanguage = useAppSettingsStore((s) => s.setLanguage)
-  const { open, setOpen, defaults, openDialog, handleSave } = useQuickLog()
+  const { open, setOpen, defaults, openDialog, handleSave, handleUpdate } = useQuickLog()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -126,6 +126,7 @@ function Layout() {
           defaultTimes={defaults.times}
           defaultColor={defaults.color}
           onSave={handleSave}
+          onUpdate={handleUpdate}
         />
       )}
       <SnackbarHost />

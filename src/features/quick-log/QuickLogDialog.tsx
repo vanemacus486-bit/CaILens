@@ -29,10 +29,11 @@ interface Props {
   defaultTimes: DefaultTimes
   defaultColor: EventColor
   onSave: (input: CreateEventInput) => Promise<string>
+  onUpdate?: (id: string, description: string, location: string) => Promise<void>
 }
 
 export function QuickLogDialog({
-  open, onOpenChange, defaultTimes, defaultColor, onSave,
+  open, onOpenChange, defaultTimes, defaultColor, onSave, onUpdate,
 }: Props) {
   const language = useAppSettingsStore((s) => s.settings.language)
   const t = useCallback((zh: string, en: string) => language === 'zh' ? zh : en, [language])
@@ -53,6 +54,7 @@ export function QuickLogDialog({
         defaultTimes={defaultTimes}
         defaultColor={defaultColor}
         onSave={onSave}
+        onUpdate={onUpdate}
         onClose={() => onOpenChange(false)}
         t={t}
         today={today}
@@ -62,11 +64,12 @@ export function QuickLogDialog({
 }
 
 function Form({
-  defaultTimes, defaultColor, onSave, onClose, t, today,
+  defaultTimes, defaultColor, onSave, onUpdate, onClose, t, today,
 }: {
   defaultTimes: DefaultTimes
   defaultColor: EventColor
   onSave: (input: CreateEventInput) => Promise<string>
+  onUpdate?: (id: string, description: string, location: string) => Promise<void>
   onClose: () => void
   t: (zh: string, en: string) => string
   today: Date
@@ -80,8 +83,10 @@ function Form({
   const [location, setLocation] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [eventId, setEventId] = useState<string | null>(null) // set after first save
 
   const titleRef = useRef<HTMLInputElement>(null)
+  const descRef = useRef<HTMLTextAreaElement>(null)
   useEffect(() => { requestAnimationFrame(() => titleRef.current?.focus()) }, [])
 
   const trimmed = title.trim()
@@ -95,7 +100,37 @@ function Form({
     : null
   const canSave = trimmed.length > 0 && timeErr === null && !saving
 
-  const doSave = useCallback(async () => {
+  // Phase 1: create event on title Enter, keep dialog open, focus desc
+  const doCreate = useCallback(async () => {
+    if (!canSave) return
+    setSaving(true); setError(null)
+    try {
+      const id = await onSave({
+        title: trimmed, startTime: strToTs(today, startStr),
+        endTime: strToTs(today, endStr), color, categoryId: color,
+        description: undefined, location: undefined,
+      })
+      setEventId(id)
+      // Open details and focus description
+      setDetailsOpen(true)
+      requestAnimationFrame(() => descRef.current?.focus())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('保存失败', 'Save failed'))
+    } finally { setSaving(false) }
+  }, [canSave, trimmed, startStr, endStr, color, today, onSave, t])
+
+  // Phase 2: update description and close
+  const doUpdateAndClose = useCallback(async () => {
+    if (eventId && onUpdate) {
+      try {
+        await onUpdate(eventId, desc.trim(), location.trim())
+      } catch { /* ignore */ }
+    }
+    onClose()
+  }, [eventId, onUpdate, desc, location, onClose])
+
+  // Full save (from button click) — create with all fields
+  const doFullSave = useCallback(async () => {
     if (!canSave) return
     setSaving(true); setError(null)
     try {
@@ -115,10 +150,30 @@ function Form({
       e.preventDefault()
       const idx = Number(e.key) - 1
       if (EVENT_COLORS[idx]) setColor(EVENT_COLORS[idx])
-    } else if (e.key === 'Enter' && !e.shiftKey && !(e.target instanceof HTMLTextAreaElement)) {
-      e.preventDefault(); doSave()
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.target instanceof HTMLTextAreaElement) {
+        // Enter in description: update and close
+        e.preventDefault()
+        doUpdateAndClose()
+      } else {
+        // Enter in title: create and focus description
+        e.preventDefault()
+        if (eventId) {
+          // Already created, just update and close
+          doUpdateAndClose()
+        } else {
+          doCreate()
+        }
+      }
+    } else if (e.key === 'Escape') {
+      // Esc always closes; if event was created, it stays
+      if (eventId) {
+        doUpdateAndClose()
+      } else {
+        onClose()
+      }
     }
-  }, [doSave])
+  }, [doCreate, doUpdateAndClose, eventId, onClose])
 
   return (
     <DialogContent className="max-w-md p-0 gap-0" onKeyDown={handleKeyDown}>
@@ -171,7 +226,7 @@ function Form({
       </button>
       <div style={{ maxHeight: detailsOpen ? '200px' : '0px', overflow: 'hidden', transition: 'max-height 200ms ease-out' }}>
         <div className="px-6 pb-4 flex flex-col gap-3">
-          <textarea value={desc} rows={2}
+          <textarea ref={descRef} value={desc} rows={2}
             onChange={(e) => setDesc(e.target.value)}
             placeholder={t('备注…', 'A quick note…')}
             className={cn(fieldCls, 'resize-none')} />
@@ -188,7 +243,7 @@ function Form({
           <button onClick={onClose} disabled={saving}
             className="font-sans text-sm font-normal text-text-secondary bg-transparent border border-border-subtle rounded-md px-4 py-2 cursor-pointer hover:bg-surface-sunken transition-colors duration-200 disabled:opacity-40"
           >{t('取消', 'Cancel')}</button>
-          <button onClick={doSave} disabled={!canSave}
+          <button onClick={doFullSave} disabled={!canSave}
             className="font-sans text-sm font-medium text-white bg-accent border-none rounded-md px-5 py-2 cursor-pointer hover:bg-accent-hover transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
           >{saving ? t('保存中…', 'Saving…') : t('记录', 'Log it')}</button>
         </div>
