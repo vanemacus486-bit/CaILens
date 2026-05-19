@@ -6,9 +6,13 @@
 
 CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一生》中柳比歇夫坚持了 56 年的"时间统计法"。它记录、分类、可视化你的时间去向——没有账号、没有服务器、没有数据上报。
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/12e6aea7-b9a9-4de5-ab24-9d2eda3fd8a6" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/e6debe21-3092-4b4f-ae99-df393c51fe5e" />
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/166d37d7-0634-47d9-aacb-768302dd767b" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d3560f3f-0b85-4c8e-9480-ceaff536583b" />
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f42e1891-8796-4f15-a7e5-f7535c69253c" />
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a0f18977-a958-492a-a787-9f1a8a39d5b2" />
 
 
 > **状态：** v3.20.0 统计页全面重构：趋势图新视觉 + 日/周/月切换 + 热力图双视图（年度/近365天）+ 睡眠图适配 + 统一导航逻辑。960 个测试。
