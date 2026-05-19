@@ -269,9 +269,9 @@ export function SleepScatterChart({ rangeEvents, language }: SleepRhythmChartPro
         {/* View mode pills */}
         <div className="sleep-pills">
           {([
-            { key: 'all' as ViewMode, label: t('全 部', 'All') },
-            { key: 'weekday' as ViewMode, label: t('工作日', 'Weekday') },
-            { key: 'weekend' as ViewMode, label: t('周 末', 'Weekend') },
+            { key: 'all' as ViewMode, label: t('全部', 'All') },
+            { key: 'weekday' as ViewMode, label: t('平日', 'Weekday') },
+            { key: 'weekend' as ViewMode, label: t('周末', 'Weekend') },
           ]).map((m) => (
             <button
               key={m.key}
@@ -291,7 +291,7 @@ export function SleepScatterChart({ rangeEvents, language }: SleepRhythmChartPro
 
       {/* ── Chart ───────────────────────────────────────── */}
       <div className="sleep-chart-container">
-        <ResponsiveContainer width="100%" height={380}>
+        <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={chartData} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
 
@@ -513,16 +513,7 @@ export function SleepScatterChart({ rangeEvents, language }: SleepRhythmChartPro
         </div>
       )}
 
-      {/* ── Footer ────────────────────────────────────────── */}
-      <div className="sleep-footer">
-        <div className="sleep-footer-rule"><span>——</span></div>
-        <p className="sleep-footer-quote">
-          {t(
-            '睡眠是灵魂的锚，在时间的河流中标记我们的节奏。',
-            'Sleep is the soul\'s anchor, marking our rhythm in the river of time.',
-          )}
-        </p>
-      </div>
+
     </div>
   )
 }
@@ -606,7 +597,7 @@ const SLEEP_CSS = `
 
 /* ── Chart container ─────────────────────── */
 .sleep-chart-container {
-  margin-top: 28px;
+  margin-top: 16px;
   position: relative;
 }
 
@@ -614,8 +605,8 @@ const SLEEP_CSS = `
 .sleep-legend {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-top: 12px;
+  gap: 16px;
+  margin-top: 8px;
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 12px;
   color: var(--heatmap-ink-3);
@@ -650,13 +641,13 @@ const SLEEP_CSS = `
   grid-template-columns: repeat(5, 1fr);
   border-top: 1px solid var(--heatmap-rule);
   border-bottom: 1px solid var(--heatmap-rule);
-  margin-top: 28px;
+  margin-top: 16px;
 }
 .sleep-stats-compact {
   grid-template-columns: repeat(2, 1fr);
 }
 .sleep-stat {
-  padding: 24px 20px;
+  padding: 16px 14px;
   border-right: 1px solid var(--heatmap-rule);
 }
 .sleep-stat:last-child {
@@ -696,8 +687,8 @@ const SLEEP_CSS = `
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-top: 20px;
-  padding: 12px 16px;
+  margin-top: 12px;
+  padding: 10px 14px;
   background: var(--color-bg-info);
   border-radius: 8px;
 }
@@ -712,26 +703,6 @@ const SLEEP_CSS = `
   color: var(--color-text-info);
   margin: 0;
   line-height: 1.5;
-}
-
-/* ── Footer ──────────────────────────────── */
-.sleep-footer {
-  text-align: center;
-  margin-top: 48px;
-}
-.sleep-footer-rule {
-  color: var(--heatmap-ink-3);
-  font-family: 'Noto Serif SC', serif;
-  font-size: 13px;
-  letter-spacing: 0.5em;
-  margin-bottom: 20px;
-}
-.sleep-footer-quote {
-  font-family: 'Noto Serif SC', serif;
-  font-style: italic;
-  font-size: 14px;
-  color: var(--heatmap-ink-2);
-  margin: 0;
 }
 
 /* ── Tooltip (Recharts override) ─────────── */
@@ -794,7 +765,7 @@ const SLEEP_CSS = `
     font-size: 22px;
   }
   .sleep-stat {
-    padding: 18px 14px;
+    padding: 14px 10px;
   }
 }
 `

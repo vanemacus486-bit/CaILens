@@ -11,8 +11,6 @@ import { MaturityPlaceholder } from './MaturityPlaceholder'
 const PERIOD_MULT: Record<string, number> = {
   week: 52,
   month: 12,
-  quarter: 4,
-  year: 1,
 }
 
 function fmtBucketLabel(bucket: Bucket, periodType: Granularity, language: 'zh' | 'en'): string {
@@ -25,10 +23,6 @@ function fmtBucketLabel(bucket: Bucket, periodType: Granularity, language: 'zh' 
   }
   if (periodType === 'month') {
     return language === 'zh' ? `${s.getFullYear()}年${s.getMonth() + 1}月` : `${s.getFullYear()}/${s.getMonth() + 1}`
-  }
-  if (periodType === 'quarter') {
-    const q = Math.floor(s.getMonth() / 3) + 1
-    return `${s.getFullYear()} Q${q}`
   }
   return `${s.getFullYear()}`
 }
@@ -93,7 +87,7 @@ export function TypeTrendChart({ history, periodType, language, rangeEvents }: T
   const maturity = useMemo(() => getDataMaturity(rangeEvents), [rangeEvents])
   if (maturity.maturityLevel === 'cold') {
     return (
-      <section className="pt-10 pb-6">
+      <section className="mt-12 pt-8" style={{ borderTop: '1px solid var(--heatmap-rule)' }}>
         <h3 className="font-serif text-lg text-text-primary font-semibold mb-3 tracking-tight">
           {t('Type I / II 长期演化', 'Type I / II Long-term Trend')}
         </h3>
@@ -118,7 +112,7 @@ export function TypeTrendChart({ history, periodType, language, rangeEvents }: T
 
   /* ---- benchmark reference ---- */
 
-  const benchmarkPeriod = periodType === 'all' ? null : PERIOD_MULT[periodType] ?? null
+  const benchmarkPeriod = PERIOD_MULT[periodType] ?? null
   const benchmarkVal = benchmarkPeriod ? +(LYUBISHCHEV_BENCHMARK / benchmarkPeriod).toFixed(1) : null
 
   /* ---- domain ---- */
@@ -146,7 +140,7 @@ export function TypeTrendChart({ history, periodType, language, rangeEvents }: T
   }
 
   return (
-    <section className="pt-10 pb-6">
+    <section className="mt-12 pt-8" style={{ borderTop: '1px solid var(--heatmap-rule)' }}>
       <h3 className="font-serif text-lg text-text-primary font-semibold mb-1 tracking-tight">
         {t('Type I / II 长期演化', 'Type I / II Long-term Trend')}
       </h3>
@@ -154,7 +148,7 @@ export function TypeTrendChart({ history, periodType, language, rangeEvents }: T
         {t('Type I（主要矛盾 + 个人提升）与 Type II 的演化趋势', 'Type I (Core Focus + Personal Growth) vs Type II over time')}
       </p>
 
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={320}>
         <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
 

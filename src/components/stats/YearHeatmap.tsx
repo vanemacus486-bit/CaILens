@@ -44,16 +44,14 @@ interface TooltipData {
 
 // ── Pure functions ───────────────────────────────────────────
 
-export function computeYearDailyGrid(
+export function computeDailyGrid(
   events: readonly CalendarEvent[],
   categories: readonly Category[],
-  year: number,
+  rangeStart: number,
+  rangeEnd: number,
 ): DayCell[] {
-  const yearStart = new Date(year, 0, 1).getTime()
-  const yearEnd = new Date(year + 1, 0, 1).getTime()
-
   const filtered = events.filter(
-    (e) => e.startTime < yearEnd && e.endTime > yearStart,
+    (e) => e.startTime < rangeEnd && e.endTime > rangeStart,
   )
 
   const budgetMap = new Map<CategoryId, number>()
@@ -62,8 +60,8 @@ export function computeYearDailyGrid(
   }
 
   const days: DayCell[] = []
-  let cursor = yearStart
-  while (cursor < yearEnd) {
+  let cursor = rangeStart
+  while (cursor < rangeEnd) {
     const dayEnd = cursor + DAY_MS
     const dayStats = computeDayStats(filtered, categories, cursor, dayEnd)
 
@@ -90,6 +88,16 @@ export function computeYearDailyGrid(
   }
 
   return days
+}
+
+export function computeYearDailyGrid(
+  events: readonly CalendarEvent[],
+  categories: readonly Category[],
+  year: number,
+): DayCell[] {
+  const yearStart = new Date(year, 0, 1).getTime()
+  const yearEnd = new Date(year + 1, 0, 1).getTime()
+  return computeDailyGrid(events, categories, yearStart, yearEnd)
 }
 
 export function buildHeatmapGrid(
@@ -158,11 +166,81 @@ export function buildHeatmapGrid(
   return { grid, monthLabels, numWeeks }
 }
 
-export function getIntensityLevel(ratio: number): 0 | 1 | 2 | 3 | 4 {
+export function buildRollingGrid(
+  days: DayCell[],
+  selectedId: CategoryId,
+  endDate: Date,
+  now: number,
+): { grid: (HeatmapCell | null)[][]; monthLabels: MonthLabel[]; numWeeks: number } {
+  const rangeStart = endDate.getTime() - 365 * DAY_MS
+  // Go back to the Monday of the week containing rangeStart
+  const startDate = new Date(rangeStart)
+  const startDow = startDate.getDay()
+  const offset = startDow === 0 ? -6 : 1 - startDow
+  const firstMonday = new Date(startDate)
+  firstMonday.setDate(startDate.getDate() + offset)
+
+  const numWeeks = 53 // Always fill 53 weeks for a rolling year
+
+  // Month labels
+  const monthLabels: MonthLabel[] = []
+  for (let w = 0; w < numWeeks; w++) {
+    const thursday = new Date(firstMonday)
+    thursday.setDate(firstMonday.getDate() + w * 7 + 3)
+    const m = thursday.getMonth()
+    const y = thursday.getFullYear()
+    if (w === 0) {
+      monthLabels.push({
+        nameZh: `${y}年${['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][m]}`,
+        nameEn: `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]} ${y}`,
+        colIndex: w + 2,
+      })
+    } else {
+      const prevThursday = new Date(firstMonday)
+      prevThursday.setDate(firstMonday.getDate() + (w - 1) * 7 + 3)
+      if (prevThursday.getMonth() !== m || prevThursday.getFullYear() !== y) {
+        monthLabels.push({
+          nameZh: `${y}年${['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][m]}`,
+          nameEn: `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]} ${y}`,
+          colIndex: w + 2,
+        })
+      }
+    }
+  }
+
+  // Build grid: 7 rows × numWeeks columns
+  const grid: (HeatmapCell | null)[][] = Array.from({ length: 7 }, () =>
+    Array.from({ length: numWeeks }, () => null),
+  )
+
+  const daysStart = startDate.getTime()
+  for (let w = 0; w < numWeeks; w++) {
+    for (let d = 0; d < 7; d++) {
+      const dayDate = new Date(firstMonday)
+      dayDate.setDate(firstMonday.getDate() + w * 7 + d)
+      const dayTs = dayDate.getTime()
+      const dayIndex = Math.floor((dayTs - daysStart) / DAY_MS)
+
+      if (dayIndex < 0 || dayIndex >= days.length) continue
+
+      grid[d][w] = {
+        date: dayDate,
+        ratio: days[dayIndex].byRatio[selectedId],
+        hours: days[dayIndex].byCategory[selectedId],
+        isFuture: dayTs > now,
+        isToday: dayTs >= now && dayTs < now + DAY_MS,
+      }
+    }
+  }
+
+  return { grid, monthLabels, numWeeks }
+}
+
+export function getIntensityLevel(ratio: number, thresholds: readonly [number, number, number, number] = [0.1, 0.25, 0.5, 0.8]): 0 | 1 | 2 | 3 | 4 {
   if (ratio <= 0) return 0
-  if (ratio < 0.5) return 1
-  if (ratio < 1.0) return 2
-  if (ratio < 1.5) return 3
+  if (ratio < thresholds[0]) return 1
+  if (ratio < thresholds[1]) return 2
+  if (ratio < thresholds[2]) return 3
   return 4
 }
 
@@ -232,22 +310,37 @@ interface YearHeatmapProps {
 
 export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapProps) {
   const [selectedId, setSelectedId] = useState<CategoryId>('accent')
+  const [viewMode, setViewMode] = useState<'year' | 'roll'>('roll')
   const [year, setYear] = useState(() => new Date().getFullYear())
+  const [rollingEnd, setRollingEnd] = useState(() => {
+    const d = new Date()
+    d.setHours(23, 59, 59, 999)
+    return d
+  })
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const now = useMemo(() => Date.now(), [])
   const isCurrentYear = year === new Date().getFullYear()
+  const isLatestRolling = rollingEnd.getTime() >= Date.now() - DAY_MS
 
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
   const days = useMemo(
-    () => computeYearDailyGrid(rangeEvents, categories, year),
-    [rangeEvents, categories, year],
+    () => {
+      if (viewMode === 'year') return computeYearDailyGrid(rangeEvents, categories, year)
+      const end = rollingEnd.getTime()
+      const start = end - 365 * DAY_MS
+      return computeDailyGrid(rangeEvents, categories, start, end)
+    },
+    [rangeEvents, categories, year, viewMode, rollingEnd],
   )
 
   const { grid, monthLabels, numWeeks } = useMemo(
-    () => buildHeatmapGrid(days, selectedId, year, now),
-    [days, selectedId, year, now],
+    () => {
+      if (viewMode === 'year') return buildHeatmapGrid(days, selectedId, year, now)
+      return buildRollingGrid(days, selectedId, rollingEnd, now)
+    },
+    [days, selectedId, year, rollingEnd, now, viewMode],
   )
 
   const stats = useMemo(
@@ -285,6 +378,28 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
 
   // Compute responsive threshold
   const isCompact = typeof window !== 'undefined' && window.innerWidth < 720
+
+  // Dynamic intensity thresholds (percentile-based)
+  const thresholds = useMemo(() => {
+    const values: number[] = []
+    for (const row of grid) {
+      for (const cell of row) {
+        if (cell && !cell.isFuture && cell.ratio > 0) {
+          values.push(cell.ratio)
+        }
+      }
+    }
+    values.sort((a, b) => a - b)
+    if (values.length === 0) return [0.1, 0.25, 0.5, 0.8] as const
+    const n = values.length
+    const idx = (pct: number) => Math.min(Math.floor(pct * (n - 1)), n - 1)
+    return [
+      values[idx(0.25)],
+      values[idx(0.5)],
+      values[idx(0.75)],
+      values[idx(0.9)],
+    ] as const
+  }, [grid])
 
   // Build grid items
   const gridItems = useMemo(() => {
@@ -335,7 +450,7 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
       for (let w = 0; w < numWeeks; w++) {
         const cell = grid[dow][w]
         if (!cell) continue
-        const level = getIntensityLevel(cell.ratio)
+        const level = getIntensityLevel(cell.ratio, thresholds)
 
         items.push(
           <div
@@ -402,31 +517,56 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
       {/* ── Title area ─────────────────────────────────────── */}
       <div className={`heatmap-title-area${isCompact ? ' heatmap-title-compact' : ''}`}>
         <div className="heatmap-title-left">
-          <div className="heatmap-year-row">
-            <button
-              onClick={() => setYear((y) => y - 1)}
-              className="heatmap-year-arrow"
-              title={t('上一年', 'Previous year')}
-            >
-              ‹
-            </button>
-            <span
-              className="heatmap-year-num"
-              style={{ color: 'var(--c-active)' }}
-            >
-              {year}
-            </span>
-            <button
-              onClick={() => setYear((y) => y + 1)}
-              className="heatmap-year-arrow"
-              title={t('下一年', 'Next year')}
-            >
-              ›
-            </button>
-            <span className="heatmap-year-label">
-              {t('· 年度热力图', ' · Annual Heatmap')}
-            </span>
+          <div className="hm-title-row">
+            {/* Left arrow */}
+            {viewMode === 'year' ? (
+              <button onClick={() => setYear((y) => y - 1)} className="hm-year-btn" title={t('上一年', 'Previous year')}>‹</button>
+            ) : (
+              <button onClick={() => setRollingEnd((d) => new Date(d.getTime() - 366 * DAY_MS))} className="hm-year-btn" title={t('前一年', 'Previous year')}>‹</button>
+            )}
+            {/* Two-line title block */}
+            <div className="hm-title-block">
+              {viewMode === 'year' ? (
+                <>
+                  <div className="hm-title-line1">{year}</div>
+                  <div className="hm-title-line2">{t('年度热力图', 'Annual Heatmap')}</div>
+                </>
+              ) : (
+                <>
+                  <div className="hm-title-line1">{t('近 365 天', 'Last 365 Days')}</div>
+                  <div className="hm-title-line2">{t('热力图', 'Heatmap')}</div>
+                </>
+              )}
+            </div>
+            {/* Right arrow */}
+            {viewMode === 'year' ? (
+              <button onClick={() => setYear((y) => y + 1)} className="hm-year-btn" title={t('下一年', 'Next year')}>›</button>
+            ) : (
+              <button
+                onClick={() => setRollingEnd((d) => new Date(d.getTime() + 366 * DAY_MS))}
+                className="hm-year-btn"
+                title={t('后一年', 'Next year')}
+                style={{ opacity: isLatestRolling ? 0.3 : 1 }}
+                disabled={isLatestRolling}
+              >›</button>
+            )}
+            {/* View switcher pills */}
+            <div className="hm-view-switcher">
+              <button
+                className={`hm-view-pill${viewMode === 'roll' ? ' hm-view-pill-active' : ''}`}
+                onClick={() => setViewMode('roll')}
+              >{t('近 365 天', 'Last 365d')}</button>
+              <button
+                className={`hm-view-pill${viewMode === 'year' ? ' hm-view-pill-active' : ''}`}
+                onClick={() => setViewMode('year')}
+              >{t('年度视图', 'Year')}</button>
+            </div>
           </div>
+          <p className="heatmap-title-desc">
+            {viewMode === 'year'
+              ? t('每日各分类投入达成率（实际 ÷ 目标）', 'Daily category hit-rate (actual ÷ target)')
+              : t('过去 365 天的每日投入记录', 'Daily record for the last 365 days')}
+          </p>
         </div>
 
         {/* Category pills */}
@@ -460,8 +600,8 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
         <div
           className="heatmap-grid"
           style={{
-            gridTemplateColumns: `28px repeat(${numWeeks}, minmax(14px, 1fr))`,
-            gridTemplateRows: `18px repeat(7, 14px)`,
+            gridTemplateColumns: `32px repeat(${numWeeks}, minmax(14px, 1fr))`,
+            gridTemplateRows: `20px repeat(7, 1fr)`,
           }}
         >
           {gridItems}
@@ -484,6 +624,8 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
       <div className="heatmap-legend-text">
         {t('由浅至深：0 → 超额完成', 'Light to dark: 0 → Over target')}
       </div>
+
+
 
       {/* ── Stats bar ───────────────────────────────────────── */}
       <div className={`heatmap-stats-bar${isCompact ? ' heatmap-stats-compact' : ''}`}>
@@ -574,18 +716,7 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
         </div>
       </div>
 
-      {/* ── Footer ──────────────────────────────────────────── */}
-      <div className="heatmap-footer">
-        <div className="heatmap-footer-rule">
-          <span>——</span>
-        </div>
-        <p className="heatmap-footer-quote">
-          {t(
-            '时间是衡量一切的尺度，亦是看见自己的镜子。',
-            'Time is the measure of all things, and the mirror in which we see ourselves.',
-          )}
-        </p>
-      </div>
+
 
       {/* ── Tooltip ─────────────────────────────────────────── */}
       {tooltip && (
@@ -641,39 +772,39 @@ const HEATMAP_CSS = `
   flex-direction: column;
   gap: 4px;
 }
-.heatmap-year-row {
+.hm-title-row {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
 }
-.heatmap-year-arrow {
+.hm-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.hm-title-line1 {
   font-family: 'Noto Serif SC', serif;
-  font-size: 40px;
-  color: var(--heatmap-ink-3);
-  background: none;
-  border: none;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0 4px;
-  transition: color 0.2s ease;
-  user-select: none;
-}
-.heatmap-year-arrow:hover {
-  color: var(--heatmap-ink-1);
-}
-.heatmap-year-num {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 84px;
+  font-size: 28px;
   font-weight: 600;
-  line-height: 1;
-  transition: color 0.4s ease;
-  letter-spacing: -0.02em;
-}
-.heatmap-year-label {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 18px;
   color: var(--heatmap-ink-1);
+  line-height: 1.15;
+  letter-spacing: 0.02em;
   white-space: nowrap;
+}
+.hm-title-line2 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--heatmap-ink-2);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.heatmap-title-desc {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--heatmap-ink-3);
+  margin: 0;
 }
 /* ── Category pills ───────────────────────── */
 .heatmap-pills {
@@ -709,7 +840,7 @@ const HEATMAP_CSS = `
 .heatmap-grid-scroll {
   overflow-x: auto;
   padding-bottom: 8px;
-  margin-top: 24px;
+  margin-top: 28px;
 }
 .heatmap-grid {
   display: grid;
@@ -724,6 +855,7 @@ const HEATMAP_CSS = `
   color: var(--heatmap-ink-3);
   text-align: left;
   user-select: none;
+  line-height: 20px;
 }
 
 /* ── Day labels ───────────────────────────── */
@@ -733,13 +865,14 @@ const HEATMAP_CSS = `
   color: var(--heatmap-ink-3);
   text-align: right;
   padding-right: 4px;
+  line-height: 18px;
   user-select: none;
 }
 
 /* ── Cells ────────────────────────────────── */
 .heatmap-cell {
-  width: 14px;
-  height: 14px;
+  width: 100%;
+  aspect-ratio: 1;
   border-radius: 2px;
   transition: transform 120ms ease-out;
   cursor: default;
@@ -814,19 +947,72 @@ const HEATMAP_CSS = `
   margin-top: 8px;
 }
 
+.hm-year-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--heatmap-ink-3);
+  transition: color 0.2s ease, background-color 0.2s ease;
+  flex-shrink: 0;
+}
+.hm-year-btn:hover {
+  color: var(--heatmap-ink-1);
+  background: var(--heatmap-bg-card);
+}
+.hm-year-btn:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+.hm-view-switcher {
+  display: flex;
+  gap: 2px;
+  margin-left: 8px;
+  background: var(--heatmap-bg-card);
+  border-radius: 6px;
+  padding: 2px;
+}
+.hm-view-pill {
+  padding: 2px 10px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--heatmap-ink-3);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+.hm-view-pill:hover {
+  color: var(--heatmap-ink-1);
+}
+.hm-view-pill-active {
+  color: var(--heatmap-ink-1);
+  background: var(--heatmap-bg);
+  font-weight: 600;
+}
+
 /* ── Stats bar ────────────────────────────── */
 .heatmap-stats-bar {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   border-top: 1px solid var(--heatmap-rule);
   border-bottom: 1px solid var(--heatmap-rule);
-  margin-top: 24px;
+  margin-top: 28px;
 }
 .heatmap-stats-compact {
   grid-template-columns: repeat(2, 1fr);
 }
 .heatmap-stat {
-  padding: 24px 20px;
+  padding: 16px 14px;
   border-right: 1px solid var(--heatmap-rule);
 }
 .heatmap-stat:last-child {
@@ -844,14 +1030,14 @@ const HEATMAP_CSS = `
 }
 .heatmap-stat-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 400;
   color: var(--heatmap-ink-1);
-  line-height: 1;
+  line-height: 1.1;
   margin-bottom: 6px;
 }
 .heatmap-stat-unit {
-  font-size: 16px;
+  font-size: 14px;
   color: var(--heatmap-ink-2);
   margin-left: 2px;
 }
@@ -928,11 +1114,14 @@ const HEATMAP_CSS = `
 
 /* ── Responsive ───────────────────────────── */
 @media (max-width: 719px) {
-  .heatmap-year-num {
-    font-size: 56px;
+  .hm-title-line1 {
+    font-size: 22px;
   }
-  .heatmap-year-label {
-    font-size: 15px;
+  .hm-title-line2 {
+    font-size: 12px;
+  }
+  .heatmap-title-desc {
+    font-size: 13px;
   }
   .heatmap-pills {
     width: 100%;

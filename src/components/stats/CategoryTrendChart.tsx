@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import {
   ComposedChart,
@@ -11,7 +11,6 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
-import { cn } from '@/lib/utils'
 import { RechartsTooltip } from './RechartsTooltip'
 import type { Category, CategoryId } from '@/domain/category'
 import type { DataMaturity } from '@/domain/maturity'
@@ -19,23 +18,47 @@ import type { Granularity, Bucket } from '@/hooks/useStatsAggregation'
 
 const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
 const CAT_STORAGE_KEY = 'cailens-trend-categories'
-const GROUPS_STORAGE_KEY = 'cailens-trend-groups'
+const CORE_GROUP_KEY = 'cailens-trend-core-group'
+const DAY_MS = 24 * 60 * 60_000
 
-const GROUP_LINE_COLORS = ['var(--accent)', 'var(--color-text-info)']
-
-interface MergedGroup {
-  id: string
-  nameZh: string
-  nameEn: string
-  categoryIds: CategoryId[]
-  enabled: boolean
+const CORE_GROUP = {
+  id: 'core-group',
+  nameZh: '核心投入',
+  nameEn: 'Core Focus',
+  categoryIds: ['accent', 'sage'] as CategoryId[],
 }
 
-function defaultGroups(): MergedGroup[] {
-  return [
-    { id: 'group-1', nameZh: '投入合计', nameEn: 'Core Total', categoryIds: ['accent', 'sage'], enabled: true },
-    { id: 'group-2', nameZh: '投入合计 2', nameEn: 'Core Total 2', categoryIds: [], enabled: false },
-  ]
+// ── Helpers ──────────────────────────────────────────────────
+
+function formatBucketLabel(bucket: Bucket, periodType: Granularity): string {
+  const d = bucket.start
+  if (periodType === 'day') return format(d, 'MM.dd')
+  if (periodType === 'week') return format(d, 'MM.dd')
+  return format(d, 'yyyy-MM')
+}
+
+function periodLabel(periodType: Granularity, _t: (zh: string, en: string) => string): string {
+  switch (periodType) {
+    case 'day':     return '日趋势'
+    case 'week':    return '周趋势'
+    case 'month':   return '月趋势'
+  }
+}
+
+function periodDesc(periodType: Granularity, t: (zh: string, en: string) => string): string {
+  switch (periodType) {
+    case 'day':     return t('过去 14 天的每日投入变化', 'Daily changes for the last 14 days')
+    case 'week':    return t('过去 8 周的逐周投入变化', 'Week-over-week changes for the last 8 weeks')
+    case 'month':   return t('过去 12 个月的逐月投入变化', 'Month-over-month changes for the last 12 months')
+  }
+}
+
+function periodDays(periodType: Granularity): number {
+  switch (periodType) {
+    case 'day':     return 1
+    case 'week':    return 7
+    case 'month':   return 30.44
+  }
 }
 
 function loadSelection(): CategoryId[] {
@@ -55,28 +78,18 @@ function saveSelection(ids: CategoryId[]) {
   try { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(ids)) } catch { /* ignore */ }
 }
 
-function loadGroups(): MergedGroup[] {
+function loadCoreGroup(): boolean {
   try {
-    const raw = localStorage.getItem(GROUPS_STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length === 2) return parsed as MergedGroup[]
-    }
-  } catch { /* ignore */ }
-  return defaultGroups()
+    const raw = localStorage.getItem(CORE_GROUP_KEY)
+    return raw === 'true'
+  } catch { return true }
 }
 
-function saveGroups(groups: MergedGroup[]) {
-  try { localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups)) } catch { /* ignore */ }
+function saveCoreGroup(enabled: boolean) {
+  try { localStorage.setItem(CORE_GROUP_KEY, String(enabled)) } catch { /* ignore */ }
 }
 
-function formatBucketLabel(bucket: Bucket, periodType: Granularity): string {
-  const d = bucket.start
-  if (periodType === 'week') return format(d, 'MM.dd')
-  if (periodType === 'month') return format(d, 'yyyy-MM')
-  if (periodType === 'quarter') return `Q${Math.ceil((d.getMonth() + 1) / 3)}`
-  return format(d, 'yyyy')
-}
+// ── Component ────────────────────────────────────────────────
 
 interface CategoryTrendChartProps {
   history: Bucket[]
@@ -84,6 +97,8 @@ interface CategoryTrendChartProps {
   periodType: Granularity
   language: 'zh' | 'en'
   maturity: DataMaturity
+  onNavigate?: (dir: -1 | 1) => void
+  onPeriodChange?: (p: Granularity) => void
 }
 
 export function CategoryTrendChart({
@@ -92,32 +107,24 @@ export function CategoryTrendChart({
   periodType,
   language,
   maturity,
+  onNavigate,
+  onPeriodChange,
 }: CategoryTrendChartProps) {
   const [selected, setSelected] = useState<CategoryId[]>(loadSelection)
-  const [groups, setGroups] = useState<MergedGroup[]>(loadGroups)
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
-  const editRef = useRef<HTMLDivElement>(null)
+  const [groupEnabled, setGroupEnabled] = useState(loadCoreGroup)
+  const [isCompact, setIsCompact] = useState(false)
+
+  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   useEffect(() => { saveSelection(selected) }, [selected])
-  useEffect(() => { saveGroups(groups) }, [groups])
+  useEffect(() => { saveCoreGroup(groupEnabled) }, [groupEnabled])
 
-  // Close editor on outside click
   useEffect(() => {
-    if (!editingGroupId) return
-    const handler = (e: MouseEvent) => {
-      if (editRef.current && !editRef.current.contains(e.target as Node)) {
-        // Don't close if clicking the pencil toggle for the currently-editing group —
-        // the onClick handler manages toggle, and closing here would race with it:
-        // native mousedown fires before React synthetic events, so the onClick
-        // would see a just-cleared editingGroupId and reopen the editor.
-        const toggleBtn = (e.target as Element).closest('[data-edit-group]')
-        if (toggleBtn && toggleBtn.getAttribute('data-edit-group') === editingGroupId) return
-        setEditingGroupId(null)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [editingGroupId])
+    const check = () => setIsCompact(window.innerWidth < 720)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   const toggleCategory = useCallback((id: CategoryId) => {
     setSelected((prev) => {
@@ -129,12 +136,8 @@ export function CategoryTrendChart({
     })
   }, [])
 
-  const toggleGroup = useCallback((groupId: string) => {
-    setGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, enabled: !g.enabled } : g))
-  }, [])
-
-  const updateGroup = useCallback((groupId: string, patch: Partial<MergedGroup>) => {
-    setGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, ...patch } : g))
+  const toggleGroup = useCallback(() => {
+    setGroupEnabled((prev) => !prev)
   }, [])
 
   const catMap = useMemo(() => {
@@ -143,15 +146,14 @@ export function CategoryTrendChart({
     return map
   }, [categories])
 
-  const enabledGroups = useMemo(() => groups.filter((g) => g.enabled), [groups])
+  /* ── Chart data ──────────────────────────── */
 
-  const categoriesInEnabledGroups = useMemo(() => {
-    const set = new Set<CategoryId>()
-    for (const g of enabledGroups) {
-      for (const id of g.categoryIds) set.add(id)
-    }
-    return set
-  }, [enabledGroups])
+  const coreGroupCategories = useMemo(
+    () => CORE_GROUP.categoryIds.filter((id) => selected.includes(id)),
+    [selected],
+  )
+
+  const groupDataKey = `__group__${CORE_GROUP.id}`
 
   const chartData = useMemo(() => {
     return history.map((b) => {
@@ -161,16 +163,14 @@ export function CategoryTrendChart({
       for (const id of CATEGORY_IDS) {
         row[id] = b.byCategory[id] ?? 0
       }
-      for (const g of groups) {
-        let sum = 0
-        for (const id of g.categoryIds) {
-          sum += (b.byCategory[id] as number) ?? 0
-        }
-        row[groupDataKey(g.id)] = sum
+      let sum = 0
+      for (const id of CORE_GROUP.categoryIds) {
+        sum += (b.byCategory[id] as number) ?? 0
       }
+      row[groupDataKey] = sum
       return row
     })
-  }, [history, periodType, groups])
+  }, [history, periodType])
 
   const dynamicMax = useMemo(() => {
     if (chartData.length === 0) return 80
@@ -180,15 +180,15 @@ export function CategoryTrendChart({
         const v = row[id] as number
         if (v > maxVal) maxVal = v
       }
-      for (const g of enabledGroups) {
-        const v = (row[groupDataKey(g.id)] as number) || 0
+      if (groupEnabled) {
+        const v = (row[groupDataKey] as number) || 0
         if (v > maxVal) maxVal = v
       }
     }
     if (maxVal === 0) return 80
     const scaled = maxVal * 1.15
     return Math.ceil(scaled / 10) * 10
-  }, [chartData, selected, enabledGroups])
+  }, [chartData, selected, groupEnabled])
 
   const budgetLine = useMemo(() => {
     if (categories.length === 0) return 0
@@ -197,11 +197,7 @@ export function CategoryTrendChart({
     for (const id of selected) {
       const cat = catMap.get(id)
       if (cat && cat.weeklyBudget > 0) {
-        const days = periodType === 'week' ? 7
-          : periodType === 'month' ? 30.44
-          : periodType === 'quarter' ? 91.3
-          : periodType === 'year' ? 365.25
-          : 365.25
+        const days = periodDays(periodType)
         total += cat.weeklyBudget * (days / 7)
         count++
       }
@@ -209,155 +205,179 @@ export function CategoryTrendChart({
     return count > 0 ? total / count : 0
   }, [categories, selected, periodType, catMap])
 
+  /* ── Stats ───────────────────────────────── */
+
+  const stats = useMemo(() => {
+    if (history.length === 0) return null
+    const current = history[history.length - 1]
+    const prev = history.length >= 2 ? history[history.length - 2] : null
+
+    const selectedTotal = selected.reduce((sum, id) => sum + (current.byCategory[id] || 0), 0)
+
+    const days = (current.end.getTime() - current.start.getTime()) / DAY_MS
+    const dailyAvg = days > 0 ? selectedTotal / days : 0
+
+    // Peak category
+    let peakId: CategoryId = selected[0] || 'accent'
+    let peakHours = 0
+    for (const id of selected) {
+      const h = current.byCategory[id] || 0
+      if (h > peakHours) { peakHours = h; peakId = id }
+    }
+
+    // WoW change
+    let wowPct: number | null = null
+    let wowAbs: number | null = null
+    if (prev) {
+      const prevTotal = selected.reduce((sum, id) => sum + (prev.byCategory[id] || 0), 0)
+      wowAbs = selectedTotal - prevTotal
+      wowPct = prevTotal > 0 ? (wowAbs / prevTotal) * 100 : null
+    }
+
+    return { selectedTotal, dailyAvg, peakId, peakHours, wowPct, wowAbs, hasPrev: prev !== null }
+  }, [history, selected])
+
+  /* ── Insight ─────────────────────────────── */
+
+  const insight = useMemo(() => {
+    if (history.length < 2) return null
+    const current = history[history.length - 1]
+    const prev = history[history.length - 2]
+
+    const deltas = selected
+      .map((id) => ({
+        id,
+        name: catMap.get(id)?.name?.[language] ?? id,
+        delta: (current.byCategory[id] || 0) - (prev.byCategory[id] || 0),
+      }))
+      .filter((d) => Math.abs(d.delta) >= 0.3)
+      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+
+    if (deltas.length === 0) return null
+
+    const up = deltas.filter((d) => d.delta > 0)
+    const down = deltas.filter((d) => d.delta < 0)
+
+    const parts: string[] = []
+    if (up.length > 0) {
+      parts.push(up.map((d) => `${d.name} ↑${d.delta.toFixed(1)}h`).join('、'))
+    }
+    if (down.length > 0) {
+      parts.push(down.map((d) => `${d.name} ↓${Math.abs(d.delta).toFixed(1)}h`).join('、'))
+    }
+
+    if (parts.length === 0) return null
+
+    return t(
+      `较上期变化：${parts.join('；')}`,
+      `Changes vs previous period: ${parts.join('; ')}`,
+    )
+  }, [history, selected, catMap, language, t])
+
+  /* ── Maturity gate ───────────────────────── */
+
   if (maturity.maturityLevel === 'cold') {
     return (
-      <div className="flex items-center justify-center min-h-[280px] text-text-tertiary text-sm font-sans">
-        {language === 'zh'
-          ? '记录天数不足，趋势图需要至少 3 天数据'
-          : 'Not enough data — trend chart needs at least 3 days of records'}
+      <div className="trend-root" style={{ paddingTop: 40 }}>
+        <style>{TREND_CSS}</style>
+        <div className="flex items-center justify-center min-h-[240px] text-sm font-sans" style={{ color: 'var(--heatmap-ink-3)' }}>
+          {language === 'zh'
+            ? '记录天数不足，趋势图需要至少 3 天数据'
+            : 'Not enough data — trend chart needs at least 3 days of records'}
+        </div>
       </div>
     )
   }
 
-  const editingGroup = editingGroupId ? groups.find((g) => g.id === editingGroupId) : null
+  /* ── Render ──────────────────────────────── */
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Category selector chips */}
-      <div className="flex flex-nowrap overflow-x-auto items-center gap-1.5 mb-4 pb-1 scrollbar-hide">
-        <span className="text-xs text-text-tertiary font-sans mr-1 flex-shrink-0">
-          {language === 'zh' ? '分类' : 'Categories'}
-        </span>
-        {CATEGORY_IDS.map((id) => {
-          const cat = catMap.get(id)
-          const active = selected.includes(id)
-          return (
-            <button
-              key={id}
-              onClick={() => toggleCategory(id)}
-              className={cn(
-                'inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-sans transition-colors duration-200 cursor-pointer border flex-shrink-0',
-                active
-                  ? 'border-transparent text-white'
-                  : 'border-border-subtle text-text-secondary hover:text-text-primary',
-              )}
-              style={active ? { backgroundColor: `var(--event-${id}-fill)` } : undefined}
-            >
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: `var(--event-${id}-fill)` }}
-              />
-              {cat?.name?.[language] ?? id}
-            </button>
-          )
-        })}
+    <div className="trend-root">
+      <style>{TREND_CSS}</style>
 
-        {/* Merged group chips */}
-        {groups.map((group, idx) => (
-          <div key={group.id} className="relative flex-shrink-0 flex items-center gap-0.5">
-            <button
-              onClick={() => toggleGroup(group.id)}
-              onContextMenu={(e) => { e.preventDefault(); setEditingGroupId(group.id) }}
-              className={cn(
-                'inline-flex items-center gap-1 px-2.5 py-1 rounded-l text-xs font-sans transition-colors duration-200 cursor-pointer border flex-shrink-0',
-                group.enabled
-                  ? 'border-border-default bg-surface-raised text-text-primary font-medium'
-                  : 'border-border-subtle text-text-tertiary hover:text-text-secondary',
-              )}
-            >
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: GROUP_LINE_COLORS[idx] ?? GROUP_LINE_COLORS[0] }}
-              />
-              {language === 'zh' ? group.nameZh : group.nameEn}
-            </button>
-            <button
-              data-edit-group={group.id}
-              onClick={() => setEditingGroupId(editingGroupId === group.id ? null : group.id)}
-              className={cn(
-                'px-1 py-1 rounded-r border border-l-0 text-xs transition-colors duration-200 cursor-pointer flex-shrink-0',
-                group.enabled
-                  ? 'border-border-default bg-surface-raised text-text-tertiary hover:text-text-primary'
-                  : 'border-border-subtle text-text-tertiary hover:text-text-secondary',
-              )}
-              title={language === 'zh' ? '编辑合并组' : 'Edit merged group'}
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
-                <path d="M2 8L2 6.5 8 1 9 2 3 8 2 8Z" />
-                <path d="M7 2L8 3" />
-              </svg>
-            </button>
-
-            {/* Config popover */}
-            {editingGroupId === group.id && editingGroup && (
-              <div
-                ref={editRef}
-                className="absolute top-full mt-1 left-0 z-50 w-52 bg-surface-raised border border-border-default rounded-lg shadow-lg p-3 space-y-2.5"
-              >
-                <div className="space-y-1">
-                  <label className="text-[10px] text-text-tertiary font-sans">
-                    {language === 'zh' ? '名称' : 'Name'}
-                  </label>
-                  <div className="space-y-1">
-                    <input
-                      value={editingGroup.nameZh}
-                      onChange={(e) => updateGroup(group.id, { nameZh: e.target.value })}
-                      placeholder={language === 'zh' ? '中文名' : 'Chinese name'}
-                      className="w-full px-2 py-1 text-xs font-sans rounded border border-border-subtle bg-surface-base text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-default"
-                    />
-                    <input
-                      value={editingGroup.nameEn}
-                      onChange={(e) => updateGroup(group.id, { nameEn: e.target.value })}
-                      placeholder={language === 'zh' ? '英文名' : 'English name'}
-                      className="w-full px-2 py-1 text-xs font-sans rounded border border-border-subtle bg-surface-base text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-default"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] text-text-tertiary font-sans">
-                    {language === 'zh' ? '包含分类' : 'Categories'}
-                  </label>
-                  <div className="space-y-0.5">
-                    {CATEGORY_IDS.map((id) => {
-                      const cat = catMap.get(id)
-                      const checked = editingGroup.categoryIds.includes(id)
-                      return (
-                        <label
-                          key={id}
-                          className="flex items-center gap-1.5 px-1.5 py-0.5 rounded hover:bg-surface-sunken cursor-pointer text-xs font-sans text-text-secondary"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => {
-                              const next = checked
-                                ? editingGroup.categoryIds.filter((x) => x !== id)
-                                : [...editingGroup.categoryIds, id]
-                              updateGroup(group.id, { categoryIds: next })
-                            }}
-                            className="w-3 h-3 rounded accent-[var(--event-accent-fill)]"
-                          />
-                          <span
-                            className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: `var(--event-${id}-fill)` }}
-                          />
-                          {cat?.name?.[language] ?? id}
-                        </label>
-                      )
-                    })}
-                  </div>
-                </div>
+      {/* ── Title area ─────────────────────────────────── */}
+      <div className={`trend-title-area${isCompact ? ' trend-title-compact' : ''}`}>
+        <div className="trend-title-left">
+          <div className="trend-title-row">
+            {onNavigate && (
+              <button
+                onClick={() => onNavigate(-1)}
+                className="trend-title-arrow"
+                title={t('上一周期', 'Previous')}
+              >‹</button>
+            )}
+            <span className="trend-title-main">
+              {periodLabel(periodType, t)}
+            </span>
+            {onNavigate && (
+              <button
+                onClick={() => onNavigate(1)}
+                className="trend-title-arrow"
+                title={t('下一周期', 'Next')}
+              >›</button>
+            )}
+            {/* Period toggle pills */}
+            {onPeriodChange && (
+              <div className="trend-title-periods">
+                {(['day', 'week', 'month'] as Granularity[]).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => onPeriodChange(p)}
+                    className={`trend-title-period${periodType === p ? ' trend-title-period-active' : ''}`}
+                  >
+                    {p === 'day' ? t('日', 'Day') : p === 'week' ? t('周', 'Week') : t('月', 'Month')}
+                  </button>
+                ))}
               </div>
             )}
           </div>
-        ))}
+          <p className="trend-title-desc">{periodDesc(periodType, t)}</p>
+        </div>
+
+        {/* Category pills */}
+        <div className="trend-pills">
+          {CATEGORY_IDS.map((id) => {
+            const cat = catMap.get(id)
+            const active = selected.includes(id)
+            return (
+              <button
+                key={id}
+                onClick={() => toggleCategory(id)}
+                className={`trend-pill${active ? ' trend-pill-active' : ''}`}
+                style={
+                  active
+                    ? { backgroundColor: `var(--event-${id}-fill)`, color: '#F1EADB' }
+                    : undefined
+                }
+              >
+                {cat?.name?.[language] ?? id}
+              </button>
+            )
+          })}
+
+          {/* Core focus group pill */}
+          <button
+            onClick={toggleGroup}
+            className={`trend-pill${groupEnabled ? ' trend-pill-active' : ''}`}
+            style={
+              groupEnabled
+                ? { backgroundColor: `var(--accent)`, color: '#F1EADB' }
+                : undefined
+            }
+          >
+            <span
+              className="trend-pill-dot"
+              style={{ backgroundColor: 'var(--accent)' }}
+            />
+            {language === 'zh' ? CORE_GROUP.nameZh : CORE_GROUP.nameEn}
+          </button>
+        </div>
       </div>
 
-      {/* Chart */}
-      <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 72, left: 0, bottom: 8 }}>
+      {/* ── Chart ───────────────────────────────────────── */}
+      <div className="trend-chart-container">
+        <ResponsiveContainer width="100%" height={320}>
+          <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--border-subtle)"
@@ -365,13 +385,13 @@ export function CategoryTrendChart({
             />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }}
+              tick={{ fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: "'JetBrains Mono', monospace" }}
               tickLine={false}
               axisLine={{ stroke: 'var(--border-subtle)' }}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }}
+              tick={{ fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: "'JetBrains Mono', monospace" }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v: number) => `${v.toFixed(1)}h`}
@@ -380,42 +400,39 @@ export function CategoryTrendChart({
             />
             <Tooltip content={<RechartsTooltip decimals={1} />} />
 
-            {/* Stacked areas + total lines for each enabled merged group */}
-            {enabledGroups.map((group, gi) => {
-              const groupCategories = group.categoryIds.filter((id) => selected.includes(id))
-              return (
-                <g key={group.id}>
-                  {groupCategories.map((id) => (
-                    <Area
-                      key={id}
-                      dataKey={id}
-                      stackId={group.id}
-                      fill={`var(--event-${id}-fill)`}
-                      fillOpacity={0.25}
-                      stroke={`var(--event-${id}-fill)`}
-                      strokeWidth={1}
-                      name={catMap.get(id)?.name?.[language] ?? id}
-                      dot={false}
-                      activeDot={{ r: 3, strokeWidth: 0 }}
-                      connectNulls={false}
-                    />
-                  ))}
-                  <Line
-                    dataKey={groupDataKey(group.id)}
-                    name={language === 'zh' ? group.nameZh : group.nameEn}
-                    stroke={GROUP_LINE_COLORS[gi] ?? GROUP_LINE_COLORS[0]}
-                    strokeWidth={2.5}
+            {/* Stacked area + total line for core focus group */}
+            {groupEnabled && coreGroupCategories.length > 0 && (
+              <g>
+                {coreGroupCategories.map((id) => (
+                  <Area
+                    key={id}
+                    dataKey={id}
+                    stackId="core-group"
+                    fill={`var(--event-${id}-fill)`}
+                    fillOpacity={0.2}
+                    stroke={`var(--event-${id}-fill)`}
+                    strokeWidth={1}
+                    name={catMap.get(id)?.name?.[language] ?? id}
                     dot={false}
                     activeDot={{ r: 3, strokeWidth: 0 }}
                     connectNulls={false}
                   />
-                </g>
-              )
-            })}
+                ))}
+                <Line
+                  dataKey={groupDataKey}
+                  name={language === 'zh' ? CORE_GROUP.nameZh : CORE_GROUP.nameEn}
+                  stroke="var(--accent)"
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={{ r: 3, strokeWidth: 0 }}
+                  connectNulls={false}
+                />
+              </g>
+            )}
 
-            {/* Individual lines for selected categories NOT in any enabled group */}
+            {/* Individual lines for categories not in group, or when group is off */}
             {selected
-              .filter((id) => !categoriesInEnabledGroups.has(id))
+              .filter((id) => !groupEnabled || !CORE_GROUP.categoryIds.includes(id))
               .map((id) => {
                 const cat = catMap.get(id)
                 return (
@@ -432,6 +449,8 @@ export function CategoryTrendChart({
                   />
                 )
               })}
+
+            {/* Budget reference line */}
             {budgetLine > 0 && (
               <ReferenceLine
                 y={budgetLine}
@@ -440,9 +459,10 @@ export function CategoryTrendChart({
                 strokeWidth={1}
                 label={{
                   value: `${language === 'zh' ? '预算' : 'Budget'} ${budgetLine.toFixed(1)}h`,
-                  position: 'right',
+                  position: 'insideTopRight',
                   fill: 'var(--color-text-warning)',
                   fontSize: 10,
+                  fontFamily: "'JetBrains Mono', monospace",
                 }}
               />
             )}
@@ -450,17 +470,403 @@ export function CategoryTrendChart({
         </ResponsiveContainer>
       </div>
 
+      {/* ── Legend ────────────────────────────────────────── */}
+      <div className="trend-legend">
+        {selected.map((id) => {
+          const cat = catMap.get(id)
+          return (
+            <span key={id} className="trend-legend-item">
+              <span className="trend-legend-dot" style={{ background: `var(--event-${id}-fill)` }} />
+              {cat?.name?.[language] ?? id}
+            </span>
+          )
+        })}
+        {groupEnabled && coreGroupCategories.length > 0 && (
+          <span className="trend-legend-item">
+            <span className="trend-legend-line" style={{ borderColor: 'var(--accent)', borderTopWidth: 2.5 }} />
+            {language === 'zh' ? CORE_GROUP.nameZh : CORE_GROUP.nameEn}
+          </span>
+        )}
+        {budgetLine > 0 && (
+          <span className="trend-legend-item">
+            <span className="trend-legend-dash" style={{ borderColor: 'var(--color-text-warning)' }} />
+            {language === 'zh' ? '预算' : 'Budget'}
+          </span>
+        )}
+        <span className="trend-legend-note">
+          {t('每点 = 一个周期', 'Each point = one period')}
+        </span>
+      </div>
+
+      {/* ── Maturity warning ────────────────────────────── */}
       {maturity.maturityLevel === 'warming' && (
-        <p className="text-[11px] text-text-tertiary font-sans mt-3 text-center">
-          {language === 'zh'
-            ? '数据预热中，趋势仅供参考'
-            : 'Data is still warming — trends are approximate'}
+        <p
+          className="trend-warming"
+          style={{
+            textAlign: 'center',
+            marginTop: 16,
+            fontSize: 11,
+            fontFamily: "'Noto Sans SC', sans-serif",
+            color: 'var(--heatmap-ink-3)',
+          }}
+        >
+          {t('数据预热中，趋势仅供参考', 'Data is still warming — trends are approximate')}
         </p>
       )}
+
+      {/* ── Stats bar ────────────────────────────────────── */}
+      {stats && (
+        <div className={`trend-stats-bar${isCompact ? ' trend-stats-compact' : ''}`}>
+          {/* Total */}
+          <div className="trend-stat">
+            <div className="trend-stat-label">{t('总投入', 'Total')}</div>
+            <div className="trend-stat-value">
+              {stats.selectedTotal.toFixed(1)}
+              <span className="trend-stat-unit">h</span>
+            </div>
+            <div className="trend-stat-detail">
+              {t('最近一个周期', 'Last period')}
+            </div>
+          </div>
+
+          {/* Daily avg */}
+          <div className="trend-stat">
+            <div className="trend-stat-label">{t('日 均', 'Daily')}</div>
+            <div className="trend-stat-value">
+              {stats.dailyAvg.toFixed(1)}
+              <span className="trend-stat-unit">h</span>
+            </div>
+            <div className="trend-stat-detail">
+              {(() => {
+                const targetHrs = selected.reduce((sum, id) => {
+                  const cat = catMap.get(id)
+                  return sum + (cat?.weeklyBudget ?? 0)
+                }, 0) / 7
+                const pct = targetHrs > 0 ? Math.round((stats.dailyAvg / targetHrs) * 100) : null
+                return pct !== null ? t(`达成 ${pct}%`, `${pct}% achieved`) : t('日均', 'Daily avg')
+              })()}
+            </div>
+          </div>
+
+          {/* Peak category */}
+          <div className="trend-stat">
+            <div className="trend-stat-label">{t('高 峰', 'Peak')}</div>
+            <div className="trend-stat-value" style={{ color: `var(--event-${stats.peakId}-fill)` }}>
+              {stats.peakHours.toFixed(1)}
+              <span className="trend-stat-unit">h</span>
+            </div>
+            <div className="trend-stat-detail">
+              {catMap.get(stats.peakId)?.name?.[language] ?? stats.peakId}
+            </div>
+          </div>
+
+          {/* WoW change */}
+          <div className="trend-stat">
+            <div className="trend-stat-label">{t('环 比', 'Change')}</div>
+            <div
+              className="trend-stat-value"
+              style={{
+                color: stats.wowPct !== null
+                  ? (stats.wowPct >= 0 ? 'var(--color-text-success)' : 'var(--color-text-danger)')
+                  : undefined,
+              }}
+            >
+              {stats.wowPct !== null ? `${stats.wowPct >= 0 ? '+' : ''}${stats.wowPct.toFixed(0)}%` : '—'}
+            </div>
+            <div className="trend-stat-detail">
+              {stats.hasPrev
+                ? (stats.wowAbs !== null
+                    ? `${stats.wowAbs >= 0 ? '+' : ''}${stats.wowAbs.toFixed(1)}h`
+                    : t('较上期', 'vs previous'))
+                : t('需要更多数据', 'Need more data')}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Insight bar ──────────────────────────────────── */}
+      {insight && (
+        <div className="trend-insight">
+          <div className="trend-insight-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="6.5" stroke="currentColor" strokeWidth="0.8" />
+              <path d="M7 4V8M7 9.5V10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" />
+            </svg>
+          </div>
+          <p className="trend-insight-text">{insight}</p>
+        </div>
+      )}
+
+
     </div>
   )
 }
 
-function groupDataKey(groupId: string): string {
-  return `__group__${groupId}`
+// ── Scoped CSS ────────────────────────────────────────────────
+
+const TREND_CSS = `
+.trend-root {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  font-family: 'Noto Sans SC', sans-serif;
+  color: var(--heatmap-ink-1);
 }
+
+/* ── Title area ──────────────────────────── */
+.trend-title-area {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.trend-title-compact {
+  flex-direction: column;
+}
+.trend-title-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.trend-title-main {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--heatmap-ink-1);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+.trend-title-desc {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--heatmap-ink-3);
+  margin: 0;
+}
+.trend-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.trend-title-arrow {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--heatmap-ink-3);
+  transition: color 0.2s ease, background-color 0.2s ease;
+  flex-shrink: 0;
+}
+.trend-title-arrow:hover {
+  color: var(--heatmap-ink-1);
+  background: var(--heatmap-bg-card);
+}
+.trend-title-periods {
+  display: flex;
+  gap: 2px;
+  margin-left: 6px;
+  background: var(--heatmap-bg-card);
+  border-radius: 6px;
+  padding: 2px;
+}
+.trend-title-period {
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--heatmap-ink-3);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.trend-title-period:hover {
+  color: var(--heatmap-ink-1);
+}
+.trend-title-period-active {
+  color: var(--heatmap-ink-1);
+  background: var(--heatmap-bg);
+  font-weight: 600;
+}
+
+/* ── Pills ───────────────────────────────── */
+.trend-pills {
+  display: flex;
+  gap: 6px;
+  background: var(--heatmap-bg-card);
+  border-radius: 999px;
+  padding: 4px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.trend-pill {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--heatmap-ink-2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.trend-pill:hover {
+  color: var(--heatmap-ink-1);
+}
+.trend-pill-active {
+  font-weight: 600;
+}
+.trend-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Chart container ─────────────────────── */
+.trend-chart-container {
+  margin-top: 28px;
+  position: relative;
+}
+
+/* ── Legend ──────────────────────────────── */
+.trend-legend {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 12px;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12px;
+  color: var(--heatmap-ink-3);
+}
+.trend-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.trend-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.trend-legend-line {
+  width: 20px;
+  height: 0;
+  border-top: 2px solid;
+  flex-shrink: 0;
+}
+.trend-legend-dash {
+  width: 20px;
+  height: 0;
+  border-top: 1.5px dashed;
+  flex-shrink: 0;
+}
+.trend-legend-note {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--heatmap-ink-3);
+  opacity: 0.65;
+}
+
+/* ── Stats bar ───────────────────────────── */
+.trend-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--heatmap-rule);
+  border-bottom: 1px solid var(--heatmap-rule);
+  margin-top: 28px;
+}
+.trend-stats-compact {
+  grid-template-columns: repeat(2, 1fr);
+}
+.trend-stat {
+  padding: 24px 20px;
+  border-right: 1px solid var(--heatmap-rule);
+}
+.trend-stat:last-child {
+  border-right: none;
+}
+.trend-stats-compact .trend-stat:nth-child(even) {
+  border-right: none;
+}
+.trend-stat-label {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 11px;
+  color: var(--heatmap-ink-3);
+  letter-spacing: 0.4em;
+  margin-bottom: 8px;
+}
+.trend-stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--heatmap-ink-1);
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.trend-stat-unit {
+  font-size: 14px;
+  color: var(--heatmap-ink-2);
+  margin-left: 2px;
+}
+.trend-stat-detail {
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 11px;
+  color: var(--heatmap-ink-3);
+}
+
+/* ── Insight bar ─────────────────────────── */
+.trend-insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: var(--color-bg-info);
+  border-radius: 8px;
+}
+.trend-insight-icon {
+  flex-shrink: 0;
+  color: var(--color-text-info);
+  margin-top: 1px;
+}
+.trend-insight-text {
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12px;
+  color: var(--color-text-info);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Responsive ──────────────────────────── */
+@media (max-width: 719px) {
+  .trend-title-main {
+    font-size: 22px;
+  }
+  .trend-title-desc {
+    font-size: 13px;
+  }
+  .trend-pills {
+    width: 100%;
+  }
+  .trend-stat-value {
+    font-size: 22px;
+  }
+  .trend-stat {
+    padding: 18px 14px;
+  }
+}
+`

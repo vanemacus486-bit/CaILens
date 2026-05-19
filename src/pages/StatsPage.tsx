@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2, AlertCircle } from 'lucide-react'
-import { startOfWeek, startOfMonth, startOfQuarter, startOfYear, addDays, addMonths, addQuarters, addYears } from 'date-fns'
+import { startOfDay, startOfWeek, startOfMonth, addDays, addMonths } from 'date-fns'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { formatISODate, parseISODate } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
@@ -15,25 +15,21 @@ import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
 import { EasternStatsShell } from '@/components/stats/EasternStatsShell'
 
-type Period = Exclude<Granularity, 'all'>
 type ViewMode = 'trend' | 'heatmap' | 'sleep'
 
 function getAnchor(period: Granularity, date: Date): Date {
   switch (period) {
+    case 'day':     return startOfDay(date)
     case 'week':    return startOfWeek(date, { weekStartsOn: 1 })
     case 'month':   return startOfMonth(date)
-    case 'quarter': return startOfQuarter(date)
-    case 'year':    return startOfYear(date)
-    case 'all':     return new Date(0)
   }
 }
 
-function shiftAnchor(anchor: Date, period: Period, dir: -1 | 1): Date {
+function shiftAnchor(anchor: Date, period: Granularity, dir: -1 | 1): Date {
   switch (period) {
+    case 'day':     return addDays(anchor, dir)
     case 'week':    return addDays(anchor, dir * 7)
     case 'month':   return addMonths(anchor, dir)
-    case 'quarter': return addQuarters(anchor, dir)
-    case 'year':    return addYears(anchor, dir)
   }
 }
 
@@ -72,7 +68,7 @@ export function StatsPage() {
   }, [language])
 
   // Lookback buckets for history
-  const lookback = period === 'all' ? 1 : period === 'week' ? 8 : period === 'month' ? 12 : period === 'quarter' ? 8 : 3
+  const lookback = period === 'day' ? 14 : period === 'week' ? 8 : 12
 
   const { history } = useStatsAggregation({
     granularity: period,
@@ -101,28 +97,14 @@ export function StatsPage() {
   }
 
   const navigate = (dir: -1 | 1) => {
-    if (period === 'all') return
-    updateParams({ date: formatISODate(shiftAnchor(anchor, period as Period, dir)) })
+    updateParams({ date: formatISODate(shiftAnchor(anchor, period, dir)) })
   }
-
-  const goToday = () => {
-    updateParams({ date: formatISODate(new Date()) })
-  }
-
-  const isHeatmap = view === 'heatmap'
-  const isSleep = view === 'sleep'
-  const noNav = isHeatmap || isSleep
 
   return (
     <EasternStatsShell
       language={language}
       currentView={view}
       onViewChange={setView}
-      period={isHeatmap ? 'year' : period}
-      onPeriodChange={noNav ? undefined : setPeriod}
-      onNavigate={noNav ? undefined : navigate}
-      onGoToday={noNav ? undefined : goToday}
-      showNavigation={!noNav}
     >
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px] flex-1">
@@ -150,6 +132,8 @@ export function StatsPage() {
               periodType={period}
               language={language}
               maturity={maturity}
+              onNavigate={navigate}
+              onPeriodChange={setPeriod}
             />
           )}
           {view === 'heatmap' && (
