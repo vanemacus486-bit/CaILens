@@ -14,14 +14,35 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a0f18977-a958-492a-a787-9f1a8a39d5b2" />
 
-> **Status:** v3.19.0 — Sleep rhythm chart redesign (sleep-band visualization, warm/cool palette, weekday/weekend filtering, data-driven insight engine), CLAUDE.md slimmed by 79%. 960 tests.
+> **Status:** v3.21.0 — Tri-view navigation system: Week / Day (diary stream) / Month unified switching, DayEventStream diary layout, MonthView monthly aggregation grid, heatmap timezone boundary fixes. 489 tests.
 
 ## Downloads
+
+### Latest (recommended)
+
+```bash
+npx cailens
+```
+
+One command — always the latest version. Requires **Node 20+**.
+
+Or install globally:
+
+```bash
+npm install -g cailens
+cailens
+```
+
+> npm always delivers the latest code. Run `npm update -g cailens` to upgrade.
+
+### Pre-built packages
 
 | Platform | File | Notes |
 |----------|------|-------|
 | Windows (x64) | [CaILens.exe](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Portable, no install needed. Windows 10 1803+ |
 | Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
+
+> ⚠️ **Pre-built packages lag behind the latest code.** Due to release cadence, the exe / apk on GitHub Releases may be outdated. Use `npx cailens` for the newest features.
 
 ---
 
@@ -36,7 +57,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
 - **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 945 tests, one-way dependency layers. The codebase should age well.
+- **Code quality over feature quantity.** Strict TypeScript, 489 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
@@ -54,6 +75,7 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Overlap layout** — overlapping events are laid out side-by-side automatically.
 - **Current time indicator** — a terracotta line on today's column, updating every minute.
 - **Light / dark mode** — manual toggle, with automatic system preference detection on first visit. Segmented control in Settings.
+- **Tri-view navigation** — W / D / M pills in the toolbar switch between Week / Day / Month views. View state is URL-driven (`?view=day` / `?view=month`); browser back/forward restores both view and position. Clicking a date in the date header navigates to the Day View.
 
 ### QuickLog
 
@@ -90,6 +112,7 @@ CaILens v3.10 ships with a global keyboard shortcut system. **All bindings are u
 | `Ctrl+V` | Paste event |
 | `Ctrl+←` / `Ctrl+→` | Previous / Next week |
 | `Ctrl+Shift+←` / `Ctrl+Shift+→` | Previous / Next day |
+| `M` | Switch to Month View |
 
 - **16 bindable actions** — navigation, view switching, theme/language toggle, event copy/paste/delete/duplicate
 - **Settings → Shortcuts tab** — click a binding pill to record a new shortcut; conflict detection with inline warnings
@@ -97,11 +120,21 @@ CaILens v3.10 ships with a global keyboard shortcut system. **All bindings are u
 - Shortcuts are automatically suppressed when typing in input fields or text areas
 - The command palette shows currently active shortcuts for each action
 
-### Day Diary
+### Day Diary (DayEventStream)
 
-- **Vertical timeline view** — one day at a time, with time labels, coloured dots, and serif entry text.
+The Day View is no longer a separate route — it's embedded in the main view via `?view=day&date=YYYY-MM-DD`, sharing the same URL space as the Week and Month views. Switch with the W / D / M pills in the toolbar.
+
+- **Vertical timeline with serif layout** — events render as readable text blocks: serif heading (600 weight), serif paragraph for descriptions, smaller sans-serif footer for location. Empty descriptions leave clean whitespace.
+- **Markdown rendering for descriptions** — input is plain text, but the renderer supports **bold**, *italic*, inline code, unordered lists, and inline links. No rich-text editor.
 - **Category transition dividers** — subtle separators when the activity type changes.
-- **Prev / next day navigation** — walk through your diary day by day.
+- **Prev / next day navigation** — walk through your diary day by day. Click any date in the week view header to jump straight to that day's diary.
+
+### Month View (MonthView)
+
+- **Monthly aggregation grid** — each cell shows a summary of the day's events.
+- **Double-click to Day View** — double-click any day cell to switch to the Day View scoped to that date.
+- **Month navigation** — `‹` / `›` arrows in the toolbar switch months, consistent with Week/Day navigation.
+- **Unified view switching** — W / D / M pills toggle between all three views. URL parameter driven (`?view=month&date=2026-05-01`); browser back/forward restores view and position.
 
 ### Categories (6 fixed)
 
@@ -188,6 +221,8 @@ Right-side slide-in panel that turns your time data into a conversation. Multi-p
 - **Conversation summaries** — Auto-generated from the first user message; editable inline alongside the conversation title.
 - **Feedback system** — Every AI reply has 👍 / 👎 / 🔄 buttons. Ratings stored locally — user control and future prompt optimization data combined.
 
+> AI subsystem prompt architecture design: see [`docs/ai-design/prompt-architecture.md`](./docs/ai-design/prompt-architecture.md).
+
 ### Data
 
 - **Persistent local storage** — IndexedDB via Dexie v4. Schema at version 9. Migrations run automatically.
@@ -217,7 +252,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (945 tests)
+npm run test         # run unit tests once (489 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
 ```
@@ -235,7 +270,7 @@ npm run lint         # run ESLint
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
 | Charts | Recharts 3 | Donut, bar, area, line charts |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 945 tests across 56 test files |
+| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 489 tests across 30 test files |
 | AI | react-markdown + remark-gfm | Markdown rendering + inline data visualization |
 | AI SDK | native fetch + SSE streaming | DeepSeek / OpenAI / Claude / custom providers |
 | Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC, **LXGW WenKai** | Fontsource, locally hosted |
