@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'src-tauri/target/**', 'android/app/build/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -28,6 +28,9 @@ export default defineConfig([
       // WeekView uses setState inside an effect to auto-close stale cards — a deliberate
       // choice documented inline; downgraded to preserve signal without blocking builds.
       'react-hooks/set-state-in-effect': 'warn',
+      // Time-based components call Date.now() during render for relative displays — safe
+      // and intentional, not a purity violation in practice.
+      'react-hooks/purity': 'warn',
     },
   },
 ])

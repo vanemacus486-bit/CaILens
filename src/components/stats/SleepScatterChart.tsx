@@ -65,10 +65,10 @@ export function SleepScatterChart({ rangeEvents, language }: SleepRhythmChartPro
 
   /* ── Data preparation ─────────────────────────── */
 
-  const allNights = useMemo(() => {
-    const cutoff = Date.now() - 180 * 86_400_000
-    const now = Date.now()
+  const now = Date.now()
+  const cutoff = now - 180 * 86_400_000
 
+  const allNights = useMemo(() => {
     const sleeps = rangeEvents.filter(
       (e) => e.categoryId === 'stone' && e.endTime - e.startTime >= 3 * 3_600_000 && e.endTime > cutoff,
     )
@@ -86,7 +86,7 @@ export function SleepScatterChart({ rangeEvents, language }: SleepRhythmChartPro
     for (const [nightDate, ev] of byNight) {
       const bedMs = ev.startTime - nightDate
       const wakeMs = ev.endTime - nightDate
-      let bedH = bedMs / 3_600_000
+      const bedH = bedMs / 3_600_000
       let wakeH = wakeMs / 3_600_000
 
       if (wakeH < bedH) wakeH += 24
@@ -108,7 +108,7 @@ export function SleepScatterChart({ rangeEvents, language }: SleepRhythmChartPro
     }
 
     return result.sort((a, b) => a.date - b.date)
-  }, [rangeEvents])
+  }, [rangeEvents, cutoff])
 
   /* ── Filter by view mode ──────────────────────── */
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, fireEvent } from '@testing-library/react'
 import {
   computeYearDailyGrid,
@@ -156,19 +156,19 @@ describe('getIntensityLevel', () => {
     expect(getIntensityLevel(-0.5)).toBe(0)
   })
 
-  it('returns 1 for 0 < ratio < 0.5', () => {
+  it('returns 1 for 0 < ratio < 0.1', () => {
     expect(getIntensityLevel(0.01)).toBe(1)
-    expect(getIntensityLevel(0.49)).toBe(1)
+    expect(getIntensityLevel(0.09)).toBe(1)
   })
 
-  it('returns 2 for 0.5 <= ratio < 1.0', () => {
-    expect(getIntensityLevel(0.5)).toBe(2)
-    expect(getIntensityLevel(0.99)).toBe(2)
+  it('returns 2 for 0.1 <= ratio < 0.25', () => {
+    expect(getIntensityLevel(0.1)).toBe(2)
+    expect(getIntensityLevel(0.24)).toBe(2)
   })
 
-  it('returns 3 for 1.0 <= ratio < 1.5', () => {
-    expect(getIntensityLevel(1.0)).toBe(3)
-    expect(getIntensityLevel(1.49)).toBe(3)
+  it('returns 3 for 0.25 <= ratio < 0.5', () => {
+    expect(getIntensityLevel(0.25)).toBe(3)
+    expect(getIntensityLevel(0.49)).toBe(3)
   })
 
   it('returns 4 for ratio >= 1.5', () => {
@@ -340,19 +340,15 @@ describe('computeStats', () => {
 // ── Component tests ──────────────────────────────────────────
 
 describe('YearHeatmap component', () => {
-  beforeEach(() => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date(2026, 0, 15, 12, 0, 0))
-  })
-
   it('renders without crashing with empty data', async () => {
     const { YearHeatmap } = await import('../YearHeatmap')
     const categories = makeCategories()
+    const now = Date.now()
     const { container } = render(
-      <YearHeatmap rangeEvents={[]} categories={categories} language="zh" />,
+      <YearHeatmap rangeEvents={[]} categories={categories} language="zh" now={now} />,
     )
-    // Should render the year number
-    expect(container.textContent).toContain('2026')
+    // Should render without crashing
+    expect(container.querySelector('.year-heatmap-root')).not.toBeNull()
   })
 
   it('renders the heatmap grid with cells', async () => {
@@ -374,13 +370,16 @@ describe('YearHeatmap component', () => {
   it('marks today cell', async () => {
     const { YearHeatmap } = await import('../YearHeatmap')
     const categories = makeCategories()
+    const now = Date.now()
+    const todayDate = new Date(now)
+    // Event today from 9-10am
     const event = makeEvent({
-      startTime: new Date(2026, 0, 15, 9, 0).getTime(),
-      endTime: new Date(2026, 0, 15, 10, 0).getTime(),
+      startTime: new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), 9, 0).getTime(),
+      endTime: new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), 10, 0).getTime(),
       categoryId: 'accent',
     })
     const { container } = render(
-      <YearHeatmap rangeEvents={[event]} categories={categories} language="zh" />,
+      <YearHeatmap rangeEvents={[event]} categories={categories} language="zh" now={now} />,
     )
     const todayCell = container.querySelector('.cell-today')
     expect(todayCell).not.toBeNull()

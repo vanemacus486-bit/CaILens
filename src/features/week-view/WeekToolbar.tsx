@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
 import { BarChart3, Menu, Search, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatISODate, formatMonthDay, getWeekStart, isSameDay } from '@/domain/time'
+import { formatMonthDay, getWeekStart, isSameDay } from '@/domain/time'
 import { addDays } from 'date-fns'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useUIStore } from '@/stores/uiStore'
@@ -18,6 +18,8 @@ interface WeekToolbarProps {
   onNext: () => void
   onToday: () => void
   onQuickLog: () => void
+  viewMode: 'week' | 'month' | 'day'
+  onViewModeChange: (mode: 'week' | 'month' | 'day') => void
   mobileViewMode?: 'day' | 'week'
   onMobileViewModeChange?: (mode: 'day' | 'week') => void
   // Standard week
@@ -36,6 +38,8 @@ export function WeekToolbar({
   onNext,
   onToday,
   onQuickLog,
+  viewMode,
+  onViewModeChange,
   mobileViewMode,
   onMobileViewModeChange,
   isStandardWeek,
@@ -256,19 +260,37 @@ export function WeekToolbar({
 
             <div className="flex gap-1">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => onViewModeChange('day')}
               className={cn(
-                'font-sans text-xs font-medium rounded-md px-2.5 py-1 max-sm:min-w-[44px] max-sm:min-h-[44px] transition-colors duration-200 cursor-pointer',
-                'bg-accent-light border border-accent/30 text-accent',
+                'font-sans text-xs font-medium rounded-md px-2.5 py-1 max-sm:min-w-[44px] max-sm:min-h-[44px] transition-colors duration-200 cursor-pointer border',
+                viewMode === 'day'
+                  ? 'bg-accent-light border-accent/30 text-accent'
+                  : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-sunken',
+              )}
+            >
+              D
+            </button>
+            <button
+              onClick={() => onViewModeChange('week')}
+              className={cn(
+                'font-sans text-xs font-medium rounded-md px-2.5 py-1 max-sm:min-w-[44px] max-sm:min-h-[44px] transition-colors duration-200 cursor-pointer border',
+                viewMode === 'week'
+                  ? 'bg-accent-light border-accent/30 text-accent'
+                  : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-sunken',
               )}
             >
               W
             </button>
             <button
-              onClick={() => navigate(`/day?date=${formatISODate(new Date())}`)}
-              className="font-sans text-xs font-normal rounded-md px-2.5 py-1 max-sm:min-w-[44px] max-sm:min-h-[44px] transition-colors duration-200 cursor-pointer text-text-secondary hover:text-text-primary hover:bg-surface-sunken border border-transparent"
+              onClick={() => onViewModeChange('month')}
+              className={cn(
+                'font-sans text-xs font-medium rounded-md px-2.5 py-1 max-sm:min-w-[44px] max-sm:min-h-[44px] transition-colors duration-200 cursor-pointer border',
+                viewMode === 'month'
+                  ? 'bg-accent-light border-accent/30 text-accent'
+                  : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-sunken',
+              )}
             >
-              D
+              M
             </button>
           </div>
           </div>

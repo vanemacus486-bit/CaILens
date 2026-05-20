@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { HashRouter, Route, Routes, Outlet, useNavigate, useSearchParams } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
-import { DayView } from '@/features/day-view/DayView'
 import { StatsPage } from '@/pages/StatsPage'
 import { CommandPalette } from '@/features/search/CommandPalette'
 import { SettingsDrawer } from '@/features/settings/SettingsDrawer'
@@ -64,7 +63,7 @@ function Layout() {
       fireAndForget(useEventStore.getState().createEvent(clip), 'paste event')
     },
     goToThisWeek: () => navigate('/'),
-    goToDayView: () => navigate('/day'),
+    goToDayView: () => navigate(`/?view=day&date=${formatISODate(new Date())}`),
     goToStats: () => navigate('/stats'),
     openSettings: () => useUIStore.getState().setSettingsDrawerOpen(true),
     toggleTheme: () => fireAndForget(
@@ -88,12 +87,12 @@ function Layout() {
     goToPreviousDay: () => {
       const dateParam = searchParams.get('date')
       const current = dateParam ? parseISO(dateParam) : new Date()
-      navigate(`/day?date=${formatISODate(subDays(current, 1))}`)
+      navigate(`/?view=day&date=${formatISODate(subDays(current, 1))}`)
     },
     goToNextDay: () => {
       const dateParam = searchParams.get('date')
       const current = dateParam ? parseISO(dateParam) : new Date()
-      navigate(`/day?date=${formatISODate(addDays(current, 1))}`)
+      navigate(`/?view=day&date=${formatISODate(addDays(current, 1))}`)
     },
     deleteFocusedEvent: () => {
       const eventId = useUIStore.getState().lastFocusedEventId
@@ -139,7 +138,6 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<WeekView />} />
-          <Route path="/day" element={<DayView />} />
           <Route path="/stats" element={<StatsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

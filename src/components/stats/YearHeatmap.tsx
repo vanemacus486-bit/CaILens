@@ -138,6 +138,10 @@ export function buildHeatmapGrid(
     }
   }
 
+  // Compute local-timezone start of `now` (matches the local-midnight dates created below)
+  const nowDate = new Date(now)
+  const nowDayStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()).getTime()
+
   // Build grid: 7 rows × numWeeks columns (full matrix, null = outside year)
   const grid: (HeatmapCell | null)[][] = Array.from({ length: 7 }, () =>
     Array.from({ length: numWeeks }, () => null),
@@ -158,7 +162,7 @@ export function buildHeatmapGrid(
         ratio: days[dayIndex].byRatio[selectedId],
         hours: days[dayIndex].byCategory[selectedId],
         isFuture: dayTs > now,
-        isToday: dayTs >= now && dayTs < now + DAY_MS && dayDate.getFullYear() === new Date(now).getFullYear(),
+        isToday: dayTs >= nowDayStart && dayTs < nowDayStart + DAY_MS && dayDate.getFullYear() === new Date(now).getFullYear(),
       }
     }
   }
@@ -208,6 +212,10 @@ export function buildRollingGrid(
     }
   }
 
+  // Compute local-timezone start of `now` (matches the local-midnight dates created below)
+  const nowDate = new Date(now)
+  const nowDayStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()).getTime()
+
   // Build grid: 7 rows × numWeeks columns
   const grid: (HeatmapCell | null)[][] = Array.from({ length: 7 }, () =>
     Array.from({ length: numWeeks }, () => null),
@@ -219,16 +227,18 @@ export function buildRollingGrid(
       const dayDate = new Date(firstMonday)
       dayDate.setDate(firstMonday.getDate() + w * 7 + d)
       const dayTs = dayDate.getTime()
-      const dayIndex = Math.floor((dayTs - daysStart) / DAY_MS)
+      let dayIndex = Math.floor((dayTs - daysStart) / DAY_MS)
+      // Clamp boundary cells (dayTs at range-end boundary → last valid index)
+      if (dayIndex >= days.length) dayIndex = days.length - 1
 
-      if (dayIndex < 0 || dayIndex >= days.length) continue
+      if (dayIndex < 0) continue
 
       grid[d][w] = {
         date: dayDate,
         ratio: days[dayIndex].byRatio[selectedId],
         hours: days[dayIndex].byCategory[selectedId],
         isFuture: dayTs > now,
-        isToday: dayTs >= now && dayTs < now + DAY_MS,
+        isToday: dayTs >= nowDayStart && dayTs < nowDayStart + DAY_MS,
       }
     }
   }
@@ -306,9 +316,10 @@ interface YearHeatmapProps {
   rangeEvents: readonly CalendarEvent[]
   categories: readonly Category[]
   language: 'zh' | 'en'
+  now?: number
 }
 
-export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapProps) {
+export function YearHeatmap({ rangeEvents, categories, language, now: _now }: YearHeatmapProps) {
   const [selectedId, setSelectedId] = useState<CategoryId>('accent')
   const [viewMode, setViewMode] = useState<'year' | 'roll'>('roll')
   const [year, setYear] = useState(() => new Date().getFullYear())
@@ -319,9 +330,9 @@ export function YearHeatmap({ rangeEvents, categories, language }: YearHeatmapPr
   })
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const now = useMemo(() => Date.now(), [])
-  const isCurrentYear = year === new Date().getFullYear()
-  const isLatestRolling = rollingEnd.getTime() >= Date.now() - DAY_MS
+  const now = _now ?? Date.now()
+  const isCurrentYear = year === new Date(now).getFullYear()
+  const isLatestRolling = rollingEnd.getTime() >= now - DAY_MS
 
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams, useOutletContext } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
-import { addWeeks, getWeekDays, getWeekStart, isEventOnDay } from '@/domain/time'
+import { addWeeks, getWeekDays, getWeekStart, isEventOnDay, formatISODate, parseISODate } from '@/domain/time'
 import type { CalendarEvent, EventColor, CreateEventInput, UpdateEventInput } from '@/domain/event'
 import type { DefaultTimes } from '@/domain/quickLog'
 import { fireAndForget } from '@/lib/fireAndForget'
@@ -20,6 +20,8 @@ import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
 import { EventEditCard } from './EventEditCard'
 import { WeekEmptyState } from './WeekEmptyState'
+import { DayEventStream } from '@/features/day-view/DayEventStream'
+import { MonthView } from '@/features/month-view/MonthView'
 import { QuickLogDialog } from '@/features/quick-log/QuickLogDialog'
 import { MobileDayView } from '@/features/day-view/MobileDayView'
 import { useIsMobile } from '@/hooks/useMediaQuery'
@@ -54,6 +56,57 @@ export function WeekView() {
   const [isStandardWeek, setIsStandardWeek] = useState(false)
   const [standardWeekRange, setStandardWeekRange] = useState<'4w' | '12w' | 'all'>('all')
   const [hideSleep, setHideSleep] = useState(false)
+
+  // View mode: derived from URL (single source of truth — no useState)
+  const viewMode = (searchParams.get('view') as 'week' | 'month' | 'day' | null) ?? 'week'
+
+  const [selectedDay, setSelectedDay] = useState<Date>(() => {
+    const dateParam = searchParams.get('date')
+    const viewParam = searchParams.get('view')
+    if (dateParam) {
+      const parsed = parseISODate(dateParam)
+      // For month mode, normalise to the 1st of the month
+      if (viewParam === 'month') {
+        return new Date(parsed.getFullYear(), parsed.getMonth(), 1)
+      }
+      return parsed
+    }
+    return new Date()
+  })
+
+
+
+  const handleViewModeChange = useCallback((mode: 'week' | 'month' | 'day') => {
+    const next = new URLSearchParams(searchParams)
+    if (mode === 'day') {
+      const d = new Date()
+      setSelectedDay(d)
+      next.set('view', 'day')
+      next.set('date', formatISODate(d))
+    } else if (mode === 'month') {
+      const now = new Date()
+      const d = new Date(now.getFullYear(), now.getMonth(), 1)
+      setSelectedDay(d)
+      next.set('view', 'month')
+      next.set('date', formatISODate(d))
+    }
+    // week mode: delete view/date, URL defaults to week
+    if (mode !== 'day' && mode !== 'month') {
+      next.delete('view')
+      next.delete('date')
+    }
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  const handleDayChange = useCallback((date: Date) => {
+    setSelectedDay(date)
+    setSearchParams({ view: 'day', date: formatISODate(date) }, { replace: true })
+  }, [setSearchParams])
+
+  const handleMonthChange = useCallback((monthStart: Date) => {
+    setSelectedDay(monthStart)
+    setSearchParams({ view: 'month', date: formatISODate(monthStart) }, { replace: true })
+  }, [setSearchParams])
 
   const [cardState,    setCardState]    = useState<CardState>({ mode: 'none' })
   const [draftPreview, setDraftPreview] = useState<DraftPreview | null>(null)
@@ -397,8 +450,24 @@ export function WeekView() {
         <header>
         <WeekToolbar
           weekStart={weekStart}
-          onPrev={() => setWeekStart(addWeeks(weekStart, -1))}
-          onNext={() => setWeekStart(addWeeks(weekStart, 1))}
+          onPrev={() => {
+            if (viewMode === 'month') {
+              setSelectedDay(new Date(selectedDay.getFullYear(), selectedDay.getMonth() - 1, 1))
+            } else if (viewMode === 'day') {
+              setSelectedDay(new Date(selectedDay.getTime() - 86_400_000))
+            } else {
+              setWeekStart(addWeeks(weekStart, -1))
+            }
+          }}
+          onNext={() => {
+            if (viewMode === 'month') {
+              setSelectedDay(new Date(selectedDay.getFullYear(), selectedDay.getMonth() + 1, 1))
+            } else if (viewMode === 'day') {
+              setSelectedDay(new Date(selectedDay.getTime() + 86_400_000))
+            } else {
+              setWeekStart(addWeeks(weekStart, 1))
+            }
+          }}
           onToday={() => {
             if (!isStandardWeek) setWeekStart(getWeekStart(new Date(), 1))
             // Scroll to current time at ~1/3 viewport
@@ -414,6 +483,8 @@ export function WeekView() {
             })
           }}
           onQuickLog={onQuickLog}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
           mobileViewMode={isMobile ? mobileViewMode : undefined}
           onMobileViewModeChange={isMobile ? setMobileViewMode : undefined}
           isStandardWeek={isStandardWeek}
@@ -425,11 +496,15 @@ export function WeekView() {
           standardWeekSpanWeeks={standardWeekData?.spanWeeks ?? 0}
         />
         {(isMobile && mobileViewMode === 'day') ? null : (
-          isStandardWeek ? null : <WeekDateHeader days={days} />
+          isStandardWeek ? null : <WeekDateHeader days={days} onDayClick={handleDayChange} />
         )}
         </header>
 
-        {isMobile && mobileViewMode === 'day' ? (
+        {viewMode === 'month' ? (
+          <MonthView monthStart={selectedDay} onDayChange={handleDayChange} onMonthChange={handleMonthChange} />
+        ) : viewMode === 'day' ? (
+          <DayEventStream dayStart={selectedDay} onDayChange={handleDayChange} />
+        ) : isMobile && mobileViewMode === 'day' ? (
           <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
         ) : (
         <div ref={scrollContainerRef} className="relative flex-1 min-h-0 max-md:overflow-x-auto overflow-y-auto">
