@@ -19,10 +19,31 @@ CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一
 
 ## 下载
 
+### 最新版（推荐）
+
+```bash
+npx cailens
+```
+
+一行命令即启动最新版本（无需安装，自动从 npm 拉取并运行）。需要 **Node 20+**。
+
+或全局安装后使用：
+
+```bash
+npm install -g cailens
+cailens
+```
+
+> 通过 npm 运行的始终是最新代码。后续 `npm update -g cailens` 即可升级。
+
+### 预构建安装包
+
 | 平台 | 下载 | 说明 |
 |------|------|------|
 | Windows (x64) | [CaILens.exe](https://github.com/vanemacus486-bit/CaILens/releases/latest) | 便携免安装，Windows 10 1803+ |
 | Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
+
+> ⚠️ **预构建安装包落后于最新代码。** 发布周期原因，GitHub Releases 中的 exe / apk 可能不是最新的。如需体验最新功能，请使用 `npx cailens` 或从源码构建。
 
 > **平台成熟度：** Windows 桌面版功能完整、体验成熟。Android 移动端尚处于早期阶段——基本可用但交互和视觉仍有大量打磨空间。欢迎反馈和贡献。
 
