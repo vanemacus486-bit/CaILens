@@ -6,9 +6,13 @@
 
 CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's lifelong time accounting practice, as told in Daniil Granin's *This Strange Life*. It records, categorises, and visualises how your hours are actually spent — no accounts, no servers, no telemetry.
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/12e6aea7-b9a9-4de5-ab24-9d2eda3fd8a6" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/e6debe21-3092-4b4f-ae99-df393c51fe5e" />
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/166d37d7-0634-47d9-aacb-768302dd767b" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d3560f3f-0b85-4c8e-9480-ceaff536583b" />
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f42e1891-8796-4f15-a7e5-f7535c69253c" />
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a0f18977-a958-492a-a787-9f1a8a39d5b2" />
 
 > **Status:** v3.19.0 — Sleep rhythm chart redesign (sleep-band visualization, warm/cool palette, weekday/weekend filtering, data-driven insight engine), CLAUDE.md slimmed by 79%. 960 tests.
 
