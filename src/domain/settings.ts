@@ -13,6 +13,8 @@ export interface AppSettings {
   theme?: AppTheme
   accentColor?: AccentPreset
   uiFont?: UiFont
+  /** 克制模式：只记录不分析 */
+  restrainedMode?: boolean
   shortcuts?: Partial<Record<ShortcutAction, ShortcutString>>
   aiApiKey?: string
   aiModel?: AiModel

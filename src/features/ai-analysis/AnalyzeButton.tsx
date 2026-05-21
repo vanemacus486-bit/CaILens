@@ -16,7 +16,9 @@ export function AnalyzeButton({ weekStart }: AnalyzeButtonProps) {
   const isStreaming = useAiChatStore((s) => s.isStreaming)
   const startConversation = useAiChatStore((s) => s.startConversation)
 
-  if (!aiEnabled || !aiApiKey) return null
+  const restrainedMode = useAppSettingsStore((s) => s.settings.restrainedMode)
+
+  if (!aiEnabled || !aiApiKey || restrainedMode) return null
 
   const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
   const weekNum = getISOWeek(weekStart)

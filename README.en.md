@@ -14,7 +14,7 @@ CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's l
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a0f18977-a958-492a-a787-9f1a8a39d5b2" />
 
-> **Status:** v3.21.0 — Tri-view navigation system: Week / Day (diary stream) / Month unified switching, DayEventStream diary layout, MonthView monthly aggregation grid, heatmap timezone boundary fixes. 489 tests.
+> **Status:** v3.22.0 — Lifestyle upgrade: daily context recording, input-output correlation analysis, steady metrics, restrained mode, standard week template. 521 tests.
 
 ## Downloads
 
@@ -137,6 +137,43 @@ The Day View is no longer a separate route — it's embedded in the main view vi
 - **No manual time entry** — events automatically use default time ranges (inherited from the previous event or falling back to `now - 1h` → `now`). The time picker and location field have been removed to reduce decision friction.
 - **Undo after save** — 3-second snackbar in the bottom-right; click to undo and delete the event. Rapid consecutive saves replace the toast without affecting saved events.
 - **Toolbar entry** — `+` button in the week view toolbar, same row as the search button, with a tooltip showing the keyboard shortcut.
+
+### Daily Context (v3.22)
+
+CaILens now captures the "why" behind your time — recording lifestyle variables that affect your routine.
+
+- **Quick daily log** — tap the "Log" button in DayView to record: last meal time & type, social intensity (1–5), outdoor minutes, exercise intensity (1–5), mood (1–5), screen hours, and notes.
+- **All fields optional** — fill only what matters. ~20 seconds to complete.
+- **Status indicator** — "Logged" when today is recorded, "Log" when not.
+- **Restrained Mode** — toggle in Settings → Data to suppress all analysis and insights while keeping recording.
+
+### Insights (v3.22)
+
+Correlate daily context with sleep metrics to answer "what affects my routine."
+
+- **Group comparison** — split history into high/low groups per variable, compare mean sleep metrics between groups.
+- **Plain-language cards** — "Late last meal: bedtime delayed by 34 min."
+- **Correlation ≠ causation** — each insight includes a disclaimer.
+- **Actionable suggestions** — "Try reducing screen time 1 hour before bed."
+- **DayView entry** — click the "🧠 Insights" button on any day to analyze 60 days of data.
+
+### Steady Metrics (v3.22)
+
+Shift from "streak anxiety" to a steady-state perspective on routine health.
+
+- **Median bedtime & wake time** — robust to outliers.
+- **Standard deviation** — volatility of sleep/wake timing.
+- **Drift velocity** — linear regression slope (min/week): positive = delaying, negative = advancing.
+- **Drift projection** — "In 4 weeks, bedtime will reach 23:45 if uncorrected."
+- **Stats tab** — new "Steady" tab in the Statistics page.
+
+### Restrained Mode (v3.22)
+
+Prevent the tool from becoming a new source of anxiety — record without being analyzed.
+
+- **One-click toggle** — Settings → Data → Restrained Mode.
+- **Scope** — hides AnalyzeButton, AI chat, and insight entry points.
+- **Design goal** — help users see causality without constant scrutiny.
 
 ### Month View (MonthView)
 

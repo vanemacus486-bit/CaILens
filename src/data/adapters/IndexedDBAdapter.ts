@@ -5,6 +5,7 @@ import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
 import type { AiConversation, AiChatMessage } from '@/domain/aiChat'
 import type { PinnedAnalysis, MessageFeedback } from '@/domain/aiChat'
+import type { DailyContext } from '@/domain/dailyContext'
 import type { StorageAdapter, StorageTable, QueryOptions } from './StorageAdapter'
 import { CailensDB, db as dexieDb } from '../db'
 
@@ -114,6 +115,7 @@ export class IndexedDBAdapter implements StorageAdapter {
   chatMessages: StorageTable<AiChatMessage>
   pinnedAnalyses: StorageTable<PinnedAnalysis>
   messageFeedback: StorageTable<MessageFeedback>
+  dailyContexts: StorageTable<DailyContext>
 
   private db: CailensDB
 
@@ -127,6 +129,7 @@ export class IndexedDBAdapter implements StorageAdapter {
     this.chatMessages = new IndexedDBTable(db.chatMessages)
     this.pinnedAnalyses = new IndexedDBTable(db.pinnedAnalyses)
     this.messageFeedback = new IndexedDBTable(db.messageFeedback)
+    this.dailyContexts = new IndexedDBTable(db.dailyContexts)
   }
 
   readonly storagePath: string | null = null

@@ -4,6 +4,7 @@ import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
 import type { AiConversation, AiChatMessage } from '@/domain/aiChat'
 import type { PinnedAnalysis, MessageFeedback } from '@/domain/aiChat'
+import type { DailyContext } from '@/domain/dailyContext'
 import type { StorageAdapter, StorageTable, QueryOptions } from './StorageAdapter'
 import {
   isTauri,
@@ -67,6 +68,7 @@ interface MemoryIndex {
   chatMessages: Map<string, AiChatMessage[]>   // conversationId → messages
   pinnedAnalyses: Map<string, PinnedAnalysis>
   messageFeedback: Map<string, MessageFeedback>
+  dailyContexts: Map<string, DailyContext>
 }
 
 function binarySearchLeft(arr: { ts: number }[], value: number): number {
@@ -884,6 +886,92 @@ class MessageFeedbackFsTable implements StorageTable<MessageFeedback> {
   }
 }
 
+// ── Daily Contexts table (single file) ──────────────────────
+
+class DailyContextsFsTable implements StorageTable<DailyContext> {
+  private index: MemoryIndex
+  private filePath: string
+
+  constructor(index: MemoryIndex, rootPath: string) {
+    this.index = index
+    this.filePath = joinPath(rootPath, 'daily-contexts.json')
+  }
+
+  async get(id: string): Promise<DailyContext | undefined> {
+    return this.index.dailyContexts.get(id)
+  }
+
+  async getAll(): Promise<DailyContext[]> {
+    return Array.from(this.index.dailyContexts.values())
+  }
+
+  async put(item: DailyContext): Promise<void> {
+    this.index.dailyContexts.set(item.id, item)
+    await this.flush()
+  }
+
+  async update(id: string, changes: Partial<DailyContext>): Promise<void> {
+    const existing = this.index.dailyContexts.get(id)
+    if (!existing) return
+    await this.put({ ...existing, ...changes, id: existing.id })
+  }
+
+  async delete(id: string): Promise<void> {
+    this.index.dailyContexts.delete(id)
+    await this.flush()
+  }
+
+  async bulkGet(ids: string[]): Promise<(DailyContext | undefined)[]> {
+    return ids.map((id) => this.index.dailyContexts.get(id))
+  }
+
+  async bulkPut(items: DailyContext[]): Promise<void> {
+    for (const item of items) {
+      this.index.dailyContexts.set(item.id, item)
+    }
+    await this.flush()
+  }
+
+  async query(opts: QueryOptions<DailyContext>): Promise<DailyContext[]> {
+    let results = Array.from(this.index.dailyContexts.values())
+    if (opts.where?.key === 'date' && opts.where.op === 'equals') {
+      const target = opts.where.value as number
+      results = results.filter((ctx) => ctx.date === target)
+    }
+    if (opts.filter) results = results.filter(opts.filter)
+    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
+    return results
+  }
+
+  async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
+    return fn()
+  }
+
+  private async flush(): Promise<void> {
+    const data = Array.from(this.index.dailyContexts.values())
+    const content = JSON.stringify({
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      type: 'dailyContexts',
+      data,
+    }, null, 2)
+    await writeTextFile(this.filePath, content)
+  }
+
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    const file = entries.find((e) => e.path.endsWith('daily-contexts.json'))
+    if (file) {
+      try {
+        const parsed = JSON.parse(file.content)
+        if (parsed.type === 'dailyContexts' && Array.isArray(parsed.data)) {
+          for (const ctx of parsed.data as DailyContext[]) {
+            this.index.dailyContexts.set(ctx.id, ctx)
+          }
+        }
+      } catch { /* ignore */ }
+    }
+  }
+}
+
 // ── FileSystemAdapter ────────────────────────────────────────
 
 export class FileSystemAdapter implements StorageAdapter {
@@ -895,6 +983,7 @@ export class FileSystemAdapter implements StorageAdapter {
   chatMessages: StorageTable<AiChatMessage>
   pinnedAnalyses: StorageTable<PinnedAnalysis>
   messageFeedback: StorageTable<MessageFeedback>
+  dailyContexts: StorageTable<DailyContext>
 
   private index: MemoryIndex = {
     events: new Map(),
@@ -909,6 +998,7 @@ export class FileSystemAdapter implements StorageAdapter {
     chatMessages: new Map(),
     pinnedAnalyses: new Map(),
     messageFeedback: new Map(),
+    dailyContexts: new Map(),
   }
 
   private rootPath: string | null = null
@@ -924,6 +1014,7 @@ export class FileSystemAdapter implements StorageAdapter {
     this.chatMessages = new ChatMessagesFsTable(this.index, '')
     this.pinnedAnalyses = new PinnedAnalysesFsTable(this.index, '')
     this.messageFeedback = new MessageFeedbackFsTable(this.index, '')
+    this.dailyContexts = new DailyContextsFsTable(this.index, '')
   }
 
   get initialized(): boolean {
@@ -985,6 +1076,7 @@ export class FileSystemAdapter implements StorageAdapter {
     await (this.chatMessages as ChatMessagesFsTable).loadFromScan(entries)
     await (this.pinnedAnalyses as PinnedAnalysesFsTable).loadFromScan(entries)
     await (this.messageFeedback as MessageFeedbackFsTable).loadFromScan(entries)
+    await (this.dailyContexts as DailyContextsFsTable).loadFromScan(entries)
     await (this.events as EventsFsTable).loadFromScan(entries)
   }
 

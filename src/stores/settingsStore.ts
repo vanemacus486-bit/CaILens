@@ -48,6 +48,7 @@ interface AppSettingsState {
   setAiCustomSystemPrompt: (prompt?: string) => Promise<void>
   setAiSkills: (skills: AiSkill[]) => Promise<void>
   setUiFont: (font: UiFont) => Promise<void>
+  setRestrainedMode: (enabled: boolean) => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
@@ -194,6 +195,11 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const settings = await getSettingsRepo().update({ uiFont: font })
     localStorage.setItem(FONT_KEY, font)
     applyFont(font)
+    set({ settings })
+  },
+
+  setRestrainedMode: async (enabled) => {
+    const settings = await getSettingsRepo().update({ restrainedMode: enabled || undefined })
     set({ settings })
   },
 }))

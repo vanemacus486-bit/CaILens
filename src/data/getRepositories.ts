@@ -3,6 +3,7 @@ import { CategoryRepository } from './categoryRepository'
 import { SettingsRepository } from './settingsRepository'
 import { EstimateRepository } from './estimateRepository'
 import { AiConversationRepository } from './aiConversationRepository'
+import { ContextRepository } from './contextRepository'
 import type { StorageAdapter } from './adapters/StorageAdapter'
 
 let _eventRepo: EventRepository
@@ -10,6 +11,7 @@ let _categoryRepo: CategoryRepository
 let _settingsRepo: SettingsRepository
 let _estimateRepo: EstimateRepository
 let _conversationRepo: AiConversationRepository
+let _contextRepo: ContextRepository
 
 export function initRepositories(adapter: StorageAdapter) {
   _eventRepo = new EventRepository(adapter)
@@ -17,6 +19,7 @@ export function initRepositories(adapter: StorageAdapter) {
   _settingsRepo = new SettingsRepository(adapter)
   _estimateRepo = new EstimateRepository(adapter)
   _conversationRepo = new AiConversationRepository(adapter)
+  _contextRepo = new ContextRepository(adapter)
 }
 
 export function getEventRepo(): EventRepository {
@@ -42,4 +45,9 @@ export function getEstimateRepo(): EstimateRepository {
 export function getConversationRepo(): AiConversationRepository {
   if (!_conversationRepo) throw new Error('AiConversationRepository not initialized. Call initRepositories() first.')
   return _conversationRepo
+}
+
+export function getContextRepo(): ContextRepository {
+  if (!_contextRepo) throw new Error('ContextRepository not initialized. Call initRepositories() first.')
+  return _contextRepo
 }

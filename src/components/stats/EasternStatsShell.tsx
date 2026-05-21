@@ -1,18 +1,19 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-type ViewMode = 'trend' | 'heatmap' | 'sleep'
+export type StatsViewMode = 'trend' | 'heatmap' | 'sleep' | 'steady'
 
-const VIEWS: { key: ViewMode; label: string; labelZh: string }[] = [
+const VIEWS: { key: StatsViewMode; label: string; labelZh: string }[] = [
   { key: 'trend', label: 'Trend', labelZh: '趋势' },
   { key: 'sleep', label: 'Sleep', labelZh: '睡眠' },
   { key: 'heatmap', label: 'Heatmap', labelZh: '热力图' },
+  { key: 'steady', label: 'Steady', labelZh: '稳态' },
 ]
 
 interface EasternStatsShellProps {
   language: 'zh' | 'en'
-  currentView: ViewMode
-  onViewChange: (v: ViewMode) => void
+  currentView: StatsViewMode
+  onViewChange: (v: StatsViewMode) => void
   children: ReactNode
 }
 

@@ -13,9 +13,8 @@ import { useStatsAggregation } from '@/hooks/useStatsAggregation'
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
-import { EasternStatsShell } from '@/components/stats/EasternStatsShell'
-
-type ViewMode = 'trend' | 'heatmap' | 'sleep'
+import { EasternStatsShell, type StatsViewMode } from '@/components/stats/EasternStatsShell'
+import { SteadyMetricsPanel } from '@/components/stats/SteadyMetricsPanel'
 
 function getAnchor(period: Granularity, date: Date): Date {
   switch (period) {
@@ -46,7 +45,7 @@ export function StatsPage() {
   // Parse URL params
   const period  = (searchParams.get('period') as Granularity | null) ?? 'week'
   const dateStr = searchParams.get('date') ?? formatISODate(new Date())
-  const view    = (searchParams.get('view') as ViewMode | null) ?? 'trend'
+  const view    = (searchParams.get('view') as StatsViewMode | null) ?? 'trend'
 
   const date = useMemo(() => {
     const d = parseISODate(dateStr)
@@ -92,7 +91,7 @@ export function StatsPage() {
     updateParams({ period: p === 'week' ? undefined : p })
   }
 
-  const setView = (v: ViewMode) => {
+  const setView = (v: StatsViewMode) => {
     updateParams({ view: v === 'trend' ? undefined : v })
   }
 
@@ -145,6 +144,12 @@ export function StatsPage() {
           )}
           {view === 'sleep' && (
             <SleepScatterChart
+              rangeEvents={rangeEvents}
+              language={language}
+            />
+          )}
+          {view === 'steady' && (
+            <SteadyMetricsPanel
               rangeEvents={rangeEvents}
               language={language}
             />

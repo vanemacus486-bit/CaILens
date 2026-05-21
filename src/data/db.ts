@@ -6,6 +6,7 @@ import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
 import type { AiConversation, AiChatMessage } from '@/domain/aiChat'
 import type { PinnedAnalysis, MessageFeedback } from '@/domain/aiChat'
+import type { DailyContext } from '@/domain/dailyContext'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import { migrateEventV1ToV2 } from '@/domain/migration'
 
@@ -38,6 +39,7 @@ export class CailensDB extends Dexie {
   chatMessages!:    Table<AiChatMessage, string>
   pinnedAnalyses!:  Table<PinnedAnalysis, string>
   messageFeedback!: Table<MessageFeedback, string>
+  dailyContexts!:   Table<DailyContext, string>
 
   constructor(name = 'cailens') {
     super(name)
@@ -149,6 +151,19 @@ export class CailensDB extends Dexie {
       chatMessages:    'id, conversationId, createdAt',
       pinnedAnalyses:  'id, date, conversationId',
       messageFeedback: 'id, messageId',
+    })
+
+    // v10：新增 dailyContexts 表（每日生活上下文）
+    this.version(10).stores({
+      events:          'id, startTime, endTime',
+      categories:      'id',
+      settings:        'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+      conversations:   'id, weekStart, updatedAt',
+      chatMessages:    'id, conversationId, createdAt',
+      pinnedAnalyses:  'id, date, conversationId',
+      messageFeedback: 'id, messageId',
+      dailyContexts:   'id, date',
     })
 
     // 全新 DB 首次创建时触发（version 0 → any）。
