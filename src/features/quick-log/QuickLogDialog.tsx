@@ -7,19 +7,6 @@ import type { DefaultTimes } from '@/domain/quickLog'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import type { CreateEventInput, UpdateEventInput, CalendarEvent } from '@/domain/event'
 
-function tsToStr(ts: number): string {
-  const d = new Date(ts)
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-
-function strToTs(date: Date, s: string): number {
-  const [h, m] = s.split(':').map(Number)
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m, 0, 0).getTime()
-}
-
-const timeCls =
-  'flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded-md px-2.5 py-2 focus:border-border-default focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 transition-colors duration-150'
-
 const fieldCls =
   'w-full font-sans text-sm text-text-primary bg-surface-sunken border border-border-subtle rounded-md px-3 py-2 focus:border-border-default focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 transition-colors duration-150 placeholder:text-text-tertiary'
 
@@ -85,11 +72,8 @@ function Form({
 }) {
   const isEditing = !!editingEvent
   const [title, setTitle] = useState(editingEvent?.title ?? '')
-  const [startStr, setStartStr] = useState(() => editingEvent ? tsToStr(editingEvent.startTime) : tsToStr(defaultTimes.start))
-  const [endStr, setEndStr] = useState(() => editingEvent ? tsToStr(editingEvent.endTime) : tsToStr(defaultTimes.end))
   const [color, setColor] = useState<EventColor>(editingEvent?.color ?? defaultColor)
   const [desc, setDesc] = useState(editingEvent?.description ?? '')
-  const [location, setLocation] = useState(editingEvent?.location ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const titleRef = useRef<HTMLInputElement>(null)
@@ -98,11 +82,11 @@ function Form({
 
   const trimmed = title.trim()
 
-  const weekdayNames = useMemo(() => ['周日', '周一', '周二', '周三', '周四', '周五', '周六'], [])
   const dateHeader = useMemo(() => {
     const d = new Date(today)
-    return `${d.getMonth() + 1}月${d.getDate()}日 ${weekdayNames[d.getDay()]} · ${startStr}–${endStr}`
-  }, [today, startStr, endStr, weekdayNames])
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    return `${d.getMonth() + 1}月${d.getDate()}日 ${weekdays[d.getDay()]}`
+  }, [today])
 
   const categoryLabels = useMemo(() => ({
     accent: { zh: '主要矛盾', en: 'Core' },
@@ -112,15 +96,7 @@ function Form({
     rose: { zh: '休息娱乐', en: 'Leisure' },
     stone: { zh: '睡眠时长', en: 'Sleep' },
   } as const), [])
-  const timeErr = startStr && endStr
-    ? (() => {
-        const s = strToTs(today, startStr); const e = strToTs(today, endStr)
-        if (isNaN(s) || isNaN(e)) return t('无效时间', 'Invalid time')
-        if (e <= s) return t('结束必须在开始之后', 'End must be after start')
-        return null
-      })()
-    : null
-  const canSave = trimmed.length > 0 && timeErr === null && !saving
+  const canSave = trimmed.length > 0 && !saving
 
   // Full save — create (create mode) or update (edit mode)
   const doFullSave = useCallback(async () => {
@@ -131,24 +107,25 @@ function Form({
         await onUpdate({
           id: editingEvent.id,
           title: trimmed,
-          startTime: strToTs(today, startStr),
-          endTime: strToTs(today, endStr),
+          startTime: editingEvent.startTime,
+          endTime: editingEvent.endTime,
           color, categoryId: color,
           description: desc.trim() || undefined,
-          location: location.trim() || undefined,
         })
       } else {
         await onSave({
-          title: trimmed, startTime: strToTs(today, startStr),
-          endTime: strToTs(today, endStr), color, categoryId: color,
-          description: desc.trim() || undefined, location: location.trim() || undefined,
+          title: trimmed,
+          startTime: defaultTimes.start,
+          endTime: defaultTimes.end,
+          color, categoryId: color,
+          description: desc.trim() || undefined,
         })
       }
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('保存失败', 'Save failed'))
     } finally { setSaving(false) }
-  }, [canSave, isEditing, editingEvent, onUpdate, trimmed, startStr, endStr, color, desc, location, today, onSave, onClose, t])
+  }, [canSave, isEditing, editingEvent, onUpdate, trimmed, color, desc, defaultTimes, onSave, onClose, t])
 
   const handleDelete = useCallback(() => {
     if (editingEvent && onDelete) {
@@ -218,25 +195,13 @@ function Form({
       return
     }
 
-    // Tab: focus trap within the dialog
+    // Tab: toggle between event name and notes (fast input flow)
     if (e.key === 'Tab') {
-      // First check if Radix built-in trap already handles this — the event
-      // will only reach us if Radix didn't consume it.
-      const container = e.currentTarget
-      const focusable = container.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      )
-      if (focusable.length === 0) return
-
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault()
-        first.focus()
+      e.preventDefault()
+      if (document.activeElement === titleRef.current) {
+        descRef.current?.focus()
+      } else {
+        titleRef.current?.focus()
       }
     }
   }, [doFullSave, onClose])
@@ -272,19 +237,7 @@ function Form({
           />
         </div>
 
-        {/* Time inputs */}
-        <div className="flex items-center gap-2">
-          <input type="time" value={startStr}
-            onChange={(e) => { setStartStr(e.target.value); setError(null) }}
-            className={timeCls} aria-label={t('开始时间', 'Start time')} />
-          <span className="text-text-tertiary text-xs font-sans">{t('至', 'to')}</span>
-          <input type="time" value={endStr}
-            onChange={(e) => { setEndStr(e.target.value); setError(null) }}
-            className={timeCls} aria-label={t('结束时间', 'End time')} />
-        </div>
-        {timeErr && trimmed.length > 0 && (
-          <p className="text-xs text-color-text-danger -mt-2 font-sans">{timeErr}</p>
-        )}
+
 
         {/* Category grid: 2×3 */}
         <div className="flex flex-col gap-2">
@@ -324,16 +277,13 @@ function Form({
           </div>
         </div>
 
-        {/* Notes & Location (always visible) */}
+        {/* Notes (always visible) */}
         <div className="flex flex-col gap-3">
           <label className="font-sans text-xs text-text-tertiary">{t('添加备注 (可选)', 'Notes (optional)')}</label>
           <textarea ref={descRef} value={desc} rows={2}
             onChange={(e) => setDesc(e.target.value)}
             placeholder={t('备注…', 'A quick note…')}
             className={cn(fieldCls, 'resize-none')} />
-          <input value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder={t('地点…', 'Location…')} className={fieldCls} />
         </div>
       </div>
 

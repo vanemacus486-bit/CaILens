@@ -129,6 +129,15 @@ The Day View is no longer a separate route — it's embedded in the main view vi
 - **Category transition dividers** — subtle separators when the activity type changes.
 - **Prev / next day navigation** — walk through your diary day by day. Click any date in the week view header to jump straight to that day's diary.
 
+### Quick Log
+
+- **`N` global shortcut** — open the quick log dialog from anywhere; auto-disabled when the dialog is open to prevent accidental triggers.
+- **Minimal input flow** — only three fields: event name, category, and notes. Auto-focuses the title field on open. **Tab** toggles between title and notes, **Enter** saves directly.
+- **Alt+number for category** — `Alt+1` through `Alt+6` instantly select any of the 6 categories. Number badges on the color buttons show the shortcuts.
+- **No manual time entry** — events automatically use default time ranges (inherited from the previous event or falling back to `now - 1h` → `now`). The time picker and location field have been removed to reduce decision friction.
+- **Undo after save** — 3-second snackbar in the bottom-right; click to undo and delete the event. Rapid consecutive saves replace the toast without affecting saved events.
+- **Toolbar entry** — `+` button in the week view toolbar, same row as the search button, with a tooltip showing the keyboard shortcut.
+
 ### Month View (MonthView)
 
 - **Monthly aggregation grid** — each cell shows a summary of the day's events.
