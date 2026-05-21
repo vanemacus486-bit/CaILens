@@ -203,6 +203,13 @@ Click the chart icon in the sidebar. A **segmented control at the top** switches
 **Period selector:** Week / Month / Quarter / Year / All-time — shared across all 4 views.  
 **Data maturity:** Cold / Warming / Mature thresholds still gate analytics.
 
+**Sleep Rhythm Chart**
+- Scatter plot of bedtime & wake time with a 00–24 calendar-style Y-axis (0 at top = day starts, 24 at bottom = day ends).
+- **Month / Quarter / Year** view switching (‹ › navigation) — month shows daily data, quarter spans 4 consecutive months, year shows all 365 days.
+- Warm dots for bedtime, cool dots for wake time on the same time scale; each night connected by a **thin vertical segment**.
+- **Layered pre-computation** — all nights processed once; view switching uses filter + arithmetic only, paired with React `startTransition` for concurrent rendering.
+- Stats card: average duration / bedtime / wake time / night count.
+
 ### ICS Import
 
 - **Parse RFC 5545 files** (via ical.js). All-day and recurring events are automatically skipped with counts shown.

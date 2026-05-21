@@ -1,27 +1,33 @@
-import { useMemo, useState } from 'react'
-import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { getDayStart, formatMonthDay } from '@/domain/time'
+import { useMemo, useState, startTransition, memo } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized } from 'recharts'
 import type { CalendarEvent } from '@/domain/event'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
 interface SleepNight {
-  date: number
+  day: number
   label: string
-  dow: number           // 0=Mon … 6=Sun
-  bedHours: number      // hours from midnight (18–24 evening, 24–36 next-day morning)
-  wakeHours: number     // hours from midnight, +24 when next-day
-  duration: number      // wakeHours - bedHours
-  isRecent: boolean     // within last 7 days
+  bedTime: number   // hour of day (0-24)
+  wakeTime: number  // hour of day (0-24)
+  duration: number
 }
 
-type ViewMode = 'all' | 'weekday' | 'weekend'
+interface RawNight {
+  nightKey: number  // local midnight epoch ms
+  bedTime: number
+  wakeTime: number
+  duration: number
+  day: number       // day of month (1-31)
+  dayOfYear: number // 1-366
+}
+
+type SleepViewMode = 'month' | 'quarter' | 'year'
 
 /* ── Helpers ────────────────────────────────────────────────── */
 
 function fmtHour(h: number): string {
-  const hr = Math.floor(h % 24)
-  const mi = Math.round((h - Math.floor(h)) * 60)
+  const hr = Math.floor(h)
+  const mi = Math.round((h - hr) * 60)
   return `${String(hr).padStart(2, '0')}:${String(mi).padStart(2, '0')}`
 }
 
@@ -31,497 +37,489 @@ function fmtDuration(h: number): string {
   return `${hrs}h ${mins < 10 ? '0' : ''}${mins}m`
 }
 
-function fmtMeanTime(h: number): string {
-  // Average of circular time values — wrap display correctly
-  return fmtHour(h < 18 ? h + 24 : h)
+function monthLabel(date: Date, short: boolean, lang: 'zh' | 'en'): string {
+  if (lang === 'zh') return `${date.getMonth() + 1}月`
+  return date.toLocaleDateString('en-US', { month: short ? 'short' : 'long' })
 }
 
-const MODE_KEY = 'cailens-sleep-mode'
-
-function loadMode(): ViewMode {
-  try {
-    const v = localStorage.getItem(MODE_KEY) as ViewMode | null
-    if (v && ['all', 'weekday', 'weekend'].includes(v)) return v
-  } catch { /* ignore */ }
-  return 'all'
+function viewLabel(vm: SleepViewMode, anchor: Date, lang: 'zh' | 'en'): string {
+  const y = anchor.getFullYear()
+  const m = anchor.getMonth()
+  if (lang === 'zh') {
+    switch (vm) {
+      case 'month':   return `${y} 年 ${m + 1} 月`
+      case 'quarter': return `${m + 1}月-${m + 4}月`
+      case 'year':    return `${y} 年`
+    }
+  }
+  switch (vm) {
+    case 'month':
+      return anchor.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+    case 'quarter': {
+      const end = new Date(y, m + 3, 1)
+      return `${anchor.toLocaleDateString('en-US', { month: 'short' })}-${end.toLocaleDateString('en-US', { month: 'short' })} ${y}`
+    }
+    case 'year':
+      return String(y)
+  }
 }
 
-function saveMode(m: ViewMode) {
-  try { localStorage.setItem(MODE_KEY, m) } catch { /* ignore */ }
+function viewDesc(vm: SleepViewMode, t: (a: string, b: string) => string): string {
+  switch (vm) {
+    case 'month':   return t('就寝与起床时间', 'Bedtime & wake time')
+    case 'quarter': return t('季度睡眠模式', 'Quarterly sleep pattern')
+    case 'year':    return t('全年睡眠模式', 'Yearly sleep pattern')
+  }
 }
+
+/* ── Vertical sleep bands (SVG overlay) ────────────────────── */
+
+const SleepBands = memo(function SleepBands({ formattedGraphicalItems }: any) {
+  if (!formattedGraphicalItems) return null
+  const bed = formattedGraphicalItems.find((i: any) => i.props?.dataKey === 'bedTime')
+  const wake = formattedGraphicalItems.find((i: any) => i.props?.dataKey === 'wakeTime')
+  if (!bed?.props?.points?.length || !wake?.props?.points?.length) return null
+
+  return (
+    <g>
+      {bed.props.points.map((pt: any, i: number) => {
+        const wp = wake.props.points[i]
+        if (!wp) return null
+        return (
+          <line
+            key={i}
+            x1={pt.x} y1={pt.y}
+            x2={wp.x} y2={wp.y}
+            stroke="var(--event-accent-fill)"
+            strokeWidth={1.5} strokeOpacity={0.15}
+          />
+        )
+      })}
+    </g>
+  )
+})
 
 /* ── Component ──────────────────────────────────────────────── */
 
-interface SleepRhythmChartProps {
+interface SleepScatterChartProps {
   rangeEvents: CalendarEvent[]
   language: 'zh' | 'en'
 }
 
-export function SleepScatterChart({ rangeEvents, language }: SleepRhythmChartProps) {
+export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartProps) {
   const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
-  const [viewMode, setViewMode] = useState<ViewMode>(loadMode)
-
   const isCompact = typeof window !== 'undefined' && window.innerWidth < 720
 
-  /* ── Data preparation ─────────────────────────── */
+  const cutoff = Date.now() - 365 * 86_400_000
 
-  const now = Date.now()
-  const cutoff = now - 180 * 86_400_000
+  /* ════════════════════════════════════════════════════════════
+     Step 1 — 原始睡眠事件（一次性筛选，不建 Date）
+     ════════════════════════════════════════════════════════════ */
 
-  const allNights = useMemo(() => {
-    const sleeps = rangeEvents.filter(
-      (e) => e.categoryId === 'stone' && e.endTime - e.startTime >= 3 * 3_600_000 && e.endTime > cutoff,
+  const sleepEvents = useMemo(() => {
+    return rangeEvents.filter(
+      (e) => e.categoryId === 'stone'
+           && e.endTime - e.startTime >= 3 * 3_600_000
+           && e.startTime > cutoff,
     )
-
-    // One event per night (by bedtime date), longest wins
-    const byNight = new Map<number, CalendarEvent>()
-    for (const e of sleeps) {
-      const key = getDayStart(new Date(e.startTime))
-      const prev = byNight.get(key)
-      if (!prev || e.endTime - e.startTime > prev.endTime - prev.startTime) byNight.set(key, e)
-    }
-
-    const result: SleepNight[] = []
-
-    for (const [nightDate, ev] of byNight) {
-      const bedMs = ev.startTime - nightDate
-      const wakeMs = ev.endTime - nightDate
-      const bedH = bedMs / 3_600_000
-      let wakeH = wakeMs / 3_600_000
-
-      if (wakeH < bedH) wakeH += 24
-
-      // Sanity filter
-      if (bedH < 18 && wakeH - (wakeH >= 24 ? 24 : 0) > 14) continue
-      if (wakeH - bedH < 3) continue
-
-      const nightDateObj = new Date(nightDate)
-      result.push({
-        date: nightDate,
-        label: formatMonthDay(nightDateObj),
-        dow: (nightDateObj.getDay() + 6) % 7, // 0=Mon
-        bedHours: bedH,
-        wakeHours: wakeH,
-        duration: wakeH - bedH,
-        isRecent: nightDate > now - 7 * 86_400_000,
-      })
-    }
-
-    return result.sort((a, b) => a.date - b.date)
   }, [rangeEvents, cutoff])
 
-  /* ── Filter by view mode ──────────────────────── */
+  /* ════════════════════════════════════════════════════════════
+     Step 2 — 预计算所有夜晚（只在 sleepEvents 变化时重算）
+               每个事件只建一次 Date，存入 RawNight
+     ════════════════════════════════════════════════════════════ */
 
-  const nights = useMemo(() => {
-    if (viewMode === 'all') return allNights
-    // Weekend: Fri(4), Sat(5), Sun(6); Weekday: Mon(0)–Thu(3)
-    const isWeekend = (dow: number) => dow >= 4
-    return allNights.filter((n) => viewMode === 'weekend' ? isWeekend(n.dow) : !isWeekend(n.dow))
-  }, [allNights, viewMode])
+  const allNights = useMemo(() => {
+    const byNight = new Map<number, RawNight>()
 
-  const handleModeChange = (mode: ViewMode) => {
-    setViewMode(mode)
-    saveMode(mode)
+    for (const ev of sleepEvents) {
+      const d = new Date(ev.startTime)
+      const year = d.getFullYear()
+      const month = d.getMonth()
+      const day = d.getDate()
+
+      const nightKey = new Date(year, month, day).getTime()
+      const prev = byNight.get(nightKey)
+
+      // 同夜只保留最长的一条
+      if (prev && ev.endTime - ev.startTime <= prev.duration * 3_600_000) continue
+
+      const bedTime = d.getHours() + d.getMinutes() / 60
+
+      const wd = new Date(ev.endTime)
+      const wakeTime = wd.getHours() + wd.getMinutes() / 60
+      const duration = wakeTime > bedTime ? wakeTime - bedTime : wakeTime + 24 - bedTime
+
+      if (duration < 3) continue
+
+      // 年内第几天
+      const startOfYear = new Date(year, 0, 1).getTime()
+      const dayOfYear = Math.floor((nightKey - startOfYear) / 86_400_000) + 1
+
+      byNight.set(nightKey, { nightKey, bedTime, wakeTime, duration, day, dayOfYear })
+    }
+
+    return Array.from(byNight.values()).sort((a, b) => a.nightKey - b.nightKey)
+  }, [sleepEvents])
+
+  /* ════════════════════════════════════════════════════════════
+     Step 3 — 视图状态
+     ════════════════════════════════════════════════════════════ */
+
+  const [viewMode, setViewMode] = useState<SleepViewMode>('month')
+  const [anchorDate, setAnchorDate] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+
+  const goPrev = () => {
+    startTransition(() => {
+      setAnchorDate((d) => {
+        switch (viewMode) {
+          case 'month':   return new Date(d.getFullYear(), d.getMonth() - 1, 1)
+          case 'quarter': return new Date(d.getFullYear(), d.getMonth() - 4, 1)
+          case 'year':    return new Date(d.getFullYear() - 1, 0, 1)
+        }
+      })
+    })
   }
 
-  /* ── Linear regression ────────────────────────── */
+  const goNext = () => {
+    startTransition(() => {
+      setAnchorDate((d) => {
+        switch (viewMode) {
+          case 'month':   return new Date(d.getFullYear(), d.getMonth() + 1, 1)
+          case 'quarter': return new Date(d.getFullYear(), d.getMonth() + 4, 1)
+          case 'year':    return new Date(d.getFullYear() + 1, 0, 1)
+        }
+      })
+    })
+  }
 
-  const trend = useMemo(() => {
-    const n = nights.length
-    if (n < 3) return null
+  const changeViewMode = (vm: SleepViewMode) => {
+    if (vm === viewMode) return
+    startTransition(() => {
+      setViewMode(vm)
+      setAnchorDate(() => {
+        const now = new Date()
+        switch (vm) {
+          case 'month':   return new Date(now.getFullYear(), now.getMonth(), 1)
+          case 'quarter': return new Date(now.getFullYear(), Math.floor(now.getMonth() / 4) * 4, 1)
+          case 'year':    return new Date(now.getFullYear(), 0, 1)
+        }
+      })
+    })
+  }
 
-    const fn = (data: { x: number; y: number }[]) => {
-      const len = data.length
-      const sx = data.reduce((s, d) => s + d.x, 0)
-      const sy = data.reduce((s, d) => s + d.y, 0)
-      const sxy = data.reduce((s, d) => s + d.x * d.y, 0)
-      const sxx = data.reduce((s, d) => s + d.x * d.x, 0)
-      const slope = (len * sxy - sx * sy) / (len * sxx - sx * sx)
-      return { slope, intercept: (sy - slope * sx) / len }
+  /* ════════════════════════════════════════════════════════════
+     Step 4 — 视图窗口（轻量计算，无循环）
+     ════════════════════════════════════════════════════════════ */
+
+  const viewWindow = useMemo(() => {
+    const y = anchorDate.getFullYear()
+    const m = anchorDate.getMonth()
+
+    switch (viewMode) {
+      case 'month': {
+        const start = new Date(y, m, 1)
+        const end = new Date(y, m + 1, 1)
+        return { start, end, days: (end.getTime() - start.getTime()) / 86_400_000 }
+      }
+      case 'quarter': {
+        const start = new Date(y, m, 1)
+        const end = new Date(y, m + 4, 1)
+        return { start, end, days: (end.getTime() - start.getTime()) / 86_400_000 }
+      }
+      case 'year': {
+        const start = new Date(y, 0, 1)
+        const end = new Date(y + 1, 0, 1)
+        return { start, end, days: (end.getTime() - start.getTime()) / 86_400_000 }
+      }
+    }
+  }, [viewMode, anchorDate])
+
+  /* ════════════════════════════════════════════════════════════
+     Step 5 — 刻度（每月一次计算）
+     ════════════════════════════════════════════════════════════ */
+
+  const xTicks = useMemo(() => {
+    if (viewMode === 'month') {
+      const d = viewWindow.days
+      const nums = [1, 5, 10, 15, 20, 25].filter((v) => v <= d)
+      if (d > 25) nums.push(d)
+      return nums.map((v) => ({ value: v, label: String(v) }))
     }
 
-    return {
-      bed: fn(nights.map((d, i) => ({ x: i, y: d.bedHours }))),
-      wake: fn(nights.map((d, i) => ({ x: i, y: d.wakeHours }))),
+    const ticks: { value: number; label: string }[] = []
+    const months = viewMode === 'quarter' ? 4 : 12
+    const startTs = viewWindow.start.getTime()
+    for (let m = 0; m <= months; m++) {
+      const ms = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + m, 1)
+      const offset = Math.floor((ms.getTime() - startTs) / 86_400_000) + 1
+      if (offset >= 1 && offset <= viewWindow.days) {
+        ticks.push({ value: offset, label: m < months ? monthLabel(ms, true, language) : '' })
+      }
     }
-  }, [nights])
+    return ticks
+  }, [viewMode, viewWindow, anchorDate, language])
 
-  const chartData = useMemo(() => {
-    if (!trend) return nights
-    return nights.map((d, i) => ({
-      ...d,
-      bedTrend: +(trend.bed.slope * i + trend.bed.intercept).toFixed(2),
-      wakeTrend: +(trend.wake.slope * i + trend.wake.intercept).toFixed(2),
-    }))
-  }, [nights, trend])
+  /* ════════════════════════════════════════════════════════════
+     Step 6 — 按视图筛选（filter + map，不建 Date）
+     ════════════════════════════════════════════════════════════ */
 
-  /* ── Summary stats ────────────────────────────── */
+  const viewNights = useMemo(() => {
+    const startTs = viewWindow.start.getTime()
+    const endTs = viewWindow.end.getTime()
+
+    const result: SleepNight[] = []
+    for (const n of allNights) {
+      if (n.nightKey < startTs || n.nightKey >= endTs) continue
+
+      let day: number
+      if (viewMode === 'month') {
+        day = n.day
+      } else if (viewMode === 'year') {
+        day = n.dayOfYear
+      } else {
+        day = Math.floor((n.nightKey - startTs) / 86_400_000) + 1
+      }
+
+      result.push({
+        day,
+        label: String(day),
+        bedTime: n.bedTime,
+        wakeTime: n.wakeTime,
+        duration: n.duration,
+      })
+    }
+    return result
+  }, [allNights, viewWindow, viewMode])
+
+  /* ════════════════════════════════════════════════════════════
+     Step 7 — 统计
+     ════════════════════════════════════════════════════════════ */
 
   const stats = useMemo(() => {
-    const n = nights.length
+    const n = viewNights.length
     if (n === 0) return null
+    const avgDuration = viewNights.reduce((s, d) => s + d.duration, 0) / n
+    const avgBed = viewNights.reduce((s, d) => s + d.bedTime, 0) / n
+    const avgWake = viewNights.reduce((s, d) => s + d.wakeTime, 0) / n
+    return { n, avgDuration, avgBed, avgWake }
+  }, [viewNights])
 
-    const avgDuration = nights.reduce((s, d) => s + d.duration, 0) / n
-    const avgBed = nights.reduce((s, d) => s + d.bedHours, 0) / n
-    const avgWake = nights.reduce((s, d) => s + d.wakeHours, 0) / n
+  /* ── Colors ────────────────────────────────── */
 
-    // Consistency = inverted std dev of sleep midpoint
-    const midpoints = nights.map((d) => (d.bedHours + d.wakeHours) / 2)
-    const avgMid = midpoints.reduce((s, m) => s + m, 0) / n
-    const variance = midpoints.reduce((s, m) => s + (m - avgMid) ** 2, 0) / n
-    const stdDev = Math.sqrt(variance)
-    const consistency = Math.max(0, Math.min(100, Math.round(100 - (stdDev / 3) * 100)))
+  const colorBed = 'var(--event-accent-fill)'
+  const colorWake = 'var(--event-sky-fill)'
 
-    // Duration stats
-    const maxDur = Math.max(...nights.map((d) => d.duration))
-    const minDur = Math.min(...nights.map((d) => d.duration))
+  /* ════════════════════════════════════════════════════════════
+     Step 8 — Render
+     ════════════════════════════════════════════════════════════ */
 
-    // Recent trend (last 7 vs previous 7)
-    const recent = nights.filter((d) => d.isRecent)
-    const prev = nights.filter((d) => !d.isRecent).slice(-7)
-    const durDelta = recent.length >= 2 && prev.length >= 2
-      ? (recent.reduce((s, d) => s + d.duration, 0) / recent.length) - (prev.reduce((s, d) => s + d.duration, 0) / prev.length)
-      : null
+  const label = viewLabel(viewMode, anchorDate, language)
+  const desc = viewDesc(viewMode, t)
 
-    return { n, avgDuration, avgBed, avgWake, consistency, maxDur, minDur, durDelta }
-  }, [nights])
-
-  /* ── Empty state ──────────────────────────────── */
-
-  if (chartData.length === 0) {
-    return (
-      <div className="sleep-rhythm-root" style={{ paddingTop: 40 }}>
-        <style>{SLEEP_CSS}</style>
-        <h3 className="sleep-title" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 24, fontWeight: 600, color: 'var(--heatmap-ink-1)', marginBottom: 16 }}>
-          {t('睡眠节律', 'Sleep Rhythm')}
-        </h3>
-        <p className="sleep-empty" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 14, color: 'var(--heatmap-ink-3)', fontStyle: 'italic' }}>
-          {t('暂无睡眠数据', 'No sleep data yet')}
-        </p>
-      </div>
-    )
-  }
-
-  /* ── Insight text ─────────────────────────────── */
-
-  const insightText = useMemo(() => {
-    if (!stats || stats.n < 3) return null
-
-    if (stats.consistency >= 80) {
-      return t(
-        '你的睡眠节律非常规律，保持在稳定的生物钟轨道上。',
-        'Your sleep rhythm is remarkably consistent — a well-tuned circadian clock.',
-      )
-    }
-    if (stats.durDelta !== null && stats.durDelta > 0.5) {
-      const mins = Math.round(stats.durDelta * 60)
-      return t(
-        `最近一周睡眠时长增加了 ${mins} 分钟，趋势向好。`,
-        `Your sleep duration has increased by ${mins} min in the past week — heading in the right direction.`,
-      )
-    }
-    if (stats.durDelta !== null && stats.durDelta < -0.5) {
-      const mins = Math.round(Math.abs(stats.durDelta * 60))
-      return t(
-        `最近一周睡眠时长减少了 ${mins} 分钟，留意节奏。`,
-        `Your sleep duration has decreased by ${mins} min in the past week — keep an eye on it.`,
-      )
-    }
-
-    const avgH = Math.floor(stats.avgDuration)
-    const avgM = Math.round((stats.avgDuration - avgH) * 60)
-    if (avgH >= 7) {
-      return t(
-        `平均睡眠 ${avgH} 小时 ${avgM} 分钟，达到推荐标准。`,
-        `Average sleep ${avgH}h ${avgM}m — within the recommended range.`,
-      )
-    }
-    return t(
-      `平均睡眠 ${avgH} 小时 ${avgM} 分钟，可以考虑增加休息时间。`,
-      `Average sleep ${avgH}h ${avgM}m — consider allowing more rest.`,
-    )
-  }, [stats, t])
-
-  /* ── Colors ───────────────────────────────────── */
-
-  const colorBed = 'var(--event-accent-fill)'    // warm amber
-  const colorWake = 'var(--event-sky-fill)'       // cool steel
-
-  /* ── Render ──────────────────────────────────── */
+  // X-axis props (split to avoid conditional hooks)
+  const xTickFont = viewMode === 'month'
+    ? { fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: "'JetBrains Mono', monospace" }
+    : { fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: "'Noto Sans SC', sans-serif" }
 
   return (
-    <div className="sleep-rhythm-root">
+    <div className="sleep-root">
       <style>{SLEEP_CSS}</style>
 
-      {/* ── Title area ─────────────────────────────────── */}
+      {/* ── Title area (matches trend chart style) ───────── */}
       <div className={`sleep-title-area${isCompact ? ' sleep-title-compact' : ''}`}>
         <div className="sleep-title-left">
           <div className="sleep-title-row">
-            <span className="sleep-title-main">
-              {t('睡眠节律', 'Sleep Rhythm')}
+            <button onClick={goPrev} className="sleep-title-arrow" title={t('上一周期', 'Previous')}>‹</button>
+            <span className="sleep-title-main">{label}</span>
+            <button onClick={goNext} className="sleep-title-arrow" title={t('下一周期', 'Next')}>›</button>
+
+            {/* View mode pills */}
+            <div className="sleep-title-periods">
+              {(['month', 'quarter', 'year'] as SleepViewMode[]).map((vm) => (
+                <button
+                  key={vm}
+                  onClick={() => changeViewMode(vm)}
+                  className={`sleep-title-period${viewMode === vm ? ' sleep-title-period-active' : ''}`}
+                >
+                  {vm === 'month' ? t('月', 'Month')
+                   : vm === 'quarter' ? t('季', 'Quarter')
+                   : t('年', 'Year')}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="sleep-title-desc">{desc}</p>
+        </div>
+      </div>
+
+      {/* ── Empty state ──────────────────────────────── */}
+      {viewNights.length === 0 ? (
+        <p className="sleep-empty">{t('暂无睡眠数据', 'No sleep data yet')}</p>
+      ) : (
+        <>
+          {/* ── Chart ─────────────────────────────────── */}
+          <div className="sleep-chart-container">
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart data={viewNights} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+
+                <XAxis
+                  dataKey="day"
+                  type="number"
+                  domain={[1, viewWindow.days]}
+                  tickFormatter={(v: number) => {
+                    const tick = xTicks.find((t) => t.value === v)
+                    return tick ? tick.label : ''
+                  }}
+                  ticks={xTicks.map((t) => t.value)}
+                  tick={xTickFont}
+                  tickLine={false}
+                  axisLine={{ stroke: 'var(--border-subtle)' }}
+                  interval={0}
+                />
+
+                <YAxis
+                  domain={[0, 24]}
+                  reversed={true}
+                  tickFormatter={(v: number) => fmtHour(v)}
+                  tick={{ fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: "'JetBrains Mono', monospace" }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={44}
+                  ticks={[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]}
+                />
+
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null
+                    const bed = payload.find((p) => p.name === 'bed')
+                    const wake = payload.find((p) => p.name === 'wake')
+                    const raw = payload[0]?.payload as Record<string, any> | undefined
+                    return (
+                      <div className="sleep-tooltip">
+                        <div className="sleep-tooltip-date">
+                          {t('第 ', 'Day ')}{raw?.day ?? ''}{t(' 日', '')}
+                        </div>
+                        {bed && (
+                          <div className="sleep-tooltip-row">
+                            <span className="sleep-tooltip-dot" style={{ background: colorBed }} />
+                            <span className="sleep-tooltip-label">{t('就寝', 'Bed')}</span>
+                            <span className="sleep-tooltip-val">{fmtHour(bed.value as number)}</span>
+                          </div>
+                        )}
+                        {wake && (
+                          <div className="sleep-tooltip-row">
+                            <span className="sleep-tooltip-dot" style={{ background: colorWake }} />
+                            <span className="sleep-tooltip-label">{t('起床', 'Wake')}</span>
+                            <span className="sleep-tooltip-val">{fmtHour(wake.value as number)}</span>
+                          </div>
+                        )}
+                        {bed && wake && (
+                          <>
+                            <div className="sleep-tooltip-divider" />
+                            <div className="sleep-tooltip-row">
+                              <span className="sleep-tooltip-label">{t('时长', 'Duration')}</span>
+                              <span className="sleep-tooltip-val">
+                                {fmtDuration(
+                                  (wake.value as number) > (bed.value as number)
+                                    ? (wake.value as number) - (bed.value as number)
+                                    : (wake.value as number) + 24 - (bed.value as number),
+                                )}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )
+                  }}
+                />
+
+                {/* Sleep bands */}
+                <Customized component={SleepBands} />
+
+                {/* Bedtime dots */}
+                <Line
+                  type="linear"
+                  dataKey="bedTime"
+                  stroke="transparent"
+                  dot={{ r: 3.5, fill: colorBed, strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: colorBed, strokeWidth: 0 }}
+                  connectNulls={false}
+                  isAnimationActive={false}
+                  name="bed"
+                />
+
+                {/* Wake-up dots */}
+                <Line
+                  type="linear"
+                  dataKey="wakeTime"
+                  stroke="transparent"
+                  dot={{ r: 3.5, fill: colorWake, strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: colorWake, strokeWidth: 0 }}
+                  connectNulls={false}
+                  isAnimationActive={false}
+                  name="wake"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* ── Legend ──────────────────────────────────── */}
+          <div className="sleep-legend">
+            <span className="sleep-legend-item">
+              <span className="sleep-legend-dot" style={{ background: colorBed }} />
+              {t('就寝', 'Bed')}
+            </span>
+            <span className="sleep-legend-item">
+              <span className="sleep-legend-dot" style={{ background: colorWake }} />
+              {t('起床', 'Wake')}
+            </span>
+            <span className="sleep-legend-note">
+              {t('每天一个点', 'Each dot = one night')}
             </span>
           </div>
-          <p className="sleep-title-desc">
-            {t('过去 180 天的就寝与起床模式', 'Bedtime & wake patterns over the last 180 days')}
-          </p>
-        </div>
 
-        {/* View mode pills */}
-        <div className="sleep-pills">
-          {([
-            { key: 'all' as ViewMode, label: t('全部', 'All') },
-            { key: 'weekday' as ViewMode, label: t('平日', 'Weekday') },
-            { key: 'weekend' as ViewMode, label: t('周末', 'Weekend') },
-          ]).map((m) => (
-            <button
-              key={m.key}
-              onClick={() => handleModeChange(m.key)}
-              className={`sleep-pill${viewMode === m.key ? ' sleep-pill-active' : ''}`}
-              style={
-                viewMode === m.key
-                  ? { backgroundColor: colorBed, color: '#F1EADB' }
-                  : undefined
-              }
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Chart ───────────────────────────────────────── */}
-      <div className="sleep-chart-container">
-        <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={chartData} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 10, fill: 'var(--text-tertiary)', fontFamily: "'JetBrains Mono', monospace" }}
-              tickLine={false}
-              axisLine={{ stroke: 'var(--border-subtle)' }}
-              interval="preserveStartEnd"
-            />
-
-            <YAxis
-              domain={[18, 36]}
-              tickFormatter={(v: number) => fmtHour(v)}
-              tick={{ fontSize: 10, fill: 'var(--text-tertiary)', fontFamily: "'JetBrains Mono', monospace" }}
-              tickLine={false}
-              axisLine={false}
-              width={52}
-              ticks={[18, 21, 24, 27, 30, 33, 36]}
-            />
-
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length || !label) return null
-                const bedEntry = payload.find((p) => p.name === 'bed')
-                const wakeEntry = payload.find((p) => p.name === 'wake')
-                const durEntry = payload.find((p) => p.name === 'dur')
-                return (
-                  <div className="sleep-tooltip">
-                    <div className="sleep-tooltip-date">{label}</div>
-                    {bedEntry && (
-                      <div className="sleep-tooltip-row">
-                        <span className="sleep-tooltip-dot" style={{ background: colorBed }} />
-                        <span className="sleep-tooltip-label">{t('就寝', 'Bed')}</span>
-                        <span className="sleep-tooltip-val">{fmtHour(bedEntry.value as number)}</span>
-                      </div>
-                    )}
-                    {wakeEntry && (
-                      <div className="sleep-tooltip-row">
-                        <span className="sleep-tooltip-dot" style={{ background: colorWake }} />
-                        <span className="sleep-tooltip-label">{t('起床', 'Wake')}</span>
-                        <span className="sleep-tooltip-val">{fmtHour(wakeEntry.value as number)}</span>
-                      </div>
-                    )}
-                    {durEntry && (
-                      <div className="sleep-tooltip-divider" />
-                    )}
-                    {durEntry && (
-                      <div className="sleep-tooltip-row">
-                        <span className="sleep-tooltip-label">{t('时长', 'Duration')}</span>
-                        <span className="sleep-tooltip-val">{fmtDuration(durEntry.value as number)}</span>
-                      </div>
-                    )}
-                  </div>
-                )
-              }}
-            />
-
-            {/* Midnight reference */}
-            <ReferenceLine
-              y={24}
-              stroke="var(--border-subtle)"
-              strokeDasharray="2 2"
-              label={{
-                value: t('午夜', 'Midnight'),
-                position: 'insideTopLeft',
-                fontSize: 10,
-                fill: 'var(--text-tertiary)',
-                fontFamily: "'Noto Sans SC', sans-serif",
-              }}
-            />
-
-            {/* Sleep bands — stacked Area creates filled band from bed up through duration */}
-            <Area dataKey="bedHours" stackId="sleep" fill="transparent" stroke="none" />
-            <Area
-              dataKey="duration"
-              stackId="sleep"
-              fill={colorBed}
-              fillOpacity={0.08}
-              stroke="none"
-              name="dur"
-            />
-
-            {/* Trend lines */}
-            {trend && (
-              <>
-                <Line type="linear" dataKey="bedTrend" stroke={colorBed} strokeWidth={1.5} strokeDasharray="5 4" dot={false} connectNulls={false} />
-                <Line type="linear" dataKey="wakeTrend" stroke={colorWake} strokeWidth={1.5} strokeDasharray="5 4" dot={false} connectNulls={false} />
-              </>
-            )}
-
-            {/* Bedtime dots */}
-            <Line
-              type="linear"
-              dataKey="bedHours"
-              stroke="transparent"
-              dot={{ r: 3.5, fill: colorBed, strokeWidth: 0 }}
-              activeDot={{ r: 5, fill: colorBed, strokeWidth: 0 }}
-              connectNulls={false}
-              name="bed"
-            />
-
-            {/* Wake-up dots */}
-            <Line
-              type="linear"
-              dataKey="wakeHours"
-              stroke="transparent"
-              dot={{ r: 3.5, fill: colorWake, strokeWidth: 0 }}
-              activeDot={{ r: 5, fill: colorWake, strokeWidth: 0 }}
-              connectNulls={false}
-              name="wake"
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* ── Legend ────────────────────────────────────────── */}
-      <div className="sleep-legend">
-        <span className="sleep-legend-item">
-          <span className="sleep-legend-dot" style={{ background: colorBed }} />
-          {t('就寝', 'Bed')}
-        </span>
-        <span className="sleep-legend-item">
-          <span className="sleep-legend-dot" style={{ background: colorWake }} />
-          {t('起床', 'Wake')}
-        </span>
-        <span className="sleep-legend-item">
-          <span className="sleep-legend-line" style={{ borderColor: colorBed }} />
-          {t('趋势', 'Trend')}
-        </span>
-        <span className="sleep-legend-note">
-          {viewMode === 'weekday'
-            ? t('仅显示周一至周四', 'Mon–Thu only')
-            : viewMode === 'weekend'
-              ? t('仅显示周五至周日', 'Fri–Sun only')
-              : t('每点 = 一晚', 'Each dot = one night')}
-        </span>
-      </div>
-
-      {/* ── Stats bar ────────────────────────────────────── */}
-      {stats && (
-        <div className={`sleep-stats-bar${isCompact ? ' sleep-stats-compact' : ''}`}>
-          <div className="sleep-stat">
-            <div className="sleep-stat-label">{t('时 长', 'Duration')}</div>
-            <div className="sleep-stat-value">
-              {fmtDuration(stats.avgDuration)}
+          {/* ── Stats bar ──────────────────────────────── */}
+          {stats && (
+            <div className={`sleep-stats-bar${isCompact ? ' sleep-stats-compact' : ''}`}>
+              <div className="sleep-stat">
+                <div className="sleep-stat-label">{t('时 长', 'Duration')}</div>
+                <div className="sleep-stat-value">{fmtDuration(stats.avgDuration)}</div>
+                <div className="sleep-stat-detail">{t('平均', 'Average')}</div>
+              </div>
+              <div className="sleep-stat">
+                <div className="sleep-stat-label">{t('就 寝', 'Bedtime')}</div>
+                <div className="sleep-stat-value">{fmtHour(stats.avgBed)}</div>
+                <div className="sleep-stat-detail">{t('平均就寝', 'Avg bedtime')}</div>
+              </div>
+              <div className="sleep-stat">
+                <div className="sleep-stat-label">{t('起 床', 'Wake-up')}</div>
+                <div className="sleep-stat-value">{fmtHour(stats.avgWake)}</div>
+                <div className="sleep-stat-detail">{t('平均起床', 'Avg wake-up')}</div>
+              </div>
+              <div className="sleep-stat">
+                <div className="sleep-stat-label">{t('天 数', 'Nights')}</div>
+                <div className="sleep-stat-value">
+                  {stats.n}<span className="sleep-stat-unit">{t('晚', 'n')}</span>
+                </div>
+                <div className="sleep-stat-detail">{label}</div>
+              </div>
             </div>
-            <div className="sleep-stat-detail">
-              {stats.durDelta !== null
-                ? (stats.durDelta >= 0
-                    ? t(`较上周 +${Math.round(stats.durDelta * 60)} 分钟`, `+${Math.round(stats.durDelta * 60)}m vs last wk`)
-                    : t(`较上周 ${Math.round(stats.durDelta * 60)} 分钟`, `${Math.round(stats.durDelta * 60)}m vs last wk`))
-                : t('平 均', 'Average')}
-            </div>
-          </div>
-
-          <div className="sleep-stat">
-            <div className="sleep-stat-label">{t('就 寝', 'Bedtime')}</div>
-            <div className="sleep-stat-value">
-              {fmtMeanTime(stats.avgBed)}
-            </div>
-            <div className="sleep-stat-detail">
-              {t('平均就寝时间', 'Avg bedtime')}
-            </div>
-          </div>
-
-          <div className="sleep-stat">
-            <div className="sleep-stat-label">{t('起 床', 'Wake-up')}</div>
-            <div className="sleep-stat-value">
-              {fmtMeanTime(stats.avgWake)}
-            </div>
-            <div className="sleep-stat-detail">
-              {t('平均起床时间', 'Avg wake-up')}
-            </div>
-          </div>
-
-          <div className="sleep-stat">
-            <div className="sleep-stat-label">{t('规 律', 'Routine')}</div>
-            <div className="sleep-stat-value">
-              {stats.consistency}
-              <span className="sleep-stat-unit">%</span>
-            </div>
-            <div className="sleep-stat-detail">
-              {stats.consistency >= 80
-                ? t('非常规律', 'Very consistent')
-                : stats.consistency >= 50
-                  ? t('较为规律', 'Moderately consistent')
-                  : t('波动较大', 'Highly variable')}
-            </div>
-          </div>
-
-          <div className="sleep-stat">
-            <div className="sleep-stat-label">{t('天 数', 'Nights')}</div>
-            <div className="sleep-stat-value">
-              {stats.n}
-              <span className="sleep-stat-unit">{t('晚', 'n')}</span>
-            </div>
-            <div className="sleep-stat-detail">
-              {viewMode === 'weekday'
-                ? t('180 天内的平日', 'Weekdays in 180d')
-                : viewMode === 'weekend'
-                  ? t('180 天内的周末', 'Weekends in 180d')
-                  : t('180 天内', 'In 180 days')}
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
-
-      {/* ── Insight bar ──────────────────────────────────── */}
-      {insightText && (
-        <div className="sleep-insight">
-          <div className="sleep-insight-icon">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="7" cy="7" r="6.5" stroke="currentColor" strokeWidth="0.8" />
-              <path d="M7 4V8M7 9.5V10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" />
-            </svg>
-          </div>
-          <p className="sleep-insight-text">{insightText}</p>
-        </div>
-      )}
-
-
     </div>
   )
 }
 
-/* ── Scoped CSS ──────────────────────────────────────────────── */
+/* ── Scoped CSS (matches trend chart style) ─────────────────── */
 
 const SLEEP_CSS = `
-.sleep-rhythm-root {
+.sleep-root {
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
@@ -547,8 +545,8 @@ const SLEEP_CSS = `
 }
 .sleep-title-row {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
 }
 .sleep-title-main {
   font-family: 'Noto Serif SC', serif;
@@ -557,6 +555,55 @@ const SLEEP_CSS = `
   color: var(--heatmap-ink-1);
   line-height: 1.2;
   letter-spacing: 0.02em;
+  min-width: 120px;
+  text-align: center;
+}
+.sleep-title-arrow {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--heatmap-ink-3);
+  transition: color 0.2s ease, background-color 0.2s ease;
+  flex-shrink: 0;
+}
+.sleep-title-arrow:hover {
+  color: var(--heatmap-ink-1);
+  background: var(--heatmap-bg-card);
+}
+.sleep-title-periods {
+  display: flex;
+  gap: 2px;
+  margin-left: 6px;
+  background: var(--heatmap-bg-card);
+  border-radius: 6px;
+  padding: 2px;
+}
+.sleep-title-period {
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--heatmap-ink-3);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.sleep-title-period:hover {
+  color: var(--heatmap-ink-1);
+}
+.sleep-title-period-active {
+  color: var(--heatmap-ink-1);
+  background: var(--heatmap-bg);
+  font-weight: 600;
 }
 .sleep-title-desc {
   font-family: 'Noto Serif SC', serif;
@@ -566,38 +613,9 @@ const SLEEP_CSS = `
   margin: 0;
 }
 
-/* ── Mode pills ──────────────────────────── */
-.sleep-pills {
-  display: flex;
-  gap: 6px;
-  background: var(--heatmap-bg-card);
-  border-radius: 999px;
-  padding: 4px;
-  flex-shrink: 0;
-}
-.sleep-pill {
-  padding: 6px 16px;
-  border-radius: 999px;
-  font-family: 'Noto Sans SC', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--heatmap-ink-2);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.25s ease, color 0.25s ease;
-  white-space: nowrap;
-}
-.sleep-pill:hover {
-  color: var(--heatmap-ink-1);
-}
-.sleep-pill-active {
-  font-weight: 600;
-}
-
 /* ── Chart container ─────────────────────── */
 .sleep-chart-container {
-  margin-top: 16px;
+  margin-top: 28px;
   position: relative;
 }
 
@@ -605,8 +623,8 @@ const SLEEP_CSS = `
 .sleep-legend {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-top: 8px;
+  gap: 20px;
+  margin-top: 12px;
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 12px;
   color: var(--heatmap-ink-3);
@@ -622,12 +640,6 @@ const SLEEP_CSS = `
   border-radius: 50%;
   flex-shrink: 0;
 }
-.sleep-legend-line {
-  width: 20px;
-  height: 0;
-  border-top: 1.5px dashed;
-  flex-shrink: 0;
-}
 .sleep-legend-note {
   margin-left: auto;
   font-size: 11px;
@@ -638,16 +650,16 @@ const SLEEP_CSS = `
 /* ── Stats bar ───────────────────────────── */
 .sleep-stats-bar {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border-top: 1px solid var(--heatmap-rule);
   border-bottom: 1px solid var(--heatmap-rule);
-  margin-top: 16px;
+  margin-top: 28px;
 }
 .sleep-stats-compact {
   grid-template-columns: repeat(2, 1fr);
 }
 .sleep-stat {
-  padding: 16px 14px;
+  padding: 24px 20px;
   border-right: 1px solid var(--heatmap-rule);
 }
 .sleep-stat:last-child {
@@ -682,30 +694,7 @@ const SLEEP_CSS = `
   color: var(--heatmap-ink-3);
 }
 
-/* ── Insight bar ─────────────────────────── */
-.sleep-insight {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: var(--color-bg-info);
-  border-radius: 8px;
-}
-.sleep-insight-icon {
-  flex-shrink: 0;
-  color: var(--color-text-info);
-  margin-top: 1px;
-}
-.sleep-insight-text {
-  font-family: 'Noto Sans SC', sans-serif;
-  font-size: 12px;
-  color: var(--color-text-info);
-  margin: 0;
-  line-height: 1.5;
-}
-
-/* ── Tooltip (Recharts override) ─────────── */
+/* ── Tooltip ─────────────────────────────── */
 .sleep-tooltip {
   background: var(--heatmap-ink-1);
   color: var(--heatmap-bg);
@@ -750,22 +739,29 @@ const SLEEP_CSS = `
   margin: 5px 0;
 }
 
+/* ── Empty ───────────────────────────────── */
+.sleep-empty {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  color: var(--heatmap-ink-3);
+  font-style: italic;
+  margin-top: 40px;
+}
+
 /* ── Responsive ──────────────────────────── */
 @media (max-width: 719px) {
   .sleep-title-main {
     font-size: 22px;
+    min-width: 100px;
   }
   .sleep-title-desc {
     font-size: 13px;
-  }
-  .sleep-pills {
-    width: 100%;
   }
   .sleep-stat-value {
     font-size: 22px;
   }
   .sleep-stat {
-    padding: 14px 10px;
+    padding: 18px 14px;
   }
 }
 `
