@@ -1,72 +1,78 @@
 /**
  * # 稳态指标（Steady Metrics）
  *
- * 需求四：从"冲刺指标"转向"稳态指标"。
+ * 替代旧的"连续天数"冲刺型指标体系。
+ * 所有指标围绕"长期规律性"设计——允许偶发漏记与波动。
  *
- * 替代 `computeStreak`（连续天数）的冲刺型指标，
- * 引入更能反映长期规律性的稳态指标：
+ * ## 指标列表
  *
- * - 覆盖率（coverage）     → 已有 `quality.ts` 中的实现
- * - 中位数（median）       → 就寝/起床时间的中位数
- * - 标准差（stddev）       → 就寝/起床时间的标准差
- * - 漂移速度（drift）      → 作息随时间滑动的速度与方向
- *
- * ## 时区约定
- *
- * 所有时间戳为 UTC 毫秒。就寝/起床时间按本地时区推断：
- * "就寝" = 当天最后一个事件的 endTime
- * "起床" = 当天第一个事件的 startTime（若在上午）
+ * | 指标 | 含义 | 理想值方向 |
+ * |------|------|------------|
+ * | 覆盖率 | 统计周期内有记录的天数占比 | 越高越好 |
+ * | 均值 | 关键指标（如睡眠时长）的周期均值 | 与目标一致 |
+ * | 中位数 | 抗离群值的中心趋势 | 与均值接近 → 分布对称 |
+ * | 标准差 | 波动幅度 | 越小越好 |
+ * | 漂移速度 | 作息随时间滑动的速率（分钟/周） | 越接近 0 越好 |
+ * | 漂移方向 | 推迟/提前/稳定 | 可观测即可 |
+ * | 一致性指数 | 0-1, 综合反映规律性 | 越高越好 |
  */
 
 import type { CalendarEvent } from './event'
 
-// ── 类型定义 ────────────────────────────────────────────────────
+// ── 核心类型 ──────────────────────────────────────────────
 
-export interface SleepMetrics {
-  /** 就寝时间中位数（本地小时，如 23.5 = 23:30） */
-  medianBedtime: number | null
-  /** 起床时间中位数（本地小时，如 7.25 = 07:15） */
-  medianWakeTime: number | null
-  /** 睡眠时长中位数（小时） */
-  medianSleepDuration: number | null
-  /** 就寝时间的标准差（分钟） */
-  bedtimeStddev: number | null
-  /** 起床时间的标准差（分钟） */
-  wakeTimeStddev: number | null
-}
+/** 漂移方向 */
+export type DriftDirection = 'advancing' | 'delaying' | 'stable'
 
-export interface DriftMetrics {
-  /** 漂移速度（分钟/周，正数=推迟，负数=提前） */
-  bedtimeDrift: number | null
-  /** wakeTime 漂移速度（分钟/周） */
-  wakeTimeDrift: number | null
-  /** 若不干预，N 周后就寝时间会到达几点（本地小时） */
-  projectedBedtime: number | null
-  /** 若不干预，N 周后起床时间会到达几点（本地小时） */
-  projectedWakeTime: number | null
-  /** 漂移方向的文字描述 */
-  direction: 'advancing' | 'delaying' | 'stable' | null
-}
-
-export interface SteadyMetrics {
-  sleep: SleepMetrics
-  drift: DriftMetrics
-  /** 有数据的有效天数比例（0–1） */
+/** 睡眠稳态指标 */
+export interface SleepSteadyMetrics {
+  /** 统计周期天数 */
+  periodDays: number
+  /** 有睡眠记录的天数 */
+  recordedDays: number
+  /** 睡眠记录覆盖率（recordedDays / periodDays） */
   coverage: number
-  /** 分析的周数 */
-  weekCount: number
+  /** 就寝时间均值（24h 小数） */
+  meanBedtime: number
+  /** 就寝时间中位数（24h 小数） */
+  medianBedtime: number
+  /** 就寝时间标准差（小时） */
+  stdBedtime: number
+  /** 起床时间均值（24h 小数） */
+  meanWakeTime: number
+  /** 起床时间中位数（24h 小数） */
+  medianWakeTime: number
+  /** 起床时间标准差（小时） */
+  stdWakeTime: number
+  /** 睡眠时长均值（小时） */
+  meanDuration: number
+  /** 睡眠时长中位数（小时） */
+  medianDuration: number
+  /** 睡眠时长标准差（小时） */
+  stdDuration: number
+  /** 漂移速度（分钟/周，正值=推迟，负值=提前） */
+  driftSpeed: number
+  /** 漂移方向 */
+  driftDirection: DriftDirection
+  /** 一致性指数 0-1 */
+  consistencyIndex: number
 }
 
-// ── 工具函数 ────────────────────────────────────────────────────
-
-/** 将 Date 对象的 小时+分钟 转为浮点小时（本地时区） */
-function toLocalHour(ts: number): number {
-  const d = new Date(ts)
-  return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600
+/** 类别投入稳态指标 */
+export interface CategorySteadyMetrics {
+  categoryId: string
+  /** 周均投入时间（小时） */
+  weeklyMean: number
+  /** 周投入标准差（小时） */
+  weeklyStd: number
+  /** 覆盖率：有投入的周数 / 总周数 */
+  coverage: number
+  /** 预算贴合度：weeklyMean / weeklyBudget （1 = 完美） */
+  budgetAdherence: number
 }
 
-/** 将浮点小时转为 Date 对象的本地小时+分钟 */
-/** 中位数 */
+// ── 中位数辅助 ──────────────────────────────────────────
+
 function median(values: number[]): number {
   if (values.length === 0) return 0
   const sorted = [...values].sort((a, b) => a - b)
@@ -74,182 +80,139 @@ function median(values: number[]): number {
   return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
 }
 
-/** 标准差 */
-function stddev(values: number[]): number {
-  if (values.length < 2) return 0
-  const mean = values.reduce((s, v) => s + v, 0) / values.length
-  const sqDiffs = values.map((v) => (v - mean) ** 2)
-  return Math.sqrt(sqDiffs.reduce((s, v) => s + v, 0) / (values.length - 1))
+function mean(values: number[]): number {
+  if (values.length === 0) return 0
+  return values.reduce((s, v) => s + v, 0) / values.length
 }
 
-/** 处理跨午夜的就寝时间：23:00 → 23，01:00 → 25（+24） */
-/** 反标准化：25 → 01:00 */
-function denormalizeBedtime(hour: number): number {
-  return hour >= 24 ? hour - 24 : hour
+function stddev(values: number[], meanVal: number): number {
+  if (values.length === 0) return 0
+  const sqSum = values.reduce((s, v) => s + (v - meanVal) * (v - meanVal), 0)
+  return Math.sqrt(sqSum / values.length)
 }
+
+// ── 睡眠稳态计算 ─────────────────────────────────────────
 
 /**
- * 线性回归斜率。返回每分钟变化量。
- * x = 天（相对于第一个点的偏移），y = 本地小时
+ * 从事件列表中提取主睡眠记录列表。
+ * 主睡眠：categoryId === 'stone'，时长 ≥ 3h，非小睡。
  */
-function linearSlope(points: { x: number; y: number }[]): number | null {
-  if (points.length < 2) return null
-  const n = points.length
-  const sumX = points.reduce((s, p) => s + p.x, 0)
-  const sumY = points.reduce((s, p) => s + p.y, 0)
-  const sumXY = points.reduce((s, p) => s + p.x * p.y, 0)
-  const sumX2 = points.reduce((s, p) => s + p.x * p.x, 0)
-
-  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
-  // slope is in hours/day; convert to minutes/week
-  return slope !== null ? slope * 60 * 7 : null
-}
-
-// ── 主函数 ──────────────────────────────────────────────────────
-
-/**
- * 从一天的事件列表推断就寝时间和起床时间。
- *
- * - 起床：当天第一个事件的 startTime（如果在 04:00–12:00 之间）
- * - 就寝：当天最后一个事件的 endTime（如果在 18:00–06:00 之间，考虑跨午夜）
- */
-function inferSleepTimes(dayEvents: CalendarEvent[]): {
-  bedtime: number | null
-  wakeTime: number | null
-} {
-  if (dayEvents.length === 0) return { bedtime: null, wakeTime: null }
-
-  const sorted = [...dayEvents].sort((a, b) => a.startTime - b.startTime)
-
-  // 起床：第一个事件的 startTime
-  const firstHour = toLocalHour(sorted[0].startTime)
-  const wakeTime = firstHour >= 4 && firstHour <= 12 ? firstHour : null
-
-  // 就寝：最后一个事件的 endTime
-  const last = sorted[sorted.length - 1]
-  const lastHour = toLocalHour(last.endTime)
-
-  // 如果最后一个事件结束在 18:00–06:00 之间，视为就寝时间
-  const normalized = lastHour >= 18 ? lastHour : (lastHour < 6 ? lastHour + 24 : null)
-  const bedtime = normalized !== null && normalized >= 18 && normalized <= 30
-    ? normalized
-    : null
-
-  return { bedtime, wakeTime }
-}
-
-/**
- * 将事件按天分组。
- */
-function groupByDay(events: readonly CalendarEvent[]): Map<number, CalendarEvent[]> {
-  const map = new Map<number, CalendarEvent[]>()
-  for (const event of events) {
-    const dayStart = new Date(event.startTime)
-    dayStart.setHours(0, 0, 0, 0)
-    const key = dayStart.getTime()
-    const arr = map.get(key) ?? []
-    arr.push(event)
-    map.set(key, arr)
-  }
-  return map
-}
-
-/**
- * 计算稳态指标。
- *
- * @param events  时间范围内的所有事件
- * @param dayCount  分析的日历天数
- * @param projectWeeks  投影周数（默认 4 周）
- */
-export function computeSteadyMetrics(
+export function extractSleepNights(
   events: readonly CalendarEvent[],
-  dayCount: number,
-  projectWeeks = 4,
-): SteadyMetrics {
-  const byDay = groupByDay(events)
-  const daysWithData = byDay.size
-  const coverage = dayCount > 0 ? daysWithData / dayCount : 0
+  rangeStart: number,
+  rangeEnd: number,
+): Array<{ date: string; bedtime: number; wakeTime: number; duration: number }> {
+  const result: Array<{ date: string; bedtime: number; wakeTime: number; duration: number }> = []
+  const seen = new Set<number>() // dedup by night key (local midnight)
 
-  // 提取每天的作息时间
-  type DayPoint = { dateTs: number; dayIndex: number; bedtime: number | null; wakeTime: number | null }
-  const dayPoints: DayPoint[] = []
-  let idx = 0
-  for (const [, dayEvents] of byDay) {
-    const { bedtime, wakeTime } = inferSleepTimes(dayEvents)
-    dayPoints.push({
-      dateTs: dayEvents[0].startTime,
-      dayIndex: idx++,
+  for (const e of events) {
+    if (e.categoryId !== 'stone') continue
+    if (e.endTime - e.startTime < 3 * 3_600_000) continue
+    if (e.startTime < rangeStart || e.startTime >= rangeEnd) continue
+    if (e.typedData?.type === 'sleep' && e.typedData.sleepType === 'nap') continue
+
+    const d = new Date(e.startTime)
+    const nightKey = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+    if (seen.has(nightKey)) continue
+    seen.add(nightKey)
+
+    const bedtime = d.getHours() + d.getMinutes() / 60
+    const wd = new Date(e.endTime)
+    const wakeTime = wd.getHours() + wd.getMinutes() / 60
+    const duration = wakeTime > bedtime ? wakeTime - bedtime : wakeTime + 24 - bedtime
+
+    result.push({
+      date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
       bedtime,
       wakeTime,
+      duration,
     })
   }
 
-  // ── 睡眠中位数与标准差 ──
-  const validBedtimes = dayPoints
-    .map((p) => p.bedtime)
-    .filter((b): b is number => b !== null)
-  const validWakeTimes = dayPoints
-    .map((p) => p.wakeTime)
-    .filter((w): w is number => w !== null)
+  return result
+}
 
-  const medianBedtime = validBedtimes.length > 0 ? denormalizeBedtime(median(validBedtimes)) : null
-  const medianWakeTime = validWakeTimes.length > 0 ? median(validWakeTimes) : null
+/**
+ * 计算最近 N 天的睡眠稳态指标。
+ *
+ * @param nights 睡眠记录列表
+ * @param periodDays 统计周期天数
+ * @returns SleepSteadyMetrics
+ */
+export function computeSleepSteadyMetrics(
+  nights: ReadonlyArray<{ bedtime: number; wakeTime: number; duration: number }>,
+  periodDays: number,
+): SleepSteadyMetrics {
+  const n = nights.length
 
-  const bedtimeStddev = validBedtimes.length > 1 ? stddev(validBedtimes) : null
-  const wakeTimeStddev = validWakeTimes.length > 1 ? stddev(validWakeTimes) : null
-
-  // 睡眠时长中位数
-  const durations: number[] = []
-  for (const dp of dayPoints) {
-    if (dp.bedtime !== null && dp.wakeTime !== null) {
-      // bedtime 是 normalize 后的，wakeTime 是 raw 的
-      let duration = dp.wakeTime - denormalizeBedtime(dp.bedtime)
-      if (duration < 0) duration += 24
-      if (duration > 0 && duration < 16) durations.push(duration)
+  if (n === 0) {
+    return {
+      periodDays,
+      recordedDays: 0,
+      coverage: 0,
+      meanBedtime: 0,
+      medianBedtime: 0,
+      stdBedtime: 0,
+      meanWakeTime: 0,
+      medianWakeTime: 0,
+      stdWakeTime: 0,
+      meanDuration: 0,
+      medianDuration: 0,
+      stdDuration: 0,
+      driftSpeed: 0,
+      driftDirection: 'stable',
+      consistencyIndex: 0,
     }
   }
-  const medianSleepDuration = durations.length > 0 ? median(durations) : null
 
-  // ── 漂移速度 ──
-  const bedtimePoints = validBedtimes.map((b, i) => ({ x: i, y: b }))
-  const wakePoints = validWakeTimes.map((w, i) => ({ x: i, y: w }))
+  const bedtimes = nights.map((n) => n.bedtime)
+  const wakeTimes = nights.map((n) => n.wakeTime)
+  const durations = nights.map((n) => n.duration)
 
-  const bedtimeDriftMpw = linearSlope(bedtimePoints) // minutes/week
-  const wakeDriftMpw = linearSlope(wakePoints)
+  const meanBedtime = mean(bedtimes)
+  const meanWakeTime = mean(wakeTimes)
+  const meanDuration = mean(durations)
 
-  // 投影
-  let projectedBedtime: number | null = null
-  let projectedWakeTime: number | null = null
-  if (bedtimeDriftMpw !== null && validBedtimes.length > 0) {
-    const projected = validBedtimes[validBedtimes.length - 1] + (bedtimeDriftMpw / 60) * projectWeeks
-    projectedBedtime = denormalizeBedtime(projected)
-  }
-  if (wakeDriftMpw !== null && validWakeTimes.length > 0) {
-    projectedWakeTime = validWakeTimes[validWakeTimes.length - 1] + (wakeDriftMpw / 60) * projectWeeks
+  // 漂移速度：最近 7 天均值 vs 更早 7 天均值（若数据充足）
+  let driftSpeed = 0
+  if (n >= 14) {
+    const recent7 = mean(bedtimes.slice(-7))
+    const earlier7 = mean(bedtimes.slice(-14, -7))
+    driftSpeed = (recent7 - earlier7) * (60 / 7) // 分钟/周（正值=推迟）
   }
 
-  // 文字描述
-  let direction: 'advancing' | 'delaying' | 'stable' | null = null
-  if (bedtimeDriftMpw !== null) {
-    direction = bedtimeDriftMpw > 3 ? 'delaying' : bedtimeDriftMpw < -3 ? 'advancing' : 'stable'
-  }
+  let driftDirection: DriftDirection = 'stable'
+  if (driftSpeed > 5) driftDirection = 'delaying'
+  else if (driftSpeed < -5) driftDirection = 'advancing'
+
+  // 一致性指数：综合标准差 + 覆盖率
+  const stdBedtimeVal = stddev(bedtimes, meanBedtime)
+  const stdDurationVal = stddev(durations, meanDuration)
+  const stdWakeVal = stddev(wakeTimes, meanWakeTime)
+  const coverage = periodDays > 0 ? n / periodDays : 0
+
+  // 归一化：假设合理标准差上限为 2h，超过 2h 一致性为 0
+  const bedtimeConsistency = Math.max(0, 1 - stdBedtimeVal / 2)
+  const durationConsistency = Math.max(0, 1 - stdDurationVal / 2)
+  const wakeConsistency = Math.max(0, 1 - stdWakeVal / 2)
+  const coverageFactor = coverage
+  const consistencyIndex = Math.round((bedtimeConsistency * 0.35 + durationConsistency * 0.35 + wakeConsistency * 0.2 + coverageFactor * 0.1) * 100) / 100
 
   return {
-    sleep: {
-      medianBedtime,
-      medianWakeTime,
-      medianSleepDuration,
-      bedtimeStddev: bedtimeStddev ?? null,
-      wakeTimeStddev: wakeTimeStddev ?? null,
-    },
-    drift: {
-      bedtimeDrift: bedtimeDriftMpw !== null ? Math.round(bedtimeDriftMpw * 10) / 10 : null,
-      wakeTimeDrift: wakeDriftMpw !== null ? Math.round(wakeDriftMpw * 10) / 10 : null,
-      projectedBedtime,
-      projectedWakeTime,
-      direction,
-    },
-    coverage,
-    weekCount: Math.ceil(dayCount / 7),
+    periodDays,
+    recordedDays: n,
+    coverage: Math.round(coverage * 100) / 100,
+    meanBedtime: Math.round(meanBedtime * 100) / 100,
+    medianBedtime: median(bedtimes),
+    stdBedtime: Math.round(stdBedtimeVal * 100) / 100,
+    meanWakeTime: Math.round(meanWakeTime * 100) / 100,
+    medianWakeTime: median(wakeTimes),
+    stdWakeTime: Math.round(stdWakeVal * 100) / 100,
+    meanDuration: Math.round(meanDuration * 100) / 100,
+    medianDuration: median(durations),
+    stdDuration: Math.round(stdDurationVal * 100) / 100,
+    driftSpeed: Math.round(driftSpeed * 100) / 100,
+    driftDirection,
+    consistencyIndex,
   }
 }

@@ -1,181 +1,422 @@
+/**
+ * # SteadyMetricsPanel — 稳态指标面板
+ *
+ * 替代旧的"连续天数"冲刺型指标，展示更能反映长期规律性的稳态指标：
+ * - 覆盖率（周期内有记录的天数占比）
+ * - 中位数（抗离群值的中心趋势）
+ * - 标准差（波动幅度）
+ * - 漂移速度（作息滑动的速率）
+ * - 一致性指数（综合规律性评分）
+ */
+
 import { useMemo } from 'react'
 import type { CalendarEvent } from '@/domain/event'
-import { computeSteadyMetrics } from '@/domain/steadyMetrics'
-import { AlertCircle, TrendingDown, TrendingUp, Minus, Moon, Sun, Clock, Activity } from 'lucide-react'
+import type { AppLanguage } from '@/domain/settings'
+import {
+  extractSleepNights,
+  computeSleepSteadyMetrics,
+} from '@/domain/steadyMetrics'
 
-interface SteadyMetricsPanelProps {
+interface Props {
   rangeEvents: CalendarEvent[]
-  language: 'zh' | 'en'
+  language: AppLanguage
 }
 
-export function SteadyMetricsPanel({ rangeEvents, language }: SteadyMetricsPanelProps) {
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
+function fmtHour(h: number): string {
+  const hr = Math.floor(h)
+  const mi = Math.round((h - hr) * 60)
+  return `${String(hr).padStart(2, '0')}:${String(mi).padStart(2, '0')}`
+}
+
+function fmtDuration(h: number): string {
+  const hrs = Math.floor(h)
+  const mins = Math.round((h - hrs) * 60)
+  return `${hrs}h ${String(mins).padStart(2, '0')}m`
+}
+
+export function SteadyMetricsPanel({ rangeEvents, language }: Props) {
+  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+
+  const now = useMemo(() => Date.now(), [])
+  const periodDays = 90 // 最近 90 天
 
   const metrics = useMemo(() => {
-    // Use last 56 days of events
-    const now = Date.now()
-    const cutoff = now - 56 * 86_400_000
-    const recentEvents = rangeEvents.filter((e) => e.startTime >= cutoff)
-    return computeSteadyMetrics(recentEvents, 56)
-  }, [rangeEvents])
+    const rangeStart = now - periodDays * 24 * 60 * 60_000
+    const nights = extractSleepNights(rangeEvents, rangeStart, now)
+    return computeSleepSteadyMetrics(nights, periodDays)
+  }, [rangeEvents, now, periodDays])
 
-  // ── 漂移方向图标 ────────────────────────────────────
+  // ── 方向图标与颜色 ──────────────────────────
+  const driftColor =
+    metrics.driftDirection === 'stable'
+      ? 'var(--color-text-success)'
+      : 'var(--color-text-warning)'
+  const driftLabel =
+    metrics.driftDirection === 'delaying'
+      ? t('推迟中', 'Delaying')
+      : metrics.driftDirection === 'advancing'
+        ? t('提前中', 'Advancing')
+        : t('稳定', 'Stable')
 
-  const DriftIcon = metrics.drift.direction === 'delaying'
-    ? TrendingUp
-    : metrics.drift.direction === 'advancing'
-      ? TrendingDown
-      : Minus
-
-  const driftColor = metrics.drift.direction === 'delaying'
-    ? 'var(--color-text-danger, #B53535)'
-    : metrics.drift.direction === 'advancing'
-      ? 'var(--color-text-success, #2D7D46)'
-      : 'var(--text-tertiary)'
-
-  // ── 格式 ────────────────────────────────────────────
-
-  function fmtHour(h: number | null): string {
-    if (h === null) return '—'
-    const hours = Math.floor(h)
-    const mins = Math.round((h - hours) * 60)
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
-  }
-
-  function fmtMins(m: number | null): string {
-    if (m === null) return '—'
-    return `${Math.round(m)} ${t('分钟', 'min')}`
-  }
+  const consistencyLevel =
+    metrics.consistencyIndex >= 0.8
+      ? t('良好', 'Good')
+      : metrics.consistencyIndex >= 0.5
+        ? t('一般', 'Fair')
+        : t('波动大', 'Unstable')
+  const consistencyColor =
+    metrics.consistencyIndex >= 0.8
+      ? 'var(--color-text-success)'
+      : metrics.consistencyIndex >= 0.5
+        ? 'var(--color-text-warning)'
+        : 'var(--color-text-danger)'
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="font-serif text-[22px] font-medium text-text-primary">
-        {t('稳态指标', 'Steady Metrics')}
-      </h1>
+    <div className="steady-root">
+      <style>{STEADY_CSS}</style>
 
-      {/* 数据不足 */}
-      {metrics.weekCount < 2 && (
-        <div className="flex items-center gap-3 py-6 text-text-tertiary">
-          <AlertCircle size={18} strokeWidth={1.75} />
-          <p className="font-sans text-sm">
-            {t('数据不足 2 周，请继续记录。', 'Less than 2 weeks of data. Keep recording.')}
-          </p>
+      {/* ── 标题 ──────────────────────────────── */}
+      <div className="steady-title-area">
+        <div className="steady-title-row">
+          <span className="steady-title-main">
+            {t('稳态指标', 'Steady Metrics')}
+          </span>
         </div>
-      )}
+        <p className="steady-title-desc">
+          {t('最近 90 天睡眠规律性分析', 'Sleep regularity analysis — last 90 days')}
+        </p>
+      </div>
 
-      {metrics.weekCount >= 2 && (
-        <>
-          {/* ── 睡眠指标卡片 ── */}
-          <div className="grid grid-cols-3 gap-4">
-            <MetricCard
-              icon={<Moon size={18} strokeWidth={1.75} />}
-              label={t('就寝中位数', 'Median Bedtime')}
-              value={fmtHour(metrics.sleep.medianBedtime)}
-              sub={`σ ${fmtMins(metrics.sleep.bedtimeStddev)}`}
-            />
-            <MetricCard
-              icon={<Sun size={18} strokeWidth={1.75} />}
-              label={t('起床中位数', 'Median Wake')}
-              value={fmtHour(metrics.sleep.medianWakeTime)}
-              sub={`σ ${fmtMins(metrics.sleep.wakeTimeStddev)}`}
-            />
-            <MetricCard
-              icon={<Clock size={18} strokeWidth={1.75} />}
-              label={t('睡眠时长中位数', 'Median Sleep')}
-              value={metrics.sleep.medianSleepDuration !== null
-                ? `${metrics.sleep.medianSleepDuration.toFixed(1)}h`
-                : '—'}
-              sub={t(`${metrics.weekCount} 周`, `${metrics.weekCount}w`) + ` · ${Math.round(metrics.coverage * 100)}% ${t('覆盖', 'cover')}`}
-            />
+      {/* ── 概览行 ────────────────────────────── */}
+      <div className="steady-overview">
+        <div className="steady-kpi">
+          <div className="steady-kpi-label">{t('一致性指数', 'Consistency')}</div>
+          <div className="steady-kpi-value" style={{ color: consistencyColor }}>
+            {(metrics.consistencyIndex * 100).toFixed(0)}
+            <span className="steady-kpi-unit">%</span>
           </div>
+          <div className="steady-kpi-extra">{consistencyLevel}</div>
+        </div>
 
-          {/* ── 漂移指标 ── */}
-          <div className="rounded-lg border border-border-default p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <DriftIcon size={20} strokeWidth={1.75} style={{ color: driftColor }} />
-              <h2 className="font-serif text-lg font-medium text-text-primary">
-                {t('作息漂移', 'Routine Drift')}
-              </h2>
+        <div className="steady-kpi">
+          <div className="steady-kpi-label">{t('覆盖率', 'Coverage')}</div>
+          <div className="steady-kpi-value">
+            {(metrics.coverage * 100).toFixed(0)}
+            <span className="steady-kpi-unit">%</span>
+          </div>
+          <div className="steady-kpi-extra">
+            {t(`${metrics.recordedDays}/${metrics.periodDays} 天`, `${metrics.recordedDays}/${metrics.periodDays} days`)}
+          </div>
+        </div>
+
+        <div className="steady-kpi">
+          <div className="steady-kpi-label">{t('漂移速度', 'Drift Speed')}</div>
+          <div className="steady-kpi-value" style={{ color: driftColor }}>
+            {metrics.driftSpeed > 0 ? '+' : ''}{metrics.driftSpeed.toFixed(1)}
+            <span className="steady-kpi-unit">{t('分/周', 'min/wk')}</span>
+          </div>
+          <div className="steady-kpi-extra">{driftLabel}</div>
+        </div>
+
+        <div className="steady-kpi">
+          <div className="steady-kpi-label">{t('样本量', 'Samples')}</div>
+          <div className="steady-kpi-value">
+            {metrics.recordedDays}
+            <span className="steady-kpi-unit">{t('晚', 'n')}</span>
+          </div>
+          <div className="steady-kpi-extra">
+            {metrics.recordedDays === 0
+              ? t('暂无数据', 'No data')
+              : t('可用于分析', 'analyzable')}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 详细指标表 ────────────────────────── */}
+      <div className="steady-detail-grid">
+        {/* 就寝时间 */}
+        <div className="steady-detail-card">
+          <div className="steady-detail-header">
+            {t('就寝时间', 'Bedtime')}
+          </div>
+          <div className="steady-detail-body">
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('均值', 'Mean')}</span>
+              <span className="steady-detail-value">{fmtHour(metrics.meanBedtime)}</span>
             </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="font-sans text-xs text-text-tertiary mb-1">
-                  {t('就寝时间变化', 'Bedtime Drift')}
-                </p>
-                <p className="font-sans text-lg font-medium text-text-primary">
-                  {metrics.drift.bedtimeDrift !== null
-                    ? `${metrics.drift.bedtimeDrift > 0 ? '+' : ''}${metrics.drift.bedtimeDrift.toFixed(1)} ${t('分钟/周', 'min/wk')}`
-                    : '—'}
-                </p>
-                {metrics.drift.projectedBedtime !== null && (
-                  <p className="font-sans text-xs text-text-tertiary mt-1">
-                    {t('4周后: ', 'In 4w: ')}{fmtHour(metrics.drift.projectedBedtime)}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <p className="font-sans text-xs text-text-tertiary mb-1">
-                  {t('起床时间变化', 'Wake Drift')}
-                </p>
-                <p className="font-sans text-lg font-medium text-text-primary">
-                  {metrics.drift.wakeTimeDrift !== null
-                    ? `${metrics.drift.wakeTimeDrift > 0 ? '+' : ''}${metrics.drift.wakeTimeDrift.toFixed(1)} ${t('分钟/周', 'min/wk')}`
-                    : '—'}
-                </p>
-                {metrics.drift.projectedWakeTime !== null && (
-                  <p className="font-sans text-xs text-text-tertiary mt-1">
-                    {t('4周后: ', 'In 4w: ')}{fmtHour(metrics.drift.projectedWakeTime)}
-                  </p>
-                )}
-              </div>
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('中位数', 'Median')}</span>
+              <span className="steady-detail-value">{fmtHour(metrics.medianBedtime)}</span>
             </div>
-
-            {/* 方向标签 */}
-            <div className="mt-4 pt-3 border-t border-border-subtle">
-              <span className="inline-flex items-center gap-1.5 font-sans text-xs text-text-tertiary">
-                <Activity size={14} strokeWidth={1.75} />
-                {metrics.drift.direction === 'delaying'
-                  ? t('作息在向"推迟"方向漂移', 'Routine is drifting later')
-                  : metrics.drift.direction === 'advancing'
-                    ? t('作息在向"提前"方向漂移', 'Routine is drifting earlier')
-                    : t('作息相对稳定', 'Routine is stable')}
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('标准差', 'Std Dev')}</span>
+              <span className="steady-detail-value">
+                {metrics.stdBedtime.toFixed(1)}
+                <span className="steady-unit">{t('小时', 'h')}</span>
               </span>
             </div>
           </div>
+        </div>
 
-          <p className="font-sans text-xs text-text-tertiary italic">
-            {t('基于最近 8 周的数据分析。漂移速度通过线性回归计算。', 'Based on the last 8 weeks. Drift computed via linear regression.')}
-          </p>
-        </>
-      )}
-    </div>
-  )
-}
+        {/* 起床时间 */}
+        <div className="steady-detail-card">
+          <div className="steady-detail-header">
+            {t('起床时间', 'Wake-up')}
+          </div>
+          <div className="steady-detail-body">
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('均值', 'Mean')}</span>
+              <span className="steady-detail-value">{fmtHour(metrics.meanWakeTime)}</span>
+            </div>
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('中位数', 'Median')}</span>
+              <span className="steady-detail-value">{fmtHour(metrics.medianWakeTime)}</span>
+            </div>
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('标准差', 'Std Dev')}</span>
+              <span className="steady-detail-value">
+                {metrics.stdWakeTime.toFixed(1)}
+                <span className="steady-unit">{t('小时', 'h')}</span>
+              </span>
+            </div>
+          </div>
+        </div>
 
-// ── 指标卡片 ─────────────────────────────────────────────────
+        {/* 睡眠时长 */}
+        <div className="steady-detail-card">
+          <div className="steady-detail-header">
+            {t('睡眠时长', 'Duration')}
+          </div>
+          <div className="steady-detail-body">
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('均值', 'Mean')}</span>
+              <span className="steady-detail-value">{fmtDuration(metrics.meanDuration)}</span>
+            </div>
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('中位数', 'Median')}</span>
+              <span className="steady-detail-value">{fmtDuration(metrics.medianDuration)}</span>
+            </div>
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('标准差', 'Std Dev')}</span>
+              <span className="steady-detail-value">
+                {metrics.stdDuration.toFixed(1)}
+                <span className="steady-unit">{t('小时', 'h')}</span>
+              </span>
+            </div>
+          </div>
+        </div>
 
-function MetricCard({
-  icon, label, value, sub,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-  sub: string
-}) {
-  return (
-    <div className="rounded-lg border border-border-default p-4">
-      <div className="flex items-center gap-2 mb-2 text-text-tertiary">
-        {icon}
-        <span className="font-sans text-xs">{label}</span>
+        {/* 漂移分析 */}
+        <div className="steady-detail-card">
+          <div className="steady-detail-header">
+            {t('漂移分析', 'Drift Analysis')}
+          </div>
+          <div className="steady-detail-body">
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('速度', 'Speed')}</span>
+              <span className="steady-detail-value" style={{ color: driftColor }}>
+                {metrics.driftSpeed > 0 ? '+' : ''}{metrics.driftSpeed.toFixed(1)}
+                <span className="steady-unit">{t('分/周', 'min/wk')}</span>
+              </span>
+            </div>
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('方向', 'Direction')}</span>
+              <span className="steady-detail-value" style={{ color: driftColor }}>
+                {driftLabel}
+              </span>
+            </div>
+            <div className="steady-detail-row">
+              <span className="steady-detail-label">{t('30 天预估', '30d Forecast')}</span>
+              <span className="steady-detail-value">
+                {metrics.driftSpeed === 0 || metrics.recordedDays === 0
+                  ? '—'
+                  : fmtHour(metrics.meanBedtime + (metrics.driftSpeed * 30) / (60 * 7))}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
-      <p className="font-mono text-xl font-medium text-text-primary tabular-nums">
-        {value}
-      </p>
-      <p className="font-sans text-[11px] text-text-tertiary mt-1">
-        {sub}
-      </p>
+
+      {/* ── 解读文本 ──────────────────────────── */}
+      <div className="steady-insight">
+        <div className="steady-insight-icon">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="7" r="6.5" stroke="currentColor" strokeWidth="0.8" />
+            <path d="M7 4V8M7 9.5V10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" />
+          </svg>
+        </div>
+        <p className="steady-insight-text">
+          {metrics.recordedDays === 0
+            ? t('尚无足够的睡眠数据生成稳态分析', 'Not enough sleep data for steady analysis yet')
+            : metrics.consistencyIndex >= 0.8
+              ? t('作息规律性良好，当前模式值得保持。', 'Good sleep regularity — keep up the pattern.')
+              : metrics.consistencyIndex >= 0.5
+                ? t('作息有一定规律，但波动不小。关注就寝时间的稳定性。', 'Moderate regularity — focus on bedtime consistency.')
+                : t('作息波动较大，建议优先关注就寝时间的一致性。', 'High variability — prioritize bedtime consistency.')}
+        </p>
+      </div>
     </div>
   )
 }
+
+// ── Scoped CSS (matches existing stats components' design language) ──
+
+const STEADY_CSS = `
+.steady-root {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  font-family: 'Noto Sans SC', sans-serif;
+  color: var(--heatmap-ink-1);
+  padding-top: 28px;
+}
+
+/* ── Title ────────────────────────────────── */
+.steady-title-area {
+  margin-bottom: 28px;
+}
+.steady-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.steady-title-main {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--heatmap-ink-1);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+.steady-title-desc {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--heatmap-ink-3);
+  margin: 6px 0 0;
+}
+
+/* ── KPI bar ──────────────────────────────── */
+.steady-overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--heatmap-rule);
+  border-bottom: 1px solid var(--heatmap-rule);
+  margin-bottom: 24px;
+}
+@media (max-width: 719px) {
+  .steady-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.steady-kpi {
+  padding: 20px;
+  border-right: 1px solid var(--heatmap-rule);
+  text-align: center;
+}
+.steady-kpi:last-child { border-right: none; }
+.steady-kpi-label {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 11px;
+  color: var(--heatmap-ink-3);
+  letter-spacing: 0.4em;
+  margin-bottom: 8px;
+}
+.steady-kpi-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--heatmap-ink-1);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.steady-kpi-unit {
+  font-size: 13px;
+  color: var(--heatmap-ink-2);
+  margin-left: 2px;
+}
+.steady-kpi-extra {
+  font-size: 11px;
+  color: var(--heatmap-ink-3);
+}
+
+/* ── Detail grid ──────────────────────────── */
+.steady-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+@media (max-width: 719px) {
+  .steady-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.steady-detail-card {
+  background: var(--heatmap-bg-card);
+  border-radius: 8px;
+  padding: 16px;
+}
+.steady-detail-header {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--heatmap-ink-1);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--heatmap-rule);
+}
+.steady-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.steady-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.steady-detail-label {
+  font-size: 12px;
+  color: var(--heatmap-ink-3);
+}
+.steady-detail-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--heatmap-ink-1);
+}
+.steady-unit {
+  font-size: 10px;
+  color: var(--heatmap-ink-3);
+  margin-left: 2px;
+}
+
+/* ── Insight ──────────────────────────────── */
+.steady-insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--color-bg-info);
+  border-radius: 8px;
+}
+.steady-insight-icon {
+  flex-shrink: 0;
+  color: var(--color-text-info);
+  margin-top: 1px;
+}
+.steady-insight-text {
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12px;
+  color: var(--color-text-info);
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 719px) {
+  .steady-title-main { font-size: 22px; }
+  .steady-kpi-value { font-size: 22px; }
+  .steady-overview { grid-template-columns: repeat(2, 1fr); }
+}
+`

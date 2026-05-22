@@ -35,12 +35,12 @@ const TUE = new Date(2025, 4, 13, 0, 0, 0).getTime()
 
 const MS_DAY = 24 * 60 * 60 * 1000
 
-// Single calendar week (Monday 00:00 → next Monday 00:00), spanWeeks = 1.
-const WEEK1 = { weekRangeStart: MON, weekRangeEnd: MON + 7 * MS_DAY }
+// Single calendar week (Monday 00:00 �?next Monday 00:00), spanWeeks = 1.
+const WEEK1 = { range: { start: MON, end: MON + 7 * MS_DAY } }
 // Two calendar weeks, spanWeeks = 2.
-const WEEK2 = { weekRangeStart: MON, weekRangeEnd: MON + 14 * MS_DAY }
-// Unbounded — used only for tests that don't check percentages.
-const ALL_TIME = { weekRangeStart: 0, weekRangeEnd: 1e15 }
+const WEEK2 = { range: { start: MON, end: MON + 14 * MS_DAY } }
+// Unbounded �?used only for tests that don't check percentages.
+const ALL_TIME = { range: { start: 0, end: 1e15 } }
 
 function h(dayBase: number, hour: number, minute = 0): number {
   return dayBase + hour * 60 * 60_000 + minute * 60_000
@@ -79,7 +79,7 @@ describe('computeStandardWeek', () => {
   // ── Minute-weight slicing ──────────────────────────────
 
   it('splits an event across two adjacent hours by minute weight', () => {
-    // 22:30 – 23:15 → 30 min in hour 22, 15 min in hour 23
+    // 22:30 �?23:15 �?30 min in hour 22, 15 min in hour 23
     const events = [ev({ title: '社交', startTime: h(MON, 22, 30), endTime: h(MON, 23, 15) })]
     const data = computeStandardWeek({ events, ...WEEK1 })
 
@@ -120,7 +120,7 @@ describe('computeStandardWeek', () => {
     expect(tue0!.entries[0].minutes).toBe(60)
   })
 
-  it('handles the 23:00–05:00 case from the original bug report', () => {
+  it('handles the 23:00�?5:00 case from the original bug report', () => {
     const events = [ev({ title: '社交', startTime: h(MON, 23), endTime: h(TUE, 5) })]
     const data = computeStandardWeek({ events, ...WEEK1 })
 
@@ -143,12 +143,12 @@ describe('computeStandardWeek', () => {
     expect(bucket!.entries).toHaveLength(1)
     expect(bucket!.entries[0].title).toBe('Coding')
     expect(bucket!.entries[0].minutes).toBe(90)
-    // across-all-weeks: 90/60 = 150% → capped at 100
+    // across-all-weeks: 90/60 = 150% �?capped at 100
     expect(bucket!.entries[0].percentage).toBe(100)
     expect(bucket!.totalMinutes).toBe(90)
   })
 
-  it('aggregates different titles in the same bucket — minutes not inflated', () => {
+  it('aggregates different titles in the same bucket �?minutes not inflated', () => {
     // Same week, same bucket: 30 min vibe coding + 30 min reading.
     // Each should count 30 min, not be scaled by week count.
     const events = [
@@ -240,8 +240,7 @@ describe('computeStandardWeek', () => {
     // 2 calendar weeks
     const data = computeStandardWeek({
       events,
-      weekRangeStart: MON,
-      weekRangeEnd: MON + 14 * MS_DAY,
+      range: { start: MON, end: MON + 14 * MS_DAY },
     })
     expect(data.spanWeeks).toBe(2)
     expect(data.totalWeeks).toBe(1)
@@ -256,8 +255,7 @@ describe('computeStandardWeek', () => {
     ]
     const data = computeStandardWeek({
       events,
-      weekRangeStart: TUE,
-      weekRangeEnd: TUE + MS_DAY,
+      range: { start: TUE, end: TUE + MS_DAY },
     })
 
     expect(findBucket(data, 0, 9)).toBeUndefined()
@@ -296,7 +294,7 @@ describe('computeStandardWeek', () => {
       ev({ title: 'Coding', startTime: h(MON, 9), endTime: h(MON, 10) }),
       ev({ title: 'Coding', startTime: h(week2Monday, 9), endTime: h(week2Monday, 10) }),
     ]
-    const range = { weekRangeStart: MON, weekRangeEnd: week2Monday + 7 * MS_DAY }
+    const range = { range: { start: MON, end: week2Monday + 7 * MS_DAY } }
     const data = computeStandardWeek({ events, ...range })
 
     const bucket = findBucket(data, 0, 9)
@@ -341,7 +339,7 @@ describe('mergeConsecutiveBuckets', () => {
     expect(mergeConsecutiveBuckets([])).toHaveLength(0)
   })
 
-  it('single bucket → single block', () => {
+  it('single bucket �?single block', () => {
     const blocks = mergeConsecutiveBuckets([bkt(0, 9, 'Coding')])
     expect(blocks).toHaveLength(1)
     expect(blocks[0].weekday).toBe(0)

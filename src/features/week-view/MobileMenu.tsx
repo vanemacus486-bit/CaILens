@@ -1,39 +1,22 @@
-import { X, Search, BarChart3, Settings, Calendar, Sparkles } from 'lucide-react'
+import { X, Search, Settings, Calendar } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { getISOWeek } from 'date-fns'
 import { useUIStore } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { useAiChatStore } from '@/stores/aiChatStore'
 import { formatISODate } from '@/domain/time'
 import { cn } from '@/lib/utils'
 
 interface MobileMenuProps {
   open: boolean
   onClose: () => void
-  weekStart: Date
   mobileViewMode?: 'day' | 'week'
   onMobileViewModeChange?: (mode: 'day' | 'week') => void
 }
 
-export function MobileMenu({ open, onClose, weekStart, mobileViewMode, onMobileViewModeChange }: MobileMenuProps) {
+export function MobileMenu({ open, onClose, mobileViewMode, onMobileViewModeChange }: MobileMenuProps) {
   const navigate = useNavigate()
   const language = useAppSettingsStore((s) => s.settings.language)
-  const aiEnabled = useAppSettingsStore((s) => s.settings.aiEnabled)
-  const aiApiKey = useAppSettingsStore((s) => s.settings.aiApiKey)
-  const startConversation = useAiChatStore((s) => s.startConversation)
   const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
-  const setAiChatDrawerOpen = useUIStore((s) => s.setAiChatDrawerOpen)
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-  const handleAIAnalysis = () => {
-    if (aiEnabled && aiApiKey) {
-      const weekNum = getISOWeek(weekStart)
-      const label = t(`第 ${weekNum} 周`, `Week ${weekNum}`)
-      startConversation(weekStart.getTime(), label)
-      setAiChatDrawerOpen(true)
-    }
-    onClose()
-  }
 
   return (
     <>
@@ -69,13 +52,7 @@ export function MobileMenu({ open, onClose, weekStart, mobileViewMode, onMobileV
         {/* Menu items */}
         <div className="flex-1 overflow-y-auto py-2">
           <MenuItem icon={Search} label={t('搜索事件', 'Search events')} onClick={() => { useUIStore.getState().setCommandPaletteOpen(true); onClose() }} />
-          <MenuItem icon={BarChart3} label={t('统计', 'Stats')} onClick={() => { navigate('/stats'); onClose() }} />
           <MenuItem icon={Calendar} label={t('日视图', 'Day View')} onClick={() => { navigate(`/day?date=${formatISODate(new Date())}`); onClose() }} />
-
-          {(aiEnabled && aiApiKey) && (
-            <MenuItem icon={Sparkles} label={t('AI 分析', 'AI Analysis')} onClick={handleAIAnalysis} />
-          )}
-
           <MenuItem icon={Settings} label={t('设置', 'Settings')} onClick={() => { setSettingsDrawerOpen(true); onClose() }} />
 
           <div className="h-px bg-border-subtle my-2 mx-4" />

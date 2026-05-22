@@ -2,9 +2,12 @@ import type { CalendarEvent } from '@/domain/event'
 import type { Category, CategoryId } from '@/domain/category'
 import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
-import type { AiConversation, AiChatMessage } from '@/domain/aiChat'
-import type { PinnedAnalysis, MessageFeedback } from '@/domain/aiChat'
-import type { DailyContext } from '@/domain/dailyContext'
+import type { Profile } from '@/domain/profile'
+import type { Project } from '@/domain/project'
+import type { SOP, SOPVersion } from '@/domain/sop'
+import type { InspirationLog } from '@/domain/inspiration'
+import type { DailyOutfit, DailyHygiene, DailyLeisure, BodyMetricsRecord } from '@/domain/dailyContext'
+import type { Todo } from '@/domain/todo'
 import type { StorageAdapter, StorageTable, QueryOptions } from './StorageAdapter'
 import {
   isTauri,
@@ -61,14 +64,19 @@ interface MemoryIndex {
   eventsInitialized: boolean
   categories: Map<CategoryId, Category>
   settings: AppSettings | null
+  profile: Profile | null
   estimates: Map<string, WeeklyEstimate>      // estimate ID → estimate
   estimatesByWeek: Map<number, string[]>      // weekStart → estimate IDs
-  conversations: Map<string, AiConversation>   // conversation ID → conversation
-  conversationsByWeek: Map<number, string[]>   // weekStart → conversation IDs
-  chatMessages: Map<string, AiChatMessage[]>   // conversationId → messages
-  pinnedAnalyses: Map<string, PinnedAnalysis>
-  messageFeedback: Map<string, MessageFeedback>
-  dailyContexts: Map<string, DailyContext>
+
+  projects: Map<string, Project>
+  sops: Map<string, SOP>
+  sopVersions: Map<string, SOPVersion>
+  inspirations: Map<string, InspirationLog>
+  outfitLogs: Map<string, DailyOutfit>
+  hygieneLogs: Map<string, DailyHygiene>
+  leisureLogs: Map<string, DailyLeisure>
+  bodyMetricsRecords: Map<string, BodyMetricsRecord>
+  todos: Map<string, Todo>
 }
 
 function binarySearchLeft(arr: { ts: number }[], value: number): number {
@@ -498,474 +506,259 @@ class EstimatesFsTable implements StorageTable<WeeklyEstimate> {
   }
 }
 
-// ── Conversations table ───────────────────────────────────────
 
-class ConversationsFsTable implements StorageTable<AiConversation> {
+
+
+
+
+
+
+class ProjectsFsTable implements StorageTable<Project> {
   private index: MemoryIndex
   private filePath: string
 
   constructor(index: MemoryIndex, rootPath: string) {
     this.index = index
-    this.filePath = joinPath(rootPath, 'conversations.json')
+    this.filePath = joinPath(rootPath, 'projects.json')
   }
 
-  async get(id: string): Promise<AiConversation | undefined> {
-    return this.index.conversations.get(id)
+  async get(id: string): Promise<Project | undefined> {
+    return this.index.projects.get(id)
   }
 
-  async getAll(): Promise<AiConversation[]> {
-    return Array.from(this.index.conversations.values())
+  async getAll(): Promise<Project[]> {
+    return Array.from(this.index.projects.values())
   }
 
-  async put(item: AiConversation): Promise<void> {
-    this.index.conversations.set(item.id, item)
-    const weekIds = this.index.conversationsByWeek.get(item.weekStart) ?? []
-    if (!weekIds.includes(item.id)) {
-      weekIds.push(item.id)
-      this.index.conversationsByWeek.set(item.weekStart, weekIds)
-    }
+  async put(item: Project): Promise<void> {
+    this.index.projects.set(item.id, item)
     await this.flush()
   }
 
-  async update(id: string, changes: Partial<AiConversation>): Promise<void> {
-    const existing = this.index.conversations.get(id)
+  async update(id: string, changes: Partial<Project>): Promise<void> {
+    const existing = this.index.projects.get(id)
     if (!existing) return
     await this.put({ ...existing, ...changes, id: existing.id })
   }
 
   async delete(id: string): Promise<void> {
-    const existing = this.index.conversations.get(id)
-    if (existing) {
-      this.index.conversations.delete(id)
-      const weekIds = this.index.conversationsByWeek.get(existing.weekStart) ?? []
-      const idx = weekIds.indexOf(id)
-      if (idx >= 0) weekIds.splice(idx, 1)
-      if (weekIds.length === 0) this.index.conversationsByWeek.delete(existing.weekStart)
-      else this.index.conversationsByWeek.set(existing.weekStart, weekIds)
-      this.index.chatMessages.delete(id)
-      await this.flush()
+    this.index.projects.delete(id)
+    await this.flush()
+  }
+
+  async bulkGet(ids: string[]): Promise<(Project | undefined)[]> {
+    return ids.map((id) => this.index.projects.get(id))
+  }
+
+  async bulkPut(items: Project[]): Promise<void> {
+    for (const item of items) {
+      this.index.projects.set(item.id, item)
+    }
+    await this.flush()
+  }
+
+  async query(opts: QueryOptions<Project>): Promise<Project[]> {
+    let results = Array.from(this.index.projects.values())
+    if (opts.where?.key === 'categoryId' && opts.where.op === 'equals') {
+      const target = opts.where.value as string
+      results = results.filter((p) => p.categoryId === target)
+    }
+    if (opts.filter) results = results.filter(opts.filter)
+    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
+    return results
+  }
+
+  async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
+    return fn()
+  }
+
+  private async flush(): Promise<void> {
+    const data = Array.from(this.index.projects.values())
+    const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'projects', data }, null, 2)
+    await writeTextFile(this.filePath, content)
+  }
+
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    const file = entries.find((e) => e.path.endsWith('projects.json'))
+    if (file) {
+      try {
+        const parsed = JSON.parse(file.content)
+        if (parsed.type === 'projects' && Array.isArray(parsed.data)) {
+          for (const item of parsed.data as Project[]) {
+            this.index.projects.set(item.id, item)
+          }
+        }
+      } catch { /* ignore */ }
     }
   }
+}
 
-  async bulkGet(ids: string[]): Promise<(AiConversation | undefined)[]> {
-    return ids.map((id) => this.index.conversations.get(id))
+// ── Todos table (single file: todos.json) ────────────────────
+
+class TodosFsTable implements StorageTable<Todo> {
+  private index: MemoryIndex
+  private filePath: string
+
+  constructor(index: MemoryIndex, rootPath: string) {
+    this.index = index
+    this.filePath = joinPath(rootPath, 'todos.json')
   }
 
-  async bulkPut(items: AiConversation[]): Promise<void> {
+  async get(id: string): Promise<Todo | undefined> {
+    return this.index.todos.get(id)
+  }
+
+  async getAll(): Promise<Todo[]> {
+    return Array.from(this.index.todos.values())
+  }
+
+  async put(item: Todo): Promise<void> {
+    this.index.todos.set(item.id, item)
+    await this.flush()
+  }
+
+  async update(id: string, changes: Partial<Todo>): Promise<void> {
+    const existing = this.index.todos.get(id)
+    if (!existing) return
+    await this.put({ ...existing, ...changes, id: existing.id })
+  }
+
+  async delete(id: string): Promise<void> {
+    this.index.todos.delete(id)
+    await this.flush()
+  }
+
+  async bulkGet(ids: string[]): Promise<(Todo | undefined)[]> {
+    return ids.map((id) => this.index.todos.get(id))
+  }
+
+  async bulkPut(items: Todo[]): Promise<void> {
+    for (const item of items) {
+      this.index.todos.set(item.id, item)
+    }
+    await this.flush()
+  }
+
+  async query(opts: QueryOptions<Todo>): Promise<Todo[]> {
+    let results = Array.from(this.index.todos.values())
+    if (opts.filter) results = results.filter(opts.filter)
+    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
+    return results
+  }
+
+  async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
+    return fn()
+  }
+
+  private async flush(): Promise<void> {
+    const data = Array.from(this.index.todos.values())
+    const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'todos', data }, null, 2)
+    await writeTextFile(this.filePath, content)
+  }
+
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    const file = entries.find((e) => e.path.endsWith('todos.json'))
+    if (file) {
+      try {
+        const parsed = JSON.parse(file.content)
+        if (parsed.type === 'todos' && Array.isArray(parsed.data)) {
+          for (const item of parsed.data as Todo[]) {
+            this.index.todos.set(item.id, item)
+          }
+        }
+      } catch { /* ignore */ }
+    }
+  }
+}
+
+/**
+ * 简化的内存表（无文件持久化），用于 SOP、灵感等次要实体。
+ * 后续可改为文件持久化模式。
+ */
+class GenericFsTable<T extends { id: string }> implements StorageTable<T> {
+  private map: Map<string, T>
+  constructor(index: MemoryIndex, key: string) {
+    this.map = (index as any)[key] as Map<string, T>
+  }
+  async get(id: string) { return this.map.get(id) }
+  async getAll() { return Array.from(this.map.values()) }
+  async put(item: T) { this.map.set(item.id, item) }
+  async update(id: string, changes: Partial<T>) {
+    const existing = this.map.get(id)
+    if (existing) this.map.set(id, { ...existing, ...changes, id: existing.id })
+  }
+  async delete(id: string) { this.map.delete(id) }
+  async bulkGet(ids: string[]) { return ids.map((id) => this.map.get(id)) }
+  async bulkPut(items: T[]) { for (const item of items) this.map.set(item.id, item) }
+  async query(opts: QueryOptions<T>) {
+    let results = Array.from(this.map.values())
+    if (opts.filter) results = results.filter(opts.filter)
+    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
+    return results
+  }
+  async transaction<R>(_mode: 'rw', fn: () => Promise<R>) { return fn() }
+}
+
+// ── Profile table (single file: profile.json) ─────────────
+
+class ProfileFsTable implements StorageTable<Profile> {
+  private index: MemoryIndex
+  private filePath: string
+
+  constructor(index: MemoryIndex, rootPath: string) {
+    this.index = index
+    this.filePath = joinPath(rootPath, 'profile.json')
+  }
+
+  async get(_id: string): Promise<Profile | undefined> {
+    return this.index.profile ?? undefined
+  }
+
+  async getAll(): Promise<Profile[]> {
+    const p = await this.get('default')
+    return p ? [p] : []
+  }
+
+  async put(item: Profile): Promise<void> {
+    this.index.profile = item
+    const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'profile', data: item }, null, 2)
+    await writeTextFile(this.filePath, content)
+  }
+
+  async update(_id: string, changes: Partial<Profile>): Promise<void> {
+    const current = this.index.profile ?? { id: 'default' as const, body: {} as Profile['body'], updatedAt: null } as Profile
+    const updated = { ...current, ...changes } as Profile
+    await this.put(updated)
+  }
+
+  async delete(_id: string): Promise<void> {
+    // Profile cannot be deleted
+  }
+
+  async bulkGet(ids: string[]): Promise<(Profile | undefined)[]> {
+    const p = await this.get('default')
+    return ids.map(() => p)
+  }
+
+  async bulkPut(items: Profile[]): Promise<void> {
     for (const item of items) await this.put(item)
   }
 
-  async query(opts: QueryOptions<AiConversation>): Promise<AiConversation[]> {
-    let results: AiConversation[]
-    if (opts.where?.key === 'weekStart' && opts.where.op === 'equals') {
-      const ids = this.index.conversationsByWeek.get(opts.where.value as number) ?? []
-      results = ids.map((id) => this.index.conversations.get(id)!).filter(Boolean)
-    } else {
-      results = Array.from(this.index.conversations.values())
-    }
-    if (opts.filter) results = results.filter(opts.filter)
-    if (opts.orderBy === 'updatedAt') {
-      results.sort((a, b) => b.updatedAt - a.updatedAt)
-    }
-    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
-    return results
+  async query(_opts: QueryOptions<Profile>): Promise<Profile[]> {
+    return this.getAll()
   }
 
   async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
     return fn()
   }
 
-  private async flush(): Promise<void> {
-    const data = Array.from(this.index.conversations.values())
-    const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'conversations', data }, null, 2)
-    await writeTextFile(this.filePath, content)
-  }
-
   async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
-    const file = entries.find((e) => e.path.endsWith('conversations.json'))
+    const file = entries.find((e) => e.path.endsWith('profile.json'))
     if (file) {
       try {
         const parsed = JSON.parse(file.content)
-        if (parsed.type === 'conversations' && Array.isArray(parsed.data)) {
-          for (const conv of parsed.data as AiConversation[]) {
-            this.index.conversations.set(conv.id, conv)
-            const weekIds = this.index.conversationsByWeek.get(conv.weekStart) ?? []
-            if (!weekIds.includes(conv.id)) weekIds.push(conv.id)
-            this.index.conversationsByWeek.set(conv.weekStart, weekIds)
-          }
-        }
-      } catch { /* ignore */ }
-    }
-  }
-}
-
-// ── Chat Messages table ───────────────────────────────────────
-
-class ChatMessagesFsTable implements StorageTable<AiChatMessage> {
-  private index: MemoryIndex
-  private messagesDir: string
-
-  constructor(index: MemoryIndex, rootPath: string) {
-    this.index = index
-    this.messagesDir = joinPath(rootPath, 'chat-messages')
-  }
-
-  async get(id: string): Promise<AiChatMessage | undefined> {
-    for (const msgs of this.index.chatMessages.values()) {
-      const found = msgs.find((m) => m.id === id)
-      if (found) return found
-    }
-    return undefined
-  }
-
-  async getAll(): Promise<AiChatMessage[]> {
-    const all: AiChatMessage[] = []
-    for (const msgs of this.index.chatMessages.values()) {
-      all.push(...msgs)
-    }
-    return all
-  }
-
-  async put(item: AiChatMessage): Promise<void> {
-    const msgs = this.index.chatMessages.get(item.conversationId) ?? []
-    const idx = msgs.findIndex((m) => m.id === item.id)
-    if (idx >= 0) msgs[idx] = item
-    else msgs.push(item)
-    this.index.chatMessages.set(item.conversationId, msgs)
-    await this.flushConversation(item.conversationId)
-  }
-
-  async update(id: string, changes: Partial<AiChatMessage>): Promise<void> {
-    const msg = await this.get(id)
-    if (!msg) return
-    await this.put({ ...msg, ...changes, id: msg.id })
-  }
-
-  async delete(id: string): Promise<void> {
-    for (const [convId, msgs] of this.index.chatMessages) {
-      const idx = msgs.findIndex((m) => m.id === id)
-      if (idx >= 0) {
-        msgs.splice(idx, 1)
-        this.index.chatMessages.set(convId, msgs)
-        await this.flushConversation(convId)
-        return
-      }
-    }
-  }
-
-  async bulkGet(ids: string[]): Promise<(AiChatMessage | undefined)[]> {
-    return Promise.all(ids.map((id) => this.get(id)))
-  }
-
-  async bulkPut(items: AiChatMessage[]): Promise<void> {
-    const byConv = new Map<string, AiChatMessage[]>()
-    for (const item of items) {
-      const msgs = byConv.get(item.conversationId) ?? []
-      msgs.push(item)
-      byConv.set(item.conversationId, msgs)
-    }
-    for (const item of items) {
-      const msgs = this.index.chatMessages.get(item.conversationId) ?? []
-      const idx = msgs.findIndex((m) => m.id === item.id)
-      if (idx >= 0) msgs[idx] = item
-      else msgs.push(item)
-      this.index.chatMessages.set(item.conversationId, msgs)
-    }
-    for (const convId of byConv.keys()) {
-      await this.flushConversation(convId)
-    }
-  }
-
-  async query(opts: QueryOptions<AiChatMessage>): Promise<AiChatMessage[]> {
-    let results: AiChatMessage[]
-    if (opts.where?.key === 'conversationId' && opts.where.op === 'equals') {
-      results = this.index.chatMessages.get(opts.where.value as string) ?? []
-    } else {
-      results = await this.getAll()
-    }
-    if (opts.filter) results = results.filter(opts.filter)
-    if (opts.orderBy === 'createdAt') {
-      results.sort((a, b) => a.createdAt - b.createdAt)
-    }
-    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
-    return results
-  }
-
-  async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
-    return fn()
-  }
-
-  private async flushConversation(convId: string): Promise<void> {
-    const msgs = this.index.chatMessages.get(convId) ?? []
-    const filePath = joinPath(this.messagesDir, `${convId}.json`)
-    await createDirAll(this.messagesDir)
-    const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'chatMessages', conversationId: convId, data: msgs }, null, 2)
-    await writeTextFile(filePath, content)
-  }
-
-  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
-    for (const entry of entries) {
-      if (!entry.path.endsWith('.json') || !entry.path.replace(/\\/g, '/').includes('/chat-messages/')) continue
-      try {
-        const parsed = JSON.parse(entry.content)
-        if (parsed.type === 'chatMessages' && Array.isArray(parsed.data)) {
-          const convId = parsed.conversationId as string
-          this.index.chatMessages.set(convId, parsed.data as AiChatMessage[])
-        }
-      } catch { /* ignore */ }
-    }
-  }
-}
-
-// ── Pinned Analyses table (single file) ───────────────────────
-
-class PinnedAnalysesFsTable implements StorageTable<PinnedAnalysis> {
-  private index: MemoryIndex
-  private filePath: string
-
-  constructor(index: MemoryIndex, rootPath: string) {
-    this.index = index
-    this.filePath = joinPath(rootPath, 'pinned-analyses.json')
-  }
-
-  async get(id: string): Promise<PinnedAnalysis | undefined> {
-    return this.index.pinnedAnalyses.get(id)
-  }
-
-  async getAll(): Promise<PinnedAnalysis[]> {
-    return Array.from(this.index.pinnedAnalyses.values())
-  }
-
-  async put(item: PinnedAnalysis): Promise<void> {
-    this.index.pinnedAnalyses.set(item.id, item)
-    await this.flush()
-  }
-
-  async update(id: string, changes: Partial<PinnedAnalysis>): Promise<void> {
-    const existing = this.index.pinnedAnalyses.get(id)
-    if (!existing) return
-    await this.put({ ...existing, ...changes, id: existing.id })
-  }
-
-  async delete(id: string): Promise<void> {
-    this.index.pinnedAnalyses.delete(id)
-    await this.flush()
-  }
-
-  async bulkGet(ids: string[]): Promise<(PinnedAnalysis | undefined)[]> {
-    return ids.map((id) => this.index.pinnedAnalyses.get(id))
-  }
-
-  async bulkPut(items: PinnedAnalysis[]): Promise<void> {
-    for (const item of items) {
-      this.index.pinnedAnalyses.set(item.id, item)
-    }
-    await this.flush()
-  }
-
-  async query(opts: QueryOptions<PinnedAnalysis>): Promise<PinnedAnalysis[]> {
-    let results = Array.from(this.index.pinnedAnalyses.values())
-    if (opts.where?.key === 'date' && opts.where.op === 'equals') {
-      const target = opts.where.value as number
-      results = results.filter((p) => {
-        const d1 = new Date(p.date).toDateString()
-        const d2 = new Date(target).toDateString()
-        return d1 === d2
-      })
-    }
-    if (opts.filter) results = results.filter(opts.filter)
-    if (opts.orderBy === 'date' && opts.orderDir === 'desc') {
-      results.sort((a, b) => b.date - a.date)
-    }
-    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
-    return results
-  }
-
-  async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
-    return fn()
-  }
-
-  private async flush(): Promise<void> {
-    const data = Array.from(this.index.pinnedAnalyses.values())
-    const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'pinnedAnalyses', data }, null, 2)
-    await writeTextFile(this.filePath, content)
-  }
-
-  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
-    const file = entries.find((e) => e.path.endsWith('pinned-analyses.json'))
-    if (file) {
-      try {
-        const parsed = JSON.parse(file.content)
-        if (parsed.type === 'pinnedAnalyses' && Array.isArray(parsed.data)) {
-          for (const item of parsed.data as PinnedAnalysis[]) {
-            this.index.pinnedAnalyses.set(item.id, item)
-          }
-        }
-      } catch { /* ignore */ }
-    }
-  }
-}
-
-// ── Message Feedback table (single file) ─────────────────────
-
-class MessageFeedbackFsTable implements StorageTable<MessageFeedback> {
-  private index: MemoryIndex
-  private filePath: string
-
-  constructor(index: MemoryIndex, rootPath: string) {
-    this.index = index
-    this.filePath = joinPath(rootPath, 'message-feedback.json')
-  }
-
-  async get(id: string): Promise<MessageFeedback | undefined> {
-    return this.index.messageFeedback.get(id)
-  }
-
-  async getAll(): Promise<MessageFeedback[]> {
-    return Array.from(this.index.messageFeedback.values())
-  }
-
-  async put(item: MessageFeedback): Promise<void> {
-    this.index.messageFeedback.set(item.id, item)
-    await this.flush()
-  }
-
-  async update(id: string, changes: Partial<MessageFeedback>): Promise<void> {
-    const existing = this.index.messageFeedback.get(id)
-    if (!existing) return
-    await this.put({ ...existing, ...changes, id: existing.id })
-  }
-
-  async delete(id: string): Promise<void> {
-    this.index.messageFeedback.delete(id)
-    await this.flush()
-  }
-
-  async bulkGet(ids: string[]): Promise<(MessageFeedback | undefined)[]> {
-    return ids.map((id) => this.index.messageFeedback.get(id))
-  }
-
-  async bulkPut(items: MessageFeedback[]): Promise<void> {
-    for (const item of items) {
-      this.index.messageFeedback.set(item.id, item)
-    }
-    await this.flush()
-  }
-
-  async query(opts: QueryOptions<MessageFeedback>): Promise<MessageFeedback[]> {
-    let results = Array.from(this.index.messageFeedback.values())
-    if (opts.where?.key === 'messageId' && opts.where.op === 'equals') {
-      results = results.filter((f) => f.messageId === opts.where!.value)
-    }
-    if (opts.filter) results = results.filter(opts.filter)
-    return results
-  }
-
-  async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
-    return fn()
-  }
-
-  private async flush(): Promise<void> {
-    const data = Array.from(this.index.messageFeedback.values())
-    const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'messageFeedback', data }, null, 2)
-    await writeTextFile(this.filePath, content)
-  }
-
-  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
-    const file = entries.find((e) => e.path.endsWith('message-feedback.json'))
-    if (file) {
-      try {
-        const parsed = JSON.parse(file.content)
-        if (parsed.type === 'messageFeedback' && Array.isArray(parsed.data)) {
-          for (const item of parsed.data as MessageFeedback[]) {
-            this.index.messageFeedback.set(item.id, item)
-          }
-        }
-      } catch { /* ignore */ }
-    }
-  }
-}
-
-// ── Daily Contexts table (single file) ──────────────────────
-
-class DailyContextsFsTable implements StorageTable<DailyContext> {
-  private index: MemoryIndex
-  private filePath: string
-
-  constructor(index: MemoryIndex, rootPath: string) {
-    this.index = index
-    this.filePath = joinPath(rootPath, 'daily-contexts.json')
-  }
-
-  async get(id: string): Promise<DailyContext | undefined> {
-    return this.index.dailyContexts.get(id)
-  }
-
-  async getAll(): Promise<DailyContext[]> {
-    return Array.from(this.index.dailyContexts.values())
-  }
-
-  async put(item: DailyContext): Promise<void> {
-    this.index.dailyContexts.set(item.id, item)
-    await this.flush()
-  }
-
-  async update(id: string, changes: Partial<DailyContext>): Promise<void> {
-    const existing = this.index.dailyContexts.get(id)
-    if (!existing) return
-    await this.put({ ...existing, ...changes, id: existing.id })
-  }
-
-  async delete(id: string): Promise<void> {
-    this.index.dailyContexts.delete(id)
-    await this.flush()
-  }
-
-  async bulkGet(ids: string[]): Promise<(DailyContext | undefined)[]> {
-    return ids.map((id) => this.index.dailyContexts.get(id))
-  }
-
-  async bulkPut(items: DailyContext[]): Promise<void> {
-    for (const item of items) {
-      this.index.dailyContexts.set(item.id, item)
-    }
-    await this.flush()
-  }
-
-  async query(opts: QueryOptions<DailyContext>): Promise<DailyContext[]> {
-    let results = Array.from(this.index.dailyContexts.values())
-    if (opts.where?.key === 'date' && opts.where.op === 'equals') {
-      const target = opts.where.value as number
-      results = results.filter((ctx) => ctx.date === target)
-    }
-    if (opts.filter) results = results.filter(opts.filter)
-    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
-    return results
-  }
-
-  async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
-    return fn()
-  }
-
-  private async flush(): Promise<void> {
-    const data = Array.from(this.index.dailyContexts.values())
-    const content = JSON.stringify({
-      schemaVersion: CURRENT_SCHEMA_VERSION,
-      type: 'dailyContexts',
-      data,
-    }, null, 2)
-    await writeTextFile(this.filePath, content)
-  }
-
-  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
-    const file = entries.find((e) => e.path.endsWith('daily-contexts.json'))
-    if (file) {
-      try {
-        const parsed = JSON.parse(file.content)
-        if (parsed.type === 'dailyContexts' && Array.isArray(parsed.data)) {
-          for (const ctx of parsed.data as DailyContext[]) {
-            this.index.dailyContexts.set(ctx.id, ctx)
-          }
+        if (parsed.type === 'profile' && parsed.data) {
+          this.index.profile = parsed.data as Profile
         }
       } catch { /* ignore */ }
     }
@@ -979,11 +772,17 @@ export class FileSystemAdapter implements StorageAdapter {
   categories: StorageTable<Category>
   settings: StorageTable<AppSettings>
   weeklyEstimates: StorageTable<WeeklyEstimate>
-  conversations: StorageTable<AiConversation>
-  chatMessages: StorageTable<AiChatMessage>
-  pinnedAnalyses: StorageTable<PinnedAnalysis>
-  messageFeedback: StorageTable<MessageFeedback>
-  dailyContexts: StorageTable<DailyContext>
+  profile: StorageTable<Profile>
+
+  projects: StorageTable<Project>
+  sops: StorageTable<SOP>
+  sopVersions: StorageTable<SOPVersion>
+  inspirations: StorageTable<InspirationLog>
+  outfitLogs: StorageTable<DailyOutfit>
+  hygieneLogs: StorageTable<DailyHygiene>
+  leisureLogs: StorageTable<DailyLeisure>
+  bodyMetricsRecords: StorageTable<BodyMetricsRecord>
+  todos: StorageTable<Todo>
 
   private index: MemoryIndex = {
     events: new Map(),
@@ -991,14 +790,19 @@ export class FileSystemAdapter implements StorageAdapter {
     eventsInitialized: false,
     categories: new Map(),
     settings: null,
+    profile: null,
     estimates: new Map(),
     estimatesByWeek: new Map(),
-    conversations: new Map(),
-    conversationsByWeek: new Map(),
-    chatMessages: new Map(),
-    pinnedAnalyses: new Map(),
-    messageFeedback: new Map(),
-    dailyContexts: new Map(),
+
+    projects: new Map(),
+    sops: new Map(),
+    sopVersions: new Map(),
+    inspirations: new Map(),
+    outfitLogs: new Map(),
+    hygieneLogs: new Map(),
+    leisureLogs: new Map(),
+    bodyMetricsRecords: new Map(),
+    todos: new Map(),
   }
 
   private rootPath: string | null = null
@@ -1010,11 +814,17 @@ export class FileSystemAdapter implements StorageAdapter {
     this.categories = new CategoriesFsTable(this.index, '')
     this.settings = new SettingsFsTable(this.index, '')
     this.weeklyEstimates = new EstimatesFsTable(this.index, '')
-    this.conversations = new ConversationsFsTable(this.index, '')
-    this.chatMessages = new ChatMessagesFsTable(this.index, '')
-    this.pinnedAnalyses = new PinnedAnalysesFsTable(this.index, '')
-    this.messageFeedback = new MessageFeedbackFsTable(this.index, '')
-    this.dailyContexts = new DailyContextsFsTable(this.index, '')
+    this.profile = new ProfileFsTable(this.index, '')
+
+    this.projects = new ProjectsFsTable(this.index, '')
+    this.sops = new GenericFsTable(this.index, 'sops')
+    this.sopVersions = new GenericFsTable(this.index, 'sopVersions')
+    this.inspirations = new GenericFsTable(this.index, 'inspirations')
+    this.outfitLogs = new GenericFsTable(this.index, 'outfitLogs')
+    this.hygieneLogs = new GenericFsTable(this.index, 'hygieneLogs')
+    this.leisureLogs = new GenericFsTable(this.index, 'leisureLogs')
+    this.bodyMetricsRecords = new GenericFsTable(this.index, 'bodyMetricsRecords')
+    this.todos = new TodosFsTable(this.index, '')
   }
 
   get initialized(): boolean {
@@ -1032,10 +842,17 @@ export class FileSystemAdapter implements StorageAdapter {
     this.categories = new CategoriesFsTable(this.index, this.rootPath)
     this.settings = new SettingsFsTable(this.index, this.rootPath)
     this.weeklyEstimates = new EstimatesFsTable(this.index, this.rootPath)
-    this.conversations = new ConversationsFsTable(this.index, this.rootPath)
-    this.chatMessages = new ChatMessagesFsTable(this.index, this.rootPath)
-    this.pinnedAnalyses = new PinnedAnalysesFsTable(this.index, this.rootPath)
-    this.messageFeedback = new MessageFeedbackFsTable(this.index, this.rootPath)
+    this.profile = new ProfileFsTable(this.index, this.rootPath)
+
+    this.projects = new ProjectsFsTable(this.index, this.rootPath)
+    this.sops = new GenericFsTable(this.index, 'sops')
+    this.sopVersions = new GenericFsTable(this.index, 'sopVersions')
+    this.inspirations = new GenericFsTable(this.index, 'inspirations')
+    this.outfitLogs = new GenericFsTable(this.index, 'outfitLogs')
+    this.hygieneLogs = new GenericFsTable(this.index, 'hygieneLogs')
+    this.leisureLogs = new GenericFsTable(this.index, 'leisureLogs')
+    this.bodyMetricsRecords = new GenericFsTable(this.index, 'bodyMetricsRecords')
+    this.todos = new TodosFsTable(this.index, this.rootPath)
   }
 
   async initialize(): Promise<void> {
@@ -1054,7 +871,7 @@ export class FileSystemAdapter implements StorageAdapter {
         this.setRootPath(config.storagePath)
       }
     } catch {
-      // No config yet — folder selector will set it
+      // No config yet �?folder selector will set it
     }
 
     if (this.rootPath) {
@@ -1071,12 +888,11 @@ export class FileSystemAdapter implements StorageAdapter {
     // Load each table from the in-memory entries (no per-file IPC)
     await (this.categories as CategoriesFsTable).loadFromScan(entries)
     await (this.settings as SettingsFsTable).loadFromScan(entries)
+    await (this.profile as ProfileFsTable).loadFromScan(entries)
     await (this.weeklyEstimates as EstimatesFsTable).loadFromScan(entries)
-    await (this.conversations as ConversationsFsTable).loadFromScan(entries)
-    await (this.chatMessages as ChatMessagesFsTable).loadFromScan(entries)
-    await (this.pinnedAnalyses as PinnedAnalysesFsTable).loadFromScan(entries)
-    await (this.messageFeedback as MessageFeedbackFsTable).loadFromScan(entries)
-    await (this.dailyContexts as DailyContextsFsTable).loadFromScan(entries)
+    await (this.projects as ProjectsFsTable).loadFromScan(entries)
+    await (this.todos as TodosFsTable).loadFromScan(entries)
+
     await (this.events as EventsFsTable).loadFromScan(entries)
   }
 
@@ -1084,7 +900,7 @@ export class FileSystemAdapter implements StorageAdapter {
     if (!this.rootPath) return
     await watchDir(this.rootPath)
     this.unlistenFs = await onFsChange(() => {
-      // Debounce — re-scan on any change
+      // Debounce �?re-scan on any change
       this.fullScan().then(onChange).catch(() => {})
     })
   }

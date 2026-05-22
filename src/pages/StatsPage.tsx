@@ -1,3 +1,11 @@
+/**
+ * # StatsPage — 复盘页面
+ *
+ * 一级架构：Tab 切换（作息/日常/身体/关联）。
+ * 作息 Tab 沿用现有四视图（趋势/热力/睡眠/稳态），
+ * 日常/身体/关联 Tab 加载对应数据并渲染新组件。
+ */
+
 import { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2, AlertCircle } from 'lucide-react'
@@ -7,14 +15,31 @@ import { formatISODate, parseISODate } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useProfileStore } from '@/stores/profileStore'
+import { useDailyContextStore } from '@/stores/dailyContextStore'
+import { useBodyMetricsStore } from '@/stores/bodyMetricsStore'
 import { getDataMaturity } from '@/domain/maturity'
 import type { Granularity } from '@/hooks/useStatsAggregation'
 import { useStatsAggregation } from '@/hooks/useStatsAggregation'
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
-import { EasternStatsShell, type StatsViewMode } from '@/components/stats/EasternStatsShell'
 import { SteadyMetricsPanel } from '@/components/stats/SteadyMetricsPanel'
+import { DietNutrientCard } from '@/components/stats/DietNutrientCard'
+import { OutfitCard } from '@/components/stats/OutfitCard'
+import { HygieneCard } from '@/components/stats/HygieneCard'
+import { LeisureCard } from '@/components/stats/LeisureCard'
+import { BodyMetricsPanel } from '@/components/stats/BodyMetricsPanel'
+import { CorrelationInsights } from '@/components/stats/CorrelationInsights'
+import {
+  EasternStatsShell,
+  STATS_TABS,
+  type StatsTab,
+  type RoutineViewMode,
+  type LifestyleViewMode,
+} from '@/components/stats/EasternStatsShell'
+
+// ── 辅助函数（日期导航） ──────────────────────────────────
 
 function getAnchor(period: Granularity, date: Date): Date {
   switch (period) {
@@ -32,20 +57,45 @@ function shiftAnchor(anchor: Date, period: Granularity, dir: -1 | 1): Date {
   }
 }
 
+// ── 常量 ──────────────────────────────────────────────────
+
+const ROUTINE_VIEWS: RoutineViewMode[] = ['trend', 'heatmap', 'sleep', 'steady']
+const LIFESTYLE_VIEWS: LifestyleViewMode[] = ['diet', 'outfit', 'hygiene', 'leisure']
+
+// ── 主组件 ────────────────────────────────────────────────
+
 export function StatsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const loadRange      = useEventStore((s) => s.loadRange)
-  const rangeEvents    = useEventStore((s) => s.rangeEvents)
-  const isLoading      = useEventStore((s) => s.isLoading)
-  const loadError      = useEventStore((s) => s.loadError)
-  const categories     = useCategoryStore((s) => s.categories)
-  const language       = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
+  const loadRange              = useEventStore((s) => s.loadRange)
+  const rangeEvents            = useEventStore((s) => s.rangeEvents)
+  const isLoading              = useEventStore((s) => s.isLoading)
+  const loadError              = useEventStore((s) => s.loadError)
+  const categories             = useCategoryStore((s) => s.categories)
+  const language               = useAppSettingsStore((s) => s.settings.language)
+  const profile                = useProfileStore((s) => s.profile)
+  const loadProfile            = useProfileStore((s) => s.loadProfile)
 
-  // Parse URL params
-  const period  = (searchParams.get('period') as Granularity | null) ?? 'week'
+  // Lifestyle data
+  const outfits       = useDailyContextStore((s) => s.outfits)
+  const hygieneRecords = useDailyContextStore((s) => s.hygieneRecords)
+  const leisureRecords = useDailyContextStore((s) => s.leisureRecords)
+  const loadOutfits   = useDailyContextStore((s) => s.loadOutfits)
+  const loadHygiene   = useDailyContextStore((s) => s.loadHygiene)
+  const loadLeisure   = useDailyContextStore((s) => s.loadLeisure)
+  const loadRecentHygiene = useDailyContextStore((s) => s.loadRecentHygiene)
+
+  const bodyRecords   = useBodyMetricsStore((s) => s.records)
+  const loadBodyRecords = useBodyMetricsStore((s) => s.loadRecent)
+
+  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+
+  // ── Tab & view state ─────────────────────────────────────
+
+  const tab = (searchParams.get('tab') as StatsTab | null) ?? 'routine'
+  const routineView = (searchParams.get('view') as RoutineViewMode | null) ?? 'trend'
+  const lifestyleView = (searchParams.get('lifestyle') as LifestyleViewMode | null) ?? 'diet'
+  const period = (searchParams.get('period') as Granularity | null) ?? 'week'
   const dateStr = searchParams.get('date') ?? formatISODate(new Date())
-  const view    = (searchParams.get('view') as StatsViewMode | null) ?? 'trend'
 
   const date = useMemo(() => {
     const d = parseISODate(dateStr)
@@ -54,21 +104,55 @@ export function StatsPage() {
 
   const anchor = useMemo(() => getAnchor(period, date), [period, date])
 
-  // Data loading — broad range for all views
+  // ── Data loading ─────────────────────────────────────────
+
+  // Events: broad range for all views
   useEffect(() => {
     const now = Date.now()
     fireAndForget(loadRange(now - 3 * 365 * 24 * 60 * 60_000, now), 'load stats range')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Tab title
+  // Profile (for body metrics height reference)
   useEffect(() => {
-    document.title = language === 'zh' ? 'CaILens · 统计' : 'CaILens · Statistics'
-  }, [language])
+    if (!useProfileStore.getState().isLoaded) {
+      fireAndForget(loadProfile(), 'load profile')
+    }
+  }, [loadProfile])
 
-  // Lookback buckets for history
+  // Lifestyle data (load when tab is lifestyle)
+  useEffect(() => {
+    if (tab !== 'lifestyle') return
+    const now = new Date()
+    const end = formatISODate(now)
+    const start = formatISODate(addDays(now, -60))
+    fireAndForget(loadOutfits(start, end), 'load outfits')
+    fireAndForget(loadHygiene(start, end), 'load hygiene')
+    fireAndForget(loadLeisure(start, end), 'load leisure')
+    fireAndForget(loadRecentHygiene(30), 'load recent hygiene')
+  }, [tab, loadOutfits, loadHygiene, loadLeisure, loadRecentHygiene])
+
+  // Body metrics data
+  useEffect(() => {
+    if (tab !== 'body') return
+    fireAndForget(loadBodyRecords(90), 'load body records')
+  }, [tab, loadBodyRecords])
+
+  // ── Tab title ────────────────────────────────────────────
+
+  useEffect(() => {
+    const currentTab = STATS_TABS.find((t) => t.id === tab)
+    const tabLabel = currentTab
+      ? (language === 'zh' ? currentTab.labelZh : currentTab.labelEn)
+      : ''
+    document.title = language === 'zh'
+      ? `CaILens · ${tabLabel}`
+      : `CaILens · ${tabLabel}`
+  }, [language, tab])
+
+  // ── Routine tab data ─────────────────────────────────────
+
   const lookback = period === 'day' ? 14 : period === 'week' ? 8 : 12
-
   const { history } = useStatsAggregation({
     granularity: period,
     anchorDate: anchor,
@@ -77,7 +161,8 @@ export function StatsPage() {
 
   const maturity = useMemo(() => getDataMaturity(rangeEvents), [rangeEvents])
 
-  // URL helpers
+  // ── URL helpers ──────────────────────────────────────────
+
   const updateParams = (upd: Record<string, string | undefined>) => {
     const next = new URLSearchParams(searchParams)
     for (const [k, v] of Object.entries(upd)) {
@@ -87,32 +172,45 @@ export function StatsPage() {
     setSearchParams(next, { replace: true })
   }
 
+  const setTab = (newTab: StatsTab) => {
+    updateParams({ tab: newTab === 'routine' ? undefined : newTab })
+  }
+
+  const setRoutineView = (v: RoutineViewMode) => {
+    updateParams({ view: v === 'trend' ? undefined : v })
+  }
+
+  const setLifestyleView = (v: LifestyleViewMode) => {
+    updateParams({ lifestyle: v === 'diet' ? undefined : v })
+  }
+
   const setPeriod = (p: Granularity) => {
     updateParams({ period: p === 'week' ? undefined : p })
   }
 
-  const setView = (v: StatsViewMode) => {
-    updateParams({ view: v === 'trend' ? undefined : v })
-  }
-
-  const navigate = (dir: -1 | 1) => {
+  const navigateRoutine = (dir: -1 | 1) => {
     updateParams({ date: formatISODate(shiftAnchor(anchor, period, dir)) })
   }
 
-  return (
-    <EasternStatsShell
-      language={language}
-      currentView={view}
-      onViewChange={setView}
-    >
-      {isLoading ? (
+  // ── Render ───────────────────────────────────────────────
+
+  const renderContent = () => {
+    if (isLoading && rangeEvents.length === 0 && tab === 'routine') {
+      return (
         <div className="flex items-center justify-center min-h-[400px] flex-1">
           <Loader2 className="h-8 w-8 animate-spin text-text-tertiary" />
         </div>
-      ) : loadError ? (
+      )
+    }
+
+    if (loadError && tab === 'routine') {
+      return (
         <div className="flex flex-col items-center justify-center gap-4 min-h-[400px] flex-1">
           <AlertCircle className="h-10 w-10 text-color-text-danger" />
-          <p className="text-sm max-w-md text-center text-text-secondary" style={{ fontFamily: "'Noto Sans SC', sans-serif" }}>
+          <p
+            className="text-sm max-w-md text-center text-text-secondary"
+            style={{ fontFamily: "'Noto Sans SC', sans-serif" }}
+          >
             {loadError}
           </p>
           <button
@@ -122,41 +220,259 @@ export function StatsPage() {
             {t('重试', 'Retry')}
           </button>
         </div>
-      ) : (
-        <>
-          {view === 'trend' && (
-            <CategoryTrendChart
-              history={history}
-              categories={categories}
-              periodType={period}
-              language={language}
-              maturity={maturity}
-              onNavigate={navigate}
-              onPeriodChange={setPeriod}
-            />
-          )}
-          {view === 'heatmap' && (
-            <YearHeatmap
-              rangeEvents={rangeEvents}
-              categories={categories}
-              language={language}
-            />
-          )}
-          {view === 'sleep' && (
-            <SleepScatterChart
-              rangeEvents={rangeEvents}
-              language={language}
-            />
-          )}
-          {view === 'steady' && (
-            <SteadyMetricsPanel
-              rangeEvents={rangeEvents}
-              language={language}
-            />
-          )}
+      )
+    }
 
-        </>
-      )}
+    switch (tab) {
+      /* ════════════════════════════════════════════
+         作息 Tab
+         ════════════════════════════════════════════ */
+      case 'routine': {
+        // 子视图 pills
+        const pills = ROUTINE_VIEWS.map((v) => ({
+          id: v,
+          label: v === 'trend'   ? t('趋势', 'Trend')
+               : v === 'heatmap' ? t('热力', 'Heatmap')
+               : v === 'sleep'   ? t('睡眠', 'Sleep')
+               :                   t('稳态', 'Steady'),
+        }))
+
+        return (
+          <div className="routine-container">
+            {/* 二级 pills */}
+            <div className="routine-pills">
+              {pills.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setRoutineView(p.id)}
+                  className={`routine-pill${routineView === p.id ? ' routine-pill-active' : ''}`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 内容 */}
+            {routineView === 'trend' && (
+              <CategoryTrendChart
+                history={history}
+                categories={categories}
+                periodType={period}
+                language={language}
+                maturity={maturity}
+                onNavigate={navigateRoutine}
+                onPeriodChange={setPeriod}
+              />
+            )}
+            {routineView === 'heatmap' && (
+              <YearHeatmap
+                rangeEvents={rangeEvents}
+                categories={categories}
+                language={language}
+              />
+            )}
+            {routineView === 'sleep' && (
+              <SleepScatterChart
+                rangeEvents={rangeEvents}
+                language={language}
+              />
+            )}
+            {routineView === 'steady' && (
+              <SteadyMetricsPanel
+                rangeEvents={rangeEvents}
+                language={language}
+              />
+            )}
+          </div>
+        )
+      }
+
+      /* ════════════════════════════════════════════
+         日常 Tab
+         ════════════════════════════════════════════ */
+      case 'lifestyle': {
+        // 子视图 pills
+        const pills = LIFESTYLE_VIEWS.map((v) => ({
+          id: v,
+          label: v === 'diet'    ? t('饮食', 'Diet')
+               : v === 'outfit'  ? t('穿搭', 'Outfit')
+               : v === 'hygiene' ? t('卫生', 'Hygiene')
+               :                   t('娱乐', 'Leisure'),
+        }))
+
+        return (
+          <div className="lifestyle-container">
+            {/* 二级 pills */}
+            <div className="lifestyle-pills">
+              {pills.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setLifestyleView(p.id)}
+                  className={`lifestyle-pill${lifestyleView === p.id ? ' lifestyle-pill-active' : ''}`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 内容 */}
+            {lifestyleView === 'diet' && (
+              <DietNutrientCard
+                rangeEvents={rangeEvents}
+                language={language}
+              />
+            )}
+            {lifestyleView === 'outfit' && (
+              <OutfitCard
+                outfits={outfits}
+                language={language}
+              />
+            )}
+            {lifestyleView === 'hygiene' && (
+              <HygieneCard
+                records={hygieneRecords}
+                language={language}
+              />
+            )}
+            {lifestyleView === 'leisure' && (
+              <LeisureCard
+                records={leisureRecords}
+                language={language}
+              />
+            )}
+          </div>
+        )
+      }
+
+      /* ════════════════════════════════════════════
+         身体指标 Tab
+         ════════════════════════════════════════════ */
+      case 'body': {
+        return (
+          <BodyMetricsPanel
+            records={bodyRecords}
+            profile={profile}
+            language={language}
+          />
+        )
+      }
+
+      /* ════════════════════════════════════════════
+         关联分析 Tab
+         ════════════════════════════════════════════ */
+      case 'correlation': {
+        return (
+          <CorrelationInsights
+            rangeEvents={rangeEvents}
+            hygieneRecords={hygieneRecords}
+            language={language}
+          />
+        )
+      }
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <EasternStatsShell
+      language={language}
+      currentTab={tab}
+      onTabChange={setTab}
+    >
+      <style>{STATS_PAGE_CSS}</style>
+      {renderContent()}
     </EasternStatsShell>
   )
 }
+
+// ── Scoped CSS ────────────────────────────────────────────────
+
+const STATS_PAGE_CSS = `
+/* ── Routine tab pills ──────────────────── */
+.routine-container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.routine-pills {
+  display: flex;
+  gap: 2px;
+  background: var(--heatmap-bg-card);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.routine-pill {
+  padding: 6px 18px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--heatmap-ink-3);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.routine-pill:hover {
+  color: var(--heatmap-ink-1);
+}
+.routine-pill-active {
+  color: var(--heatmap-ink-1);
+  background: var(--heatmap-bg);
+  font-weight: 600;
+}
+
+/* ── Lifestyle tab pills ──────────────────── */
+.lifestyle-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.lifestyle-pills {
+  display: flex;
+  gap: 2px;
+  background: var(--heatmap-bg-card);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.lifestyle-pill {
+  padding: 6px 18px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--heatmap-ink-3);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.lifestyle-pill:hover {
+  color: var(--heatmap-ink-1);
+}
+.lifestyle-pill-active {
+  color: var(--heatmap-ink-1);
+  background: var(--heatmap-bg);
+  font-weight: 600;
+}
+
+/* ── Misc ──────────────────────────────── */
+@media (max-width: 719px) {
+  .routine-pills,
+  .lifestyle-pills {
+    width: 100%;
+    justify-content: center;
+  }
+  .routine-pill,
+  .lifestyle-pill {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+`

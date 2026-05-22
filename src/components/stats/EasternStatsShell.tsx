@@ -1,84 +1,130 @@
-import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
-export type StatsViewMode = 'trend' | 'heatmap' | 'sleep' | 'steady'
+/**
+ * # EasternStatsShell — 复盘页面 Shell
+ *
+ * 顶级 Tab 容器 + 子视图容器。
+ * Tab 为一级导航（作息/日常/身体/关联），
+ * 各 Tab 内部的子视图由各自的子组件管理。
+ */
 
-const VIEWS: { key: StatsViewMode; label: string; labelZh: string }[] = [
-  { key: 'trend', label: 'Trend', labelZh: '趋势' },
-  { key: 'sleep', label: 'Sleep', labelZh: '睡眠' },
-  { key: 'heatmap', label: 'Heatmap', labelZh: '热力图' },
-  { key: 'steady', label: 'Steady', labelZh: '稳态' },
+import type { ReactNode } from 'react'
+import type { AppLanguage } from '@/domain/settings'
+
+/** 一级 Tab */
+export type StatsTab = 'routine' | 'lifestyle' | 'body' | 'correlation'
+
+/** 作息视图的子视图 */
+export type RoutineViewMode = 'trend' | 'heatmap' | 'sleep' | 'steady'
+
+/** 日常视图的子视图 */
+export type LifestyleViewMode = 'diet' | 'outfit' | 'hygiene' | 'leisure'
+
+/** 兼容旧的 view mode（逐步淘汰） */
+export type StatsViewMode = RoutineViewMode
+
+interface TabDefinition {
+  id: StatsTab
+  labelZh: string
+  labelEn: string
+}
+
+export const STATS_TABS: readonly TabDefinition[] = [
+  { id: 'routine',     labelZh: '作息', labelEn: 'Routine' },
+  { id: 'lifestyle',   labelZh: '日常', labelEn: 'Lifestyle' },
+  { id: 'body',        labelZh: '身体', labelEn: 'Body' },
+  { id: 'correlation', labelZh: '关联', labelEn: 'Insights' },
 ]
 
-interface EasternStatsShellProps {
-  language: 'zh' | 'en'
-  currentView: StatsViewMode
-  onViewChange: (v: StatsViewMode) => void
+interface Props {
+  language: AppLanguage
+  currentTab: StatsTab
+  onTabChange: (tab: StatsTab) => void
   children: ReactNode
 }
 
-export function EasternStatsShell({
-  language,
-  currentView,
-  onViewChange,
-  children,
-}: EasternStatsShellProps) {
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
+export function EasternStatsShell({ language, currentTab, onTabChange, children }: Props) {
 
   return (
-    <div
-      className="h-full flex flex-col overflow-hidden"
-      style={{ backgroundColor: 'var(--stats-shell-bg)', fontFamily: "'Noto Sans SC', sans-serif", color: 'var(--stats-shell-ink-1)' }}
-    >
-      {/* Sticky header */}
-      <header
-        className="sticky top-0 z-50 flex items-center gap-3 h-[52px] px-4 md:px-12 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--stats-shell-rule)' }}
-      >
-        {/* Back link */}
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 text-sm font-sans text-[var(--stats-shell-ink-2)] hover:text-[var(--stats-shell-ink-1)] transition-colors duration-200 flex-shrink-0 no-underline"
-        >
-          <ArrowLeft size={16} strokeWidth={1.75} />
-          <span>{t('返回日历', 'Back to calendar')}</span>
-        </Link>
+    <div className="eastern-shell-root">
+      <style>{SHELL_CSS}</style>
 
-        <div style={{ width: 1, height: 20, backgroundColor: 'var(--stats-shell-rule)', flexShrink: 0 }} />
+      {/* ── 一级 Tab 栏 ──────────────────────────── */}
+      <div className="shell-tabs">
+        {STATS_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`shell-tab${currentTab === tab.id ? ' shell-tab-active' : ''}`}
+          >
+            {language === 'zh' ? tab.labelZh : tab.labelEn}
+          </button>
+        ))}
+      </div>
 
-        {/* View tabs */}
-        <div className="flex gap-0 flex-shrink-0" style={{ height: 52 }}>
-          {VIEWS.map((v) => {
-            const active = currentView === v.key
-            return (
-              <button
-                key={v.key}
-                onClick={() => onViewChange(v.key)}
-                className="px-3 flex items-center bg-transparent border-none cursor-pointer transition-colors duration-200"
-                style={{
-                  fontFamily: "'Noto Sans SC', sans-serif",
-                  fontSize: 13,
-                  fontWeight: active ? 600 : 400,
-                  color: active ? 'var(--stats-shell-ink-1)' : 'var(--stats-shell-ink-3)',
-                  borderBottom: active ? '1.5px solid var(--c-active)' : '1.5px solid transparent',
-                  transition: 'color 0.25s ease, border-color 0.4s ease',
-                }}
-              >
-                {language === 'zh' ? v.labelZh : v.label}
-              </button>
-            )
-          })}
-        </div>
-      </header>
-
-      {/* Content area (scrollable) */}
-      <section className="flex-1 overflow-y-auto">
-        <div className="max-w-[1100px] mx-auto px-4 md:px-12 pt-12 pb-8 w-full">
-          {children}
-        </div>
-      </section>
-
-
+      {/* ── 当前 Tab 内容 ──────────────────────────── */}
+      <div className="shell-content" key={currentTab}>
+        {children}
+      </div>
     </div>
   )
 }
+
+// ── Scoped CSS ────────────────────────────────────────────────
+
+const SHELL_CSS = `
+.eastern-shell-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+/* ── Tab bar ────────────────────────────── */
+.shell-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--heatmap-rule);
+  padding: 0 16px;
+  flex-shrink: 0;
+  background: var(--heatmap-bg);
+}
+.shell-tab {
+  padding: 10px 24px;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--heatmap-ink-3);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  letter-spacing: 0.08em;
+}
+.shell-tab:hover {
+  color: var(--heatmap-ink-1);
+}
+.shell-tab-active {
+  color: var(--heatmap-ink-1);
+  font-weight: 500;
+  border-bottom-color: var(--accent);
+}
+
+/* ── Content ────────────────────────────── */
+.shell-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 16px;
+}
+
+@media (max-width: 719px) {
+  .shell-tab {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  .shell-content {
+    padding: 16px 10px;
+  }
+}
+`

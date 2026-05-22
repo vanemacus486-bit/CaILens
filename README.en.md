@@ -2,19 +2,9 @@
 
 [中文](./README.md)
 
-> *Time, recorded. Like a book you write one hour at a time.*
-
 CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's lifelong time accounting practice, as told in Daniil Granin's *This Strange Life*. It records, categorises, and visualises how your hours are actually spent — no accounts, no servers, no telemetry.
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/e6debe21-3092-4b4f-ae99-df393c51fe5e" />
-
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d3560f3f-0b85-4c8e-9480-ceaff536583b" />
-
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f42e1891-8796-4f15-a7e5-f7535c69253c" />
-
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a0f18977-a958-492a-a787-9f1a8a39d5b2" />
-
-> **Status:** v3.22.0 — Lifestyle upgrade: daily context recording, input-output correlation analysis, steady metrics, restrained mode, standard week template. 521 tests.
+> **Status:** v3.23.0 — Three-mode navigation, project-SOP-todo system, 4-tab statistics dashboard. 498 tests.
 
 ## Downloads
 
@@ -57,56 +47,164 @@ CaILens is a small attempt at that instrument, for the browser.
 - **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
 - **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
 - **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 489 tests, one-way dependency layers. The codebase should age well.
+- **Code quality over feature quantity.** Strict TypeScript, 498 tests, one-way dependency layers. The codebase should age well.
 
 ---
 
 ## Features
 
+### Three-Mode Navigation (v3.23)
+
+The top navigation bar provides three work modes, switchable via `1` `2` `3`:
+
+| Mode | Key | Purpose |
+|------|-----|---------|
+| 📅 Calendar | `1` | Week / Day / Month views |
+| 📋 Plan | `2` | Todo management |
+| 📊 Review | `3` | Statistics: routine / lifestyle / body / correlation |
+
+All three modes share the same top bar. URL-driven state, browser back/forward works.
+
 ### Week Calendar
 
 - **24-hour, single-screen week view** (Mon–Sun, with time gutter).
-- **Click-to-create** — click any empty slot, a modal overlay card appears with a prompt: *"What were you doing?"*
-- **Drag to move** — continuous minute-axis coordinate system for seamless cross-day drag. Built on raw Pointer Events, ghost overlay at 60fps.
-- **Drag edges to resize** — top and bottom handles for adjusting duration; drag past midnight to create cross-day events.
-- **Cross-day events** — events spanning midnight (e.g. sleep) display across days with arrow indicators and continuous rounded corners.
-- **Live preview at 60fps** — draft events render in real-time as you edit or drag.
-- **Right-click menu** — delete, change colour (6 colours, each tied to a category).
-- **Overlap layout** — overlapping events are laid out side-by-side automatically.
-- **Current time indicator** — a terracotta line on today's column, updating every minute.
-- **Light / dark mode** — manual toggle, with automatic system preference detection on first visit. Segmented control in Settings.
-- **Tri-view navigation** — W / D / M pills in the toolbar switch between Week / Day / Month views. View state is URL-driven (`?view=day` / `?view=month`); browser back/forward restores both view and position. Clicking a date in the date header navigates to the Day View.
+- **Click-to-create** — inline edit card with title + description.
+- **Drag to move** — continuous minute-axis coordinate system, seamless cross-day. Raw Pointer Events, 60fps ghost overlay.
+- **Drag edges to resize** — handles; drag past midnight for cross-day events.
+- **Cross-day events** — sleep spanning midnight, arrow indicators.
+- **Live preview at 60fps**.
+- **Right-click menu** — delete, change colour (6 categories).
+- **Overlap layout** — automatic side-by-side.
+- **Current time line** — 1px solid + 3px dot + 2s breathing animation.
+- **Light / dark mode** — manual toggle, auto-detects system preference. WCAG AA contrast.
+- **Tri-view** — W / D / M pills for Week/Day/Month. URL-driven.
+
+### Day Diary (DayEventStream)
+
+Embedded via `?view=day&date=YYYY-MM-DD`, sharing URL space with Week/Month.
+
+- **Serif reading layout** — heading (600), paragraph (description), smaller footer.
+- **Markdown descriptions** — **bold**, *italic*, inline code, lists, links.
+- **Category transition dividers**.
+- **Prev/next day navigation**.
+
+### Month View (MonthView)
+
+- **Monthly aggregation grid**.
+- **Double-click to Day View**.
+- `‹` `›` month navigation.
+- URL param `?view=month&date=2026-05-01`.
 
 ### QuickLog
 
-- **`n` key global shortcut** — opens the QuickLog dialog from any page; shortcut auto-disables while the dialog is open.
-- **Time-chain auto-continuation** — defaults start time to the last event's end time if within 4 hours, else falls back to `now − 1h` → `now`.
-- **Colour + category inheritance** — default colour from the last event; switch with `Alt+1..6` or click colour dots.
-- **Title-first input** — autofocus on title, Enter to save, Esc to close. Built for speed.
-- **Collapsible details** — description + location, collapsed by default, 200ms `max-height` expand animation.
-- **Undo after save** — 3-second snackbar in the bottom-right corner; click Undo to delete the event. Saving again within 3 seconds replaces the toast without affecting already-saved events.
-- **Toolbar entry** — `+` button in the week view toolbar, next to search, with shortcut tooltip.
+- **`N` global shortcut** — quick entry from any page.
+- **Minimal input** — event name, category, notes. Autofocus title, **Tab** to switch, **Enter** to save.
+- **Alt+number** — `Alt+1..6` for categories.
+- **Autocomplete dropdown** — recent matches.
+- **Recent pills** — quick-repeat recent events.
+- **Auto time** — inherits from previous event or `now - 1h` → `now`.
+- **Undo** — 3-second snackbar.
+- **Floating card** — attached below the week view.
+
+### Todos / Action Page (v3.23)
+
+The `/action` page separates planning from recording.
+
+- **4-state todo** — `todo / in_progress / done / cancelled`.
+- **Priority** — high / medium / low. Sortable.
+- **Due-date grouping** — overdue / today / upcoming / none.
+- **`sortTodos()`** — pure function: undone first → sortOrder → priority → createdAt.
+- **Quick add** — top input + Enter.
+- **Zustand store** — `todoStore`.
+
+### Projects & SOP (v3.23)
+
+New project dimension: event → project → category. Each project can have a Standard Operating Procedure (SOP).
+
+- **Project detail** — `/projects/:projectId`, with event overview + SOP editor.
+- **SOP editor** — title / step / note / warning sections.
+- **Version management** — each edit creates a version; history + rollback.
+- **Zustand stores** — `projectStore` + `sopStore`.
+
+### Profile (v3.23)
+
+`/profile` page manages personal info and body metrics.
+
+- **Body metrics** — height / weight / body fat / resting heart rate / blood pressure.
+- **Sleep baseline** — personal sleep requirement for steady metrics comparison.
+- **Data persistence** — `profileStore` + `profileRepository`.
+
+### Daily Context (v3.22)
+
+Capture the "why" behind your time.
+
+- **Quick log** — 5 sliders + 2 numeric inputs + notes: last meal, social, outdoor, exercise, mood, screen.
+- **All fields optional** — ~20 seconds.
+- **Status indicator**.
+- **Restrained Mode** — suppress insights while keeping recording.
+
+### Insights (v3.22)
+
+Correlate context with sleep metrics.
+
+- **Group comparison** — split history into high/low groups per variable.
+- **Plain-language cards** — "Late last meal: bedtime delayed by 34 min."
+- **Correlation ≠ causation**.
+- **Actionable suggestions**.
+- **Stats page entry** — 「Correlation」tab.
+
+### Steady Metrics (v3.22)
+
+From streak anxiety to steady-state perspective.
+
+- **Median bedtime & wake time**.
+- **Standard deviation**.
+- **Drift velocity** (min/week).
+- **Drift projection** — "In 4 weeks, bedtime will reach 23:45."
+- **Consistency index**.
+
+### Restrained Mode (v3.22)
+
+Record without being analyzed.
+
+- **Toggle** — Settings → Data → Restrained Mode.
+- **Hides** — insight entry points.
+- **Design goal** — causality without scrutiny.
+
+### Standard Week View
+
+"What does a typical week look like?"
+
+- **7×24 grid** — 168 (weekday, hour) buckets by minute weight.
+- **Habit visualization** — darker = stronger. Category colours.
+- **<30% grey** — low-ratio cells fade.
+- **Hover distribution** — full activity breakdown.
+- **Range selector** — all / last 12 weeks / last 4 weeks.
+- **Hide sleep toggle**.
+- **≤8 weeks shows absolute counts** — `"3/4 weeks"`.
 
 ### Search
 
-- **Ctrl+K / Cmd+K global shortcut** — summon the search panel from any page.
-- **Keyword search** — matches event titles, descriptions, and locations, case-insensitive.
-- **Instant navigation** — clicking a result jumps to the corresponding week and opens the event detail card.
-- **Toolbar entry** — search icon button in the week view toolbar.
+- **Ctrl+K / Cmd+K global shortcut**.
+- **Keyword search** — titles + descriptions, case-insensitive.
+- **Description snippets** — ±20 chars context + highlight.
+- **Instant navigation** — jump to week, open detail.
+- **Toolbar entry** — search icon.
 
 ### Sidebar
 
-- **Icon rail with hover expansion** — 200ms delay, Chinese/English labels appear on hover. Pin to keep expanded. State persisted to localStorage.
-- **Week navigation** — previous, next, jump to today.
-- **ICS import** and **Statistics dashboard** buttons.
+- **Icon rail with hover expansion** — 200ms delay, bilingual labels. Pin to keep expanded.
+- **Week navigation** — prev / next / today.
+- **ICS import** and **Stats dashboard** buttons.
 
 ### Keyboard Shortcuts
 
-CaILens v3.10 ships with a global keyboard shortcut system. **All bindings are user-customizable**:
+**All bindings user-customizable**:
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+K` | Open command palette |
+| `1` / `2` / `3` | Calendar / Plan / Review mode |
+| `Ctrl+K` | Open search panel |
 | `N` | Quick log |
 | `Ctrl+C` | Copy focused event |
 | `Ctrl+V` | Paste event |
@@ -114,175 +212,98 @@ CaILens v3.10 ships with a global keyboard shortcut system. **All bindings are u
 | `Ctrl+Shift+←` / `Ctrl+Shift+→` | Previous / Next day |
 | `M` | Switch to Month View |
 
-- **16 bindable actions** — navigation, view switching, theme/language toggle, event copy/paste/delete/duplicate
-- **Settings → Shortcuts tab** — click a binding pill to record a new shortcut; conflict detection with inline warnings
-- **Reset** — per-action or reset all to defaults
-- Shortcuts are automatically suppressed when typing in input fields or text areas
-- The command palette shows currently active shortcuts for each action
-
-### Day Diary (DayEventStream)
-
-The Day View is no longer a separate route — it's embedded in the main view via `?view=day&date=YYYY-MM-DD`, sharing the same URL space as the Week and Month views. Switch with the W / D / M pills in the toolbar.
-
-- **Vertical timeline with serif layout** — events render as readable text blocks: serif heading (600 weight), serif paragraph for descriptions, smaller sans-serif footer for location. Empty descriptions leave clean whitespace.
-- **Markdown rendering for descriptions** — input is plain text, but the renderer supports **bold**, *italic*, inline code, unordered lists, and inline links. No rich-text editor.
-- **Category transition dividers** — subtle separators when the activity type changes.
-- **Prev / next day navigation** — walk through your diary day by day. Click any date in the week view header to jump straight to that day's diary.
-
-### Quick Log
-
-- **`N` global shortcut** — open the quick log dialog from anywhere; auto-disabled when the dialog is open to prevent accidental triggers.
-- **Minimal input flow** — only three fields: event name, category, and notes. Auto-focuses the title field on open. **Tab** toggles between title and notes, **Enter** saves directly.
-- **Alt+number for category** — `Alt+1` through `Alt+6` instantly select any of the 6 categories. Number badges on the color buttons show the shortcuts.
-- **No manual time entry** — events automatically use default time ranges (inherited from the previous event or falling back to `now - 1h` → `now`). The time picker and location field have been removed to reduce decision friction.
-- **Undo after save** — 3-second snackbar in the bottom-right; click to undo and delete the event. Rapid consecutive saves replace the toast without affecting saved events.
-- **Toolbar entry** — `+` button in the week view toolbar, same row as the search button, with a tooltip showing the keyboard shortcut.
-
-### Daily Context (v3.22)
-
-CaILens now captures the "why" behind your time — recording lifestyle variables that affect your routine.
-
-- **Quick daily log** — tap the "Log" button in DayView to record: last meal time & type, social intensity (1–5), outdoor minutes, exercise intensity (1–5), mood (1–5), screen hours, and notes.
-- **All fields optional** — fill only what matters. ~20 seconds to complete.
-- **Status indicator** — "Logged" when today is recorded, "Log" when not.
-- **Restrained Mode** — toggle in Settings → Data to suppress all analysis and insights while keeping recording.
-
-### Insights (v3.22)
-
-Correlate daily context with sleep metrics to answer "what affects my routine."
-
-- **Group comparison** — split history into high/low groups per variable, compare mean sleep metrics between groups.
-- **Plain-language cards** — "Late last meal: bedtime delayed by 34 min."
-- **Correlation ≠ causation** — each insight includes a disclaimer.
-- **Actionable suggestions** — "Try reducing screen time 1 hour before bed."
-- **DayView entry** — click the "🧠 Insights" button on any day to analyze 60 days of data.
-
-### Steady Metrics (v3.22)
-
-Shift from "streak anxiety" to a steady-state perspective on routine health.
-
-- **Median bedtime & wake time** — robust to outliers.
-- **Standard deviation** — volatility of sleep/wake timing.
-- **Drift velocity** — linear regression slope (min/week): positive = delaying, negative = advancing.
-- **Drift projection** — "In 4 weeks, bedtime will reach 23:45 if uncorrected."
-- **Stats tab** — new "Steady" tab in the Statistics page.
-
-### Restrained Mode (v3.22)
-
-Prevent the tool from becoming a new source of anxiety — record without being analyzed.
-
-- **One-click toggle** — Settings → Data → Restrained Mode.
-- **Scope** — hides AnalyzeButton, AI chat, and insight entry points.
-- **Design goal** — help users see causality without constant scrutiny.
-
-### Month View (MonthView)
-
-- **Monthly aggregation grid** — each cell shows a summary of the day's events.
-- **Double-click to Day View** — double-click any day cell to switch to the Day View scoped to that date.
-- **Month navigation** — `‹` / `›` arrows in the toolbar switch months, consistent with Week/Day navigation.
-- **Unified view switching** — W / D / M pills toggle between all three views. URL parameter driven (`?view=month&date=2026-05-01`); browser back/forward restores view and position.
+- **16 bindable actions**.
+- **Settings → Shortcuts** — click to record, conflict detection.
+- **Reset** — per-action or all.
+- Auto-disabled in input fields.
 
 ### Categories (6 fixed)
 
-| Colour | Name (EN) | Name (ZH) | Type |
-|---|---|---|---|
-| Terracotta | Core Focus | 主要矛盾 | Type I — creative core |
-| Sage | Support Tasks | 次要矛盾 | Type II — auxiliary |
-| Sand | Chores & Admin | 庶务时间 | Type II — auxiliary |
-| Warm gray | Personal Growth | 个人提升 | Type I — creative core |
-| Rose | Rest & Leisure | 休息娱乐 | Type II — auxiliary |
-| Stone | Sleep | 睡眠时长 | Type II — auxiliary |
+| Colour | Name | Type |
+|---|---|---|
+| Terracotta | Core Focus | Type I — creative core |
+| Sage | Support Tasks | Type II — auxiliary |
+| Sand | Chores & Admin | Type II — auxiliary |
+| Warm gray | Personal Growth | Type I — creative core |
+| Rose | Rest & Leisure | Type II — auxiliary |
+| Stone | Sleep | Type II — auxiliary |
 
-Users can rename categories in both Chinese and English. Each category has a configurable **weekly budget** (in hours) — edit in Settings. Every event belongs to exactly one category.
+Editable names (CN/EN). Configurable weekly budget per category.
 
 ### Settings Page
 
-- **6-tab drawer** — Categories, Appearance, Shortcuts, Data, Storage, About.
-- **Language toggle** — Chinese / English, using a segmented control.
-- **Theme toggle** — Light / Dark, using a segmented control, with automatic system preference detection on first visit.
-- **Accent colour** — rust / ocean / forest / plum. Switching shifts surfaces, borders, and brand colour as a cohesive whole — not just a button tint.
-- **Font selector** — Default (Inter) or LXGW WenKai (霞鹜文楷), a calligraphic Chinese font.
-- **Per-category budget** — number input for weekly hour targets.
-- **Collapsible keywords** — show preview with count badge; expand to full keyword folder editor.
-- **Data export** — one-click CSV and JSON download.
+Tabbed sub-route layout:
 
-### Statistics Dashboard
+- **Categories** — inline name edit, budget, keyword folders, auto-reclassify.
+- **Appearance** — language (CN/EN), theme (light/dark), accent (rust/ocean/forest/plum), font (Inter/LXGW WenKai).
+- **Shortcuts** — view and customise all bindings.
+- **Data** — restrained mode toggle, export/import.
+- **Storage** — IndexedDB info.
+- **About** — version & license.
 
-Click the chart icon in the sidebar. A **segmented control at the top** switches between four views — one at a time, each filling the available viewport height:
+### Statistics Dashboard (v3.23 4-Tab)
 
-**Category Bar Chart** (default)
-- 6 thick bars distributed evenly across the full height, each = budget track (neutral) + actual fill (category colour).
-- Overflow extends rightward in warning colour.
-- Right-side labels show `actual/budget` in hours.
+Upgraded from 3 views to **4 primary tabs**:
 
-**Multi-Period Comparison**
-- 2/3/6/12 side-by-side mini charts with a shared global scale, filling the full height.
-- Period count selectable via a small segmented control.
+**📊 Routine**
+- Trend chart (day/week/month granularity, multi-line, budget baseline)
+- Yearly heatmap (GitHub contribution graph, 6-category pill, percentile thresholds)
+- Sleep rhythm chart (calendar Y-axis, month/quarter/year views)
+- Steady metrics (median, stddev, drift, projection, consistency)
 
-**Trend Chart**
-- Multi-line Recharts chart with category chip toggles, selection persisted to localStorage.
-- Horizontal dashed budget reference line.
-- Chart height adapts to the viewport.
+**🥗 Lifestyle**
+- Diet nutrition card — daily meal type stats
+- Outfit card — daily outfit tracking
+- Hygiene card — hygiene score trends
+- Leisure card — leisure distribution
 
-**Day Intensity Heatmap** (one of the four left-side views)
-- 7 rows (Mon–Sun) × N columns grid, rows and columns distributed evenly via CSS grid fractions.
-- Cell colour intensity = "Core Focus" hours ÷ 24. Hover tooltip shows exact value.
-- Gradient legend below the grid; wide tables scroll horizontally.
+**💪 Body**
+- Body metrics panel — weight / body fat / heart rate / blood pressure trends
+- Sleep baseline comparison
 
-**Yearly Heatmap** (switch to "Heatmap" tab in the top bar)
-- GitHub contribution graph paradigm: ~53 columns × 7 rows CSS grid.
-- 6-category pill switcher — smooth colour transition via `--c-active` CSS variable.
-- Intensity formula: `daily target = weeklyBudget / 7`, 5 levels (0→22%→48%→75%→100%).
-- Cells scale 1.6× on hover with 1px black border; today gets a persistent black box-shadow.
-- Stats bar (Total / Daily Avg / Streak / Best Day) with pip visualisation for streaks.
-- **Year switching** — `‹` `›` arrows to navigate between years and review historical heatmap data.
-
-**Period selector:** Week / Month / Quarter / Year / All-time — shared across all 4 views.  
-**Data maturity:** Cold / Warming / Mature thresholds still gate analytics.
-
-**Sleep Rhythm Chart**
-- Scatter plot of bedtime & wake time with a 00–24 calendar-style Y-axis (0 at top = day starts, 24 at bottom = day ends).
-- **Month / Quarter / Year** view switching (‹ › navigation) — month shows daily data, quarter spans 4 consecutive months, year shows all 365 days.
-- Warm dots for bedtime, cool dots for wake time on the same time scale; each night connected by a **thin vertical segment**.
-- **Layered pre-computation** — all nights processed once; view switching uses filter + arithmetic only, paired with React `startTransition` for concurrent rendering.
-- Stats card: average duration / bedtime / wake time / night count.
+**🔗 Correlation**
+- Context variable vs routine metric analysis
+- Group comparison + plain-language insight cards
+- Correlation ≠ causation disclaimer
+- Data maturity: Cold / Warming / Mature
 
 ### ICS Import
 
-- **Parse RFC 5545 files** (via ical.js). All-day and recurring events are automatically skipped with counts shown.
-- **Event name aggregation** — events are instantly grouped by name (1369 rows → ~28 types). Each row shows the event name + occurrence count. Classifying one instance of "lunch" applies to all 487 events.
-- **Inline category buttons** — 6 colour-coded dot buttons per row (numbered 1-6). Click to assign, or press 1-6 on keyboard for rapid classification.
-- **Smart pre-fill suggestions** — keyword matching auto-guesses categories, shown with a dashed border + sparkle icon. **One-click "Apply N suggestions"** batch-accepts high-confidence matches.
-- **Event-coverage progress bar** — shows "743 / 1369 events covered" (event count, not type count). Classifying high-frequency items gives immediate progress feedback.
-- **Search filter** — event name search box to quickly narrow down 30+ types.
-- **Per-instance override** — expandable rows allow overriding individual events that share the same name but differ in category.
-- **Re-classify on keyword change** — updating keywords re-scans all existing events.
-
-### AI Time Assistant
-
-Right-side slide-in panel that turns your time data into a conversation. Multi-provider support (DeepSeek / OpenAI / Claude / custom compatible).
-
-- **@mentions** — Type `@` to reference categories, events, days, or weeks. Mentions resolve into structured context injected into the system prompt.
-- **Calendar integration** — Click an event or select a time range to auto-import as chat context. "Ask AI" buttons appear on event cards and diary entries.
-- **Reverse anchoring** — Hover AI-mentioned terms like "Python learning" to highlight matching event blocks in the calendar. Non-matching events dim to 40% opacity — eyes snap to what matters.
-- **Markdown rendering** — Bold, lists, blockquotes, code blocks, and tables render properly. No more raw markdown text.
-- **Inline data visualization** — Percentages become mini progress bars, time values become coloured badges, comparison data renders as tiny bar charts (recharts).
-- **Context-sensitive buttons** — Bottom action buttons adapt to conversation state: starter prompts when empty → deep-dive questions after analysis → analysis requests after general chat.
-- **History by week** — The clock icon opens conversations grouped by week in collapsible sections, with date ranges, message counts, search filtering, and auto-extracted topic summaries.
-- **Pin analysis to diary** — The pin button attaches important AI insights to a specific day, appearing as reviewable cards in the Day View. Unpin anytime.
-- **Event backlinks** — AI-generated event references become clickable `[title](event:ID)` links, navigating to the calendar event on click.
-- **Conversation summaries** — Auto-generated from the first user message; editable inline alongside the conversation title.
-- **Feedback system** — Every AI reply has 👍 / 👎 / 🔄 buttons. Ratings stored locally — user control and future prompt optimization data combined.
-
-> AI subsystem prompt architecture design: see [`docs/ai-design/prompt-architecture.md`](./docs/ai-design/prompt-architecture.md).
+- **Parse RFC 5545** (ical.js). Skips all-day and recurring events.
+- **Name aggregation** — inline 6-colour category buttons (1-6 keys).
+- **Smart suggestions** — keyword matching, one-click apply.
+- **Coverage progress bar**.
+- **Search filter + per-instance override**.
+- **Auto-reclassify on keyword change**.
 
 ### Data
 
-- **Persistent local storage** — IndexedDB via Dexie v4. Schema at version 9. Migrations run automatically.
-- **Streak tracking** — `computeStreak()` counts consecutive weeks with at least one logged event.
-- **Data export** — CSV, JSON, and **encrypted .cailens backup** (gzip + age-encryption passphrase).
-- **Data import** — Restore events from CSV or JSON files.
-- **Encrypted backup** — .cailens format: gzip compressed + passphrase encrypted (age-encryption), full import/export round-trip.
+- **Persistent local storage** — IndexedDB (Dexie v4), Schema 9+, auto-migration.
+- **Export** — CSV / JSON / **encrypted .cailens** (age + gzip).
+- **Import** — CSV / JSON restore.
+- **Encrypted backup** — full round-trip.
+
+---
+
+## Architecture
+
+```
+use-cases/ ──→ domain/  ──→  data/  ──→  stores/  ──→  features/ + components/
+ (orchestration)  (pure logic)  (Repository)  (Zustand)      (UI)
+```
+
+- **`use-cases/`** — orchestration layer. Pure DI functions for cross-repository operations (e.g. auto-learn keywords on event creation).
+- **`domain/`** — pure types and business logic. No React, no IndexedDB, no side effects. All unit-tested.
+- **`data/`** — Dexie schema + repositories + migrations. Only layer touching IndexedDB.
+- **`stores/`** — Zustand stores wrapping data layer. Components never call repositories directly.
+- **`features/` + `components/`** — React UI.
+
+Notable details:
+
+- **Drag system** — minute-axis coordinates (0..7×1440), cross-day is arithmetic. Ghost via rAF direct DOM.
+- **Render performance** — `React.memo`, stable callbacks, Zustand sliced subscriptions.
+- **Stats engine** — pure functions: weekly stats, interval merging, Type I/II split, maturity, steady metrics, correlation.
+- **Keyword learning** — `use-cases/classifyAndLearnKeyword.ts`.
 
 ---
 
@@ -305,9 +326,11 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 npm run dev          # start dev server
 npm run build        # type-check (tsc) + production build (vite)
 npm run preview      # preview production build locally
-npm run test         # run unit tests once (489 tests)
+npm run test         # run unit tests once (498 tests)
 npm run test:watch   # run tests in watch mode
 npm run lint         # run ESLint
+npm run tauri:build  # Tauri production build (Windows exe)
+npm run android:build# Android APK build
 ```
 
 ---
@@ -316,40 +339,21 @@ npm run lint         # run ESLint
 
 | Layer | Choice | Notes |
 |---|---|---|
-| UI | React 19 + TypeScript (strict) | Functional components, hooks, no `any` |
+| UI | React 19 + TypeScript 6 (strict) | Functional components, hooks, no `any` |
 | Build | Vite 8 | |
 | Styling | Tailwind CSS v4 + CSS custom properties | shadcn-style primitives on Radix UI |
-| State | Zustand v5 | Sliced selectors for render performance |
+| State | Zustand v5 | Sliced selectors |
 | Storage | IndexedDB via Dexie v4 | Local-first, no backend |
-| Charts | Recharts 3 | Donut, bar, area, line charts |
+| Router | react-router-dom v7 | HashRouter |
+| Charts | Recharts 3 | |
 | Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest 4 + React Testing Library + fake-indexeddb | 489 tests across 30 test files |
-| AI | react-markdown + remark-gfm | Markdown rendering + inline data visualization |
-| AI SDK | native fetch + SSE streaming | DeepSeek / OpenAI / Claude / custom providers |
-| Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC, **LXGW WenKai** | Fontsource, locally hosted |
+| Testing | Vitest 4 + RTL + fake-indexeddb | 498 tests, 28 test files |
+| Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC, **LXGW WenKai** | Fontsource, local |
 | Icons | lucide-react | |
+| Desktop | Tauri v2 | Windows portable exe |
+| Mobile | Capacitor v8 | Android |
 
 ---
-
-## Architecture
-
-```
-domain/  ──→  data/  ──→  stores/  ──→  features/ + components/
- (pure)       (Repo)       (Zustand)       (UI)
-```
-
-- **`domain/`** — pure types and business logic. No React, no IndexedDB, no side effects. All unit-tested.
-- **`data/`** — Dexie schema and repositories. The only layer that touches IndexedDB.
-- **`stores/`** — Zustand stores wrapping the data layer. Components never access repositories directly.
-- **`features/` + `components/`** — React UI. `features/` for business-level views; `components/` for reusable primitives.
-
-Notable details:
-
-- **Drag system** — minute-axis coordinate system (0..7×1440), cross-day drag is just arithmetic. Ghost overlay rendered via rAF with direct DOM manipulation, bypassing React re-renders.
-- **Render performance** — `React.memo`, stable callbacks, Zustand sliced subscriptions keep drags from re-rendering unrelated events.
-- **QuickLog** — `n` global shortcut + `QuickLogDialog` form. Default times and colour derived by `deriveDefaultTimes` / `deriveDefaultColor` pure functions; global shortcut hook is standalone and reusable.
-- **AI integration** — Streaming SSE multi-provider client, prompt composer (system + profile + skills + custom), context injection (mentions + calendar selections), conversation storage and archiving, analysis pinning system.
-
 
 ## License
 

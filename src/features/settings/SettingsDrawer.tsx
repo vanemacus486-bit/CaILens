@@ -17,7 +17,6 @@ const TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
   { key: 'data',        label: 'Data',           labelZh: '数据' },
   { key: 'storage',     label: 'Storage',        labelZh: '存储' },
   { key: 'shortcuts',   label: 'Shortcuts',      labelZh: '快捷键' },
-  { key: 'ai',          label: 'AI',             labelZh: 'AI' },
   { key: 'about',       label: 'About',          labelZh: '关于' },
 ]
 
@@ -27,8 +26,8 @@ const TAB_CONTENT: Record<SettingsTab, React.FC> = {
   data:       SettingsData,
   storage:    SettingsStorage,
   shortcuts:  SettingsShortcuts,
-  ai:         SettingsAI,
   about:      SettingsAbout,
+  ai:         SettingsAI,
 }
 
 export function SettingsDrawer() {

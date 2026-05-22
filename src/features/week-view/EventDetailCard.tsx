@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { MapPin, Trash2, Sparkles } from 'lucide-react'
+import { MapPin, Trash2 } from 'lucide-react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -9,8 +9,6 @@ import {
 import { Button } from '@/components/ui/button'
 import type { CalendarEvent } from '@/domain/event'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { useAiChatStore } from '@/stores/aiChatStore'
-import { useUIStore } from '@/stores/uiStore'
 
 interface EventDetailCardProps {
   event:    CalendarEvent
@@ -107,26 +105,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
                     <Trash2 className="h-3.5 w-3.5" />
                     {t('删除', 'Delete')}
                   </Button>
-                  <Button
-                    variant="ghost" size="sm"
-                    onClick={() => {
-                      useAiChatStore.getState().addCalendarContext([{
-                        id: event.id,
-                        type: 'event',
-                        eventId: event.id,
-                        eventTitle: event.title || undefined,
-                        eventDescription: event.description || undefined,
-                        startTime: event.startTime,
-                        endTime: event.endTime,
-                        categoryId: event.color,
-                      }])
-                      useUIStore.getState().setAiChatDrawerOpen(true)
-                    }}
-                    className="text-text-secondary hover:bg-surface-sunken gap-1.5 px-2 h-8"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    {t('AI', 'Ask AI')}
-                  </Button>
+
                 </div>
                 <Button variant="default" size="sm" onClick={onEdit} className="h-8">
                   {t('编辑', 'Edit')}

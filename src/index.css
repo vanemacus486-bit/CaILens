@@ -206,6 +206,15 @@
   animation: settings-fade-in 120ms ease-out;
 }
 
+/* ── Slide-down (for sub-panel morphs) ─────────────────── */
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-down {
+  animation: slide-down 180ms ease-out;
+}
+
 /* ── Unified focus ring ────────────────────────────────── */
 button:focus-visible:not(.focus-ring-custom),
 a:focus-visible:not(.focus-ring-custom),
@@ -311,6 +320,11 @@ body.resizing-event,
 body.resizing-event * {
   cursor: ns-resize !important;
   user-select: none;
+}
+
+/* 阻止 resize 期间滚动容器滚动 */
+body.resizing-event .overflow-y-auto {
+  overflow: hidden !important;
 }
 
 /* ── Touch ──────────────────────────────────────────────── */

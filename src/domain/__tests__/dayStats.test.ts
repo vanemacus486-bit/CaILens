@@ -12,10 +12,11 @@ const MOCK_CATEGORIES: Category[] = [
 // April 30, 2025 00:00 UTC → ms
 const DAY_START = new Date('2025-04-30T00:00:00Z').getTime()
 const DAY_END = new Date('2025-05-01T00:00:00Z').getTime()
+const DAY_RANGE = { start: DAY_START, end: DAY_END }
 
 describe('computeDayStats', () => {
   it('returns zero for empty events', () => {
-    const result = computeDayStats([], MOCK_CATEGORIES, DAY_START, DAY_END)
+    const result = computeDayStats([], MOCK_CATEGORIES, DAY_RANGE)
     expect(result.totalMinutes).toBe(0)
     expect(result.byCategory.every((s) => s.minutes === 0)).toBe(true)
   })
@@ -33,7 +34,7 @@ describe('computeDayStats', () => {
         color: 'stone', categoryId: 'stone', createdAt: 1, updatedAt: 1,
       },
     ]
-    const result = computeDayStats(events, MOCK_CATEGORIES, DAY_START, DAY_END)
+    const result = computeDayStats(events, MOCK_CATEGORIES, DAY_RANGE)
     expect(result.totalMinutes).toBe(180) // 120 + 60
     const accent = result.byCategory.find((s) => s.categoryId === 'accent')!
     expect(accent.minutes).toBe(120)
@@ -49,7 +50,7 @@ describe('computeDayStats', () => {
         color: 'accent', categoryId: 'accent', createdAt: 1, updatedAt: 1,
       },
     ]
-    const result = computeDayStats(events, MOCK_CATEGORIES, DAY_START, DAY_END)
+    const result = computeDayStats(events, MOCK_CATEGORIES, DAY_RANGE)
     // Only 2 hours (midnight to 2am) should count
     expect(result.totalMinutes).toBe(120)
   })

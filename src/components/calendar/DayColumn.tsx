@@ -33,6 +33,7 @@ interface DayColumnProps {
   onDragStart:     () => void
   onDragStateChange?: (dragState: import('@/features/week-view/hooks/useEventDrag').DragState) => void
   onResize:        (eventId: string, newStartTime: number, newEndTime: number) => void
+  onTypedEdit?:    (event: CalendarEvent, el: HTMLElement) => void
 }
 
 function slotToTimestamp(slotIndex: number, dayStart: number): number {
@@ -43,6 +44,7 @@ function DayColumnInner({
   date, events, selectedEventId, weekDays, gridRef,
   onSlotClick, onEventClick, onColorChange, onEdit, onDuplicate, onDelete,
   onDragMove, onDragToEdge, onDragStart, onDragStateChange, onResize,
+  onTypedEdit,
 }: DayColumnProps) {
   const today    = isToday(date.getTime())
   const dayStart = getDayStart(date)
@@ -95,6 +97,7 @@ function DayColumnInner({
             onDragStart={onDragStart}
             onDragStateChange={onDragStateChange}
             onResize={onResize}
+            onTypedEdit={onTypedEdit}
             weekDays={weekDays}
             gridRef={gridRef}
             isCardOpen={pe.event.id === selectedEventId}
@@ -121,5 +124,6 @@ export const DayColumn = React.memo(DayColumnInner, (prev, next) =>
   prev.onDragToEdge      === next.onDragToEdge       &&
   prev.onDragStart       === next.onDragStart        &&
   prev.onDragStateChange === next.onDragStateChange   &&
-  prev.onResize          === next.onResize,
+  prev.onResize          === next.onResize            &&
+  prev.onTypedEdit       === next.onTypedEdit,
 )

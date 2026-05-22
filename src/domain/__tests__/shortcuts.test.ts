@@ -142,7 +142,6 @@ describe('resolveBindings', () => {
   it('returns defaults when no overrides', () => {
     const r = resolveBindings({})
     expect(r.openCommandPalette).toEqual(kb('k', true))
-    expect(r.openQuickLog).toEqual(kb('n'))
     expect(r.copyFocusedEvent).toEqual(kb('c', true))
     // actions with no default
     expect(r.goToThisWeek).toBeNull()
@@ -152,13 +151,8 @@ describe('resolveBindings', () => {
   it('applies partial overrides', () => {
     const r = resolveBindings({ openCommandPalette: 'alt+k' })
     expect(r.openCommandPalette).toEqual(kb('k', false, true))
-    expect(r.openQuickLog).toEqual(kb('n')) // unchanged
   })
 
-  it('disables action with empty string override', () => {
-    const r = resolveBindings({ openQuickLog: '' })
-    expect(r.openQuickLog).toBeNull()
-  })
 })
 
 // ── findConflicts ──────────────────────────────────────
@@ -169,13 +163,9 @@ describe('findConflicts', () => {
     expect(findConflicts(r)).toHaveLength(0)
   })
 
-  it('detects two actions with same binding', () => {
-    const r = resolveBindings({ openCommandPalette: 'n', openQuickLog: 'n' })
-    const conflicts = findConflicts(r)
-    expect(conflicts).toHaveLength(1)
-    const pair = conflicts[0]
-    expect(pair.actionA === 'openCommandPalette' || pair.actionA === 'openQuickLog').toBe(true)
-    expect(pair.actionB === 'openCommandPalette' || pair.actionB === 'openQuickLog').toBe(true)
+  it('detects no conflicts when default bindings', () => {
+    const r = resolveBindings({})
+    expect(findConflicts(r)).toHaveLength(0)
   })
 })
 
@@ -214,8 +204,8 @@ describe('eventMatchesBinding', () => {
 // ── Registry completeness ──────────────────────────────
 
 describe('SHORTCUT_REGISTRY', () => {
-  it('has exactly 16 actions', () => {
-    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(16)
+  it('has exactly 15 actions', () => {
+    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(15)
   })
 
   it('all entries have bilingual labels', () => {

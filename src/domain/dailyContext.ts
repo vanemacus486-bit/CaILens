@@ -1,81 +1,259 @@
 /**
  * # 每日生活上下文（Daily Context）
  *
- * 需求一：轻量级每日记录层，捕捉影响作息但不属于"时间块"的生活变量。
+ * 记录影响作息但不属于"时间块"的生活变量。
+ * 五个子域：饮食、穿搭、卫生、娱乐、身体时序记录。
  *
- * ## 关键约束
- *
- * 每日记录耗时必须极短（目标 20 秒内）。
- * 所有字段均为可选——用户只需填写当天关注的变量。
- *
- * ## 字段说明
- *
- * - date: UTC 日期标识（当天 00:00 UTC ms），用于按天索引
- * - lastMealTime: 最后一餐的 UTC 毫秒时间戳（含时区偏移）
- * - lastMealType: 最后一餐类型描述（如"晚饭-重油"、"宵夜-水果"）
- * - socialIntensity: 社交接触强度（1=独处, 3=正常社交, 5=高密度社交）
- * - outdoorMinutes: 户外停留分钟数
- * - exerciseIntensity: 运动强度（1=无运动, 3=中等, 5=高强度训练）
- * - mood: 当日情绪基调（1=低落, 3=平稳, 5=很好）
- * - screenHours: 屏幕使用估时（小时）
- * - specialNote: 当日值得标记的特殊事项
- * - createdAt / updatedAt: 记录时间戳
+ * **设计原则：**
+ * - 饮食聚合自现有 MealData (typedData on events)，非全新录入
+ * - 穿搭/卫生/娱乐为新增独立记录
+ * - 所有记录以"天"为粒度，同一日期每子域最多一条
+ * - 记录耗时目标 20 秒内（UI 层约束，domain 只定义结构）
  */
 
-export type SocialIntensity = 1 | 2 | 3 | 4 | 5
-export type ExerciseIntensity = 1 | 2 | 3 | 4 | 5
-export type MoodLevel = 1 | 2 | 3 | 4 | 5
+// ── 营养判定常量 ────────────────────────────────────────
 
-/**
- * 饮食类型描述——自由文本，不做固定枚举。
- * 常用值参考：'晚饭-重油', '晚饭-轻食', '宵夜', '水果', '无(断食)', '零食'
- */
-export type MealDescription = string
+/** 每日糖分标签出现次数上限（超过即判定超标） */
+export const SUGAR_DAILY_LIMIT = 1
+/** 每日咖啡因标签出现次数上限 */
+export const CAFFEINE_DAILY_LIMIT = 1
+/** 每日蔬菜标签出现次数下限（不足即判定不足） */
+export const VEGETABLE_DAILY_MINIMUM = 1
+/** 每日蛋白质标签出现次数下限 */
+export const PROTEIN_DAILY_MINIMUM = 1
 
-export interface DailyContext {
-  /** Primary key: 日期标识（UTC 日期 startOfDay ms），确保每天一条 */
-  id: string
-  /** UTC date start ms（冗余，方便按日期查询） */
-  date: number
+// ── 饮食 ─────────────────────────────────────────────────
 
-  // ── 饮食 ──────────────────────────────────────────────
-  /** 最后一餐的 UTC 毫秒时间戳（含时区偏移，用于分析就寝时间与最后一餐的时间差） */
-  lastMealTime?: number
-  /** 最后一餐的类型描述 */
-  lastMealType?: MealDescription
-
-  // ── 社交 ──────────────────────────────────────────────
-  /** 社交接触强度 1-5 */
-  socialIntensity?: SocialIntensity
-
-  // ── 户外 ──────────────────────────────────────────────
-  /** 户外停留分钟数 */
-  outdoorMinutes?: number
-
-  // ── 运动 ──────────────────────────────────────────────
-  /** 运动强度 1-5 */
-  exerciseIntensity?: ExerciseIntensity
-
-  // ── 情绪 ──────────────────────────────────────────────
-  /** 当日情绪基调 1-5 */
-  mood?: MoodLevel
-
-  // ── 屏幕 ──────────────────────────────────────────────
-  /** 屏幕使用估时（小时） */
-  screenHours?: number
-
-  // ── 特殊标记 ──────────────────────────────────────────
-  /** 当日值得标记的特殊事项 */
-  specialNote?: string
-
-  createdAt: number
-  updatedAt: number
+export interface NutrientStatus {
+  /** 当日糖分摄入次数 */
+  sugarCount: number
+  /** 糖分是否超标（> SUGAR_DAILY_LIMIT） */
+  sugarExceeded: boolean
+  /** 当日咖啡因摄入次数 */
+  caffeineCount: number
+  /** 咖啡因是否超标 */
+  caffeineExceeded: boolean
+  /** 当日蔬菜出现次数 */
+  vegetableCount: number
+  /** 蔬菜是否不足 */
+  vegetableInsufficient: boolean
+  /** 当日蛋白质出现次数 */
+  proteinCount: number
+  /** 蛋白质是否不足 */
+  proteinInsufficient: boolean
+  /** 当日宵夜次数 */
+  nightSnackCount: number
+  /** 当日总用餐次数（早+午+晚+宵夜 的去重餐次） */
+  mealCount: number
 }
 
-export type CreateDailyContextInput = Omit<
-  DailyContext,
-  'id' | 'createdAt' | 'updatedAt'
->
+/**
+ * 从当日所有 MealData 聚合营养素状态。
+ */
+export function aggregateNutrientStatus(
+  meals: ReadonlyArray<{ foodTags: readonly string[]; mealOrder: string }>,
+): NutrientStatus {
+  let sugarCount = 0
+  let caffeineCount = 0
+  let vegetableCount = 0
+  let proteinCount = 0
+  let nightSnackCount = 0
+  const mealOrders = new Set<string>()
 
-export type UpdateDailyContextInput = Pick<DailyContext, 'id'> &
-  Partial<Omit<DailyContext, 'id' | 'createdAt'>>
+  for (const meal of meals) {
+    mealOrders.add(meal.mealOrder)
+    if (meal.mealOrder === 'night_snack') nightSnackCount++
+
+    for (const tag of meal.foodTags) {
+      if (tag === 'sugar') sugarCount++
+      if (tag === 'caffeine') caffeineCount++
+      if (tag === 'vegetable') vegetableCount++
+      if (tag === 'protein') proteinCount++
+    }
+  }
+
+  return {
+    sugarCount,
+    sugarExceeded: sugarCount > SUGAR_DAILY_LIMIT,
+    caffeineCount,
+    caffeineExceeded: caffeineCount > CAFFEINE_DAILY_LIMIT,
+    vegetableCount,
+    vegetableInsufficient: vegetableCount < VEGETABLE_DAILY_MINIMUM,
+    proteinCount,
+    proteinInsufficient: proteinCount < PROTEIN_DAILY_MINIMUM,
+    nightSnackCount,
+    mealCount: mealOrders.size,
+  }
+}
+
+// ── 穿搭 ─────────────────────────────────────────────────
+
+export type OutfitCategory = 'top' | 'bottom' | 'shoes' | 'accessory'
+
+export interface OutfitItem {
+  category: OutfitCategory
+  /** 单品描述，如"黑色卫衣"、"牛仔裤" */
+  label: string
+}
+
+export interface DailyOutfit {
+  id: string
+  /** 日期 YYYY-MM-DD */
+  date: string
+  /** 当日各穿搭单品 */
+  items: OutfitItem[]
+  /** 自由备注，如"下雨天"、"约会" */
+  note?: string
+}
+
+// ── 卫生 ─────────────────────────────────────────────────
+
+/** 可记录的卫生活动类型 */
+export type HygieneActivity =
+  | 'shower'      // 洗澡
+  | 'brush_teeth' // 刷牙
+  | 'skincare'    // 护肤
+  | 'shave'       // 刮胡子
+  | 'hair_wash'   // 洗头
+  | 'nail_care'   // 修剪指甲
+  | 'floss'       // 牙线
+
+export const HYGIENE_ACTIVITY_LABELS: Record<HygieneActivity, { zh: string; en: string }> = {
+  shower:     { zh: '洗澡',     en: 'Shower' },
+  brush_teeth: { zh: '刷牙',    en: 'Brush Teeth' },
+  skincare:   { zh: '护肤',     en: 'Skincare' },
+  shave:      { zh: '刮胡子',   en: 'Shave' },
+  hair_wash:  { zh: '洗头',     en: 'Hair Wash' },
+  nail_care:  { zh: '修剪指甲', en: 'Nail Care' },
+  floss:      { zh: '牙线',     en: 'Floss' },
+}
+
+/** 每个卫生活动的分数权重 */
+export const HYGIENE_ACTIVITY_SCORES: Record<HygieneActivity, number> = {
+  shower:      20,
+  brush_teeth: 15,
+  skincare:    20,
+  shave:       10,
+  hair_wash:   15,
+  nail_care:   10,
+  floss:       10,
+}
+
+/** 单日最高卫生分数 */
+export const HYGIENE_MAX_DAILY_SCORE = 100
+
+/** 每日衰减率（基准线每天下降的分数） */
+export const HYGIENE_DAILY_DECAY = 5
+
+export interface DailyHygiene {
+  id: string
+  /** 日期 YYYY-MM-DD */
+  date: string
+  /** 当日完成的卫生活动 */
+  activities: HygieneActivity[]
+  /** 当日卫生总分（根据 activities 计算） */
+  score: number
+}
+
+/**
+ * 根据当日活动列表计算卫生分数。
+ * 各活动分数累加，上限 HYGIENE_MAX_DAILY_SCORE。
+ */
+export function computeHygieneScore(activities: readonly HygieneActivity[]): number {
+  const total = activities.reduce(
+    (sum, act) => sum + (HYGIENE_ACTIVITY_SCORES[act] ?? 0),
+    0,
+  )
+  return Math.min(total, HYGIENE_MAX_DAILY_SCORE)
+}
+
+/**
+ * 计算基准线。
+ * 策略：最近 N 天卫生分数的移动平均，每天衰减 HYGIENE_DAILY_DECAY。
+ * 若无历史数据，返回 HYGIENE_MAX_DAILY_SCORE × 0.6 作为默认基线。
+ */
+export function computeHygieneBaseline(
+  history: ReadonlyArray<{ date: string; score: number }>,
+  windowDays = 7,
+): number {
+  if (history.length === 0) return HYGIENE_MAX_DAILY_SCORE * 0.6
+
+  const recent = history.slice(-windowDays)
+  const avg = recent.reduce((sum, d) => sum + d.score, 0) / recent.length
+
+  // 基线 = 移动平均 - 衰减
+  return Math.max(0, avg - HYGIENE_DAILY_DECAY)
+}
+
+// ── 娱乐放松 ─────────────────────────────────────────────
+
+export type RelaxType = 'screen' | 'social' | 'quiet' | 'active'
+
+export const RELAX_TYPE_LABELS: Record<RelaxType, { zh: string; en: string }> = {
+  screen: { zh: '屏幕类',  en: 'Screen' },
+  social: { zh: '社交类',  en: 'Social' },
+  quiet:  { zh: '安静类',  en: 'Quiet'  },
+  active: { zh: '运动类',  en: 'Active' },
+}
+
+export const RELAX_TYPE_ICONS: Record<RelaxType, string> = {
+  screen: '📱',
+  social: '👥',
+  quiet:  '📖',
+  active: '🏃',
+}
+
+export interface DailyLeisure {
+  id: string
+  /** 日期 YYYY-MM-DD */
+  date: string
+  /** 放松方式 */
+  relaxType: RelaxType
+  /** 持续时间（分钟） */
+  durationMinutes: number
+}
+
+// ── 聚合类型 ─────────────────────────────────────────────
+
+/** 每日上下文聚合（各子域数据汇总到一天） */
+export interface DailyContextSummary {
+  date: string
+  diet: NutrientStatus | null
+  outfit: DailyOutfit | null
+  hygiene: DailyHygiene | null
+  leisure: DailyLeisure[]
+}
+
+// ── 身体指标时序记录 ────────────────────────────────────
+
+/**
+ * 身体指标的时序记录，不同于 Profile 的单次快照。
+ */
+export interface BodyMetricsRecord {
+  id: string
+  /** 记录日期 YYYY-MM-DD */
+  date: string
+  /** 体重 kg */
+  weight: number | null
+  /** BMI（可由 height + weight 计算，也可直接录入） */
+  bmi: number | null
+  /** 体脂率 % */
+  bodyFat: number | null
+  /** 静息心率 bpm */
+  restingHR: number | null
+  /** 收缩压 mmHg */
+  bloodPressureSystolic: number | null
+  /** 舒张压 mmHg */
+  bloodPressureDiastolic: number | null
+  createdAt: number
+}
+
+/**
+ * 从体重和身高计算 BMI。
+ * 公式：体重(kg) / (身高(m)²)
+ */
+export function computeBMI(weightKg: number, heightCm: number): number {
+  if (weightKg <= 0 || heightCm <= 0) return 0
+  const heightM = heightCm / 100
+  return Math.round((weightKg / (heightM * heightM)) * 10) / 10
+}

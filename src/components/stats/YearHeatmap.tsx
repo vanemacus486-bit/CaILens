@@ -63,7 +63,7 @@ export function computeDailyGrid(
   let cursor = rangeStart
   while (cursor < rangeEnd) {
     const dayEnd = cursor + DAY_MS
-    const dayStats = computeDayStats(filtered, categories, cursor, dayEnd)
+    const dayStats = computeDayStats(filtered, categories, { start: cursor, end: dayEnd })
 
     const byCategory: Record<string, number> = {}
     const byRatio: Record<string, number> = {}
@@ -254,8 +254,8 @@ export function getIntensityLevel(ratio: number, thresholds: readonly [number, n
   return 4
 }
 
-export function computeDailyStreak(days: DayCell[], selectedId: CategoryId, now: number): number {
-  const jan1 = new Date(new Date(now).getFullYear(), 0, 1).getTime()
+export function computeDailyStreak(days: DayCell[], selectedId: CategoryId, now: number, rangeStart?: number): number {
+  const jan1 = rangeStart ?? new Date(new Date(now).getFullYear(), 0, 1).getTime()
   const nowStart = new Date(now)
   nowStart.setHours(0, 0, 0, 0)
   const nowTs = nowStart.getTime()
@@ -273,13 +273,13 @@ export function computeDailyStreak(days: DayCell[], selectedId: CategoryId, now:
   return streak
 }
 
-export function computeStats(days: DayCell[], selectedId: CategoryId, now: number): StatsData {
+export function computeStats(days: DayCell[], selectedId: CategoryId, now: number, rangeStart?: number): StatsData {
   let cumulative = 0
   let activeDays = 0
   let bestHours = 0
   let bestDate: Date | null = null
 
-  const jan1 = new Date(new Date(now).getFullYear(), 0, 1).getTime()
+  const jan1 = rangeStart ?? new Date(new Date(now).getFullYear(), 0, 1).getTime()
 
   for (let i = 0; i < days.length; i++) {
     const hours = days[i].byCategory[selectedId]
@@ -294,7 +294,7 @@ export function computeStats(days: DayCell[], selectedId: CategoryId, now: numbe
   return {
     cumulative,
     dailyAvg: activeDays > 0 ? cumulative / activeDays : 0,
-    streak: computeDailyStreak(days, selectedId, now),
+    streak: computeDailyStreak(days, selectedId, now, rangeStart),
     bestDay: bestDate ? { date: bestDate, hours: bestHours } : null,
   }
 }
@@ -354,9 +354,14 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now }: Ye
     [days, selectedId, year, rollingEnd, now, viewMode],
   )
 
+  const rangeStart = useMemo(() => {
+    if (viewMode === 'year') return new Date(year, 0, 1).getTime()
+    return rollingEnd.getTime() - 365 * DAY_MS
+  }, [viewMode, year, rollingEnd])
+
   const stats = useMemo(
-    () => computeStats(days, selectedId, now),
-    [days, selectedId, now],
+    () => computeStats(days, selectedId, now, rangeStart),
+    [days, selectedId, now, rangeStart],
   )
 
   const catMap = useMemo(
@@ -761,6 +766,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now }: Ye
 
 const HEATMAP_CSS = `
 .year-heatmap-root {
+  position: relative;
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
@@ -898,9 +904,10 @@ const HEATMAP_CSS = `
   pointer-events: none;
 }
 .heatmap-cell:hover {
-  transform: scale(1.6);
+  outline: 2px solid var(--heatmap-ink-1);
+  outline-offset: -1px;
   z-index: 2;
-  box-shadow: 0 0 0 1px #000, 0 2px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 0 0 1px var(--heatmap-ink-1), 0 2px 6px rgba(0,0,0,0.15);
 }
 
 .cell-today {
@@ -908,6 +915,8 @@ const HEATMAP_CSS = `
   z-index: 1;
 }
 .cell-today:hover {
+  outline: 2px solid var(--heatmap-ink-1);
+  outline-offset: -1px;
   box-shadow: 0 0 0 1.5px #000, 0 2px 6px rgba(0,0,0,0.15);
 }
 

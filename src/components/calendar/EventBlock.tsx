@@ -38,6 +38,8 @@ interface EventBlockProps {
   weekDays:      Date[]
   gridRef:       React.RefObject<HTMLElement | null>
   isCardOpen?:   boolean
+  /** 类型化事件角标点击 */
+  onTypedEdit?:  (event: CalendarEvent, el: HTMLElement) => void
 }
 
 function fmtHM(ts: number): string {
@@ -48,6 +50,7 @@ function fmtHM(ts: number): string {
 export const EventBlock = React.memo(function EventBlock({
   positioned, columnDate, onClick, onColorChange, onEdit, onDuplicate, onDelete,
   onDragMove, onDragStart, onDragStateChange, onResize, weekDays, gridRef, isCardOpen = false,
+  onTypedEdit,
 }: EventBlockProps) {
   const { event, rowStart, rowEnd, columnIndex, totalColumns, startsBeforeDay, endsAfterDay } = positioned
   const { bg, text } = EVENT_COLOR_CLASSES[event.color]
@@ -113,6 +116,7 @@ export const EventBlock = React.memo(function EventBlock({
     originalStartTime: event.startTime,
     originalEndTime:   event.endTime,
     eventBlockRef:     divRef,
+    gridRef,
     columnDate,
     onResizeStart:     onDragStart,   // reuse: closes any open card
     onResizeEnd: (s, e) => onResize(event.id, s, e),
@@ -124,6 +128,7 @@ export const EventBlock = React.memo(function EventBlock({
     originalStartTime: event.startTime,
     originalEndTime:   event.endTime,
     eventBlockRef:     divRef,
+    gridRef,
     columnDate,
     onResizeStart:     onDragStart,
     onResizeEnd: (s, e) => onResize(event.id, s, e),
@@ -213,9 +218,50 @@ export const EventBlock = React.memo(function EventBlock({
           )}
 
           {/* Event content */}
-          <p className={cn('font-sans font-normal leading-tight truncate', isCompact ? 'text-body-xs' : 'text-xs')}>
-            {event.title || <span className="opacity-50 italic">Untitled</span>}
-          </p>
+          <div className="flex items-center gap-1">
+            {/* 类型化事件角标 */}
+            {event.typedData?.type === 'meal' && (
+              <span
+                className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
+                title="点击编辑饮食详情"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onTypedEdit?.(event, e.currentTarget as HTMLElement)
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onTypedEdit?.(event, e.currentTarget as HTMLElement)
+                  }
+                }}
+              >🍚</span>
+            )}
+            {event.typedData?.type === 'sleep' && (
+              <span
+                className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
+                title="点击编辑睡眠详情"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onTypedEdit?.(event, e.currentTarget as HTMLElement)
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onTypedEdit?.(event, e.currentTarget as HTMLElement)
+                  }
+                }}
+              >🌙</span>
+            )}
+            <p className={cn('flex-1 font-sans font-normal leading-tight truncate min-w-0', isCompact ? 'text-body-xs' : 'text-xs')}>
+              {event.title || <span className="opacity-50 italic">Untitled</span>}
+            </p>
+          </div>
           {!isCompact && !(startsBeforeDay && endsAfterDay) && (
             <p className="text-xs-alt opacity-80 font-mono leading-tight mt-0.5">
               {startsBeforeDay

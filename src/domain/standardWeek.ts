@@ -14,6 +14,7 @@
  */
 
 import type { CalendarEvent, EventColor } from './event'
+import type { DateRange } from './dateRange'
 import { getWeekStart } from './time'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -53,8 +54,7 @@ export type PercentageMode = 'within-recorded' | 'across-all-weeks'
 
 export interface ComputeStandardWeekOptions {
   events: CalendarEvent[]
-  weekRangeStart: number
-  weekRangeEnd: number
+  range: DateRange
   excludeCategoryIds?: Set<EventColor>
   /** @default 'across-all-weeks' */
   percentageMode?: PercentageMode
@@ -87,12 +87,12 @@ function floorToLocalHour(ts: number): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()).getTime()
 }
 
-/** Number of calendar weeks that intersect [rangeStart, rangeEnd). */
-function computeSpanWeeks(rangeStart: number, rangeEnd: number): number {
-  if (rangeEnd <= rangeStart) return 0
-  let monday = getWeekStart(new Date(rangeStart), 1).getTime()
+/** Number of calendar weeks that intersect the given range. */
+function computeSpanWeeks(r: DateRange): number {
+  if (r.end <= r.start) return 0
+  let monday = getWeekStart(new Date(r.start), 1).getTime()
   let count = 0
-  while (monday < rangeEnd) {
+  while (monday < r.end) {
     count++
     monday += WEEK_MS
   }
@@ -153,22 +153,69 @@ export function mergeConsecutiveBuckets(
   return merged
 }
 
+// ── 计算结果缓存 ────────────────────────────────────────────
+//
+// computeStandardWeek 是纯函数（相同输入 → 相同输出）。
+// 用户切换 range 模式（4w/12w/all）时若不加载新数据，缓存可避免 O(n·168) 的全量重算。
+
+const _cache = new Map<string, StandardWeekData>()
+const MAX_CACHE_SIZE = 8
+
+function buildCacheKey(
+  events: CalendarEvent[],
+  range: DateRange,
+  exclude: Set<EventColor>,
+  percentageMode: PercentageMode,
+): string {
+  const n = events.length
+  if (n === 0) return `0|${range.start}|${range.end}|${percentageMode}|${exclude.size}`
+  // Quick hash: event count + first/last startTime + checksum of all ids
+  let idHash = 0
+  for (let i = 0; i < n; i++) {
+    const e = events[i]
+    idHash = ((idHash << 5) - idHash + hashStr(e.id)) | 0
+  }
+  const first = events[0].startTime
+  const last = events[n - 1].startTime
+  const ids = Array.from(exclude).sort().join(',')
+  return `${n}|${first}|${last}|${idHash}|${range.start}|${range.end}|${percentageMode}|${ids}`
+}
+
+/** djb2 string hash (32-bit) */
+function hashStr(s: string): number {
+  let h = 5381
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) | 0
+  }
+  return h
+}
+
 export function computeStandardWeek(
   options: ComputeStandardWeekOptions,
 ): StandardWeekData {
   const {
     events,
-    weekRangeStart,
-    weekRangeEnd,
+    range,
     excludeCategoryIds,
     percentageMode = 'across-all-weeks',
   } = options
   const exclude = excludeCategoryIds ?? new Set()
 
+  // Check cache
+  const key = buildCacheKey(events, range, exclude, percentageMode)
+  const cached = _cache.get(key)
+  if (cached) return cached
+
+  // Evict oldest if cache is full
+  if (_cache.size >= MAX_CACHE_SIZE) {
+    const firstKey = _cache.keys().next().value
+    if (firstKey !== undefined) _cache.delete(firstKey)
+  }
+
   const filtered = events.filter((e) => {
     if (exclude.has(e.categoryId)) return false
-    if (e.endTime <= weekRangeStart) return false
-    if (e.startTime >= weekRangeEnd) return false
+    if (e.endTime <= range.start) return false
+    if (e.startTime >= range.end) return false
     return true
   })
 
@@ -212,7 +259,7 @@ export function computeStandardWeek(
     weekSet.add(getWeekStart(new Date(event.startTime), 1).getTime())
   }
 
-  const spanWeeks = computeSpanWeeks(weekRangeStart, weekRangeEnd)
+  const spanWeeks = computeSpanWeeks(range)
   const denomAcrossAll = spanWeeks * 60 // minutes per bucket across all weeks
 
   const buckets: StandardWeekBucket[] = []
@@ -256,9 +303,14 @@ export function computeStandardWeek(
     })
   }
 
-  return {
+  const result: StandardWeekData = {
     buckets,
     totalWeeks: weekSet.size,
     spanWeeks,
   }
+
+  // Store in cache before returning
+  _cache.set(key, result)
+
+  return result
 }

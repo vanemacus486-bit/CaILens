@@ -54,11 +54,7 @@ interface Command {
   invoke: () => void
 }
 
-interface CommandPaletteProps {
-  onQuickLog: () => void
-}
-
-export function CommandPalette({ onQuickLog }: CommandPaletteProps) {
+export function CommandPalette() {
   const navigate = useNavigate()
   const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen)
   const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
@@ -116,13 +112,6 @@ export function CommandPalette({ onQuickLog }: CommandPaletteProps) {
       invoke: () => { setSettingsDrawerOpen(true); close() },
     },
     {
-      id: 'newevent',
-      label: 'New event',
-      labelZh: '新建事件',
-      shortcut: shortcutDisplay.openQuickLog,
-      invoke: () => { close(); onQuickLog() },
-    },
-    {
       id: 'theme',
       label: settings.theme === 'dark' ? 'Switch to light' : 'Switch to dark',
       labelZh: settings.theme === 'dark' ? '切换浅色主题' : '切换深色主题',
@@ -142,7 +131,7 @@ export function CommandPalette({ onQuickLog }: CommandPaletteProps) {
         close()
       },
     },
-  ], [navigate, close, setSettingsDrawerOpen, onQuickLog, setTheme, setLanguage, language, settings.theme, shortcutDisplay])
+  ], [navigate, close, setSettingsDrawerOpen, setTheme, setLanguage, language, settings.theme, shortcutDisplay])
 
   // Filter commands based on query
   const matchedCommands = useMemo(() => {

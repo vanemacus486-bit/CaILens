@@ -141,4 +141,21 @@ export class EventRepository {
     })
     return results[0] ?? null
   }
+
+  /**
+   * 获取最近一条同餐次的 Meal 事件。
+   * 用于继承上次同餐次的默认值（食物标签、来源）。
+   */
+  async getLastMealByOrder(mealOrder: string): Promise<CalendarEvent | null> {
+    const all = await this.adapter.events.getAll()
+    const meals = all
+      .filter(
+        (e) =>
+          e.typedData?.type === 'meal' &&
+          e.typedData.mealOrder === mealOrder,
+      )
+      .sort((a, b) => b.startTime - a.startTime)
+
+    return meals[0] ?? null
+  }
 }

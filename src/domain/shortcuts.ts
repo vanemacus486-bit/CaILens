@@ -2,7 +2,6 @@
 
 export type ShortcutAction =
   | 'openCommandPalette'
-  | 'openQuickLog'
   | 'copyFocusedEvent'
   | 'pasteEvent'
   | 'goToThisWeek'
@@ -39,7 +38,6 @@ export type ShortcutOverrides = Partial<Record<ShortcutAction, ShortcutString>>
 
 export const SHORTCUT_REGISTRY: Record<ShortcutAction, ShortcutDefinition> = {
   openCommandPalette: { action: 'openCommandPalette', label: { zh: '打开命令面板', en: 'Open command palette' }, defaultBinding: { key: 'k', ctrl: true, alt: false, shift: false } },
-  openQuickLog:       { action: 'openQuickLog',       label: { zh: '快速记录',     en: 'Quick log'            }, defaultBinding: { key: 'n', ctrl: false, alt: false, shift: false } },
   copyFocusedEvent:   { action: 'copyFocusedEvent',   label: { zh: '复制事件',     en: 'Copy event'           }, defaultBinding: { key: 'c', ctrl: true, alt: false, shift: false } },
   pasteEvent:         { action: 'pasteEvent',          label: { zh: '粘贴事件',    en: 'Paste event'          }, defaultBinding: { key: 'v', ctrl: true, alt: false, shift: false } },
   goToThisWeek:       { action: 'goToThisWeek',        label: { zh: '前往本周',    en: 'Go to this week'      }, defaultBinding: null },

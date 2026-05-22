@@ -1,5 +1,6 @@
 import type { CalendarEvent } from './event'
 import type { Category, CategoryId } from './category'
+import type { DateRange } from './dateRange'
 
 export interface CategoryStat {
   categoryId: CategoryId
@@ -59,14 +60,13 @@ function sumMerged(intervals: Array<[number, number]>): number {
 export function computeWeekStats(
   events: readonly CalendarEvent[],
   categories: readonly Category[],
-  weekStart: number,  // UTC ms, inclusive
-  weekEnd: number,    // UTC ms, exclusive
+  range: DateRange,
 ): WeekStats {
-  // Step 1: clip to week boundary, drop empty intervals
+  // Step 1: clip to range boundary, drop empty intervals
   const clipped: Array<{ categoryId: CategoryId; start: number; end: number }> = []
   for (const event of events) {
-    const start = Math.max(event.startTime, weekStart)
-    const end   = Math.min(event.endTime,   weekEnd)
+    const start = Math.max(event.startTime, range.start)
+    const end   = Math.min(event.endTime,   range.end)
     if (end > start) {
       clipped.push({ categoryId: event.categoryId, start, end })
     }
@@ -111,10 +111,9 @@ export interface DayStats {
 export function computeDayStats(
   events: readonly CalendarEvent[],
   categories: readonly Category[],
-  dayStart: number,
-  dayEnd: number,
+  range: DateRange,
 ): DayStats {
-  return computeWeekStats(events, categories, dayStart, dayEnd)
+  return computeWeekStats(events, categories, range)
 }
 
 const WEEK_MS = 7 * 24 * 60 * 60_000

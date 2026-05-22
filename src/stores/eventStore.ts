@@ -2,11 +2,34 @@ import { addDays } from 'date-fns'
 import { create } from 'zustand'
 import { getEventRepo } from '@/data/getRepositories'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput } from '@/domain/event'
-import { type CategoryId, addKeywordIfValid } from '@/domain/category'
+import type { CategoryId } from '@/domain/category'
 import { parseIcs, classifyEvent } from '@/domain/icsImport'
 import type { ImportResult, ImportedEvent } from '@/domain/icsImport'
 import { useCategoryStore } from './categoryStore'
 import { getDayStart, shiftEventsByWeeks } from '@/domain/time'
+import { tryLearnAndReclassify } from '@/use-cases/classifyAndLearnKeyword'
+
+// ── Event cache ──────────────────────────────────────────────
+//
+// 避免同一周/范围被重复从 DB 加载。任何写操作（create/update/delete/import）
+// 清空全部缓存以保证一致性。
+
+const _eventCache = new Map<string, CalendarEvent[]>()
+const ALL_KEY = '__all__'
+
+function weekKey(start: number): string {
+  return `w:${start}`
+}
+
+function rangeKey(start: number, end: number): string {
+  return `r:${start}-${end}`
+}
+
+function clearEventCache(): void {
+  _eventCache.clear()
+}
+
+// ── Store ────────────────────────────────────────────────────
 
 interface EventState {
   events: CalendarEvent[]
@@ -38,8 +61,15 @@ export const useEventStore = create<EventState>()((set, get) => ({
     set({ isLoading: true, loadError: null })
     try {
       const start = getDayStart(weekStart)
-      const end   = getDayStart(addDays(weekStart, 7))  // exclusive: start of next Monday
-      const events = await getEventRepo().getByTimeRange(start, end)
+      const end   = getDayStart(addDays(weekStart, 7))
+      const key   = weekKey(start)
+
+      let events = _eventCache.get(key)
+      if (!events) {
+        events = await getEventRepo().getByTimeRange(start, end)
+        _eventCache.set(key, events)
+      }
+
       set({ events, isLoading: false })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load events'
@@ -50,7 +80,14 @@ export const useEventStore = create<EventState>()((set, get) => ({
   loadRange: async (start, end) => {
     set({ isLoading: true, loadError: null })
     try {
-      const rangeEvents = await getEventRepo().getByTimeRange(start, end)
+      const key = rangeKey(start, end)
+
+      let rangeEvents = _eventCache.get(key)
+      if (!rangeEvents) {
+        rangeEvents = await getEventRepo().getByTimeRange(start, end)
+        _eventCache.set(key, rangeEvents)
+      }
+
       set({ rangeEvents, isLoading: false })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load events'
@@ -60,7 +97,11 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
   loadAllEvents: async () => {
     try {
-      const allEvents = await getEventRepo().getByTimeRange(0, Date.now() + 365 * 24 * 60 * 60 * 1000)
+      let allEvents = _eventCache.get(ALL_KEY)
+      if (!allEvents) {
+        allEvents = await getEventRepo().getByTimeRange(0, Date.now() + 365 * 24 * 60 * 60 * 1000)
+        _eventCache.set(ALL_KEY, allEvents)
+      }
       set({ allEvents })
     } catch {
       // silent — standard week will show empty buckets
@@ -69,21 +110,17 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
   createEvent: async (input) => {
     const event = await getEventRepo().create(input)
+    clearEventCache()
     set((state) => ({ events: [...state.events, event] }))
 
-    // Auto-add event title as keyword to the first folder → reclassify
+    // Auto-learn keyword from event title (delegated to use-case)
     if (event.title && event.categoryId) {
       const catState = useCategoryStore.getState()
-      const cat = catState.categories.find((c) => c.id === event.categoryId)
-      if (cat && cat.folders.length > 0) {
-        const first = cat.folders[0]
-        const updated = addKeywordIfValid(first.keywords, event.title)
-        if (updated) {
-          const newFolders = cat.folders.map((f, i) => i === 0 ? { ...f, keywords: updated } : f)
-          await catState.updateCategoryFolders(event.categoryId, newFolders)
-          await get().reclassifyAllEvents()
-        }
-      }
+      await tryLearnAndReclassify(event.title, event.categoryId, {
+        getCategories: () => catState.categories,
+        updateCategoryFolders: (id, folders) => catState.updateCategoryFolders(id, folders),
+        reclassifyAllEvents: () => get().reclassifyAllEvents(),
+      })
     }
 
     return event
@@ -92,24 +129,20 @@ export const useEventStore = create<EventState>()((set, get) => ({
   updateEvent: async (input) => {
     const prevEvent = get().events.find((e) => e.id === input.id)
     const event = await getEventRepo().update(input)
+    clearEventCache()
     set((state) => ({
       events: state.events.map((e) => (e.id === event.id ? event : e)),
     }))
 
-    // Auto-add keyword to first folder when categoryId changes → reclassify
+    // Auto-learn keyword when categoryId changes (delegated to use-case)
     const targetId = input.categoryId ?? input.color
     if (targetId && event.title && prevEvent && prevEvent.categoryId !== targetId) {
       const catState = useCategoryStore.getState()
-      const cat = catState.categories.find((c) => c.id === targetId)
-      if (cat && cat.folders.length > 0) {
-        const first = cat.folders[0]
-        const updatedKeywords = addKeywordIfValid(first.keywords, event.title)
-        if (updatedKeywords) {
-          const newFolders = cat.folders.map((f, i) => i === 0 ? { ...f, keywords: updatedKeywords } : f)
-          await catState.updateCategoryFolders(targetId, newFolders)
-          await get().reclassifyAllEvents()
-        }
-      }
+      await tryLearnAndReclassify(event.title, targetId, {
+        getCategories: () => catState.categories,
+        updateCategoryFolders: (id, folders) => catState.updateCategoryFolders(id, folders),
+        reclassifyAllEvents: () => get().reclassifyAllEvents(),
+      })
     }
 
     return event
@@ -117,6 +150,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
   deleteEvent: async (id) => {
     await getEventRepo().delete(id)
+    clearEventCache()
     set((state) => ({ events: state.events.filter((e) => e.id !== id) }))
   },
 
@@ -126,6 +160,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     const shifted = shiftEventsByWeeks(events, direction)
     const updates = shifted.map((e) => ({ id: e.id, startTime: e.startTime, endTime: e.endTime }))
     await getEventRepo().bulkUpdateTimes(updates)
+    clearEventCache()
     set({ events: shifted })
   },
 
@@ -150,6 +185,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     })
 
     const created = await getEventRepo().bulkCreate(inputs)
+    clearEventCache()
     set((state) => ({ events: [...state.events, ...created] }))
     return result
   },
@@ -171,6 +207,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     })
 
     const created = await getEventRepo().bulkCreate(inputs)
+    clearEventCache()
     set((state) => ({ events: [...state.events, ...created] }))
   },
 
@@ -187,12 +224,18 @@ export const useEventStore = create<EventState>()((set, get) => ({
       location: original.location,
     }
     const event = await getEventRepo().create(input)
+    clearEventCache()
     set((state) => ({ events: [...state.events, event] }))
     return event
   },
 
   reclassifyAllEvents: async () => {
-    const allEvents = await getEventRepo().getAll()
+    // Prefer cached allEvents; fall back to DB if not loaded yet
+    let allEvents = _eventCache.get(ALL_KEY)
+    if (!allEvents) {
+      allEvents = await getEventRepo().getAll()
+      _eventCache.set(ALL_KEY, allEvents)
+    }
     if (allEvents.length === 0) return
 
     const { categories } = useCategoryStore.getState()
@@ -208,6 +251,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     if (updates.length === 0) return
 
     await getEventRepo().bulkUpdateCategories(updates)
+    clearEventCache()
 
     set((state) => ({
       events: state.events.map((e) => {

@@ -1,6 +1,7 @@
 import { useMemo, useState, startTransition, memo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized } from 'recharts'
 import type { CalendarEvent } from '@/domain/event'
+import { computeNapStats } from '@/domain/napStats'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -116,11 +117,14 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
      Step 1 — 原始睡眠事件（一次性筛选，不建 Date）
      ════════════════════════════════════════════════════════════ */
 
+  /** 只统计主睡眠：排除小睡和失眠 */
   const sleepEvents = useMemo(() => {
     return rangeEvents.filter(
       (e) => e.categoryId === 'stone'
            && e.endTime - e.startTime >= 3 * 3_600_000
-           && e.startTime > cutoff,
+           && e.startTime > cutoff
+           && !(e.typedData?.type === 'sleep'
+             && (e.typedData.sleepType === 'nap' || e.typedData.sleepType === 'insomnia')),
     )
   }, [rangeEvents, cutoff])
 
@@ -307,6 +311,15 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
     const avgWake = viewNights.reduce((s, d) => s + d.wakeTime, 0) / n
     return { n, avgDuration, avgBed, avgWake }
   }, [viewNights])
+
+  // ════════════════════════════════════════════════════════════
+  // 小睡统计（与视图窗口对齐）
+  // ════════════════════════════════════════════════════════════
+
+  const napStats = useMemo(
+    () => computeNapStats(rangeEvents, { start: viewWindow.start.getTime(), end: viewWindow.end.getTime() }),
+    [rangeEvents, viewWindow],
+  )
 
   /* ── Colors ────────────────────────────────── */
 
@@ -510,8 +523,113 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
               </div>
             </div>
           )}
+
+          {/* ── 小睡统计 ──────────────────────────── */}
+          {napStats.totalNaps > 0 && (
+            <NapStatsPanel stats={napStats} t={t} />
+          )}
         </>
       )}
+    </div>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════
+   小睡统计面板
+   ════════════════════════════════════════════════════════════ */
+
+function NapStatsPanel({
+  stats,
+  t,
+}: {
+  stats: import('@/domain/napStats').NapStats
+  t: (zh: string, en: string) => string
+}) {
+  const maxHourCount = Math.max(...stats.hourDistribution, 1)
+  const hourLabels = ['0', '', '2', '', '4', '', '6', '', '8', '', '10', '',
+    '12', '', '14', '', '16', '', '18', '', '20', '', '22', '']
+
+  return (
+    <div className="mt-10 pt-6 border-t border-border-subtle">
+      <h3 className="font-serif text-sm font-medium text-text-primary mb-4">
+        {t('小睡统计', 'Nap Stats')}
+      </h3>
+
+      {/* 概览行 */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
+          <div className="font-mono text-xl font-semibold text-text-primary">
+            {stats.totalNaps}
+          </div>
+          <div className="font-sans text-xs text-text-tertiary mt-1">
+            {t('小睡次数', 'Total naps')}
+          </div>
+        </div>
+        <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
+          <div className="font-mono text-xl font-semibold text-text-primary">
+            {stats.avgDurationMinutes}
+            <span className="text-sm text-text-tertiary ml-1">
+              {t('分', 'min')}
+            </span>
+          </div>
+          <div className="font-sans text-xs text-text-tertiary mt-1">
+            {t('平均时长', 'Avg duration')}
+          </div>
+        </div>
+        <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
+          <div className="font-mono text-xl font-semibold text-text-primary">
+            {stats.medianDurationMinutes}
+            <span className="text-sm text-text-tertiary ml-1">
+              {t('分', 'min')}
+            </span>
+          </div>
+          <div className="font-sans text-xs text-text-tertiary mt-1">
+            {t('中位时长', 'Median')}
+          </div>
+        </div>
+      </div>
+
+      {/* 小睡时间分布 */}
+      <div className="flex flex-col gap-1.5">
+        <span className="font-sans text-xs text-text-tertiary">
+          {t('小睡时间分布', 'Nap Time Distribution')}
+        </span>
+        <div className="flex items-end gap-0.5 h-20">
+          {stats.hourDistribution.map((count, hour) => {
+            const height = (count / maxHourCount) * 100
+            return (
+              <div
+                key={hour}
+                className="flex-1 flex flex-col items-center justify-end"
+                title={`${hour}:00 — ${count} ${t('次', 'times')}`}
+              >
+                <span className="font-mono text-[9px] text-text-tertiary tabular-nums leading-none mb-0.5">
+                  {count > 0 ? count : ''}
+                </span>
+                <div
+                  className="w-full rounded-t"
+                  style={{
+                    height: `${Math.max(height, count > 0 ? 4 : 1)}%`,
+                    backgroundColor: 'var(--event-stone-text)',
+                    opacity: 0.3 + 0.5 * (count / maxHourCount),
+                  }}
+                />
+              </div>
+            )
+          })}
+        </div>
+        {/* X 轴标签 */}
+        <div className="flex gap-0.5">
+          {hourLabels.map((label, i) => (
+            <div
+              key={i}
+              className="flex-1 text-center font-sans text-[8px] text-text-tertiary"
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

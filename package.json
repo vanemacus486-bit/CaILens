@@ -1,6 +1,6 @@
 {
   "name": "cailens",
-  "version": "3.21.0",
+  "version": "3.23.0",
   "description": "本地优先的时间记录工具 — 记录你每一小时的去向",
   "type": "module",
   "bin": {

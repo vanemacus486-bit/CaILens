@@ -2,24 +2,39 @@ import { EventRepository } from './eventRepository'
 import { CategoryRepository } from './categoryRepository'
 import { SettingsRepository } from './settingsRepository'
 import { EstimateRepository } from './estimateRepository'
-import { AiConversationRepository } from './aiConversationRepository'
-import { ContextRepository } from './contextRepository'
+import { ProjectRepository } from './projectRepository'
+import { SopRepository } from './sopRepository'
+import { InspirationRepository } from './inspirationRepository'
+import { ProfileRepository } from './profileRepository'
+import { DailyContextRepository } from './dailyContextRepository'
+import { BodyMetricsRepository } from './bodyMetricsRepository'
+import { TodoRepository } from './todoRepository'
 import type { StorageAdapter } from './adapters/StorageAdapter'
 
 let _eventRepo: EventRepository
 let _categoryRepo: CategoryRepository
 let _settingsRepo: SettingsRepository
 let _estimateRepo: EstimateRepository
-let _conversationRepo: AiConversationRepository
-let _contextRepo: ContextRepository
+let _projectRepo: ProjectRepository
+let _sopRepo: SopRepository
+let _inspirationRepo: InspirationRepository
+let _profileRepo: ProfileRepository
+let _dailyContextRepo: DailyContextRepository
+let _bodyMetricsRepo: BodyMetricsRepository
+let _todoRepo: TodoRepository
 
 export function initRepositories(adapter: StorageAdapter) {
   _eventRepo = new EventRepository(adapter)
   _categoryRepo = new CategoryRepository(adapter)
   _settingsRepo = new SettingsRepository(adapter)
   _estimateRepo = new EstimateRepository(adapter)
-  _conversationRepo = new AiConversationRepository(adapter)
-  _contextRepo = new ContextRepository(adapter)
+  _projectRepo = new ProjectRepository(adapter)
+  _sopRepo = new SopRepository(adapter)
+  _inspirationRepo = new InspirationRepository(adapter)
+  _profileRepo = new ProfileRepository(adapter)
+  _dailyContextRepo = new DailyContextRepository(adapter)
+  _bodyMetricsRepo = new BodyMetricsRepository(adapter)
+  _todoRepo = new TodoRepository(adapter)
 }
 
 export function getEventRepo(): EventRepository {
@@ -42,12 +57,37 @@ export function getEstimateRepo(): EstimateRepository {
   return _estimateRepo
 }
 
-export function getConversationRepo(): AiConversationRepository {
-  if (!_conversationRepo) throw new Error('AiConversationRepository not initialized. Call initRepositories() first.')
-  return _conversationRepo
+export function getProjectRepo(): ProjectRepository {
+  if (!_projectRepo) throw new Error('ProjectRepository not initialized. Call initRepositories() first.')
+  return _projectRepo
 }
 
-export function getContextRepo(): ContextRepository {
-  if (!_contextRepo) throw new Error('ContextRepository not initialized. Call initRepositories() first.')
-  return _contextRepo
+export function getSopRepo(): SopRepository {
+  if (!_sopRepo) throw new Error('SopRepository not initialized.')
+  return _sopRepo
+}
+
+export function getInspirationRepo(): InspirationRepository {
+  if (!_inspirationRepo) throw new Error('InspirationRepository not initialized.')
+  return _inspirationRepo
+}
+
+export function getProfileRepo(): ProfileRepository {
+  if (!_profileRepo) throw new Error('ProfileRepository not initialized. Call initRepositories() first.')
+  return _profileRepo
+}
+
+export function getDailyContextRepo(): DailyContextRepository {
+  if (!_dailyContextRepo) throw new Error('DailyContextRepository not initialized.')
+  return _dailyContextRepo
+}
+
+export function getBodyMetricsRepo(): BodyMetricsRepository {
+  if (!_bodyMetricsRepo) throw new Error('BodyMetricsRepository not initialized.')
+  return _bodyMetricsRepo
+}
+
+export function getTodoRepo(): TodoRepository {
+  if (!_todoRepo) throw new Error('TodoRepository not initialized. Call initRepositories() first.')
+  return _todoRepo
 }

@@ -2,8 +2,12 @@ import type { CalendarEvent } from '@/domain/event'
 import type { Category } from '@/domain/category'
 import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
-import type { AiConversation, AiChatMessage, PinnedAnalysis, MessageFeedback } from '@/domain/aiChat'
-import type { DailyContext } from '@/domain/dailyContext'
+import type { Project } from '@/domain/project'
+import type { SOP, SOPVersion } from '@/domain/sop'
+import type { InspirationLog } from '@/domain/inspiration'
+import type { Profile } from '@/domain/profile'
+import type { DailyOutfit, DailyHygiene, DailyLeisure, BodyMetricsRecord } from '@/domain/dailyContext'
+import type { Todo } from '@/domain/todo'
 
 export interface WhereCondition {
   key: string
@@ -36,11 +40,16 @@ export interface StorageAdapter {
   categories: StorageTable<Category>
   settings: StorageTable<AppSettings>
   weeklyEstimates: StorageTable<WeeklyEstimate>
-  conversations: StorageTable<AiConversation>
-  chatMessages: StorageTable<AiChatMessage>
-  pinnedAnalyses: StorageTable<PinnedAnalysis>
-  messageFeedback: StorageTable<MessageFeedback>
-  dailyContexts: StorageTable<DailyContext>
+  projects: StorageTable<Project>
+  sops: StorageTable<SOP>
+  sopVersions: StorageTable<SOPVersion>
+  inspirations: StorageTable<InspirationLog>
+  profile: StorageTable<Profile>
+  outfitLogs: StorageTable<DailyOutfit>
+  hygieneLogs: StorageTable<DailyHygiene>
+  leisureLogs: StorageTable<DailyLeisure>
+  bodyMetricsRecords: StorageTable<BodyMetricsRecord>
+  todos: StorageTable<Todo>
   initialize(): Promise<void>
   /** Path to the storage root, or null if not configured (e.g. in-memory / IndexedDB). */
   readonly storagePath: string | null

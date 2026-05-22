@@ -1,32 +1,16 @@
 import Dexie, { type Table } from 'dexie'
 import type { CalendarEvent } from '@/domain/event'
-import type { Category, CategoryId, CategoryName } from '@/domain/category'
+import type { Category, CategoryId } from '@/domain/category'
 import { DEFAULT_CATEGORIES } from '@/domain/category'
 import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
-import type { AiConversation, AiChatMessage } from '@/domain/aiChat'
-import type { PinnedAnalysis, MessageFeedback } from '@/domain/aiChat'
-import type { DailyContext } from '@/domain/dailyContext'
+import type { Project } from '@/domain/project'
+import type { SOP, SOPVersion } from '@/domain/sop'
+import type { InspirationLog } from '@/domain/inspiration'
+import type { Profile } from '@/domain/profile'
+import type { Todo } from '@/domain/todo'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
-import { migrateEventV1ToV2 } from '@/domain/migration'
-
-// ── v3 upgrade: string name → bilingual lookup ────────────
-// 旧 v2 数据库中 categories.name 是 string，v3 需要转为 {zh, en}。
-// 未知/用户自定义名称降级为 { zh: name, en: name }。
-
-const V3_NAME_MAP: Record<string, CategoryName> = {
-  '核心工作': { zh: '核心工作', en: 'Core Work'       },
-  '辅助工作': { zh: '辅助工作', en: 'Support Work'    },
-  '必要事务': { zh: '必要事务', en: 'Essentials'      },
-  '阅读学习': { zh: '阅读学习', en: 'Reading & Study' },
-  '休息':     { zh: '休息',     en: 'Rest'            },
-  '其他':     { zh: '其他',     en: 'Other'           },
-  '深度工作': { zh: '深度工作', en: 'Core Work'       },
-  '会议沟通': { zh: '会议沟通', en: 'Support Work'    },
-  '学习阅读': { zh: '学习阅读', en: 'Essentials'      },
-  '日常事务': { zh: '日常事务', en: 'Reading & Study' },
-  '休息放松': { zh: '休息放松', en: 'Rest'            },
-}
+import { upgradeV3, upgradeV4, upgradeV5, upgradeV16 } from './migrations/upgrades'
 
 // ── Database ──────────────────────────────────────────────
 
@@ -35,139 +19,127 @@ export class CailensDB extends Dexie {
   categories!:      Table<Category, CategoryId>
   settings!:        Table<AppSettings, string>
   weeklyEstimates!: Table<WeeklyEstimate, string>
-  conversations!:   Table<AiConversation, string>
-  chatMessages!:    Table<AiChatMessage, string>
-  pinnedAnalyses!:  Table<PinnedAnalysis, string>
-  messageFeedback!: Table<MessageFeedback, string>
-  dailyContexts!:   Table<DailyContext, string>
+  projects!:        Table<Project, string>
+  sops!:            Table<SOP, string>
+  sopVersions!:     Table<SOPVersion, string>
+  inspirations!:    Table<InspirationLog, string>
+  profiles!:        Table<Profile, 'default'>
+  mealRecords!:     Table<import('@/domain/event').MealRecord, string>
+  sleepRecords!:    Table<import('@/domain/event').SleepRecord, string>
+  outfitLogs!:      Table<import('@/domain/dailyContext').DailyOutfit, string>
+  hygieneLogs!:     Table<import('@/domain/dailyContext').DailyHygiene, string>
+  leisureLogs!:     Table<import('@/domain/dailyContext').DailyLeisure, string>
+  bodyMetricsRecords!: Table<import('@/domain/dailyContext').BodyMetricsRecord, string>
+  todos!: Table<Todo, string>
 
   constructor(name = 'cailens') {
     super(name)
 
     // v1：只有 events 表
-    this.version(1).stores({
-      events: 'id, startTime',
-    })
+    this.version(1).stores({ events: 'id, startTime' })
 
     // v3：新增 categories + settings 表
-    this.version(3).stores({
-      events:     'id, startTime',
-      categories: 'id',
-      settings:   'id',
-    }).upgrade(async (tx) => {
-      // 1. 给 v1 遗留 events 补 categoryId
-      await tx.table('events').toCollection().modify((e) => {
-        if (e.categoryId === undefined) {
-          const migrated = migrateEventV1ToV2(e)
-          e.categoryId = migrated.categoryId
-          e.color      = migrated.color
-        }
-      })
+    this.version(3)
+      .stores({ events: 'id, startTime', categories: 'id', settings: 'id' })
+      .upgrade(upgradeV3)
 
-      // 2. 迁移 v2 dev 数据库的 categories.name string → {zh, en}
-      const existing = await tx.table('categories').toArray()
-      if (existing.length > 0) {
-        await tx.table('categories').toCollection().modify((cat) => {
-          if (typeof cat.name === 'string') {
-            cat.name = V3_NAME_MAP[cat.name] ?? { zh: cat.name, en: cat.name }
-          }
-        })
-      }
+    // v4：keywords → folders
+    this.version(4)
+      .stores({ events: 'id, startTime', categories: 'id', settings: 'id' })
+      .upgrade(upgradeV4)
 
-      // 3. 播种 settings
-      await tx.table('settings').put({ ...DEFAULT_SETTINGS })
-    })
-
-    // v4：categories.keywords: string[] → folders: KeywordFolder[]
-    this.version(4).stores({
-      events:     'id, startTime',
-      categories: 'id',
-      settings:   'id',
-    }).upgrade(async (tx) => {
-      const cats = await tx.table('categories').toArray()
-      for (const cat of cats) {
-        if (cat.keywords !== undefined || !cat.folders) {
-          const oldKeywords: string[] = cat.keywords ?? []
-          await tx.table('categories').update(cat.id, {
-            folders: [{ id: 'default', name: '默认', keywords: oldKeywords }],
-            keywords: undefined,
-          })
-        }
-      }
-    })
-
-    // v5：给已有 categories 补 weeklyBudget 默认值
-    this.version(5).stores({
-      events:     'id, startTime',
-      categories: 'id',
-      settings:   'id',
-    }).upgrade(async (tx) => {
-      const DEFAULT_BUDGETS: Record<string, number> = {
-        accent: 20, sage: 10, sand: 5, sky: 5, rose: 5, stone: 3,
-      }
-      const cats = await tx.table('categories').toArray()
-      for (const cat of cats) {
-        if (cat.weeklyBudget === undefined) {
-          await tx.table('categories').update(cat.id, {
-            weeklyBudget: DEFAULT_BUDGETS[cat.id] ?? 5,
-          })
-        }
-      }
-    })
+    // v5：补 weeklyBudget 默认值
+    this.version(5)
+      .stores({ events: 'id, startTime', categories: 'id', settings: 'id' })
+      .upgrade(upgradeV5)
 
     // v6：新增 weeklyEstimates 表
     this.version(6).stores({
-      events:          'id, startTime',
-      categories:      'id',
-      settings:        'id',
+      events: 'id, startTime', categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
     })
 
-    // v7：events 表新增 endTime 索引（供 QuickLog getLatest 使用）
+    // v7：events 表新增 endTime 索引
     this.version(7).stores({
-      events:          'id, startTime, endTime',
-      categories:      'id',
-      settings:        'id',
+      events: 'id, startTime, endTime', categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
     })
 
-    // v8：新增 conversations + chatMessages 表（AI 对话系统）
-    this.version(8).stores({
-      events:          'id, startTime, endTime',
-      categories:      'id',
-      settings:        'id',
+    // v13：新增 projects 表 + events 新增 projectId 索引
+    this.version(13).stores({
+      events: 'id, startTime, endTime, projectId',
+      categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
-      conversations:   'id, weekStart, updatedAt',
-      chatMessages:    'id, conversationId, createdAt',
+      projects: 'id, categoryId, name, status',
     })
 
-    // v9：新增 pinnedAnalyses + messageFeedback 表
-    this.version(9).stores({
-      events:          'id, startTime, endTime',
-      categories:      'id',
-      settings:        'id',
+    // v14：新增 sops / sopVersions / inspirations
+    this.version(14).stores({
+      events: 'id, startTime, endTime, projectId',
+      categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
-      conversations:   'id, weekStart, updatedAt',
-      chatMessages:    'id, conversationId, createdAt',
-      pinnedAnalyses:  'id, date, conversationId',
-      messageFeedback: 'id, messageId',
+      projects: 'id, categoryId, name, status',
+      sops: 'id, projectId', sopVersions: 'id, sopId, version',
+      inspirations: 'id, projectId, eventId',
     })
 
-    // v10：新增 dailyContexts 表（每日生活上下文）
-    this.version(10).stores({
-      events:          'id, startTime, endTime',
-      categories:      'id',
-      settings:        'id',
+    // v16：projects 新增 useCount/lastUsedAt；新增 mealRecords + sleepRecords
+    this.version(16).stores({
+      events: 'id, startTime, endTime, projectId',
+      categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
-      conversations:   'id, weekStart, updatedAt',
-      chatMessages:    'id, conversationId, createdAt',
-      pinnedAnalyses:  'id, date, conversationId',
-      messageFeedback: 'id, messageId',
-      dailyContexts:   'id, date',
+      projects: 'id, categoryId, name, status, useCount, lastUsedAt',
+      sops: 'id, projectId', sopVersions: 'id, sopId, version',
+      inspirations: 'id, projectId, eventId',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+    }).upgrade(upgradeV16)
+
+    // v17：新增 profiles 表
+    this.version(17).stores({
+      events: 'id, startTime, endTime, projectId',
+      categories: 'id', settings: 'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+      projects: 'id, categoryId, name, status, useCount, lastUsedAt',
+      sops: 'id, projectId', sopVersions: 'id, sopId, version',
+      inspirations: 'id, projectId, eventId',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+      profiles: 'id',
     })
 
-    // 全新 DB 首次创建时触发（version 0 → any）。
-    // 返回 Promise 让 Dexie 等待操作完成再认为 DB 就绪。
+    // v18：新增穿搭/卫生/娱乐/身体指标时序表
+    this.version(18).stores({
+      events: 'id, startTime, endTime, projectId',
+      categories: 'id', settings: 'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+      projects: 'id, categoryId, name, status, useCount, lastUsedAt',
+      sops: 'id, projectId', sopVersions: 'id, sopId, version',
+      inspirations: 'id, projectId, eventId',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+      profiles: 'id',
+      outfitLogs: 'id, date',
+      hygieneLogs: 'id, date',
+      leisureLogs: 'id, date',
+      bodyMetricsRecords: 'id, date',
+    })
+
+    // v19：新增 todos 表
+    this.version(19).stores({
+      events: 'id, startTime, endTime, projectId',
+      categories: 'id', settings: 'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+      projects: 'id, categoryId, name, status, useCount, lastUsedAt',
+      sops: 'id, projectId', sopVersions: 'id, sopId, version',
+      inspirations: 'id, projectId, eventId',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+      profiles: 'id',
+      outfitLogs: 'id, date',
+      hygieneLogs: 'id, date',
+      leisureLogs: 'id, date',
+      bodyMetricsRecords: 'id, date',
+      todos: 'id, status, dueDate, sortOrder',
+    })
+
+    // 全新 DB 首次创建时触发（version 0 → any）
     this.on('populate', () =>
       Promise.all([
         this.categories.bulkPut([...DEFAULT_CATEGORIES]),
@@ -175,9 +147,7 @@ export class CailensDB extends Dexie {
       ])
     )
 
-    // DB 每次成功打开后触发。用于处理 v1 用户的升级路径：
-    // v1→v3 upgrade 结束后 categories 表是空的（upgrade 内写入不可靠），
-    // 在这里用普通 readwrite transaction 补种。
+    // v1→v3 upgrade 后 categories 可能为空，在此补种
     this.on('ready', async () => {
       const catCount = await this.categories.count()
       if (catCount === 0) {

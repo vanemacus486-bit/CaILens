@@ -8,11 +8,6 @@ import type { Category, CategoryId } from '@/domain/category'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { useAiChatStore } from '@/stores/aiChatStore'
-import { useUIStore } from '@/stores/uiStore'
-import { useContextStore } from '@/stores/contextStore'
-import { Brain } from 'lucide-react'
-import { DailyContextDialog, InsightDialog } from '@/features/daily-context'
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -81,10 +76,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
   const language      = useAppSettingsStore((s) => s.settings.language)
   const navigate      = useNavigate()
   const t = (zh: string, en: string) => language === 'zh' ? zh : en
-  const [ctxDialogOpen, setCtxDialogOpen] = useState(false)
-  const [insightDialogOpen, setInsightDialogOpen] = useState(false)
-  const isTodayRecorded = useContextStore((s) => s.isTodayRecorded)
-  const checkToday = useContextStore((s) => s.checkToday)
+
 
   const dayStartMs = dayStart.getTime()
   const dayEndMs   = dayStartMs + 86_400_000
@@ -94,10 +86,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
     fireAndForget(loadRange(dayStartMs, dayEndMs), 'load day range')
   }, [dayStartMs, dayEndMs, loadRange])
 
-  // Check today's DailyContext status on mount
-  useEffect(() => {
-    fireAndForget(checkToday(), 'check today context')
-  }, [checkToday])
+
 
   // ── Day events ──────────────────────────────────────────
 
@@ -158,20 +147,9 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
   // Inline ref for "back to today" scroll
   const streamRef = useRef<HTMLDivElement>(null)
 
-  // ── Handle event click → AI ─────────────────────────────
-
-  const handleEventClick = (event: CalendarEvent) => {
-    useAiChatStore.getState().addCalendarContext([{
-      id: event.id,
-      type: 'event',
-      eventId: event.id,
-      eventTitle: event.title || undefined,
-      eventDescription: event.description || undefined,
-      startTime: event.startTime,
-      endTime: event.endTime,
-      categoryId: event.color,
-    }])
-    useUIStore.getState().setAiChatDrawerOpen(true)
+  // ── Event click (placeholder for future use) ─────────────────
+  const handleEventClick = (_event: CalendarEvent) => {
+    // no-op for now
   }
 
   // ── Render ──────────────────────────────────────────────
@@ -220,34 +198,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
           >
             {t('周', 'Week')}
           </button>
-          {/* Daily Context button — only on today */}
-          {today && (
-            <>
-              <button
-                onClick={() => setCtxDialogOpen(true)}
-                className={[
-                  'font-sans text-xs border rounded-md px-2.5 py-1 cursor-pointer transition-colors duration-200',
-                  isTodayRecorded
-                    ? 'text-accent border-accent/40 bg-accent/5 hover:bg-accent/10'
-                    : 'text-text-tertiary border-border-subtle hover:text-text-secondary hover:bg-surface-sunken',
-                ].join(' ')}
-                aria-label={t('生活记录', 'Daily Log')}
-              >
-                {isTodayRecorded ? t('已记', 'Logged') : t('记录', 'Log')}
-              </button>
-              <DailyContextDialog open={ctxDialogOpen} onOpenChange={setCtxDialogOpen} />
-            </>
-          )}
-          {/* 洞察按钮 — 所有日期都显示 */}
-          <button
-            onClick={() => setInsightDialogOpen(true)}
-            className="font-sans text-xs text-text-secondary bg-transparent border border-border-subtle rounded-md px-2.5 py-1 cursor-pointer hover:text-accent hover:bg-surface-sunken transition-colors duration-200"
-            aria-label={t('洞察', 'Insights')}
-          >
-            <Brain size={14} strokeWidth={1.75} className="inline-block mr-1" />
-            {t('洞察', 'Insights')}
-          </button>
-          <InsightDialog open={insightDialogOpen} onOpenChange={setInsightDialogOpen} />
+
         </div>
       </div>
 

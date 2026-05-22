@@ -4,8 +4,6 @@ import type { AppSettings, AppLanguage, AppTheme, UiFont } from '@/domain/settin
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import type { AccentPreset } from '@/domain/themes'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
-import type { AiModel } from '@/domain/ai'
-import type { AiProvider, AiUserProfile, AiSkill } from '@/domain/aiChat'
 
 const THEME_KEY  = 'cailens-theme'
 const ACCENT_KEY = 'cailens-accent'
@@ -27,6 +25,39 @@ function applyFont(font: UiFont) {
   document.documentElement.setAttribute('data-font', font)
 }
 
+// ── 通用 localStorage ↔ DB 协调 ────────────────────────────
+
+interface SettingSlot<T> {
+  storageKey: string
+  dbField: 'theme' | 'accentColor' | 'uiFont'
+  fallback: T
+  apply: (value: T) => void
+}
+
+/**
+ * 协调 localStorage 与 DB 的单一设置维度。
+ * 若 DB 缺失该字段，或 localStorage 与 DB 不一致，以 localStorage（或 fallback）为准写入 DB。
+ * 始终将最终值回写 localStorage 并调用 apply。
+ */
+async function reconcileSlot<T>(
+  settings: AppSettings,
+  slot: SettingSlot<T>,
+): Promise<{ settings: AppSettings; value: T }> {
+  const stored = localStorage.getItem(slot.storageKey) as T | null
+  const dbValue = settings[slot.dbField] as T | undefined
+  const dbMissing = dbValue == null
+
+  if (dbMissing || (stored != null && dbValue !== stored)) {
+    const value = (stored ?? slot.fallback) as T
+    settings = await getSettingsRepo().update({ [slot.dbField]: value } as Partial<AppSettings>)
+    return { settings, value }
+  }
+
+  return { settings, value: dbValue as T }
+}
+
+// ── Store ───────────────────────────────────────────────────
+
 interface AppSettingsState {
   settings: AppSettings
   isLoaded: boolean
@@ -36,17 +67,6 @@ interface AppSettingsState {
   setAccentColor: (accent: AccentPreset) => Promise<void>
   setShortcut: (action: ShortcutAction, binding: ShortcutString | null) => Promise<void>
   resetAllShortcuts: () => Promise<void>
-  setAiApiKey: (key: string) => Promise<void>
-  setAiModel: (model: AiModel) => Promise<void>
-  setAiEnabled: (enabled: boolean) => Promise<void>
-  setAiProvider: (provider: AiProvider) => Promise<void>
-  setAiEndpoint: (endpoint: string) => Promise<void>
-  setAiTemperature: (temp: number) => Promise<void>
-  setAiMaxTokens: (tokens: number) => Promise<void>
-  setAiUserProfile: (profile: AiUserProfile) => Promise<void>
-  setAiUseProfile: (use: boolean) => Promise<void>
-  setAiCustomSystemPrompt: (prompt?: string) => Promise<void>
-  setAiSkills: (skills: AiSkill[]) => Promise<void>
   setUiFont: (font: UiFont) => Promise<void>
   setRestrainedMode: (enabled: boolean) => Promise<void>
 }
@@ -57,43 +77,39 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
 
   loadSettings: async () => {
     let settings = await getSettingsRepo().get()
-    const storedTheme = localStorage.getItem(THEME_KEY) as AppTheme | null
 
-    // Two cases where the DB theme isn't the source of truth:
-    // 1. Existing DB record missing the theme field (old schema migration)
-    // 2. New user: repository returned DEFAULT_SETTINGS('light'), but the
-    //    inline script already detected system dark and wrote localStorage
-    const dbHasTheme = settings.theme !== undefined
-    const initialMismatch = storedTheme !== null && settings.theme !== storedTheme
+    // Reconcile theme, accent, font — each follows the same localStorage ↔ DB pattern
+    const themeResult = await reconcileSlot(settings, {
+      storageKey: THEME_KEY,
+      dbField: 'theme',
+      fallback: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' as AppTheme : 'light' as AppTheme,
+      apply: applyTheme,
+    })
+    settings = themeResult.settings
 
-    if (!dbHasTheme || initialMismatch) {
-      const theme = storedTheme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      settings = await getSettingsRepo().update({ theme })
-    }
+    const accentResult = await reconcileSlot(settings, {
+      storageKey: ACCENT_KEY,
+      dbField: 'accentColor',
+      fallback: 'rust' as AccentPreset,
+      apply: applyAccent,
+    })
+    settings = accentResult.settings
 
-    const theme = settings.theme ?? 'light' as AppTheme
+    const fontResult = await reconcileSlot(settings, {
+      storageKey: FONT_KEY,
+      dbField: 'uiFont',
+      fallback: 'default' as UiFont,
+      apply: applyFont,
+    })
+    settings = fontResult.settings
+
+    // Flush final values to localStorage (ensures consistency)
+    const theme = themeResult.value
+    const accent = accentResult.value
+    const font = fontResult.value
     localStorage.setItem(THEME_KEY, theme)
-    applyTheme(theme)
-
-    // Accent color — same reconciliation pattern
-    const storedAccent = localStorage.getItem(ACCENT_KEY) as AccentPreset | null
-    if (!settings.accentColor || (storedAccent && settings.accentColor !== storedAccent)) {
-      const accent = storedAccent ?? 'rust'
-      settings = await getSettingsRepo().update({ accentColor: accent })
-    }
-    const accent = settings.accentColor ?? 'rust'
     localStorage.setItem(ACCENT_KEY, accent)
-    applyAccent(accent)
-
-    // Font — reconcile localStorage with DB
-    const storedFont = localStorage.getItem(FONT_KEY) as UiFont | null
-    if (!settings.uiFont || (storedFont && settings.uiFont !== storedFont)) {
-      const font = storedFont ?? 'default'
-      settings = await getSettingsRepo().update({ uiFont: font })
-    }
-    const font = settings.uiFont ?? 'default'
     localStorage.setItem(FONT_KEY, font)
-    applyFont(font)
 
     set({ settings: { ...settings, theme, accentColor: accent, uiFont: font }, isLoaded: true })
   },
@@ -134,61 +150,6 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
   resetAllShortcuts: async () => {
     const updated = await getSettingsRepo().update({ shortcuts: undefined })
     set({ settings: updated })
-  },
-
-  setAiApiKey: async (key) => {
-    const settings = await getSettingsRepo().update({ aiApiKey: key || undefined })
-    set({ settings })
-  },
-
-  setAiModel: async (model) => {
-    const settings = await getSettingsRepo().update({ aiModel: model })
-    set({ settings })
-  },
-
-  setAiEnabled: async (enabled) => {
-    const settings = await getSettingsRepo().update({ aiEnabled: enabled })
-    set({ settings })
-  },
-
-  setAiProvider: async (provider: AiProvider) => {
-    const settings = await getSettingsRepo().update({ aiProvider: provider })
-    set({ settings })
-  },
-
-  setAiEndpoint: async (endpoint) => {
-    const settings = await getSettingsRepo().update({ aiEndpoint: endpoint || undefined })
-    set({ settings })
-  },
-
-  setAiTemperature: async (temp) => {
-    const settings = await getSettingsRepo().update({ aiTemperature: temp })
-    set({ settings })
-  },
-
-  setAiMaxTokens: async (tokens) => {
-    const settings = await getSettingsRepo().update({ aiMaxTokens: tokens })
-    set({ settings })
-  },
-
-  setAiUserProfile: async (profile) => {
-    const settings = await getSettingsRepo().update({ aiUserProfile: profile })
-    set({ settings })
-  },
-
-  setAiUseProfile: async (use) => {
-    const settings = await getSettingsRepo().update({ aiUseProfile: use })
-    set({ settings })
-  },
-
-  setAiCustomSystemPrompt: async (prompt) => {
-    const settings = await getSettingsRepo().update({ aiCustomSystemPrompt: prompt || undefined })
-    set({ settings })
-  },
-
-  setAiSkills: async (skills) => {
-    const settings = await getSettingsRepo().update({ aiSkills: skills })
-    set({ settings })
   },
 
   setUiFont: async (font) => {

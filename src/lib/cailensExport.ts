@@ -10,10 +10,6 @@ export interface CailensSnapshot {
     categories: unknown[]
     settings: unknown[]
     weeklyEstimates: unknown[]
-    conversations: unknown[]
-    chatMessages: unknown[]
-    pinnedAnalyses: unknown[]
-    messageFeedback: unknown[]
   }
 }
 
@@ -25,19 +21,11 @@ export async function collectSnapshot(): Promise<CailensSnapshot> {
     categories,
     settingsArr,
     weeklyEstimates,
-    conversations,
-    chatMessages,
-    pinnedAnalyses,
-    messageFeedback,
   ] = await Promise.all([
     db.events.toArray(),
     db.categories.toArray(),
     db.settings.toArray(),
     db.weeklyEstimates.toArray(),
-    db.conversations.toArray(),
-    db.chatMessages.toArray(),
-    db.pinnedAnalyses.toArray(),
-    db.messageFeedback.toArray(),
   ])
 
   return {
@@ -48,10 +36,6 @@ export async function collectSnapshot(): Promise<CailensSnapshot> {
       categories,
       settings: settingsArr,
       weeklyEstimates,
-      conversations,
-      chatMessages,
-      pinnedAnalyses,
-      messageFeedback,
     },
   }
 }
@@ -159,7 +143,7 @@ export async function importCailens(
 
   await db.transaction(
     'rw',
-    [db.events, db.categories, db.settings, db.weeklyEstimates, db.conversations, db.chatMessages, db.pinnedAnalyses, db.messageFeedback] as unknown as Parameters<typeof db.transaction>[1],
+    [db.events, db.categories, db.settings, db.weeklyEstimates] as unknown as Parameters<typeof db.transaction>[1],
     async () => {
       if (data.events.length > 0) {
         tables.events = data.events.length
@@ -180,26 +164,6 @@ export async function importCailens(
         tables.weeklyEstimates = data.weeklyEstimates.length
         await db.weeklyEstimates.clear()
         await db.weeklyEstimates.bulkAdd(data.weeklyEstimates as never[])
-      }
-      if (data.conversations.length > 0) {
-        tables.conversations = data.conversations.length
-        await db.conversations.clear()
-        await db.conversations.bulkAdd(data.conversations as never[])
-      }
-      if (data.chatMessages.length > 0) {
-        tables.chatMessages = data.chatMessages.length
-        await db.chatMessages.clear()
-        await db.chatMessages.bulkAdd(data.chatMessages as never[])
-      }
-      if (data.pinnedAnalyses.length > 0) {
-        tables.pinnedAnalyses = data.pinnedAnalyses.length
-        await db.pinnedAnalyses.clear()
-        await db.pinnedAnalyses.bulkAdd(data.pinnedAnalyses as never[])
-      }
-      if (data.messageFeedback.length > 0) {
-        tables.messageFeedback = data.messageFeedback.length
-        await db.messageFeedback.clear()
-        await db.messageFeedback.bulkAdd(data.messageFeedback as never[])
       }
     },
   )

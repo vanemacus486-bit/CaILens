@@ -3,9 +3,12 @@ import type { CalendarEvent } from '@/domain/event'
 import type { Category } from '@/domain/category'
 import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
-import type { AiConversation, AiChatMessage } from '@/domain/aiChat'
-import type { PinnedAnalysis, MessageFeedback } from '@/domain/aiChat'
-import type { DailyContext } from '@/domain/dailyContext'
+import type { Profile } from '@/domain/profile'
+import type { Project } from '@/domain/project'
+import type { SOP, SOPVersion } from '@/domain/sop'
+import type { InspirationLog } from '@/domain/inspiration'
+import type { DailyOutfit, DailyHygiene, DailyLeisure, BodyMetricsRecord } from '@/domain/dailyContext'
+import type { Todo } from '@/domain/todo'
 import type { StorageAdapter, StorageTable, QueryOptions } from './StorageAdapter'
 import { CailensDB, db as dexieDb } from '../db'
 
@@ -111,11 +114,18 @@ export class IndexedDBAdapter implements StorageAdapter {
   categories: StorageTable<Category>
   settings: StorageTable<AppSettings>
   weeklyEstimates: StorageTable<WeeklyEstimate>
-  conversations: StorageTable<AiConversation>
-  chatMessages: StorageTable<AiChatMessage>
-  pinnedAnalyses: StorageTable<PinnedAnalysis>
-  messageFeedback: StorageTable<MessageFeedback>
-  dailyContexts: StorageTable<DailyContext>
+  profile: StorageTable<Profile>
+
+  projects: StorageTable<Project>
+  sops: StorageTable<SOP>
+  sopVersions: StorageTable<SOPVersion>
+  inspirations: StorageTable<InspirationLog>
+
+  outfitLogs: StorageTable<DailyOutfit>
+  hygieneLogs: StorageTable<DailyHygiene>
+  leisureLogs: StorageTable<DailyLeisure>
+  bodyMetricsRecords: StorageTable<BodyMetricsRecord>
+  todos: StorageTable<Todo>
 
   private db: CailensDB
 
@@ -125,11 +135,18 @@ export class IndexedDBAdapter implements StorageAdapter {
     this.categories = new IndexedDBTable(db.categories)
     this.settings = new IndexedDBTable(db.settings)
     this.weeklyEstimates = new IndexedDBTable(db.weeklyEstimates)
-    this.conversations = new IndexedDBTable(db.conversations)
-    this.chatMessages = new IndexedDBTable(db.chatMessages)
-    this.pinnedAnalyses = new IndexedDBTable(db.pinnedAnalyses)
-    this.messageFeedback = new IndexedDBTable(db.messageFeedback)
-    this.dailyContexts = new IndexedDBTable(db.dailyContexts)
+    this.profile = new IndexedDBTable(db.profiles)
+
+    this.projects = new IndexedDBTable(db.projects)
+    this.sops = new IndexedDBTable(db.sops)
+    this.sopVersions = new IndexedDBTable(db.sopVersions)
+    this.inspirations = new IndexedDBTable(db.inspirations)
+
+    this.outfitLogs = new IndexedDBTable(db.outfitLogs)
+    this.hygieneLogs = new IndexedDBTable(db.hygieneLogs)
+    this.leisureLogs = new IndexedDBTable(db.leisureLogs)
+    this.bodyMetricsRecords = new IndexedDBTable(db.bodyMetricsRecords)
+    this.todos = new IndexedDBTable(db.todos)
   }
 
   readonly storagePath: string | null = null
