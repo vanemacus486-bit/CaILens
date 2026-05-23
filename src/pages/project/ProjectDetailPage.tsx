@@ -4,9 +4,7 @@ import { ArrowLeft, Archive, Lightbulb } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useEventStore } from '@/stores/eventStore'
-import { useSopStore } from '@/stores/sopStore'
 import { getInspirationRepo } from '@/data/getRepositories'
-import { SopEditor } from '@/features/sop/SopEditor'
 import type { InspirationLog } from '@/domain/inspiration'
 import { fireAndForget } from '@/lib/fireAndForget'
 
@@ -18,22 +16,20 @@ export function ProjectDetailPage() {
 
   const { projects, isLoaded, loadProjects, archiveProject } = useProjectStore()
   const { events, loadAllEvents } = useEventStore()
-  const { loadSops } = useSopStore()
 
-  const [activeTab, setActiveTab] = useState<'events' | 'sop' | 'inspirations'>('events')
+  const [activeTab, setActiveTab] = useState<'events' | 'inspirations'>('events')
   const [inspirations, setInspirations] = useState<InspirationLog[]>([])
 
   useEffect(() => {
     if (!isLoaded) loadProjects()
     loadAllEvents()
-    loadSops()
     if (projectId) {
       fireAndForget(
         getInspirationRepo().getByProject(projectId).then(setInspirations),
         'load inspirations',
       )
     }
-  }, [isLoaded, loadProjects, loadAllEvents, loadSops, projectId])
+  }, [isLoaded, loadProjects, loadAllEvents, projectId])
 
   const project = projects.find((p) => p.id === projectId)
 
@@ -141,7 +137,6 @@ export function ProjectDetailPage() {
       <div className="flex gap-1 border-b border-border-subtle mb-6">
         {[
           { id: 'events' as const, label: t('事件', 'Events') },
-          { id: 'sop' as const, label: t('SOP', 'SOP') },
           { id: 'inspirations' as const, label: t('灵感', 'Insights') },
         ].map((tab) => (
           <button
@@ -198,8 +193,6 @@ export function ProjectDetailPage() {
           ))}
         </div>
       )}
-
-      {activeTab === 'sop' && projectId && <SopEditor projectId={projectId} />}
 
       {activeTab === 'inspirations' && (
         <div>

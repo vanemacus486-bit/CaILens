@@ -6,6 +6,7 @@ import { CommandPalette } from '@/features/search/CommandPalette'
 import { SettingsDrawer } from '@/features/settings/SettingsDrawer'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { ProjectDetailPage } from '@/pages/project/ProjectDetailPage'
+
 import { ActionPage } from '@/pages/action/ActionPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { TopNavBar } from '@/components/nav/TopNavBar'
@@ -51,6 +52,7 @@ function Layout() {
         case '1': navigate('/week'); e.preventDefault(); break
         case '2': navigate('/action'); e.preventDefault(); break
         case '3': navigate('/stats'); e.preventDefault(); break
+
         case 'Escape':
           if (window.location.hash.startsWith('#/profile')) {
             // ProfilePage 自己处理 Esc → 回复盘
@@ -159,6 +161,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/week" replace />} />
           <Route path="/week" element={<WeekView />} />
           <Route path="/action" element={<ActionPage />} />
+
           <Route path="/stats" element={<StatsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />

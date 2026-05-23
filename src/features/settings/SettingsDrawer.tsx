@@ -8,7 +8,6 @@ import { SettingsData } from '@/features/settings/SettingsData'
 import { SettingsStorage } from '@/features/settings/SettingsStorage'
 import { SettingsAbout } from '@/features/settings/SettingsAbout'
 import { SettingsShortcuts } from '@/features/settings/SettingsShortcuts'
-import { SettingsAI } from '@/features/settings/SettingsAI'
 import { cn } from '@/lib/utils'
 
 const TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
@@ -27,7 +26,6 @@ const TAB_CONTENT: Record<SettingsTab, React.FC> = {
   storage:    SettingsStorage,
   shortcuts:  SettingsShortcuts,
   about:      SettingsAbout,
-  ai:         SettingsAI,
 }
 
 export function SettingsDrawer() {

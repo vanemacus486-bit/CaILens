@@ -27,6 +27,14 @@ export class TodoRepository {
     })
   }
 
+  async getByProject(projectId: string): Promise<Todo[]> {
+    return this.adapter.todos.query({
+      where: { key: 'projectId', op: 'equals', value: projectId },
+      orderBy: 'sortOrder',
+      orderDir: 'asc',
+    })
+  }
+
   async queryByDueDateRange(start: number, end: number): Promise<Todo[]> {
     return this.adapter.todos.query({
       where: { key: 'dueDate', op: 'above', value: start },
@@ -48,6 +56,7 @@ export class TodoRepository {
       priority: input.priority ?? 'medium',
       dueDate: input.dueDate ?? null,
       sortOrder: maxOrder + 1,
+      projectId: input.projectId ?? null,
       createdAt: now,
       updatedAt: now,
       completedAt: null,

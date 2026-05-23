@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Calendar,
   Inbox,
+  FolderKanban,
 } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { usePageScrollRestore } from '@/hooks/usePageScrollRestore'
@@ -25,6 +26,7 @@ import { groupTodosByDueDate } from '@/domain/todo'
 import type { CreateTodoInput, TodoPriority } from '@/domain/todo'
 import { TodoInput } from './TodoInput'
 import { TodoItem } from './TodoItem'
+import { ProjectsView } from './ProjectsView'
 
 type FilterMode = 'all' | 'active' | 'done'
 
@@ -36,6 +38,7 @@ export function ActionPage() {
 
   const { todos, isLoading, isLoaded, error, loadTodos, createTodo, updateTodo, deleteTodo, toggleComplete } = useTodoStore()
   const [filter, setFilter] = useState<FilterMode>('all')
+  const [viewMode, setViewMode] = useState<'todos' | 'projects'>('todos')
 
   useEffect(() => {
     if (!isLoaded) loadTodos()
@@ -113,28 +116,63 @@ export function ActionPage() {
         </div>
       </div>
 
-      {/* ── 筛选切换 ── */}
-      <div className="flex items-center gap-1 px-6 pb-3 flex-shrink-0">
-        {FILTERS.map((f) => (
+      {/* ── 视图模式切换 + 筛选切换 ── */}
+      <div className="flex items-center gap-4 px-6 pb-3 flex-shrink-0">
+        {/* 模式切换 */}
+        <div className="flex bg-surface-sunken rounded-md p-[2px] gap-0">
           <button
-            key={f.mode}
-            onClick={() => setFilter(f.mode)}
-            className={`h-7 px-3 rounded-md text-xs font-medium font-sans transition-colors cursor-pointer border-none ${
-              filter === f.mode
+            onClick={() => setViewMode('todos')}
+            className={`h-7 px-3 rounded text-xs font-medium font-sans transition-colors cursor-pointer border-none ${
+              viewMode === 'todos'
                 ? 'bg-surface-raised text-text-primary shadow-sm'
                 : 'text-text-tertiary hover:text-text-secondary bg-transparent'
             }`}
           >
-            {f.mode === 'all' && <Square size={11} strokeWidth={1.75} className="inline mr-1 align-middle" />}
-            {f.mode === 'active' && <AlertCircle size={11} strokeWidth={1.75} className="inline mr-1 align-middle" />}
-            {f.mode === 'done' && <CheckSquare size={11} strokeWidth={1.75} className="inline mr-1 align-middle" />}
-            {t(f.labelZh, f.labelEn)}
+            <ListTodo size={12} strokeWidth={1.75} className="inline mr-1 align-middle" />
+            {t('待办', 'Todos')}
           </button>
-        ))}
+          <button
+            onClick={() => setViewMode('projects')}
+            className={`h-7 px-3 rounded text-xs font-medium font-sans transition-colors cursor-pointer border-none ${
+              viewMode === 'projects'
+                ? 'bg-surface-raised text-text-primary shadow-sm'
+                : 'text-text-tertiary hover:text-text-secondary bg-transparent'
+            }`}
+          >
+            <FolderKanban size={12} strokeWidth={1.75} className="inline mr-1 align-middle" />
+            {t('项目', 'Projects')}
+          </button>
+        </div>
+
+        {/* 筛选（仅待办模式） */}
+        {viewMode === 'todos' && (
+          <div className="flex items-center gap-1">
+            {FILTERS.map((f) => (
+              <button
+                key={f.mode}
+                onClick={() => setFilter(f.mode)}
+                className={`h-7 px-3 rounded-md text-xs font-medium font-sans transition-colors cursor-pointer border-none ${
+                  filter === f.mode
+                    ? 'bg-surface-raised text-text-primary shadow-sm'
+                    : 'text-text-tertiary hover:text-text-secondary bg-transparent'
+                }`}
+              >
+                {f.mode === 'all' && <Square size={11} strokeWidth={1.75} className="inline mr-1 align-middle" />}
+                {f.mode === 'active' && <AlertCircle size={11} strokeWidth={1.75} className="inline mr-1 align-middle" />}
+                {f.mode === 'done' && <CheckSquare size={11} strokeWidth={1.75} className="inline mr-1 align-middle" />}
+                {t(f.labelZh, f.labelEn)}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── 内容区 ── */}
       <div ref={usePageScrollRestore('/action')} className="flex-1 overflow-y-auto px-6 pb-8">
+        {viewMode === 'projects' ? (
+          <ProjectsView />
+        ) : (
+        <>
         {/* 新建输入 */}
         <div className="mb-5">
           <TodoInput onCreate={handleCreate} />
@@ -239,6 +277,8 @@ export function ActionPage() {
               </Section>
             )}
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

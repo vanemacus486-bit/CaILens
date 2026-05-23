@@ -5,7 +5,6 @@ import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
 import type { Profile } from '@/domain/profile'
 import type { Project } from '@/domain/project'
-import type { SOP, SOPVersion } from '@/domain/sop'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit, DailyHygiene, DailyLeisure, BodyMetricsRecord } from '@/domain/dailyContext'
 import type { Todo } from '@/domain/todo'
@@ -117,8 +116,6 @@ export class IndexedDBAdapter implements StorageAdapter {
   profile: StorageTable<Profile>
 
   projects: StorageTable<Project>
-  sops: StorageTable<SOP>
-  sopVersions: StorageTable<SOPVersion>
   inspirations: StorageTable<InspirationLog>
 
   outfitLogs: StorageTable<DailyOutfit>
@@ -138,8 +135,6 @@ export class IndexedDBAdapter implements StorageAdapter {
     this.profile = new IndexedDBTable(db.profiles)
 
     this.projects = new IndexedDBTable(db.projects)
-    this.sops = new IndexedDBTable(db.sops)
-    this.sopVersions = new IndexedDBTable(db.sopVersions)
     this.inspirations = new IndexedDBTable(db.inspirations)
 
     this.outfitLogs = new IndexedDBTable(db.outfitLogs)

@@ -170,7 +170,7 @@ export function FloatingEventCard({
 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([])
-  const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState(0)
+  const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState(-1)
   const [autocompleteVisible, setAutocompleteVisible] = useState(false)
 
   // Refs
@@ -249,7 +249,7 @@ export function FloatingEventCard({
           .filter((s) => s.title.toLowerCase() !== q.toLowerCase())
 
         setSuggestions(sorted)
-        setSelectedSuggestionIdx(0)
+        setSelectedSuggestionIdx(-1)
         setAutocompleteVisible(sorted.length > 0)
       } catch {
         setSuggestions([])
@@ -265,26 +265,29 @@ export function FloatingEventCard({
   // ── Keyboard handler ────────────────────────────────
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // 1. Autocomplete navigation
+    // 1. Autocomplete: navigation & Tab-accept
     if (autocompleteVisible && suggestions.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setSelectedSuggestionIdx((prev) => Math.min(prev + 1, suggestions.length - 1))
+        setSelectedSuggestionIdx((prev) =>
+          prev < suggestions.length - 1 ? prev + 1 : prev,
+        )
         return
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setSelectedSuggestionIdx((prev) => Math.max(prev - 1, 0))
+        setSelectedSuggestionIdx((prev) => prev <= 0 ? -1 : prev - 1)
         return
       }
-      if (e.key === 'Tab' || e.key === 'Enter') {
-        if (selectedSuggestionIdx >= 0 && selectedSuggestionIdx < suggestions.length) {
+      // Tab → 填入高亮建议（不保存），无高亮则关闭下拉
+      if (e.key === 'Tab') {
+        if (selectedSuggestionIdx >= 0) {
           e.preventDefault()
           setTitle(suggestions[selectedSuggestionIdx].title)
-          setSuggestions([])
-          setAutocompleteVisible(false)
-          return
         }
+        setSuggestions([])
+        setAutocompleteVisible(false)
+        return
       }
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -308,10 +311,18 @@ export function FloatingEventCard({
       return
     }
 
-    // 3. Enter → save
+    // 3. Enter → save（有高亮建议时先填入再保存）
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSave()
+      if (autocompleteVisible && suggestions.length > 0 && selectedSuggestionIdx >= 0) {
+        const chosenTitle = suggestions[selectedSuggestionIdx].title
+        setTitle(chosenTitle)
+        setSuggestions([])
+        setAutocompleteVisible(false)
+        handleSave(chosenTitle)
+      } else {
+        handleSave()
+      }
       return
     }
 
@@ -341,7 +352,7 @@ export function FloatingEventCard({
     return null
   }
 
-  async function handleSave() {
+  async function handleSave(overrideTitle?: string) {
     const timeErr = getTimeError()
     if (timeErr) { setError(timeErr); return }
 
@@ -351,7 +362,7 @@ export function FloatingEventCard({
 
     // Build typedData based on mode
     let typedData: TypedEventData | undefined
-    let eventTitle = title
+    let eventTitle = overrideTitle ?? title
 
     if (mode === 'sleep' || (editingEvent?.typedData?.type === 'sleep')) {
       typedData = {
@@ -485,7 +496,7 @@ export function FloatingEventCard({
             </button>
           )}
           <button
-            onClick={handleSave}
+            onClick={() => handleSave()}
             className="font-sans text-xs font-medium text-white bg-accent border-none rounded-md px-4 py-1.5 cursor-pointer hover:bg-accent-hover transition-colors"
           >
             {isEditing ? t('保存', 'Save') : t('记录', 'Log')}
@@ -531,7 +542,7 @@ export function FloatingEventCard({
             </button>
           )}
           <button
-            onClick={handleSave}
+            onClick={() => handleSave()}
             className="font-sans text-xs font-medium text-white bg-accent border-none rounded-md px-4 py-1.5 cursor-pointer hover:bg-accent-hover transition-colors"
           >
             {t('记录', 'Log')}
@@ -685,7 +696,7 @@ export function FloatingEventCard({
             </button>
           )}
           <button
-            onClick={handleSave}
+            onClick={() => handleSave()}
             className="font-sans text-xs font-medium text-white bg-accent border-none rounded-md px-4 py-1.5 cursor-pointer hover:bg-accent-hover transition-colors"
           >
             {isEditing ? t('保存', 'Save') : t('记录', 'Log')}

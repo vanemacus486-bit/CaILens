@@ -3,7 +3,6 @@ import { CategoryRepository } from './categoryRepository'
 import { SettingsRepository } from './settingsRepository'
 import { EstimateRepository } from './estimateRepository'
 import { ProjectRepository } from './projectRepository'
-import { SopRepository } from './sopRepository'
 import { InspirationRepository } from './inspirationRepository'
 import { ProfileRepository } from './profileRepository'
 import { DailyContextRepository } from './dailyContextRepository'
@@ -16,7 +15,6 @@ let _categoryRepo: CategoryRepository
 let _settingsRepo: SettingsRepository
 let _estimateRepo: EstimateRepository
 let _projectRepo: ProjectRepository
-let _sopRepo: SopRepository
 let _inspirationRepo: InspirationRepository
 let _profileRepo: ProfileRepository
 let _dailyContextRepo: DailyContextRepository
@@ -29,7 +27,6 @@ export function initRepositories(adapter: StorageAdapter) {
   _settingsRepo = new SettingsRepository(adapter)
   _estimateRepo = new EstimateRepository(adapter)
   _projectRepo = new ProjectRepository(adapter)
-  _sopRepo = new SopRepository(adapter)
   _inspirationRepo = new InspirationRepository(adapter)
   _profileRepo = new ProfileRepository(adapter)
   _dailyContextRepo = new DailyContextRepository(adapter)
@@ -60,11 +57,6 @@ export function getEstimateRepo(): EstimateRepository {
 export function getProjectRepo(): ProjectRepository {
   if (!_projectRepo) throw new Error('ProjectRepository not initialized. Call initRepositories() first.')
   return _projectRepo
-}
-
-export function getSopRepo(): SopRepository {
-  if (!_sopRepo) throw new Error('SopRepository not initialized.')
-  return _sopRepo
 }
 
 export function getInspirationRepo(): InspirationRepository {

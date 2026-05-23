@@ -289,34 +289,6 @@ export function WeekView() {
     await deleteEvent(id)
   }, [deleteEvent])
 
-  // Reverse Anchoring: opacity mute
-  const hoveredAnchor = useUIStore((s) => s.hoveredAnchor)
-
-  useEffect(() => {
-    document.querySelectorAll('[data-event-id]').forEach((el) => {
-      el.classList.remove('opacity-40')
-    })
-
-    if (!hoveredAnchor) return
-
-    if (hoveredAnchor.type === 'category') {
-      document.querySelectorAll('[data-event-id]').forEach((el) => {
-        el.classList.add('opacity-40')
-      })
-      document.querySelectorAll(`[data-event-category="${hoveredAnchor.categoryId}"]`).forEach((el) => {
-        el.classList.remove('opacity-40')
-      })
-    } else if (hoveredAnchor.type === 'event' && hoveredAnchor.eventTitle) {
-      document.querySelectorAll('[data-event-id]').forEach((el) => {
-        const eventId = el.getAttribute('data-event-id')
-        const event = events.find((e) => e.id === eventId)
-        if (!event || event.title !== hoveredAnchor.eventTitle) {
-          el.classList.add('opacity-40')
-        }
-      })
-    }
-  }, [hoveredAnchor, events])
-
   const gridRef = useRef<HTMLDivElement>(null)
 
   // Session state: save week + view, restore scroll

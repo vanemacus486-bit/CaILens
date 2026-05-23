@@ -81,7 +81,63 @@ export async function upgradeV5(tx: Transaction): Promise<void> {
   }
 }
 
-// ── v16: 补 projects.useCount / lastUsedAt 默认值 ───────────
+// ── v21: 合并项目概念 — taskGroups → projects, taskGroupItems → todos ──
+
+export async function upgradeV21(tx: Transaction): Promise<void> {
+  // 1. 将 taskGroups 迁移为 projects
+  const oldTaskGroups: any[] = await tx.table('taskGroups').toArray()
+  const existingProjects: any[] = await tx.table('projects').toArray()
+  const existingProjectIds = new Set(existingProjects.map((p: any) => p.id))
+
+  for (const tg of oldTaskGroups) {
+    if (!existingProjectIds.has(tg.id)) {
+      await tx.table('projects').put({
+        id: tg.id,
+        name: tg.name,
+        categoryId: 'accent',
+        status: 'active',
+        description: '',
+        totalMinutes: 0,
+        eventCount: 0,
+        useCount: 0,
+        lastUsedAt: tg.createdAt,
+        sortOrder: tg.sortOrder ?? 0,
+        createdAt: tg.createdAt,
+        updatedAt: tg.updatedAt,
+      })
+    }
+  }
+
+  // 2. 将 taskGroupItems 迁移为 todos
+  const oldItems: any[] = await tx.table('taskGroupItems').toArray()
+  for (const item of oldItems) {
+    await tx.table('todos').put({
+      id: item.id,
+      title: item.title,
+      description: '',
+      status: item.done ? 'done' : 'todo',
+      priority: 'medium',
+      dueDate: null,
+      sortOrder: item.sortOrder ?? 0,
+      projectId: item.taskGroupId,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      completedAt: item.done ? item.updatedAt : null,
+    })
+  }
+
+  // 3. 为缺少 sortOrder/description 的现有 projects 补默认值
+  const maxTgOrder = Math.max(0, ...oldTaskGroups.map((g: any) => g.sortOrder ?? 0))
+  let cursor = maxTgOrder + 1
+  for (const p of existingProjects) {
+    const patches: Record<string, unknown> = {}
+    if (p.sortOrder === undefined) patches.sortOrder = cursor++
+    if (p.description === undefined) patches.description = p.description ?? ''
+    if (Object.keys(patches).length > 0) {
+      await tx.table('projects').update(p.id, patches)
+    }
+  }
+}
 
 export async function upgradeV16(tx: Transaction): Promise<void> {
   const oldProjects = await tx.table('projects').toArray()

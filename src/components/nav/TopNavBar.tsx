@@ -38,6 +38,7 @@ const NAV_ITEMS: {
 }[] = [
   { mode: 'calendar', path: '/week',   labelZh: '日历', labelEn: 'Calendar', shortcut: '1' },
   { mode: 'plan',     path: '/action', labelZh: '规划', labelEn: 'Plan',      shortcut: '2' },
+
   { mode: 'review',   path: '/stats',  labelZh: '复盘', labelEn: 'Review',    shortcut: '3' },
 ]
 

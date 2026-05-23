@@ -17,6 +17,7 @@ export interface Project {
   name: string
   categoryId: CategoryId
   status: ProjectStatus
+  description: string
   /** 累计时长（分钟，缓存在创建/更新事件时更新） */
   totalMinutes: number
   /** 事件数缓存 */
@@ -25,12 +26,30 @@ export interface Project {
   useCount: number
   /** 最近一次使用时间戳 */
   lastUsedAt: number
+  /** 排序序号，越小越靠前 */
+  sortOrder: number
   createdAt: number
   updatedAt: number
   archivedAt?: number
 }
 
-export type CreateProjectInput = Pick<Project, 'name' | 'categoryId'>
+export type CreateProjectInput = Pick<Project, 'name' | 'categoryId'> & {
+  description?: string
+  sortOrder?: number
+}
 
 export type UpdateProjectInput = Pick<Project, 'id'> &
   Partial<Omit<Project, 'id' | 'createdAt'>>
+
+// ── 工具函数 ───────────────────────────────────────────
+
+/** 按 sortOrder 排序 */
+export function sortProjects(projects: Project[]): Project[] {
+  return [...projects].sort((a, b) => a.sortOrder - b.sortOrder)
+}
+
+/** 获取下一个可用的 sortOrder */
+export function nextProjectSortOrder(projects: Project[]): number {
+  if (projects.length === 0) return 0
+  return Math.max(...projects.map((p) => p.sortOrder)) + 1
+}

@@ -8,14 +8,12 @@ import { SettingsAppearance } from './SettingsAppearance'
 import { SettingsData } from './SettingsData'
 import { SettingsStorage } from './SettingsStorage'
 import { SettingsAbout } from './SettingsAbout'
-import { SettingsAI } from './SettingsAI'
 
 const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
   { key: 'categories', label: 'Categories', labelZh: '分类' },
   { key: 'appearance', label: 'Appearance', labelZh: '外观' },
   { key: 'data',       label: 'Data',       labelZh: '数据' },
   { key: 'storage',    label: 'Storage',    labelZh: '存储' },
-  { key: 'ai',         label: 'AI',         labelZh: 'AI' },
   { key: 'about',      label: 'About',      labelZh: '关于' },
 ]
 
@@ -24,7 +22,6 @@ const MOBILE_TAB_CONTENT: Record<string, React.FC> = {
   appearance: SettingsAppearance,
   data:       SettingsData,
   storage:    SettingsStorage,
-  ai:         SettingsAI,
   about:      SettingsAbout,
 }
 

@@ -3,6 +3,7 @@ import {
   sortTodos,
   groupTodosByDueDate,
   nextSortOrder,
+  calcProjectProgress,
   TODO_PRIORITY_ORDER,
 } from '../todo'
 import type { Todo } from '../todo'
@@ -19,6 +20,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     priority: 'medium',
     dueDate: null,
     sortOrder: 0,
+    projectId: null,
     createdAt: now,
     updatedAt: now,
     completedAt: null,
@@ -138,6 +140,41 @@ describe('nextSortOrder', () => {
 
   it('returns 0 for empty array', () => {
     expect(nextSortOrder([])).toBe(0)
+  })
+})
+
+describe('calcProjectProgress', () => {
+  it('returns 0/0/0 for empty array', () => {
+    const result = calcProjectProgress([])
+    expect(result).toEqual({ done: 0, total: 0, percent: 0 })
+  })
+
+  it('counts done items correctly', () => {
+    const todos = [
+      makeTodo({ id: '1', status: 'done' }),
+      makeTodo({ id: '2', status: 'todo' }),
+      makeTodo({ id: '3', status: 'done' }),
+    ]
+    const result = calcProjectProgress(todos)
+    expect(result.done).toBe(2)
+    expect(result.total).toBe(3)
+    expect(result.percent).toBe(67) // 2/3 rounded
+  })
+
+  it('returns 100% when all done', () => {
+    const todos = [
+      makeTodo({ id: '1', status: 'done' }),
+      makeTodo({ id: '2', status: 'done' }),
+    ]
+    expect(calcProjectProgress(todos).percent).toBe(100)
+  })
+
+  it('returns 0% when none done', () => {
+    const todos = [
+      makeTodo({ id: '1', status: 'todo' }),
+      makeTodo({ id: '2', status: 'in_progress' }),
+    ]
+    expect(calcProjectProgress(todos).percent).toBe(0)
   })
 })
 

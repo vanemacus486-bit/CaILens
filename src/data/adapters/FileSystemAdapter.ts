@@ -4,7 +4,6 @@ import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
 import type { Profile } from '@/domain/profile'
 import type { Project } from '@/domain/project'
-import type { SOP, SOPVersion } from '@/domain/sop'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit, DailyHygiene, DailyLeisure, BodyMetricsRecord } from '@/domain/dailyContext'
 import type { Todo } from '@/domain/todo'
@@ -69,8 +68,6 @@ interface MemoryIndex {
   estimatesByWeek: Map<number, string[]>      // weekStart → estimate IDs
 
   projects: Map<string, Project>
-  sops: Map<string, SOP>
-  sopVersions: Map<string, SOPVersion>
   inspirations: Map<string, InspirationLog>
   outfitLogs: Map<string, DailyOutfit>
   hygieneLogs: Map<string, DailyHygiene>
@@ -775,8 +772,6 @@ export class FileSystemAdapter implements StorageAdapter {
   profile: StorageTable<Profile>
 
   projects: StorageTable<Project>
-  sops: StorageTable<SOP>
-  sopVersions: StorageTable<SOPVersion>
   inspirations: StorageTable<InspirationLog>
   outfitLogs: StorageTable<DailyOutfit>
   hygieneLogs: StorageTable<DailyHygiene>
@@ -795,8 +790,6 @@ export class FileSystemAdapter implements StorageAdapter {
     estimatesByWeek: new Map(),
 
     projects: new Map(),
-    sops: new Map(),
-    sopVersions: new Map(),
     inspirations: new Map(),
     outfitLogs: new Map(),
     hygieneLogs: new Map(),
@@ -817,8 +810,6 @@ export class FileSystemAdapter implements StorageAdapter {
     this.profile = new ProfileFsTable(this.index, '')
 
     this.projects = new ProjectsFsTable(this.index, '')
-    this.sops = new GenericFsTable(this.index, 'sops')
-    this.sopVersions = new GenericFsTable(this.index, 'sopVersions')
     this.inspirations = new GenericFsTable(this.index, 'inspirations')
     this.outfitLogs = new GenericFsTable(this.index, 'outfitLogs')
     this.hygieneLogs = new GenericFsTable(this.index, 'hygieneLogs')
@@ -845,8 +836,6 @@ export class FileSystemAdapter implements StorageAdapter {
     this.profile = new ProfileFsTable(this.index, this.rootPath)
 
     this.projects = new ProjectsFsTable(this.index, this.rootPath)
-    this.sops = new GenericFsTable(this.index, 'sops')
-    this.sopVersions = new GenericFsTable(this.index, 'sopVersions')
     this.inspirations = new GenericFsTable(this.index, 'inspirations')
     this.outfitLogs = new GenericFsTable(this.index, 'outfitLogs')
     this.hygieneLogs = new GenericFsTable(this.index, 'hygieneLogs')

@@ -5,12 +5,11 @@ import { DEFAULT_CATEGORIES } from '@/domain/category'
 import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
 import type { Project } from '@/domain/project'
-import type { SOP, SOPVersion } from '@/domain/sop'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { Profile } from '@/domain/profile'
 import type { Todo } from '@/domain/todo'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
-import { upgradeV3, upgradeV4, upgradeV5, upgradeV16 } from './migrations/upgrades'
+import { upgradeV3, upgradeV4, upgradeV5, upgradeV16, upgradeV21 } from './migrations/upgrades'
 
 // ── Database ──────────────────────────────────────────────
 
@@ -20,8 +19,6 @@ export class CailensDB extends Dexie {
   settings!:        Table<AppSettings, string>
   weeklyEstimates!: Table<WeeklyEstimate, string>
   projects!:        Table<Project, string>
-  sops!:            Table<SOP, string>
-  sopVersions!:     Table<SOPVersion, string>
   inspirations!:    Table<InspirationLog, string>
   profiles!:        Table<Profile, 'default'>
   mealRecords!:     Table<import('@/domain/event').MealRecord, string>
@@ -73,13 +70,12 @@ export class CailensDB extends Dexie {
       projects: 'id, categoryId, name, status',
     })
 
-    // v14：新增 sops / sopVersions / inspirations
+    // v14：新增 inspirations
     this.version(14).stores({
       events: 'id, startTime, endTime, projectId',
       categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
       projects: 'id, categoryId, name, status',
-      sops: 'id, projectId', sopVersions: 'id, sopId, version',
       inspirations: 'id, projectId, eventId',
     })
 
@@ -89,7 +85,6 @@ export class CailensDB extends Dexie {
       categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
       projects: 'id, categoryId, name, status, useCount, lastUsedAt',
-      sops: 'id, projectId', sopVersions: 'id, sopId, version',
       inspirations: 'id, projectId, eventId',
       mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
     }).upgrade(upgradeV16)
@@ -100,7 +95,6 @@ export class CailensDB extends Dexie {
       categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
       projects: 'id, categoryId, name, status, useCount, lastUsedAt',
-      sops: 'id, projectId', sopVersions: 'id, sopId, version',
       inspirations: 'id, projectId, eventId',
       mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
       profiles: 'id',
@@ -112,7 +106,6 @@ export class CailensDB extends Dexie {
       categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
       projects: 'id, categoryId, name, status, useCount, lastUsedAt',
-      sops: 'id, projectId', sopVersions: 'id, sopId, version',
       inspirations: 'id, projectId, eventId',
       mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
       profiles: 'id',
@@ -128,7 +121,6 @@ export class CailensDB extends Dexie {
       categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
       projects: 'id, categoryId, name, status, useCount, lastUsedAt',
-      sops: 'id, projectId', sopVersions: 'id, sopId, version',
       inspirations: 'id, projectId, eventId',
       mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
       profiles: 'id',
@@ -138,6 +130,22 @@ export class CailensDB extends Dexie {
       bodyMetricsRecords: 'id, date',
       todos: 'id, status, dueDate, sortOrder',
     })
+
+    // v21：合并项目概念 — taskGroups/taskGroupItems → projects/todos
+    this.version(21).stores({
+      events: 'id, startTime, endTime, projectId',
+      categories: 'id', settings: 'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+      projects: 'id, categoryId, name, status, sortOrder, useCount, lastUsedAt',
+      inspirations: 'id, projectId, eventId',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+      profiles: 'id',
+      outfitLogs: 'id, date',
+      hygieneLogs: 'id, date',
+      leisureLogs: 'id, date',
+      bodyMetricsRecords: 'id, date',
+      todos: 'id, status, dueDate, sortOrder, projectId',
+    }).upgrade(upgradeV21)
 
     // 全新 DB 首次创建时触发（version 0 → any）
     this.on('populate', () =>

@@ -50,15 +50,19 @@ export class ProjectRepository {
 
   async create(input: CreateProjectInput): Promise<Project> {
     const now = this.clock.now()
+    const all = await this.getAll()
+    const maxOrder = all.length > 0 ? Math.max(...all.map((p) => p.sortOrder)) : -1
     const project: Project = {
       id: this.idGen.generate(),
       name: input.name,
       categoryId: input.categoryId,
       status: 'active',
+      description: input.description ?? '',
       totalMinutes: 0,
       eventCount: 0,
       useCount: 0,
       lastUsedAt: now,
+      sortOrder: input.sortOrder ?? maxOrder + 1,
       createdAt: now,
       updatedAt: now,
     }
@@ -105,6 +109,29 @@ export class ProjectRepository {
       lastUsedAt: this.clock.now(),
       updatedAt: this.clock.now(),
     })
+  }
+
+  /** 按 sortOrder 排序获取所有项目 */
+  async getAllSorted(): Promise<Project[]> {
+    const all = await this.getAll()
+    return all.sort((a, b) => a.sortOrder - b.sortOrder)
+  }
+
+  /** 交换相邻项目的 sortOrder */
+  async reorderProject(id: string, direction: 'up' | 'down'): Promise<void> {
+    const all = await this.getAllSorted()
+    const idx = all.findIndex((p) => p.id === id)
+    if (idx === -1) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= all.length) return
+    const now = this.clock.now()
+    const tmp = all[idx].sortOrder
+    await this.adapter.projects.put({ ...all[idx], sortOrder: all[swapIdx].sortOrder, updatedAt: now })
+    await this.adapter.projects.put({ ...all[swapIdx], sortOrder: tmp, updatedAt: now })
+  }
+
+  async bulkPut(projects: Project[]): Promise<void> {
+    await this.adapter.projects.bulkPut(projects)
   }
 
   /** 更新项目的缓存统计（事件创建/修改时调用） */

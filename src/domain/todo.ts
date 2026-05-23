@@ -60,6 +60,8 @@ export interface Todo {
   dueDate: number | null
   /** 排序序号，越小越靠前 */
   sortOrder: number
+  /** 归属项目 ID，null 表示独立待办 */
+  projectId: string | null
   createdAt: number
   updatedAt: number
   /** 完成时间戳，仅 status === 'done' 时有值 */
@@ -73,6 +75,7 @@ export interface CreateTodoInput {
   description?: string
   priority?: TodoPriority
   dueDate?: number | null
+  projectId?: string | null
 }
 
 export interface UpdateTodoInput {
@@ -83,6 +86,7 @@ export interface UpdateTodoInput {
   priority?: TodoPriority
   dueDate?: number | null
   sortOrder?: number
+  projectId?: string | null
 }
 
 // ── 纯函数工具 ──────────────────────────────────────────────
@@ -135,6 +139,21 @@ export function groupTodosByDueDate(todos: Todo[], now: number): {
   }
 
   return { overdue, today, future, noDate }
+}
+
+/** 计算项目完成进度（基于 status === 'done' 的待办比例） */
+export function calcProjectProgress(todos: Todo[]): {
+  done: number
+  total: number
+  percent: number
+} {
+  const total = todos.length
+  const done = todos.filter((t) => t.status === 'done').length
+  return {
+    done,
+    total,
+    percent: total === 0 ? 0 : Math.round((done / total) * 100),
+  }
 }
 
 /** 获取下一个可用的 sortOrder（当前最大 + 1） */

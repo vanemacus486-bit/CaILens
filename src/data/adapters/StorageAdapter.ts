@@ -3,7 +3,6 @@ import type { Category } from '@/domain/category'
 import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
 import type { Project } from '@/domain/project'
-import type { SOP, SOPVersion } from '@/domain/sop'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { Profile } from '@/domain/profile'
 import type { DailyOutfit, DailyHygiene, DailyLeisure, BodyMetricsRecord } from '@/domain/dailyContext'
@@ -41,8 +40,6 @@ export interface StorageAdapter {
   settings: StorageTable<AppSettings>
   weeklyEstimates: StorageTable<WeeklyEstimate>
   projects: StorageTable<Project>
-  sops: StorageTable<SOP>
-  sopVersions: StorageTable<SOPVersion>
   inspirations: StorageTable<InspirationLog>
   profile: StorageTable<Profile>
   outfitLogs: StorageTable<DailyOutfit>
