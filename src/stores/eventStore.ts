@@ -119,7 +119,10 @@ export const useEventStore = create<EventState>()((set, get) => ({
       const catState = useCategoryStore.getState()
       await tryLearnAndReclassify(event.title, event.categoryId, {
         getCategories: () => catState.categories,
-        updateCategoryFolders: (id, folders) => catState.updateCategoryFolders(id, folders),
+        updateCategoryFolders: async (id, folders) => {
+          const cat = catState.categories.find(c => c.id === id)
+          if (cat) await catState.updateCategory(id, { name: cat.name, folders, weeklyBudget: cat.weeklyBudget })
+        },
         reclassifyAllEvents: () => get().reclassifyAllEvents(),
       })
     }
@@ -141,7 +144,10 @@ export const useEventStore = create<EventState>()((set, get) => ({
       const catState = useCategoryStore.getState()
       await tryLearnAndReclassify(event.title, targetId, {
         getCategories: () => catState.categories,
-        updateCategoryFolders: (id, folders) => catState.updateCategoryFolders(id, folders),
+        updateCategoryFolders: async (id, folders) => {
+          const cat = catState.categories.find(c => c.id === id)
+          if (cat) await catState.updateCategory(id, { name: cat.name, folders, weeklyBudget: cat.weeklyBudget })
+        },
         reclassifyAllEvents: () => get().reclassifyAllEvents(),
       })
     }

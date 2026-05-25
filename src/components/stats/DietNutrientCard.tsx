@@ -126,7 +126,7 @@ export function DietNutrientCard({ rangeEvents, language }: Props) {
                   <div key={meal.id} className="diet-meal-row">
                     <span className="diet-meal-icon">{MEAL_ICONS[meal.mealOrder]}</span>
                     <span className="diet-meal-order">
-                      {t(MEAL_ORDER_LABELS[meal.mealOrder], MEAL_ORDER_LABELS_EN[meal.mealOrder])}
+                      {MEAL_ORDER_LABELS[meal.mealOrder]}
                     </span>
                     <span className="diet-meal-time">{meal.time}</span>
                     <span className="diet-meal-title">{meal.title}</span>

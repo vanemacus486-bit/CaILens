@@ -19,7 +19,6 @@ import {
   Trash2,
   Clock,
 } from 'lucide-react'
-import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useCategoryColors } from '@/constants/categoryColors'
 import { DEFAULT_CATEGORIES } from '@/domain/category'
@@ -29,9 +28,6 @@ import type { Todo } from '@/domain/todo'
 // ── 主组件 ─────────────────────────────────────────────
 
 export function ProjectsView() {
-  const language = useAppSettingsStore((s) => s.settings.language)
-    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
-
   const {
     projects,
     isLoading,
@@ -109,9 +105,7 @@ export function ProjectsView() {
             {activeProjects.map((p) => {
               const cat = DEFAULT_CATEGORIES.find((c) => c.id === p.categoryId)
               const catName = cat
-                ? language === 'zh'
-                  ? cat.name.zh
-                  : cat.name.en
+                ? cat.name
                 : ''
               const fill = colorMap[p.categoryId]?.fill ?? '#888'
               return (
@@ -250,7 +244,6 @@ function ProjectCard({
   onDeleteItem,
   onReorderItem,
 }: ProjectCardProps) {
-    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const total = todos.length
   const done = todos.filter((t) => t.status === 'done').length

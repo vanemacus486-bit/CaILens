@@ -224,7 +224,7 @@ export function HygieneCard({ records }: Props) {
       {isRecording && (
         <div className="hygiene-recording">
           <div className="hygiene-recording-title">
-            {t('记录今日卫生', "Today's Hygiene")}
+            {'记录今日卫生'}
           </div>
           <div className="hygiene-checkbox-grid">
             {HYGIENE_ACTIVITIES.map((activity) => {

@@ -43,7 +43,6 @@ const PRIORITY_LABELS_EN: Record<TodoPriority, string> = {
 
 export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) {
   const language = useAppSettingsStore((s) => s.settings.language)
-    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(todo.title)
   const [editDesc, setEditDesc] = useState(todo.description)

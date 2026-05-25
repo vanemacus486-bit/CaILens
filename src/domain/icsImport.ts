@@ -118,7 +118,7 @@ export function parseIcs(icsText: string): ImportResult {
  */
 export function classifyEvent(
   title: string,
-  categories: ReadonlyArray<{ id: CategoryId; folders: readonly { keywords: string[] }[] }>,
+  categories: ReadonlyArray<{ id: CategoryId; folders: readonly { keywords: readonly string[] }[] }>,
 ): CategoryId | null {
   if (!title) return null
   const lower = title.toLowerCase()
@@ -138,7 +138,7 @@ export function classifyEvent(
  */
 export function aggregateByName(
   events: readonly ImportedEvent[],
-  categories: ReadonlyArray<{ id: CategoryId; folders: readonly { keywords: string[] }[] }>,
+  categories: ReadonlyArray<{ id: CategoryId; folders: readonly { keywords: readonly string[] }[] }>,
 ): EventNameGroup[] {
   const map = new Map<string, ImportedEvent[]>()
   for (const e of events) {

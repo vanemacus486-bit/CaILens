@@ -37,7 +37,7 @@ function formatBucketLabel(bucket: Bucket, periodType: Granularity): string {
   return format(d, 'yyyy-MM')
 }
 
-function periodLabel(periodType: Granularity, _t: (zh: string, en: string) => string): string {
+function periodLabel(periodType: Granularity): string {
   switch (periodType) {
     case 'day':     return '日趋势'
     case 'week':    return '周趋势'
@@ -45,7 +45,7 @@ function periodLabel(periodType: Granularity, _t: (zh: string, en: string) => st
   }
 }
 
-function periodDesc(periodType: Granularity, t: (zh: string, en: string) => string): string {
+function periodDesc(periodType: Granularity): string {
   switch (periodType) {
     case 'day':     return '过去 14 天的每日投入变化'
     case 'week':    return '过去 8 周的逐周投入变化'
@@ -264,10 +264,7 @@ export function CategoryTrendChart({
 
     if (parts.length === 0) return null
 
-    return t(
-      `较上期变化：${parts.join('；')}`,
-      `Changes vs previous period: ${parts.join('; ')}`,
-    )
+    return `较上期变化：${parts.join('；')}`
   }, [history, selected, catMap])
 
   /* ── Maturity gate ───────────────────────── */
@@ -301,7 +298,7 @@ export function CategoryTrendChart({
               >‹</button>
             )}
             <span className="trend-title-main">
-              {periodLabel(periodType, t)}
+              {periodLabel(periodType)}
             </span>
             {onNavigate && (
               <button
@@ -325,7 +322,7 @@ export function CategoryTrendChart({
               </div>
             )}
           </div>
-          <p className="trend-title-desc">{periodDesc(periodType, t)}</p>
+          <p className="trend-title-desc">{periodDesc(periodType)}</p>
         </div>
 
         {/* Category pills */}
@@ -363,7 +360,7 @@ export function CategoryTrendChart({
               className="trend-pill-dot"
               style={{ backgroundColor: 'var(--accent)' }}
             />
-            {CORE_GROUP.name}
+            {CORE_GROUP.nameZh}
           </button>
         </div>
       </div>
@@ -414,7 +411,7 @@ export function CategoryTrendChart({
                 ))}
                 <Line
                   dataKey={groupDataKey}
-                  name={CORE_GROUP.name}
+                  name={CORE_GROUP.nameZh}
                   stroke="var(--accent)"
                   strokeWidth={2.5}
                   dot={false}
@@ -478,7 +475,7 @@ export function CategoryTrendChart({
         {groupEnabled && coreGroupCategories.length > 0 && (
           <span className="trend-legend-item">
             <span className="trend-legend-line" style={{ borderColor: 'var(--accent)', borderTopWidth: 2.5 }} />
-            {CORE_GROUP.name}
+            {CORE_GROUP.nameZh}
           </span>
         )}
         {budgetLine > 0 && (
