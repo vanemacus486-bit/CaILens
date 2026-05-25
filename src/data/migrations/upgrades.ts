@@ -10,18 +10,18 @@ import { migrateEventV1ToV2 } from '@/domain/migration'
 
 // ── v3: 新增 categories + settings 表；迁移 v1 events ──────
 
-const V3_NAME_MAP: Record<string, { zh: string; en: string }> = {
-  '核心工作': { zh: '核心工作', en: 'Core Work'       },
-  '辅助工作': { zh: '辅助工作', en: 'Support Work'    },
-  '必要事务': { zh: '必要事务', en: 'Essentials'      },
-  '阅读学习': { zh: '阅读学习', en: 'Reading & Study' },
-  '休息':     { zh: '休息',     en: 'Rest'            },
-  '其他':     { zh: '其他',     en: 'Other'           },
-  '深度工作': { zh: '深度工作', en: 'Core Work'       },
-  '会议沟通': { zh: '会议沟通', en: 'Support Work'    },
-  '学习阅读': { zh: '学习阅读', en: 'Essentials'      },
-  '日常事务': { zh: '日常事务', en: 'Reading & Study' },
-  '休息放松': { zh: '休息放松', en: 'Rest'            },
+const V3_NAME_MAP: Record<string, string> = {
+  '核心工作': '核心工作',
+  '辅助工作': '辅助工作',
+  '必要事务': '必要事务',
+  '阅读学习': '阅读学习',
+  '休息':     '休息',
+  '其他':     '其他',
+  '深度工作': '深度工作',
+  '会议沟通': '会议沟通',
+  '学习阅读': '学习阅读',
+  '日常事务': '日常事务',
+  '休息放松': '休息放松',
 }
 
 import { DEFAULT_SETTINGS } from '@/domain/settings'
@@ -41,7 +41,7 @@ export async function upgradeV3(tx: Transaction): Promise<void> {
   if (existing.length > 0) {
     await tx.table('categories').toCollection().modify((cat: any) => {
       if (typeof cat.name === 'string') {
-        cat.name = V3_NAME_MAP[cat.name] ?? { zh: cat.name, en: cat.name }
+        cat.name = V3_NAME_MAP[cat.name] ?? cat.name
       }
     })
   }

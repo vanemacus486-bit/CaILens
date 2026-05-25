@@ -29,8 +29,7 @@ export function MobileSettingsPage() {
   const navigate = useNavigate()
   const activeSettingsTab = useUIStore((s) => s.activeSettingsTab)
   const setActiveSettingsTab = useUIStore((s) => s.setActiveSettingsTab)
-  const language = useAppSettingsStore((s) => s.settings.language)
-
+    const language = useAppSettingsStore((s) => s.settings.language)
   const ActiveTab = MOBILE_TAB_CONTENT[activeSettingsTab] ?? SettingsCategories
 
   return (

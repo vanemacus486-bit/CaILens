@@ -3,8 +3,7 @@ import { useAppSettingsStore } from '@/stores/settingsStore'
 
 export function WeekEmptyState() {
   const language = useAppSettingsStore((s) => s.settings.language)
-
-  const dateWatermark = useMemo(() => {
+    const dateWatermark = useMemo(() => {
     const now = new Date()
     return language === 'zh'
       ? `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`

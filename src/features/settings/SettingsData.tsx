@@ -15,7 +15,7 @@ export function SettingsData() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-serif text-[22px] font-medium text-text-primary">
-        {t('数据', 'Data')}
+        {'数据'}
       </h1>
 
       <div className="flex flex-col gap-4">
@@ -24,7 +24,7 @@ export function SettingsData() {
           className="inline-flex items-center gap-2 self-start px-4 py-2 rounded-lg text-sm font-sans font-medium text-text-secondary bg-surface-sunken border border-border-subtle hover:text-text-primary hover:bg-surface-raised transition-colors duration-200 cursor-pointer"
         >
           <Upload size={16} strokeWidth={1.75} />
-          {t('导入 .ics', 'Import .ics')}
+          {'导入 .ics'}
         </button>
 
         <ImportIcsDialog open={importOpen} onOpenChange={setImportOpen} />

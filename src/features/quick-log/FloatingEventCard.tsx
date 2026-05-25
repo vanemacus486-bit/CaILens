@@ -131,9 +131,7 @@ export function FloatingEventCard({
   const categories   = useCategoryStore((s) => s.categories)
   const allEvents    = useEventStore((s) => s.allEvents)
   const language     = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-  const isEditing = !!editingEvent
+      const isEditing = !!editingEvent
   const localDate = new Date(defaultTimes.start)
 
   // ── Core state ──────────────────────────────────────
@@ -342,13 +340,13 @@ export function FloatingEventCard({
   // ── Save logic ──────────────────────────────────────
 
   function getTimeError(): string | null {
-    if (!startStr) return t('请设置开始时间', 'Set start time')
-    if (!endStr) return t('请设置结束时间', 'Set end time')
+    if (!startStr) return '请设置开始时间'
+    if (!endStr) return '请设置结束时间'
     const s = strToTs(localDate, startStr)
     const endDate = isNextDayEnd(startStr, endStr) ? addDays(localDate, 1) : localDate
     const e = strToTs(endDate, endStr)
-    if (isNaN(s) || isNaN(e)) return t('无效时间', 'Invalid time')
-    if (e <= s) return t('结束时间必须在开始时间之后', 'End must be after start')
+    if (isNaN(s) || isNaN(e)) return '无效时间'
+    if (e <= s) return '结束时间必须在开始时间之后'
     return null
   }
 
@@ -384,7 +382,7 @@ export function FloatingEventCard({
         foodTags: [],
         source: 'home',
       } as TypedEventData
-      eventTitle = foodName || t('吃饭', 'Meal')
+      eventTitle = foodName || '吃饭'
     }
 
     // Also set typedKey
@@ -408,7 +406,7 @@ export function FloatingEventCard({
       }
       onClose()
     } catch {
-      setError(t('保存失败', 'Save failed'))
+      setError('保存失败')
     }
   }
 
@@ -420,7 +418,7 @@ export function FloatingEventCard({
       await onDelete(editingEvent.id)
       onClose()
     } catch {
-      setError(t('删除失败', 'Delete failed'))
+      setError('删除失败')
     }
   }
 
@@ -456,7 +454,7 @@ export function FloatingEventCard({
         {currentCategoryName[language === 'zh' ? 0 : 1]}
       </span>
       <span className="text-[10px] text-text-quaternary font-sans ml-auto">
-        {t('Alt+1~6 切换', 'Alt+1~6 switch')}
+        {'Alt+1~6 切换'}
       </span>
     </div>
   )
@@ -492,14 +490,14 @@ export function FloatingEventCard({
         <div className="flex justify-end gap-2 mt-4">
           {isEditing && (
             <button onClick={handleDelete} className="font-sans text-xs text-color-text-danger bg-transparent border border-color-text-danger/30 rounded-md px-3 py-1.5 cursor-pointer hover:bg-color-text-danger/10 transition-colors">
-              {t('删除', 'Delete')}
+              {'删除'}
             </button>
           )}
           <button
             onClick={() => handleSave()}
             className="font-sans text-xs font-medium text-white bg-accent border-none rounded-md px-4 py-1.5 cursor-pointer hover:bg-accent-hover transition-colors"
           >
-            {isEditing ? t('保存', 'Save') : t('记录', 'Log')}
+            {isEditing ? '保存' : '记录'}
           </button>
         </div>
       </>
@@ -516,7 +514,7 @@ export function FloatingEventCard({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: catColor }} />
             <span className="font-mono text-xs text-text-secondary">{startStr} – {endStr}</span>
-            <span className="text-xs text-text-tertiary font-sans">🍚 {t('吃饭', 'Meal')}</span>
+            <span className="text-xs text-text-tertiary font-sans">🍚 {'吃饭'}</span>
           </div>
           <button onClick={onClose} className="text-text-tertiary hover:text-text-primary cursor-pointer p-1">
             <X size={16} />
@@ -538,14 +536,14 @@ export function FloatingEventCard({
         <div className="flex justify-end gap-2 mt-4">
           {isEditing && (
             <button onClick={handleDelete} className="font-sans text-xs text-color-text-danger bg-transparent border border-color-text-danger/30 rounded-md px-3 py-1.5 cursor-pointer hover:bg-color-text-danger/10 transition-colors">
-              {t('删除', 'Delete')}
+              {'删除'}
             </button>
           )}
           <button
             onClick={() => handleSave()}
             className="font-sans text-xs font-medium text-white bg-accent border-none rounded-md px-4 py-1.5 cursor-pointer hover:bg-accent-hover transition-colors"
           >
-            {t('记录', 'Log')}
+            {'记录'}
           </button>
         </div>
       </>
@@ -557,10 +555,10 @@ export function FloatingEventCard({
   function renderDefaultMode() {
     const placeholderText = (() => {
       switch (mode) {
-        case 'chores': return t('做了哪些杂务？', 'What chores?')
-        case 'growth': return t('学了/练了什么？', 'What did you learn/exercise?')
-        case 'leisure': return t('怎么放松的？', 'How did you relax?')
-        default: return t('这段时间在做什么？', 'What were you doing?')
+        case 'chores': return '做了哪些杂务？'
+        case 'growth': return '学了/练了什么？'
+        case 'leisure': return '怎么放松的？'
+        default: return '这段时间在做什么？'
       }
     })()
 
@@ -628,10 +626,10 @@ export function FloatingEventCard({
         {/* Sub-panels */}
         {mode === 'chores' && (
           <ChoresPanel
-            onSelectMeal={() => { setMode('meal-food'); setMealFood(''); setTitle(t('吃饭', 'Meal')) }}
-            onSelectWash={() => selectChore(t('洗漱', 'Wash up'))}
-            onSelectShower={() => selectChore(t('洗澡', 'Shower'))}
-            onSelectClean={() => selectChore(t('打扫卫生', 'Clean'))}
+            onSelectMeal={() => { setMode('meal-food'); setMealFood(''); setTitle('吃饭') }}
+            onSelectWash={() => selectChore('洗漱')}
+            onSelectShower={() => selectChore('洗澡')}
+            onSelectClean={() => selectChore('打扫卫生')}
             language={language}
           />
         )}
@@ -692,14 +690,14 @@ export function FloatingEventCard({
         <div className="flex justify-end gap-2 mt-3">
           {isEditing && (
             <button onClick={handleDelete} className="font-sans text-xs text-color-text-danger bg-transparent border border-color-text-danger/30 rounded-md px-3 py-1.5 cursor-pointer hover:bg-color-text-danger/10 transition-colors">
-              {t('删除', 'Delete')}
+              {'删除'}
             </button>
           )}
           <button
             onClick={() => handleSave()}
             className="font-sans text-xs font-medium text-white bg-accent border-none rounded-md px-4 py-1.5 cursor-pointer hover:bg-accent-hover transition-colors"
           >
-            {isEditing ? t('保存', 'Save') : t('记录', 'Log')}
+            {isEditing ? '保存' : '记录'}
           </button>
         </div>
       </>

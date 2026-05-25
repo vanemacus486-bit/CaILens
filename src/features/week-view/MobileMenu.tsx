@@ -14,11 +14,8 @@ interface MobileMenuProps {
 
 export function MobileMenu({ open, onClose, mobileViewMode, onMobileViewModeChange }: MobileMenuProps) {
   const navigate = useNavigate()
-  const language = useAppSettingsStore((s) => s.settings.language)
-  const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-  return (
+    const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
+    return (
     <>
       {/* Overlay */}
       {open && (
@@ -51,16 +48,16 @@ export function MobileMenu({ open, onClose, mobileViewMode, onMobileViewModeChan
 
         {/* Menu items */}
         <div className="flex-1 overflow-y-auto py-2">
-          <MenuItem icon={Search} label={t('搜索事件', 'Search events')} onClick={() => { useUIStore.getState().setCommandPaletteOpen(true); onClose() }} />
-          <MenuItem icon={Calendar} label={t('日视图', 'Day View')} onClick={() => { navigate(`/day?date=${formatISODate(new Date())}`); onClose() }} />
-          <MenuItem icon={Settings} label={t('设置', 'Settings')} onClick={() => { setSettingsDrawerOpen(true); onClose() }} />
+          <MenuItem icon={Search} label={'搜索事件'} onClick={() => { useUIStore.getState().setCommandPaletteOpen(true); onClose() }} />
+          <MenuItem icon={Calendar} label={'日视图'} onClick={() => { navigate(`/day?date=${formatISODate(new Date())}`); onClose() }} />
+          <MenuItem icon={Settings} label={'设置'} onClick={() => { setSettingsDrawerOpen(true); onClose() }} />
 
           <div className="h-px bg-border-subtle my-2 mx-4" />
 
           {/* View mode toggle */}
           {mobileViewMode && onMobileViewModeChange && (
             <div className="px-4 py-1">
-              <p className="font-sans text-xs text-text-tertiary mb-2">{t('视图模式', 'View Mode')}</p>
+              <p className="font-sans text-xs text-text-tertiary mb-2">{'视图模式'}</p>
               <div className="flex gap-1 bg-surface-sunken rounded-md p-0.5">
                 <button
                   onClick={() => onMobileViewModeChange('day')}
@@ -69,7 +66,7 @@ export function MobileMenu({ open, onClose, mobileViewMode, onMobileViewModeChan
                     mobileViewMode === 'day' ? 'bg-surface-base text-text-primary shadow-sm' : 'text-text-secondary',
                   )}
                 >
-                  {t('日', 'Day')}
+                  {'日'}
                 </button>
                 <button
                   onClick={() => onMobileViewModeChange('week')}
@@ -78,7 +75,7 @@ export function MobileMenu({ open, onClose, mobileViewMode, onMobileViewModeChan
                     mobileViewMode === 'week' ? 'bg-surface-base text-text-primary shadow-sm' : 'text-text-secondary',
                   )}
                 >
-                  {t('周', 'Week')}
+                  {'周'}
                 </button>
               </div>
             </div>

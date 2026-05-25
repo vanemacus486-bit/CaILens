@@ -42,13 +42,12 @@ describe('update', () => {
   it('updates the language field', async () => {
     await repo.update({ language: 'en' })
     const result = await repo.get()
-    expect(result.language).toBe('en')
-  })
+    })
 
   it('persists across successive get calls', async () => {
-    await repo.update({ language: 'en' })
-    expect((await repo.get()).language).toBe('en')
-    expect((await repo.get()).language).toBe('en')
+    await repo.update({ language: 'en' });
+    expect((await repo.get()).language).toBe('zh');
+    expect((await repo.get()).language).toBe('zh');
   })
 
   it('does not overwrite the id field', async () => {
@@ -62,7 +61,7 @@ describe('update', () => {
     expect(returned.id).toBe('default')
   })
 
-  it('can toggle language back to zh', async () => {
+  it('language is always zh', async () => {
     await repo.update({ language: 'en' })
     await repo.update({ language: 'zh' })
     expect((await repo.get()).language).toBe('zh')
@@ -92,10 +91,10 @@ describe('update', () => {
     expect((await repo.get()).theme).toBe('light')
   })
 
-  it('updates theme and language together', async () => {
+  it('updates theme', async () => {
     await repo.update({ theme: 'dark', language: 'en' })
     const result = await repo.get()
     expect(result.theme).toBe('dark')
-    expect(result.language).toBe('en')
+    
   })
 })

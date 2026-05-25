@@ -43,7 +43,7 @@ const PRIORITY_LABELS_EN: Record<TodoPriority, string> = {
 
 export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) {
   const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(todo.title)
   const [editDesc, setEditDesc] = useState(todo.description)
@@ -99,19 +99,19 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
           onKeyDown={handleKeyDown}
           autoFocus
           className="w-full bg-transparent border-none outline-none font-serif text-sm font-medium text-text-primary placeholder:text-text-quaternary"
-          placeholder={t('待办标题', 'Todo title')}
+          placeholder={'待办标题'}
         />
         <textarea
           value={editDesc}
           onChange={(e) => setEditDesc(e.target.value)}
           rows={2}
           className="w-full bg-surface-sunken rounded-md border border-border-subtle px-2.5 py-1.5 text-xs font-sans text-text-secondary placeholder:text-text-quaternary outline-none resize-none focus:border-accent"
-          placeholder={t('描述（可选）', 'Description (optional)')}
+          placeholder={'描述（可选）'}
         />
         <div className="flex items-center gap-3 flex-wrap">
           {/* 优先级 */}
           <div className="flex items-center gap-1.5">
-            <span className="font-sans text-[10px] text-text-tertiary">{t('优先级:', 'Priority:')}</span>
+            <span className="font-sans text-[10px] text-text-tertiary">{'优先级:'}</span>
             {(['high', 'medium', 'low'] as const).map((p) => (
               <button
                 key={p}
@@ -132,7 +132,7 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
           </div>
           {/* 截止日期 */}
           <div className="flex items-center gap-1.5">
-            <span className="font-sans text-[10px] text-text-tertiary">{t('截止:', 'Due:')}</span>
+            <span className="font-sans text-[10px] text-text-tertiary">{'截止:'}</span>
             <input
               type="date"
               value={editDueDate}
@@ -146,13 +146,13 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
             onClick={() => setEditing(false)}
             className="h-7 px-3 rounded-md text-xs font-sans text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors cursor-pointer border-none bg-transparent"
           >
-            {t('取消', 'Cancel')}
+            {'取消'}
           </button>
           <button
             onClick={handleSave}
             className="h-7 px-3 rounded-md text-xs font-sans font-medium bg-accent text-white hover:opacity-90 transition-opacity cursor-pointer border-none"
           >
-            {t('保存', 'Save')}
+            {'保存'}
           </button>
         </div>
       </div>
@@ -170,7 +170,7 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
       <button
         onClick={() => onToggle(todo.id)}
         className="mt-0.5 flex-shrink-0 cursor-pointer bg-transparent border-none transition-colors duration-200"
-        aria-label={isDone ? t('标记未完成', 'Mark incomplete') : t('标记完成', 'Mark done')}
+        aria-label={isDone ? '标记未完成' : '标记完成'}
       >
         {isDone ? (
           <CheckCircle2 size={18} strokeWidth={1.75} className="text-accent" />
@@ -216,7 +216,7 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
           {/* 进行中标识 */}
           {todo.status === 'in_progress' && (
             <span className="font-sans text-[10px] text-accent bg-accent-light px-1.5 py-0.5 rounded">
-              {t('进行中', 'In Progress')}
+              {'进行中'}
             </span>
           )}
         </div>
@@ -239,14 +239,14 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
             setEditDueDate(todo.dueDate ? new Date(todo.dueDate).toISOString().slice(0, 10) : '')
           }}
           className="w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-raised transition-colors cursor-pointer border-none bg-transparent"
-          aria-label={t('编辑', 'Edit')}
+          aria-label={'编辑'}
         >
           <Pencil size={13} strokeWidth={1.75} />
         </button>
         <button
           onClick={() => onDelete(todo.id)}
           className="w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-[#B53535] hover:bg-surface-raised transition-colors cursor-pointer border-none bg-transparent"
-          aria-label={t('删除', 'Delete')}
+          aria-label={'删除'}
         >
           <Trash2 size={13} strokeWidth={1.75} />
         </button>

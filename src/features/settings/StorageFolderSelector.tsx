@@ -18,7 +18,7 @@ export function StorageFolderSelector({ language }: { language: 'zh' | 'en' }) {
       const selected = await open({
         directory: true,
         multiple: false,
-        title: t('选择数据文件夹', 'Select Data Folder'),
+        title: '选择数据文件夹',
       })
       if (selected) {
         const resolved = Array.isArray(selected) ? selected[0] : selected
@@ -60,7 +60,7 @@ export function StorageFolderSelector({ language }: { language: 'zh' | 'en' }) {
         <div className="flex items-center gap-2 min-w-0">
           <Folder size={14} className="text-text-tertiary flex-shrink-0" strokeWidth={1.75} />
           <span className="text-xs text-text-tertiary truncate">
-            {path ?? t('未设置存储文件夹', 'No storage folder set')}
+            {path ?? '未设置存储文件夹'}
           </span>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -71,7 +71,7 @@ export function StorageFolderSelector({ language }: { language: 'zh' | 'en' }) {
               className="inline-flex items-center gap-1 px-2.5 py-1 text-body-xs text-text-secondary hover:text-text-primary bg-surface-base hover:bg-surface-sunken rounded-lg transition-colors duration-150 cursor-pointer disabled:opacity-50"
             >
               <RefreshCw size={12} strokeWidth={1.75} className={scanning ? 'animate-spin' : ''} />
-              {t('重新扫描', 'Rescan')}
+              {'重新扫描'}
             </button>
           )}
           <button
@@ -79,7 +79,7 @@ export function StorageFolderSelector({ language }: { language: 'zh' | 'en' }) {
             className="inline-flex items-center gap-1 px-2.5 py-1 text-body-xs text-text-secondary hover:text-text-primary bg-surface-base hover:bg-surface-sunken rounded-lg transition-colors duration-150 cursor-pointer"
           >
             <FolderOpen size={12} strokeWidth={1.75} />
-            {path ? t('更换文件夹', 'Change') : t('选择文件夹', 'Select Folder')}
+            {path ? '更换文件夹' : '选择文件夹'}
           </button>
         </div>
       </div>

@@ -10,9 +10,9 @@
 import { useMemo } from 'react'
 import { format, startOfWeek, addDays } from 'date-fns'
 import type { CalendarEvent, MealOrder } from '@/domain/event'
-import type { AppLanguage } from '@/domain/settings'
 import { isMealData } from '@/domain/event'
-import { MEAL_ORDER_LABELS, MEAL_ORDER_LABELS_EN } from '@/domain/event'
+import { MEAL_ORDER_LABELS } from '@/domain/event'
+import type { AppLanguage } from '@/domain/settings'
 
 interface Props {
   rangeEvents: CalendarEvent[]
@@ -77,7 +77,7 @@ export function DietNutrientCard({ rangeEvents, language }: Props) {
         id: event.id,
         time: fmtTime(event.startTime),
         mealOrder: event.typedData.mealOrder,
-        title: event.title || t('吃饭', 'Meal'),
+        title: event.title || '吃饭',
       })
     }
 
@@ -112,13 +112,13 @@ export function DietNutrientCard({ rangeEvents, language }: Props) {
           >
             <div className="diet-day-header">
               <span className="diet-day-name">{day.label}</span>
-              {isToday && <span className="diet-today-badge">{t('今天', 'Today')}</span>}
+              {isToday && <span className="diet-today-badge">{'今天'}</span>}
             </div>
 
             {!hasMeals ? (
               <div className="diet-day-empty-state">
                 <span className="diet-empty-dash">—</span>
-                <span className="diet-empty-text">{t('无饮食记录', 'No meals logged')}</span>
+                <span className="diet-empty-text">{'无饮食记录'}</span>
               </div>
             ) : (
               <div className="diet-meal-list">

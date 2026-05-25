@@ -18,10 +18,7 @@ function fmtTimeHM(ts: number): string {
 
 export function MobileDayView({ weekStart, onWeekStartChange }: MobileDayViewProps) {
   const events = useEventStore((s) => s.events)
-  const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-  // Track which day of the week is selected (0=Monday...6=Sunday)
+      // Track which day of the week is selected (0=Monday...6=Sunday)
   const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
     const today = new Date()
     const days = getWeekDays(weekStart)
@@ -113,7 +110,7 @@ export function MobileDayView({ weekStart, onWeekStartChange }: MobileDayViewPro
         {dayEvents.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="font-serif text-sm text-text-tertiary italic">
-              {t('这一天没有记录', 'No events logged this day')}
+              {'这一天没有记录'}
             </p>
           </div>
         ) : (
@@ -130,9 +127,7 @@ export function MobileDayView({ weekStart, onWeekStartChange }: MobileDayViewPro
 
 function MobileEventCard({ event, language }: { event: CalendarEvent; language: 'zh' | 'en' }) {
   const { text } = EVENT_COLOR_CLASSES[event.color]
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-  return (
+    return (
     <div className="flex items-start gap-3 py-2.5 border-b border-border-subtle last:border-b-0">
       {/* Time on the left */}
       <div className="flex-shrink-0 w-14 text-right pt-0.5">
@@ -157,7 +152,7 @@ function MobileEventCard({ event, language }: { event: CalendarEvent; language: 
       {/* Event title + description */}
       <div className="flex-1 min-w-0">
         <p className={cn('font-serif text-sm text-text-primary leading-snug', text)}>
-          {event.title || <span className="opacity-50 italic">{t('无标题', 'Untitled')}</span>}
+          {event.title || <span className="opacity-50 italic">{'无标题'}</span>}
         </p>
         {event.description && (
           <p className="font-serif text-xs-alt text-text-secondary italic mt-0.5 leading-relaxed line-clamp-2">

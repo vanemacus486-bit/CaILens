@@ -93,7 +93,7 @@ export function OutfitCard({ outfits, language }: Props) {
       {/* ── 标题 ──────────────────────────────── */}
       <div className="outfit-header">
         <span className="outfit-header-icon">👔</span>
-        <span className="outfit-header-title">{t('穿搭记录', 'Outfit Log')}</span>
+        <span className="outfit-header-title">{'穿搭记录'}</span>
       </div>
 
       {/* ── 周卡片流 ──────────────────────────── */}
@@ -108,7 +108,7 @@ export function OutfitCard({ outfits, language }: Props) {
           return (
             <div key={weekId} className="outfit-week">
               <div className="outfit-week-label">
-                {t('周 ', 'Week ')}{format(weekStart, 'M/d')}
+                {'周 '}{format(weekStart, 'M/d')}
               </div>
               <div className="outfit-week-grid">
                 {Array.from({ length: 7 }).map((_, i) => {
@@ -132,7 +132,7 @@ export function OutfitCard({ outfits, language }: Props) {
                         </div>
                       ) : (
                         <span className="outfit-day-placeholder">
-                          {t('未记录', '—')}
+                          {'未记录'}
                         </span>
                       )}
                     </div>
@@ -148,21 +148,21 @@ export function OutfitCard({ outfits, language }: Props) {
       <div className="outfit-stats">
         <div className="outfit-stat">
           <span className="outfit-stat-num">{stats.uniqueOutfits}</span>
-          <span className="outfit-stat-label">{t('记录', 'Logs')}</span>
+          <span className="outfit-stat-label">{'记录'}</span>
         </div>
         <div className="outfit-stat">
           <span className="outfit-stat-num">{stats.uniqueItemsCount}</span>
-          <span className="outfit-stat-label">{t('单品', 'Items')}</span>
+          <span className="outfit-stat-label">{'单品'}</span>
         </div>
         {stats.topItem && (
           <div className="outfit-stat">
             <span className="outfit-stat-num">{stats.topItem}</span>
-            <span className="outfit-stat-label">{t('高频单品', 'Most Worn')}</span>
+            <span className="outfit-stat-label">{'高频单品'}</span>
           </div>
         )}
         <div className="outfit-stat">
           <span className="outfit-stat-num">{stats.noteCount}</span>
-          <span className="outfit-stat-label">{t('备注', 'Notes')}</span>
+          <span className="outfit-stat-label">{'备注'}</span>
         </div>
       </div>
     </div>

@@ -133,6 +133,22 @@ export class EventRepository {
     })
   }
 
+  async bulkUpdateTitles(
+    updates: { id: string; title: string }[],
+  ): Promise<void> {
+    if (updates.length === 0) return
+    const now = this.clock.now()
+    await this.adapter.events.transaction('rw', async () => {
+      const ids = updates.map((u) => u.id)
+      const existing = await this.adapter.events.bulkGet(ids)
+      const patched = existing.flatMap((e, i) => {
+        if (e === undefined) return []
+        return { ...e, title: updates[i].title, updatedAt: now }
+      })
+      await this.adapter.events.bulkPut(patched)
+    })
+  }
+
   async getLatest(): Promise<CalendarEvent | null> {
     const results = await this.adapter.events.query({
       orderBy: 'endTime',

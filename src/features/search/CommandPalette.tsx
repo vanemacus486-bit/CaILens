@@ -49,7 +49,6 @@ function descriptionSnippet(text: string, query: string, contextLen = 20): strin
 interface Command {
   id: string
   label: string
-  labelZh: string
   shortcut: string
   invoke: () => void
 }
@@ -58,11 +57,8 @@ export function CommandPalette() {
   const navigate = useNavigate()
   const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen)
   const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
-  const language = useAppSettingsStore((s) => s.settings.language)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
-  const setLanguage = useAppSettingsStore((s) => s.setLanguage)
   const settings = useAppSettingsStore((s) => s.settings)
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
 
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<CalendarEvent[]>([])
@@ -92,46 +88,32 @@ export function CommandPalette() {
   const allCommands = useMemo<Command[]>(() => [
     {
       id: 'today',
-      label: 'Go to this week',
-      labelZh: '前往本周',
+      label: '前往本周',
       shortcut: shortcutDisplay.goToThisWeek,
       invoke: () => { navigate('/'); close() },
     },
     {
       id: 'stats',
-      label: 'Go to stats',
-      labelZh: '前往统计',
+      label: '前往统计',
       shortcut: shortcutDisplay.goToStats,
       invoke: () => { navigate('/stats'); close() },
     },
     {
       id: 'settings',
-      label: 'Open settings',
-      labelZh: '打开设置',
+      label: '打开设置',
       shortcut: shortcutDisplay.openSettings,
       invoke: () => { setSettingsDrawerOpen(true); close() },
     },
     {
       id: 'theme',
-      label: settings.theme === 'dark' ? 'Switch to light' : 'Switch to dark',
-      labelZh: settings.theme === 'dark' ? '切换浅色主题' : '切换深色主题',
+      label: settings.theme === 'dark' ? '切换浅色主题' : '切换深色主题',
       shortcut: shortcutDisplay.toggleTheme,
       invoke: () => {
         fireAndForget(setTheme(settings.theme === 'dark' ? 'light' : 'dark'), 'toggle theme')
         close()
       },
     },
-    {
-      id: 'lang',
-      label: language === 'zh' ? 'Switch to English' : '切换中文',
-      labelZh: language === 'zh' ? 'Switch to English' : '切换中文',
-      shortcut: shortcutDisplay.toggleLanguage,
-      invoke: () => {
-        fireAndForget(setLanguage(language === 'zh' ? 'en' : 'zh'), 'toggle language')
-        close()
-      },
-    },
-  ], [navigate, close, setSettingsDrawerOpen, setTheme, setLanguage, language, settings.theme, shortcutDisplay])
+  ], [navigate, close, setSettingsDrawerOpen, setTheme, settings.theme, shortcutDisplay])
 
   // Filter commands based on query
   const matchedCommands = useMemo(() => {
@@ -140,8 +122,7 @@ export function CommandPalette() {
     const lower = trimmed.toLowerCase()
     return allCommands.filter(
       (cmd) => cmd.id.toLowerCase().includes(lower)
-        || cmd.label.toLowerCase().includes(lower)
-        || cmd.labelZh.toLowerCase().includes(lower),
+        || cmd.label.toLowerCase().includes(lower),
     )
   }, [allCommands, query])
 
@@ -208,7 +189,7 @@ export function CommandPalette() {
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={t('搜索事件或输入命令', 'Search events or type a command')}
+        aria-label="搜索事件或输入命令"
         className={cn(
           'absolute top-[25%] w-[calc(100vw-2rem)] max-w-[420px]',
           'rounded-2xl border border-border-subtle bg-surface-raised shadow-lg',
@@ -225,8 +206,8 @@ export function CommandPalette() {
             value={query}
             onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            aria-label={t('搜索事件或输入命令', 'Search events or type a command')}
-            placeholder={t('搜索事件... (输入 / 查看命令)', 'Search events... (type / for commands)')}
+            aria-label="搜索事件或输入命令"
+            placeholder="搜索事件... (输入 / 查看命令)"
             className={cn(
               'flex-1 bg-transparent border-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm',
               'text-sm font-sans text-text-primary placeholder:text-text-tertiary',
@@ -234,12 +215,12 @@ export function CommandPalette() {
           />
           {status === 'loading' && (
             <span className="text-xs text-text-tertiary flex-shrink-0">
-              {t('搜索中...', 'Searching...')}
+              {'搜索中...'}
             </span>
           )}
           {status === 'error' && (
             <span className="text-xs text-color-text-danger flex-shrink-0">
-              {t('搜索失败', 'Search failed')}
+              {'搜索失败'}
             </span>
           )}
         </div>
@@ -248,7 +229,7 @@ export function CommandPalette() {
         {showCommands && (
           <>
             <div className="h-px bg-border-subtle flex-shrink-0" />
-            <div role="listbox" aria-label={t('命令', 'Commands')} className="max-h-80 overflow-y-auto">
+            <div role="listbox" aria-label="命令" className="max-h-80 overflow-y-auto">
               {matchedCommands.map((cmd) => (
                 <button
                   key={cmd.id}
@@ -260,7 +241,7 @@ export function CommandPalette() {
                   )}
                 >
                   <span className="text-sm font-sans text-text-primary">
-                    {language === 'zh' ? cmd.labelZh : cmd.label}
+                    {cmd.label}
                   </span>
                   {cmd.shortcut && (
                     <span className="text-xs font-mono text-text-tertiary ml-4 flex-shrink-0">
@@ -275,7 +256,7 @@ export function CommandPalette() {
 
         {/* Event search results */}
         {results.length > 0 && (
-          <div role="listbox" aria-label={t('搜索结果', 'Search results')} className="max-h-80 overflow-y-auto">
+          <div role="listbox" aria-label="搜索结果" className="max-h-80 overflow-y-auto">
             {results.map((event) => (
               <button
                 key={event.id}
@@ -292,7 +273,7 @@ export function CommandPalette() {
                 />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-sans text-text-primary truncate">
-                    {highlightMatch(event.title || t('(无标题)', '(Untitled)'), query)}
+                    {highlightMatch(event.title || '(无标题)', query)}
                   </p>
                   {/* Description hit snippet */}
                   {event.description && (() => {
@@ -324,7 +305,7 @@ export function CommandPalette() {
         {status === 'empty' && !showCommands && (
           <div className="px-3.5 py-6 text-center">
             <p className="text-sm text-text-tertiary">
-              {t('没有匹配的事件', 'No matching events')}
+              {'没有匹配的事件'}
             </p>
           </div>
         )}
@@ -333,10 +314,10 @@ export function CommandPalette() {
         {status === 'idle' && query.trim() === '' && (
           <div className="px-3.5 py-6 text-center">
             <p className="text-sm text-text-tertiary">
-              {t('输入关键词搜索历史事件', 'Type to search past events')}
+              {'输入关键词搜索历史事件'}
             </p>
             <p className="text-xs text-text-tertiary mt-2">
-              {t('输入 / 可查看全部命令', 'Type / to see all commands')}
+              {'输入 / 可查看全部命令'}
             </p>
           </div>
         )}

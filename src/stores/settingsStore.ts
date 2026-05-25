@@ -1,12 +1,10 @@
 import { create } from 'zustand'
 import { getSettingsRepo } from '@/data/getRepositories'
-import type { AppSettings, AppLanguage, AppTheme, UiFont } from '@/domain/settings'
+import type { AppSettings, AppTheme, UiFont } from '@/domain/settings'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
-import type { AccentPreset } from '@/domain/themes'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
 
 const THEME_KEY  = 'cailens-theme'
-const ACCENT_KEY = 'cailens-accent'
 const FONT_KEY   = 'cailens-font'
 
 function applyTheme(theme: AppTheme) {
@@ -17,10 +15,6 @@ function applyTheme(theme: AppTheme) {
   }
 }
 
-function applyAccent(accent: AccentPreset) {
-  document.documentElement.setAttribute('data-accent', accent)
-}
-
 function applyFont(font: UiFont) {
   document.documentElement.setAttribute('data-font', font)
 }
@@ -29,7 +23,7 @@ function applyFont(font: UiFont) {
 
 interface SettingSlot<T> {
   storageKey: string
-  dbField: 'theme' | 'accentColor' | 'uiFont'
+  dbField: 'theme' | 'uiFont'
   fallback: T
   apply: (value: T) => void
 }
@@ -62,9 +56,7 @@ interface AppSettingsState {
   settings: AppSettings
   isLoaded: boolean
   loadSettings: () => Promise<void>
-  setLanguage: (lang: AppLanguage) => Promise<void>
   setTheme: (theme: AppTheme) => Promise<void>
-  setAccentColor: (accent: AccentPreset) => Promise<void>
   setShortcut: (action: ShortcutAction, binding: ShortcutString | null) => Promise<void>
   resetAllShortcuts: () => Promise<void>
   setUiFont: (font: UiFont) => Promise<void>
@@ -87,14 +79,6 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     })
     settings = themeResult.settings
 
-    const accentResult = await reconcileSlot(settings, {
-      storageKey: ACCENT_KEY,
-      dbField: 'accentColor',
-      fallback: 'rust' as AccentPreset,
-      apply: applyAccent,
-    })
-    settings = accentResult.settings
-
     const fontResult = await reconcileSlot(settings, {
       storageKey: FONT_KEY,
       dbField: 'uiFont',
@@ -105,31 +89,17 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
 
     // Flush final values to localStorage (ensures consistency)
     const theme = themeResult.value
-    const accent = accentResult.value
     const font = fontResult.value
     localStorage.setItem(THEME_KEY, theme)
-    localStorage.setItem(ACCENT_KEY, accent)
     localStorage.setItem(FONT_KEY, font)
 
-    set({ settings: { ...settings, theme, accentColor: accent, uiFont: font }, isLoaded: true })
-  },
-
-  setLanguage: async (lang) => {
-    const settings = await getSettingsRepo().update({ language: lang })
-    set({ settings })
+    set({ settings: { ...settings, theme, uiFont: font }, isLoaded: true })
   },
 
   setTheme: async (theme) => {
     const settings = await getSettingsRepo().update({ theme })
     localStorage.setItem(THEME_KEY, theme)
     applyTheme(theme)
-    set({ settings })
-  },
-
-  setAccentColor: async (accent) => {
-    const settings = await getSettingsRepo().update({ accentColor: accent })
-    localStorage.setItem(ACCENT_KEY, accent)
-    applyAccent(accent)
     set({ settings })
   },
 

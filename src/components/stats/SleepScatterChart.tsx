@@ -2,6 +2,7 @@ import { useMemo, useState, startTransition, memo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized } from 'recharts'
 import type { CalendarEvent } from '@/domain/event'
 import { computeNapStats } from '@/domain/napStats'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -38,15 +39,15 @@ function fmtDuration(h: number): string {
   return `${hrs}h ${mins < 10 ? '0' : ''}${mins}m`
 }
 
-function monthLabel(date: Date, short: boolean, lang: 'zh' | 'en'): string {
-  if (lang === 'zh') return `${date.getMonth() + 1}月`
+function monthLabel(date: Date, short: boolean): string {
+  if (true) return `${date.getMonth() + 1}月`
   return date.toLocaleDateString('en-US', { month: short ? 'short' : 'long' })
 }
 
-function viewLabel(vm: SleepViewMode, anchor: Date, lang: 'zh' | 'en'): string {
+function viewLabel(vm: SleepViewMode, anchor: Date): string {
   const y = anchor.getFullYear()
   const m = anchor.getMonth()
-  if (lang === 'zh') {
+  {
     switch (vm) {
       case 'month':   return `${y} 年 ${m + 1} 月`
       case 'quarter': return `${m + 1}月-${m + 4}月`
@@ -67,9 +68,9 @@ function viewLabel(vm: SleepViewMode, anchor: Date, lang: 'zh' | 'en'): string {
 
 function viewDesc(vm: SleepViewMode, t: (a: string, b: string) => string): string {
   switch (vm) {
-    case 'month':   return t('就寝与起床时间', 'Bedtime & wake time')
-    case 'quarter': return t('季度睡眠模式', 'Quarterly sleep pattern')
-    case 'year':    return t('全年睡眠模式', 'Yearly sleep pattern')
+    case 'month':   return '就寝与起床时间'
+    case 'quarter': return '季度睡眠模式'
+    case 'year':    return '全年睡眠模式'
   }
 }
 
@@ -104,10 +105,10 @@ const SleepBands = memo(function SleepBands({ formattedGraphicalItems }: any) {
 
 interface SleepScatterChartProps {
   rangeEvents: CalendarEvent[]
-  language: 'zh' | 'en'
 }
 
-export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartProps) {
+export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
+  const language = useAppSettingsStore((s) => s.settings.language)
   const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
   const isCompact = typeof window !== 'undefined' && window.innerWidth < 720
 
@@ -261,11 +262,11 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
       const ms = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + m, 1)
       const offset = Math.floor((ms.getTime() - startTs) / 86_400_000) + 1
       if (offset >= 1 && offset <= viewWindow.days) {
-        ticks.push({ value: offset, label: m < months ? monthLabel(ms, true, language) : '' })
+        ticks.push({ value: offset, label: m < months ? monthLabel(ms, true) : '' })
       }
     }
     return ticks
-  }, [viewMode, viewWindow, anchorDate, language])
+  }, [viewMode, viewWindow, anchorDate])
 
   /* ════════════════════════════════════════════════════════════
      Step 6 — 按视图筛选（filter + map，不建 Date）
@@ -330,7 +331,7 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
      Step 8 — Render
      ════════════════════════════════════════════════════════════ */
 
-  const label = viewLabel(viewMode, anchorDate, language)
+  const label = viewLabel(viewMode, anchorDate)
   const desc = viewDesc(viewMode, t)
 
   // X-axis props (split to avoid conditional hooks)
@@ -346,9 +347,9 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
       <div className={`sleep-title-area${isCompact ? ' sleep-title-compact' : ''}`}>
         <div className="sleep-title-left">
           <div className="sleep-title-row">
-            <button onClick={goPrev} className="sleep-title-arrow" title={t('上一周期', 'Previous')}>‹</button>
+            <button onClick={goPrev} className="sleep-title-arrow" title={'上一周期'}>‹</button>
             <span className="sleep-title-main">{label}</span>
-            <button onClick={goNext} className="sleep-title-arrow" title={t('下一周期', 'Next')}>›</button>
+            <button onClick={goNext} className="sleep-title-arrow" title={'下一周期'}>›</button>
 
             {/* View mode pills */}
             <div className="sleep-title-periods">
@@ -358,9 +359,9 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
                   onClick={() => changeViewMode(vm)}
                   className={`sleep-title-period${viewMode === vm ? ' sleep-title-period-active' : ''}`}
                 >
-                  {vm === 'month' ? t('月', 'Month')
-                   : vm === 'quarter' ? t('季', 'Quarter')
-                   : t('年', 'Year')}
+                  {vm === 'month' ? '月'
+                   : vm === 'quarter' ? '季'
+                   : '年'}
                 </button>
               ))}
             </div>
@@ -371,7 +372,7 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
 
       {/* ── Empty state ──────────────────────────────── */}
       {viewNights.length === 0 ? (
-        <p className="sleep-empty">{t('暂无睡眠数据', 'No sleep data yet')}</p>
+        <p className="sleep-empty">{'暂无睡眠数据'}</p>
       ) : (
         <>
           {/* ── Chart ─────────────────────────────────── */}
@@ -415,19 +416,19 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
                     return (
                       <div className="sleep-tooltip">
                         <div className="sleep-tooltip-date">
-                          {t('第 ', 'Day ')}{raw?.day ?? ''}{t(' 日', '')}
+                          {'第 '}{raw?.day ?? ''}{' 日'}
                         </div>
                         {bed && (
                           <div className="sleep-tooltip-row">
                             <span className="sleep-tooltip-dot" style={{ background: colorBed }} />
-                            <span className="sleep-tooltip-label">{t('就寝', 'Bed')}</span>
+                            <span className="sleep-tooltip-label">{'就寝'}</span>
                             <span className="sleep-tooltip-val">{fmtHour(bed.value as number)}</span>
                           </div>
                         )}
                         {wake && (
                           <div className="sleep-tooltip-row">
                             <span className="sleep-tooltip-dot" style={{ background: colorWake }} />
-                            <span className="sleep-tooltip-label">{t('起床', 'Wake')}</span>
+                            <span className="sleep-tooltip-label">{'起床'}</span>
                             <span className="sleep-tooltip-val">{fmtHour(wake.value as number)}</span>
                           </div>
                         )}
@@ -435,7 +436,7 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
                           <>
                             <div className="sleep-tooltip-divider" />
                             <div className="sleep-tooltip-row">
-                              <span className="sleep-tooltip-label">{t('时长', 'Duration')}</span>
+                              <span className="sleep-tooltip-label">{'时长'}</span>
                               <span className="sleep-tooltip-val">
                                 {fmtDuration(
                                   (wake.value as number) > (bed.value as number)
@@ -485,14 +486,14 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
           <div className="sleep-legend">
             <span className="sleep-legend-item">
               <span className="sleep-legend-dot" style={{ background: colorBed }} />
-              {t('就寝', 'Bed')}
+              {'就寝'}
             </span>
             <span className="sleep-legend-item">
               <span className="sleep-legend-dot" style={{ background: colorWake }} />
-              {t('起床', 'Wake')}
+              {'起床'}
             </span>
             <span className="sleep-legend-note">
-              {t('每天一个点', 'Each dot = one night')}
+              {'每天一个点'}
             </span>
           </div>
 
@@ -500,24 +501,24 @@ export function SleepScatterChart({ rangeEvents, language }: SleepScatterChartPr
           {stats && (
             <div className={`sleep-stats-bar${isCompact ? ' sleep-stats-compact' : ''}`}>
               <div className="sleep-stat">
-                <div className="sleep-stat-label">{t('时 长', 'Duration')}</div>
+                <div className="sleep-stat-label">{'时 长'}</div>
                 <div className="sleep-stat-value">{fmtDuration(stats.avgDuration)}</div>
-                <div className="sleep-stat-detail">{t('平均', 'Average')}</div>
+                <div className="sleep-stat-detail">{'平均'}</div>
               </div>
               <div className="sleep-stat">
-                <div className="sleep-stat-label">{t('就 寝', 'Bedtime')}</div>
+                <div className="sleep-stat-label">{'就 寝'}</div>
                 <div className="sleep-stat-value">{fmtHour(stats.avgBed)}</div>
-                <div className="sleep-stat-detail">{t('平均就寝', 'Avg bedtime')}</div>
+                <div className="sleep-stat-detail">{'平均就寝'}</div>
               </div>
               <div className="sleep-stat">
-                <div className="sleep-stat-label">{t('起 床', 'Wake-up')}</div>
+                <div className="sleep-stat-label">{'起 床'}</div>
                 <div className="sleep-stat-value">{fmtHour(stats.avgWake)}</div>
-                <div className="sleep-stat-detail">{t('平均起床', 'Avg wake-up')}</div>
+                <div className="sleep-stat-detail">{'平均起床'}</div>
               </div>
               <div className="sleep-stat">
-                <div className="sleep-stat-label">{t('天 数', 'Nights')}</div>
+                <div className="sleep-stat-label">{'天 数'}</div>
                 <div className="sleep-stat-value">
-                  {stats.n}<span className="sleep-stat-unit">{t('晚', 'n')}</span>
+                  {stats.n}<span className="sleep-stat-unit">{'晚'}</span>
                 </div>
                 <div className="sleep-stat-detail">{label}</div>
               </div>
@@ -552,7 +553,7 @@ function NapStatsPanel({
   return (
     <div className="mt-10 pt-6 border-t border-border-subtle">
       <h3 className="font-serif text-sm font-medium text-text-primary mb-4">
-        {t('小睡统计', 'Nap Stats')}
+        {'小睡统计'}
       </h3>
 
       {/* 概览行 */}
@@ -562,29 +563,29 @@ function NapStatsPanel({
             {stats.totalNaps}
           </div>
           <div className="font-sans text-xs text-text-tertiary mt-1">
-            {t('小睡次数', 'Total naps')}
+            {'小睡次数'}
           </div>
         </div>
         <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
           <div className="font-mono text-xl font-semibold text-text-primary">
             {stats.avgDurationMinutes}
             <span className="text-sm text-text-tertiary ml-1">
-              {t('分', 'min')}
+              {'分'}
             </span>
           </div>
           <div className="font-sans text-xs text-text-tertiary mt-1">
-            {t('平均时长', 'Avg duration')}
+            {'平均时长'}
           </div>
         </div>
         <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
           <div className="font-mono text-xl font-semibold text-text-primary">
             {stats.medianDurationMinutes}
             <span className="text-sm text-text-tertiary ml-1">
-              {t('分', 'min')}
+              {'分'}
             </span>
           </div>
           <div className="font-sans text-xs text-text-tertiary mt-1">
-            {t('中位时长', 'Median')}
+            {'中位时长'}
           </div>
         </div>
       </div>
@@ -592,7 +593,7 @@ function NapStatsPanel({
       {/* 小睡时间分布 */}
       <div className="flex flex-col gap-1.5">
         <span className="font-sans text-xs text-text-tertiary">
-          {t('小睡时间分布', 'Nap Time Distribution')}
+          {'小睡时间分布'}
         </span>
         <div className="flex items-end gap-0.5 h-20">
           {stats.hourDistribution.map((count, hour) => {
@@ -601,7 +602,7 @@ function NapStatsPanel({
               <div
                 key={hour}
                 className="flex-1 flex flex-col items-center justify-end"
-                title={`${hour}:00 — ${count} ${t('次', 'times')}`}
+                title={`${hour}:00 — ${count} ${'次'}`}
               >
                 <span className="font-mono text-[9px] text-text-tertiary tabular-nums leading-none mb-0.5">
                   {count > 0 ? count : ''}

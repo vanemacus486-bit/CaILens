@@ -17,9 +17,10 @@ const GRID_STYLE = {
 } as const
 
 interface DayColumnProps {
-  date:            Date
-  events:          CalendarEvent[]
-  selectedEventId: string | null
+  date:              Date
+  events:            CalendarEvent[]
+  selectedEventId:   string | null
+  highlightedEventId: string | null
   weekDays:        Date[]
   gridRef:         React.RefObject<HTMLElement | null>
   onSlotClick:     (startTime: number, slotEl: HTMLElement) => void
@@ -41,7 +42,7 @@ function slotToTimestamp(slotIndex: number, dayStart: number): number {
 }
 
 function DayColumnInner({
-  date, events, selectedEventId, weekDays, gridRef,
+  date, events, selectedEventId, highlightedEventId, weekDays, gridRef,
   onSlotClick, onEventClick, onColorChange, onEdit, onDuplicate, onDelete,
   onDragMove, onDragToEdge, onDragStart, onDragStateChange, onResize,
   onTypedEdit,
@@ -101,6 +102,7 @@ function DayColumnInner({
             weekDays={weekDays}
             gridRef={gridRef}
             isCardOpen={pe.event.id === selectedEventId}
+            highlightedEventId={highlightedEventId}
           />
         ))}
       </div>
@@ -109,11 +111,12 @@ function DayColumnInner({
 }
 
 export const DayColumn = React.memo(DayColumnInner, (prev, next) =>
-  prev.date.getTime()    === next.date.getTime()    &&
-  prev.events            === next.events             &&
-  prev.selectedEventId   === next.selectedEventId    &&
-  prev.weekDays          === next.weekDays            &&
-  prev.gridRef           === next.gridRef             &&
+  prev.date.getTime()      === next.date.getTime()      &&
+  prev.events              === next.events               &&
+  prev.selectedEventId     === next.selectedEventId      &&
+  prev.highlightedEventId  === next.highlightedEventId   &&
+  prev.weekDays            === next.weekDays              &&
+  prev.gridRef             === next.gridRef               &&
   prev.onSlotClick       === next.onSlotClick        &&
   prev.onEventClick      === next.onEventClick       &&
   prev.onColorChange     === next.onColorChange      &&

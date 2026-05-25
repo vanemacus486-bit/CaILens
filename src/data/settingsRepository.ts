@@ -12,7 +12,13 @@ export class SettingsRepository {
   // Returns DEFAULT_SETTINGS if the record does not exist yet.
   async get(): Promise<AppSettings> {
     const settings = await this.adapter.settings.get('default')
-    return settings ?? { ...DEFAULT_SETTINGS }
+    if (!settings) return { ...DEFAULT_SETTINGS }
+    // 兼容旧版 language: 'en' → 强制 zh
+    if (settings.language !== 'zh') {
+      settings.language = 'zh'
+      await this.adapter.settings.put(settings)
+    }
+    return settings
   }
 
   async update(updates: Partial<Omit<AppSettings, 'id'>>): Promise<AppSettings> {

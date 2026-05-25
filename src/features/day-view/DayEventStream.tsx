@@ -74,11 +74,8 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
   const events        = useEventStore((s) => s.events) // week events for weekly avg
   const categories    = useCategoryStore((s) => s.categories)
   const language      = useAppSettingsStore((s) => s.settings.language)
-  const navigate      = useNavigate()
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-
-  const dayStartMs = dayStart.getTime()
+    const navigate      = useNavigate()
+    const dayStartMs = dayStart.getTime()
   const dayEndMs   = dayStartMs + 86_400_000
 
   // Load events for this day
@@ -165,7 +162,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
             {formatWeekday(dayStart, 'long')}
           </div>
           <div className="font-serif text-[14px] text-text-secondary italic mt-1">
-            {fmtFullDate(dayStart, language)}{' · '}{t(`第 ${weekNum} 周`, `Week ${weekNum}`)}
+            {fmtFullDate(dayStart, language)}{' · '}{`第 ${weekNum} 周`}
           </div>
         </div>
         {/* Prev / Next day + week toggle */}
@@ -178,7 +175,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
           </button>
           {today ? (
             <span className="font-sans text-xs text-accent font-medium px-2.5 py-1">
-              {t('今天', 'Today')}
+              {'今天'}
             </span>
           ) : (
             <button
@@ -196,7 +193,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
             }}
             className="font-sans text-xs text-text-secondary bg-transparent border border-border-subtle rounded-md px-2.5 py-1 cursor-pointer hover:bg-surface-sunken transition-colors duration-200"
           >
-            {t('周', 'Week')}
+            {'周'}
           </button>
 
         </div>
@@ -213,25 +210,25 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
               {(dayStats.totalMs / 3_600_000).toFixed(1)}
             </span>
             <span className="font-serif text-sm text-text-tertiary">
-              {t('小时', 'hours')}
+              {'小时'}
             </span>
           </div>
 
           {/* Subtitle */}
           <div className="font-serif text-[13px] text-text-secondary italic mt-1">
-            {t('有效投入 · 共 ', 'Effective input · ')}
+            {'有效投入 · 共 '}
             {dayEvents.length}
-            {t(' 项记录', ' entries')}
+            {' 项记录'}
             {weeklyAvgMs !== null && (
               <>
                 {' · '}
                 {dayStats.totalMs > weeklyAvgMs ? (
                   <span className="text-[var(--color-text-positive)]">
-                    ↑ {t('高于周均', 'above weekly avg')}
+                    ↑ {'高于周均'}
                   </span>
                 ) : (
                   <span className="text-[var(--color-text-warning)]">
-                    ↓ {t('低于周均', 'below weekly avg')}
+                    ↓ {'低于周均'}
                   </span>
                 )}
                 {' '}
@@ -299,7 +296,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
       {dayEvents.length === 0 ? (
         <div className="flex items-center justify-center py-16">
           <p className="font-serif text-sm text-text-tertiary italic">
-            {t('这一天没有记录', 'No events logged this day')}
+            {'这一天没有记录'}
           </p>
         </div>
       ) : (
@@ -351,7 +348,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
                 <div className="min-w-0">
                   <div className="flex items-baseline gap-2">
                     <span className="font-serif text-[15px] font-semibold text-text-primary truncate leading-snug">
-                      {event.title || <span className="italic font-normal opacity-50 text-text-tertiary">{t('无标题', 'Untitled')}</span>}
+                      {event.title || <span className="italic font-normal opacity-50 text-text-tertiary">{'无标题'}</span>}
                     </span>
                     {cat && (
                       <span
@@ -380,7 +377,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
                         isHovered ? 'text-text-tertiary/50' : ''
                       }`}
                     >
-                      {t('添加备注…', 'Add a note…')}
+                      {'添加备注…'}
                     </div>
                   )}
                 </div>

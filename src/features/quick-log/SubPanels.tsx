@@ -11,36 +11,35 @@ interface ChoresPanelProps {
 }
 
 export function ChoresPanel({ onSelectMeal, onSelectWash, onSelectShower, onSelectClean, language }: ChoresPanelProps) {
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-  return (
+    return (
     <div className="flex flex-wrap gap-2 mt-3">
       <button
         onClick={onSelectMeal}
         className={choreBtn}
       >
         <span className="text-base leading-none">🍚</span>
-        <span className="text-xs">{t('吃饭', 'Eat')}</span>
+        <span className="text-xs">{'吃饭'}</span>
       </button>
       <button
         onClick={onSelectWash}
         className={choreBtn}
       >
         <span className="text-base leading-none">🪥</span>
-        <span className="text-xs">{t('洗漱', 'Wash')}</span>
+        <span className="text-xs">{'洗漱'}</span>
       </button>
       <button
         onClick={onSelectShower}
         className={choreBtn}
       >
         <span className="text-base leading-none">🚿</span>
-        <span className="text-xs">{t('洗澡', 'Shower')}</span>
+        <span className="text-xs">{'洗澡'}</span>
       </button>
       <button
         onClick={onSelectClean}
         className={choreBtn}
       >
         <span className="text-base leading-none">🧹</span>
-        <span className="text-xs">{t('打扫', 'Clean')}</span>
+        <span className="text-xs">{'打扫'}</span>
       </button>
     </div>
   )
@@ -64,17 +63,16 @@ interface MealFoodPanelProps {
 }
 
 export function MealFoodPanel({ foodInput, onChange, recentFoods, onSelect, language }: MealFoodPanelProps) {
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-  return (
+    return (
     <div className="animate-slide-down mt-2">
       <div className="font-serif text-sm text-text-secondary italic mb-2">
-        {t('吃了什么？', 'What did you eat?')}
+        {'吃了什么？'}
       </div>
       <input
         autoFocus
         value={foodInput}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={t('例如：牛肉面', 'e.g. Beef noodles')}
+        placeholder={'例如：牛肉面'}
         className={cn(
           'w-full font-sans text-sm text-text-primary',
           'bg-surface-sunken border border-border-subtle rounded-md',
@@ -115,16 +113,15 @@ interface GrowthPanelProps {
 }
 
 export function GrowthPanel({ onSelectRead, onSelectSport, language }: GrowthPanelProps) {
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-  return (
+    return (
     <div className="flex flex-wrap gap-2 mt-3">
       <button onClick={onSelectRead} className={growthBtn}>
         <span className="text-base leading-none">📖</span>
-        <span className="text-xs">{t('阅读', 'Read')}</span>
+        <span className="text-xs">{'阅读'}</span>
       </button>
       <button onClick={onSelectSport} className={growthBtn}>
         <span className="text-base leading-none">🏋️</span>
-        <span className="text-xs">{t('运动', 'Exercise')}</span>
+        <span className="text-xs">{'运动'}</span>
       </button>
     </div>
   )
@@ -149,13 +146,12 @@ interface GrowthSubPanelProps {
 }
 
 export function GrowthSubPanel({ subMode, input, onChange, recent, onSelect, language }: GrowthSubPanelProps) {
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-  const prompt = subMode === 'read'
-    ? t('读了什么？', 'What did you read?')
-    : t('做了什么运动？', 'What exercise?')
+    const prompt = subMode === 'read'
+    ? '读了什么？'
+    : '做了什么运动？'
   const placeholder = subMode === 'read'
-    ? t('例如：百年孤独', 'e.g. Book title')
-    : t('例如：跑步 5km', 'e.g. Running 5km')
+    ? '例如：百年孤独'
+    : '例如：跑步 5km'
 
   return (
     <div className="animate-slide-down mt-2">
@@ -199,11 +195,10 @@ interface LeisurePanelProps {
 }
 
 export function LeisurePanel({ recentLeisure, onSelect, language }: LeisurePanelProps) {
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-  if (recentLeisure.length === 0) return null
+    if (recentLeisure.length === 0) return null
   return (
     <div className="mt-3">
-      <div className="text-xs text-text-tertiary mb-1.5 font-sans">{t('最近放松', 'Recent leisure')}</div>
+      <div className="text-xs text-text-tertiary mb-1.5 font-sans">{'最近放松'}</div>
       <div className="flex flex-wrap gap-1.5">
         {recentLeisure.map((item) => (
           <button
@@ -251,8 +246,7 @@ const QUALITY_LABELS: Record<number, [string, string]> = {
 }
 
 export function SleepPanel({ sleepType, quality, onChangeSleepType, onChangeQuality, language }: SleepPanelProps) {
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-  return (
+    return (
     <div className="animate-slide-down mt-2">
       {/* Type toggle */}
       <div className="flex gap-2 mb-4">
@@ -265,7 +259,7 @@ export function SleepPanel({ sleepType, quality, onChangeSleepType, onChangeQual
               : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
           )}
         >
-          😴 {t('主睡眠', 'Main Sleep')}
+          😴 {'主睡眠'}
         </button>
         <button
           onClick={() => onChangeSleepType('nap')}
@@ -276,7 +270,7 @@ export function SleepPanel({ sleepType, quality, onChangeSleepType, onChangeQual
               : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
           )}
         >
-          💤 {t('小睡', 'Nap')}
+          💤 {'小睡'}
         </button>
         <button
           onClick={() => onChangeSleepType('insomnia')}
@@ -287,12 +281,12 @@ export function SleepPanel({ sleepType, quality, onChangeSleepType, onChangeQual
               : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
           )}
         >
-          🌙 {t('失眠', 'Insomnia')}
+          🌙 {'失眠'}
         </button>
       </div>
 
       {/* Quality picker */}
-      <div className="text-xs text-text-tertiary mb-2 font-sans">{t('睡眠质量', 'Sleep quality')}</div>
+      <div className="text-xs text-text-tertiary mb-2 font-sans">{'睡眠质量'}</div>
       <div className="flex justify-between gap-1">
         {([1, 2, 3, 4, 5] as const).map((q) => {
           const isSelected = quality === q

@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { Drawer } from '@/components/ui/Drawer'
 import { useUIStore, type SettingsTab } from '@/stores/uiStore'
-import { useAppSettingsStore } from '@/stores/settingsStore'
 import { SettingsCategories } from '@/features/settings/SettingsCategories'
 import { SettingsAppearance } from '@/features/settings/SettingsAppearance'
 import { SettingsData } from '@/features/settings/SettingsData'
@@ -10,13 +9,13 @@ import { SettingsAbout } from '@/features/settings/SettingsAbout'
 import { SettingsShortcuts } from '@/features/settings/SettingsShortcuts'
 import { cn } from '@/lib/utils'
 
-const TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
-  { key: 'categories',  label: 'Categories',     labelZh: '分类' },
-  { key: 'appearance',  label: 'Appearance',     labelZh: '外观' },
-  { key: 'data',        label: 'Data',           labelZh: '数据' },
-  { key: 'storage',     label: 'Storage',        labelZh: '存储' },
-  { key: 'shortcuts',   label: 'Shortcuts',      labelZh: '快捷键' },
-  { key: 'about',       label: 'About',          labelZh: '关于' },
+const TABS: { key: SettingsTab; label: string }[] = [
+  { key: 'categories',  label: '分类' },
+  { key: 'appearance',  label: '外观' },
+  { key: 'data',        label: '数据' },
+  { key: 'storage',     label: '存储' },
+  { key: 'shortcuts',   label: '快捷键' },
+  { key: 'about',       label: '关于' },
 ]
 
 const TAB_CONTENT: Record<SettingsTab, React.FC> = {
@@ -33,12 +32,10 @@ export function SettingsDrawer() {
   const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
   const activeSettingsTab = useUIStore((s) => s.activeSettingsTab)
   const setActiveSettingsTab = useUIStore((s) => s.setActiveSettingsTab)
-  const language = useAppSettingsStore((s) => s.settings.language)
-
   // Tab title
   useEffect(() => {
-    document.title = language === 'zh' ? 'CaILens · 设置' : 'CaILens · Settings'
-  }, [language])
+    document.title = 'CaILens · 设置'
+  }, [])
 
   const ActiveTab = TAB_CONTENT[activeSettingsTab]
 
@@ -62,7 +59,7 @@ export function SettingsDrawer() {
                   : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised',
               )}
             >
-              {language === 'zh' ? tab.labelZh : tab.label}
+              {tab.label}
             </button>
           )
         })}

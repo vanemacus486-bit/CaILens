@@ -11,7 +11,6 @@
 
 import { useMemo } from 'react'
 import type { CalendarEvent } from '@/domain/event'
-import type { AppLanguage } from '@/domain/settings'
 import {
   extractSleepNights,
   computeSleepSteadyMetrics,
@@ -19,7 +18,6 @@ import {
 
 interface Props {
   rangeEvents: CalendarEvent[]
-  language: AppLanguage
 }
 
 function fmtHour(h: number): string {
@@ -34,8 +32,7 @@ function fmtDuration(h: number): string {
   return `${hrs}h ${String(mins).padStart(2, '0')}m`
 }
 
-export function SteadyMetricsPanel({ rangeEvents, language }: Props) {
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+export function SteadyMetricsPanel({ rangeEvents }: Props) {
 
   const now = useMemo(() => Date.now(), [])
   const periodDays = 90 // 最近 90 天
@@ -53,17 +50,17 @@ export function SteadyMetricsPanel({ rangeEvents, language }: Props) {
       : 'var(--color-text-warning)'
   const driftLabel =
     metrics.driftDirection === 'delaying'
-      ? t('推迟中', 'Delaying')
+      ? '推迟中'
       : metrics.driftDirection === 'advancing'
-        ? t('提前中', 'Advancing')
-        : t('稳定', 'Stable')
+        ? '提前中'
+        : '稳定'
 
   const consistencyLevel =
     metrics.consistencyIndex >= 0.8
-      ? t('良好', 'Good')
+      ? '良好'
       : metrics.consistencyIndex >= 0.5
-        ? t('一般', 'Fair')
-        : t('波动大', 'Unstable')
+        ? '一般'
+        : '波动大'
   const consistencyColor =
     metrics.consistencyIndex >= 0.8
       ? 'var(--color-text-success)'
@@ -79,18 +76,18 @@ export function SteadyMetricsPanel({ rangeEvents, language }: Props) {
       <div className="steady-title-area">
         <div className="steady-title-row">
           <span className="steady-title-main">
-            {t('稳态指标', 'Steady Metrics')}
+            {'稳态指标'}
           </span>
         </div>
         <p className="steady-title-desc">
-          {t('最近 90 天睡眠规律性分析', 'Sleep regularity analysis — last 90 days')}
+          {'最近 90 天睡眠规律性分析'}
         </p>
       </div>
 
       {/* ── 概览行 ────────────────────────────── */}
       <div className="steady-overview">
         <div className="steady-kpi">
-          <div className="steady-kpi-label">{t('一致性指数', 'Consistency')}</div>
+          <div className="steady-kpi-label">{'一致性指数'}</div>
           <div className="steady-kpi-value" style={{ color: consistencyColor }}>
             {(metrics.consistencyIndex * 100).toFixed(0)}
             <span className="steady-kpi-unit">%</span>
@@ -99,35 +96,35 @@ export function SteadyMetricsPanel({ rangeEvents, language }: Props) {
         </div>
 
         <div className="steady-kpi">
-          <div className="steady-kpi-label">{t('覆盖率', 'Coverage')}</div>
+          <div className="steady-kpi-label">{'覆盖率'}</div>
           <div className="steady-kpi-value">
             {(metrics.coverage * 100).toFixed(0)}
             <span className="steady-kpi-unit">%</span>
           </div>
           <div className="steady-kpi-extra">
-            {t(`${metrics.recordedDays}/${metrics.periodDays} 天`, `${metrics.recordedDays}/${metrics.periodDays} days`)}
+            {`${metrics.recordedDays}/${metrics.periodDays} 天`}
           </div>
         </div>
 
         <div className="steady-kpi">
-          <div className="steady-kpi-label">{t('漂移速度', 'Drift Speed')}</div>
+          <div className="steady-kpi-label">{'漂移速度'}</div>
           <div className="steady-kpi-value" style={{ color: driftColor }}>
             {metrics.driftSpeed > 0 ? '+' : ''}{metrics.driftSpeed.toFixed(1)}
-            <span className="steady-kpi-unit">{t('分/周', 'min/wk')}</span>
+            <span className="steady-kpi-unit">{'分/周'}</span>
           </div>
           <div className="steady-kpi-extra">{driftLabel}</div>
         </div>
 
         <div className="steady-kpi">
-          <div className="steady-kpi-label">{t('样本量', 'Samples')}</div>
+          <div className="steady-kpi-label">{'样本量'}</div>
           <div className="steady-kpi-value">
             {metrics.recordedDays}
-            <span className="steady-kpi-unit">{t('晚', 'n')}</span>
+            <span className="steady-kpi-unit">{'晚'}</span>
           </div>
           <div className="steady-kpi-extra">
             {metrics.recordedDays === 0
-              ? t('暂无数据', 'No data')
-              : t('可用于分析', 'analyzable')}
+              ? '暂无数据'
+              : '可用于分析'}
           </div>
         </div>
       </div>
@@ -137,22 +134,22 @@ export function SteadyMetricsPanel({ rangeEvents, language }: Props) {
         {/* 就寝时间 */}
         <div className="steady-detail-card">
           <div className="steady-detail-header">
-            {t('就寝时间', 'Bedtime')}
+            {'就寝时间'}
           </div>
           <div className="steady-detail-body">
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('均值', 'Mean')}</span>
+              <span className="steady-detail-label">{'均值'}</span>
               <span className="steady-detail-value">{fmtHour(metrics.meanBedtime)}</span>
             </div>
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('中位数', 'Median')}</span>
+              <span className="steady-detail-label">{'中位数'}</span>
               <span className="steady-detail-value">{fmtHour(metrics.medianBedtime)}</span>
             </div>
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('标准差', 'Std Dev')}</span>
+              <span className="steady-detail-label">{'标准差'}</span>
               <span className="steady-detail-value">
                 {metrics.stdBedtime.toFixed(1)}
-                <span className="steady-unit">{t('小时', 'h')}</span>
+                <span className="steady-unit">{'小时'}</span>
               </span>
             </div>
           </div>
@@ -161,22 +158,22 @@ export function SteadyMetricsPanel({ rangeEvents, language }: Props) {
         {/* 起床时间 */}
         <div className="steady-detail-card">
           <div className="steady-detail-header">
-            {t('起床时间', 'Wake-up')}
+            {'起床时间'}
           </div>
           <div className="steady-detail-body">
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('均值', 'Mean')}</span>
+              <span className="steady-detail-label">{'均值'}</span>
               <span className="steady-detail-value">{fmtHour(metrics.meanWakeTime)}</span>
             </div>
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('中位数', 'Median')}</span>
+              <span className="steady-detail-label">{'中位数'}</span>
               <span className="steady-detail-value">{fmtHour(metrics.medianWakeTime)}</span>
             </div>
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('标准差', 'Std Dev')}</span>
+              <span className="steady-detail-label">{'标准差'}</span>
               <span className="steady-detail-value">
                 {metrics.stdWakeTime.toFixed(1)}
-                <span className="steady-unit">{t('小时', 'h')}</span>
+                <span className="steady-unit">{'小时'}</span>
               </span>
             </div>
           </div>
@@ -185,22 +182,22 @@ export function SteadyMetricsPanel({ rangeEvents, language }: Props) {
         {/* 睡眠时长 */}
         <div className="steady-detail-card">
           <div className="steady-detail-header">
-            {t('睡眠时长', 'Duration')}
+            {'睡眠时长'}
           </div>
           <div className="steady-detail-body">
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('均值', 'Mean')}</span>
+              <span className="steady-detail-label">{'均值'}</span>
               <span className="steady-detail-value">{fmtDuration(metrics.meanDuration)}</span>
             </div>
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('中位数', 'Median')}</span>
+              <span className="steady-detail-label">{'中位数'}</span>
               <span className="steady-detail-value">{fmtDuration(metrics.medianDuration)}</span>
             </div>
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('标准差', 'Std Dev')}</span>
+              <span className="steady-detail-label">{'标准差'}</span>
               <span className="steady-detail-value">
                 {metrics.stdDuration.toFixed(1)}
-                <span className="steady-unit">{t('小时', 'h')}</span>
+                <span className="steady-unit">{'小时'}</span>
               </span>
             </div>
           </div>
@@ -209,24 +206,24 @@ export function SteadyMetricsPanel({ rangeEvents, language }: Props) {
         {/* 漂移分析 */}
         <div className="steady-detail-card">
           <div className="steady-detail-header">
-            {t('漂移分析', 'Drift Analysis')}
+            {'漂移分析'}
           </div>
           <div className="steady-detail-body">
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('速度', 'Speed')}</span>
+              <span className="steady-detail-label">{'速度'}</span>
               <span className="steady-detail-value" style={{ color: driftColor }}>
                 {metrics.driftSpeed > 0 ? '+' : ''}{metrics.driftSpeed.toFixed(1)}
-                <span className="steady-unit">{t('分/周', 'min/wk')}</span>
+                <span className="steady-unit">{'分/周'}</span>
               </span>
             </div>
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('方向', 'Direction')}</span>
+              <span className="steady-detail-label">{'方向'}</span>
               <span className="steady-detail-value" style={{ color: driftColor }}>
                 {driftLabel}
               </span>
             </div>
             <div className="steady-detail-row">
-              <span className="steady-detail-label">{t('30 天预估', '30d Forecast')}</span>
+              <span className="steady-detail-label">{'30 天预估'}</span>
               <span className="steady-detail-value">
                 {metrics.driftSpeed === 0 || metrics.recordedDays === 0
                   ? '—'
@@ -247,12 +244,12 @@ export function SteadyMetricsPanel({ rangeEvents, language }: Props) {
         </div>
         <p className="steady-insight-text">
           {metrics.recordedDays === 0
-            ? t('尚无足够的睡眠数据生成稳态分析', 'Not enough sleep data for steady analysis yet')
+            ? '尚无足够的睡眠数据生成稳态分析'
             : metrics.consistencyIndex >= 0.8
-              ? t('作息规律性良好，当前模式值得保持。', 'Good sleep regularity — keep up the pattern.')
+              ? '作息规律性良好，当前模式值得保持。'
               : metrics.consistencyIndex >= 0.5
-                ? t('作息有一定规律，但波动不小。关注就寝时间的稳定性。', 'Moderate regularity — focus on bedtime consistency.')
-                : t('作息波动较大，建议优先关注就寝时间的一致性。', 'High variability — prioritize bedtime consistency.')}
+                ? '作息有一定规律，但波动不小。关注就寝时间的稳定性。'
+                : '作息波动较大，建议优先关注就寝时间的一致性。'}
         </p>
       </div>
     </div>

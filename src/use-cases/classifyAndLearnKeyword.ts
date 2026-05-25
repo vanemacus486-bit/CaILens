@@ -32,8 +32,9 @@ export function maybeLearnKeyword(
   if (!cat || cat.folders.length === 0) return null
 
   const first = cat.folders[0]
-  const updated = addKeywordIfValid(first.keywords, title)
-  if (!updated) return null
+  const result = addKeywordIfValid(first.keywords, title)
+  if (!result.ok) return null
+  const updated = result.keywords
 
   return cat.folders.map((f, i) => (i === 0 ? { ...f, keywords: updated } : f))
 }

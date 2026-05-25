@@ -12,10 +12,10 @@ import {
 import type { ShortcutAction } from '@/domain/shortcuts'
 
 export function SettingsShortcuts() {
-  const language = useAppSettingsStore((s) => s.settings.language)
-  const shortcuts = useAppSettingsStore((s) => s.settings.shortcuts)
+    const shortcuts = useAppSettingsStore((s) => s.settings.shortcuts)
   const setShortcut = useAppSettingsStore((s) => s.setShortcut)
   const resetAllShortcuts = useAppSettingsStore((s) => s.resetAllShortcuts)
+  const language = useAppSettingsStore((s) => s.settings.language)
 
   const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
@@ -83,24 +83,24 @@ export function SettingsShortcuts() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-[22px] font-medium text-text-primary">
-          {t('快捷键', 'Shortcuts')}
+          {'快捷键'}
         </h1>
         {confirmReset ? (
           <div className="flex items-center gap-2">
             <span className="text-xs text-text-secondary font-sans">
-              {t('确认重置所有快捷键？', 'Reset all shortcuts?')}
+              {'确认重置所有快捷键？'}
             </span>
             <button
               onClick={handleResetAll}
               className="px-2 py-1 rounded-md text-xs font-sans font-medium bg-event-rose-bg text-color-text-danger transition-colors duration-200 cursor-pointer border-none"
             >
-              {t('确认', 'Confirm')}
+              {'确认'}
             </button>
             <button
               onClick={() => setConfirmReset(false)}
               className="px-2 py-1 rounded-md text-xs font-sans font-medium text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer border-none"
             >
-              {t('取消', 'Cancel')}
+              {'取消'}
             </button>
           </div>
         ) : (
@@ -108,7 +108,7 @@ export function SettingsShortcuts() {
             onClick={() => setConfirmReset(true)}
             className="px-3 py-1.5 rounded-md text-xs font-sans font-medium text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-200 cursor-pointer border-none"
           >
-            {t('重置全部', 'Reset All')}
+            {'重置全部'}
           </button>
         )}
       </div>
@@ -117,7 +117,7 @@ export function SettingsShortcuts() {
       {conflicts.length > 0 && (
         <div className="bg-event-rose-bg border border-event-rose-fill rounded-lg px-3 py-2">
           <p className="text-xs font-sans font-medium text-color-text-danger">
-            {t('快捷键冲突', 'Shortcut conflict')}
+            {'快捷键冲突'}
           </p>
           <ul className="mt-1 text-xs text-text-secondary font-sans">
             {conflicts.map((c) => {
@@ -171,17 +171,17 @@ export function SettingsShortcuts() {
                   )}
                 >
                   {isRecording
-                    ? t('按下按键...', 'Press keys...')
+                    ? '按下按键...'
                     : currentBinding
                       ? bindingToDisplayString(currentBinding)
-                      : t('无', 'none')}
+                      : '无'}
                 </button>
 
                 {/* Reset icon — visible only when overridden */}
                 {hasOverride && (
                   <button
                     onClick={() => handleReset(def.action)}
-                    title={t('重置为默认', 'Reset to default')}
+                    title={'重置为默认'}
                     className="w-6 h-6 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-150 cursor-pointer border-none text-xs"
                   >
                     ↺

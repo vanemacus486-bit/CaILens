@@ -33,9 +33,7 @@ export function ProfilePage() {
   const allEvents = useEventStore((s) => s.allEvents)
   const loadAllEvents = useEventStore((s) => s.loadAllEvents)
   const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-  // Load data
+      // Load data
   useEffect(() => {
     fireAndForget(loadProfile(), 'load profile')
     if (allEvents.length === 0) {
@@ -75,12 +73,12 @@ export function ProfilePage() {
     {
       labelZh: '体重', labelEn: 'Weight',
       value: body.weight !== null ? `${body.weight} kg` : '—',
-      change: body.weight !== null ? `↘ ${t('较上月 -0.8', '-0.8 vs last month')}` : undefined,
+      change: body.weight !== null ? `↘ ${'较上月 -0.8'}` : undefined,
     },
     {
       labelZh: '体脂率', labelEn: 'Body Fat',
       value: body.bodyFat !== null ? `${body.bodyFat} %` : '—',
-      change: body.bodyFat !== null ? `↗ ${t('较上月 +0.5', '+0.5 vs last month')}` : undefined,
+      change: body.bodyFat !== null ? `↗ ${'较上月 +0.5'}` : undefined,
     },
     {
       labelZh: '静息心率', labelEn: 'Resting HR',
@@ -97,7 +95,7 @@ export function ProfilePage() {
       value: body.visionLeft !== null && body.visionRight !== null
         ? `${body.visionLeft >= 0 ? '+' : ''}${body.visionLeft} / ${body.visionRight >= 0 ? '+' : ''}${body.visionRight}`
         : '—',
-      change: body.visionLastCheck ? `${t('最近一次', 'Last check')}:${body.visionLastCheck}` : undefined,
+      change: body.visionLastCheck ? `${'最近一次'}:${body.visionLastCheck}` : undefined,
     },
   ]
 
@@ -109,24 +107,24 @@ export function ProfilePage() {
           className="font-serif font-medium leading-tight"
           style={{ fontSize: 24, fontWeight: 500, color: '#3D2E1F' }}
         >
-          {t('我的档案', 'My Profile')}
+          {'我的档案'}
         </h1>
         <p className="font-sans mt-1 mb-6" style={{ fontSize: 12, color: '#A89580' }}>
-          {t('最后更新:', 'Last updated:')} {profile.updatedAt ?? '—'}
+          {'最后更新:'} {profile.updatedAt ?? '—'}
         </p>
 
         {/* 分隔线 */}
         <div className="mb-8" style={{ height: '0.5px', backgroundColor: '#E0D2B5', width: '100%' }} />
 
         {/* 身体段 */}
-        <Section title={t('身体', 'Body')}>
+        <Section title={'身体'}>
           {bodyRows.map((row, i) => (
             <DataRow key={i} row={row} />
           ))}
         </Section>
 
         {/* 作息基线段 */}
-        <Section title={t('作息基线', 'Routine Baseline')}>
+        <Section title={'作息基线'}>
           {routineRows.map((row, i) => (
             <DataRow key={i} row={row} />
           ))}
@@ -137,14 +135,14 @@ export function ProfilePage() {
           <button
             onClick={() => {
               // 占位：编辑 modal 待实现
-              alert(t('编辑功能待实现', 'Edit feature coming soon'))
+              alert('编辑功能待实现')
             }}
             className="font-sans cursor-pointer bg-transparent border-none transition-colors duration-150"
             style={{ fontSize: 12, color: '#8B6F47' }}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#5C4530'; e.currentTarget.style.textDecoration = 'underline' }}
             onMouseLeave={(e) => { e.currentTarget.style.color = '#8B6F47'; e.currentTarget.style.textDecoration = 'none' }}
           >
-            + {t('编辑档案', 'Edit Profile')}
+            + {'编辑档案'}
           </button>
         </div>
       </div>

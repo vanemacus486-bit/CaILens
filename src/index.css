@@ -215,6 +215,19 @@
   animation: slide-down 180ms ease-out;
 }
 
+/* ── Search result highlight pulse ────────────────────── */
+@keyframes search-highlight-pulse {
+  0%, 100% {
+    box-shadow: inset 0 0 0 0px var(--accent);
+  }
+  30% {
+    box-shadow: inset 0 0 0 3px var(--accent);
+  }
+}
+.animate-search-highlight {
+  animation: search-highlight-pulse 0.8s ease-in-out 3;
+}
+
 /* ── Unified focus ring ────────────────────────────────── */
 button:focus-visible:not(.focus-ring-custom),
 a:focus-visible:not(.focus-ring-custom),

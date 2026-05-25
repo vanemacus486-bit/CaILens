@@ -24,9 +24,7 @@ function fmtTime(ts: number): string {
 }
 
 export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: EventDetailCardProps) {
-  const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-  const [showConfirm, setShowConfirm] = useState(false)
+      const [showConfirm, setShowConfirm] = useState(false)
 
   // Stable ref pointing to the anchor element — Radix reads this for positioning.
   const virtualRef = useRef<HTMLElement>(null!)
@@ -56,7 +54,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
             <div className="flex-1 p-4 flex flex-col gap-3">
               {/* Title */}
               <p className={`text-[16px] font-serif leading-snug ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary'}`}>
-                {isEmpty ? t('(无标题)', '(Untitled)') : event.title}
+                {isEmpty ? '(无标题)' : event.title}
               </p>
 
               {/* Time */}
@@ -103,12 +101,12 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
                     className="text-color-text-danger hover:bg-surface-sunken gap-1.5 px-2 h-8"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    {t('删除', 'Delete')}
+                    {'删除'}
                   </Button>
 
                 </div>
                 <Button variant="default" size="sm" onClick={onEdit} className="h-8">
-                  {t('编辑', 'Edit')}
+                  {'编辑'}
                 </Button>
               </div>
             </div>
@@ -120,21 +118,21 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('删除事件？', 'Delete event?')}</AlertDialogTitle>
+            <AlertDialogTitle>{'删除事件？'}</AlertDialogTitle>
             <AlertDialogDescription>
               {isEmpty
-                ? t('此事件将被永久删除。', 'This event will be permanently deleted.')
-                : t(`"${event.title}" 将被永久删除。`, `"${event.title}" will be permanently deleted.`)
+                ? '此事件将被永久删除。'
+                : `"${event.title}" 将被永久删除。`
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('取消', 'Cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>{'取消'}</AlertDialogCancel>
             <AlertDialogAction
               onClick={onDelete}
               className="bg-color-text-danger text-white"
             >
-              {t('删除', 'Delete')}
+              {'删除'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

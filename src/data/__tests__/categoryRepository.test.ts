@@ -28,22 +28,18 @@ describe('getAll', () => {
     expect(result.map((c) => c.id)).toEqual(expected)
   })
 
-  it('each category has a bilingual name object', async () => {
+  it('each category has a name string', async () => {
     const result = await repo.getAll()
     result.forEach((cat) => {
-      expect(typeof cat.name).toBe('object')
-      expect(typeof cat.name.zh).toBe('string')
-      expect(typeof cat.name.en).toBe('string')
-      expect(cat.name.zh.length).toBeGreaterThan(0)
-      expect(cat.name.en.length).toBeGreaterThan(0)
-    })
+      expect(typeof cat.name).toBe('string')
+      expect(cat.name.length).toBeGreaterThan(0)
+})
   })
 
   it('accent category has the correct default bilingual name', async () => {
     const result = await repo.getAll()
     const accent = result.find((c) => c.id === 'accent')!
-    expect(accent.name.zh).toBe('主要矛盾')
-    expect(accent.name.en).toBe('Core Focus')
+    expect(accent.name).toBe('主要矛盾')
   })
 
   it('all 6 expected category ids are present', async () => {
@@ -58,28 +54,28 @@ describe('getAll', () => {
   })
 })
 
-// ── updateName ────────────────────────────────────────────
+// ── update ────────────────────────────────────────────────
 
-describe('updateName', () => {
-  it('updates the target category and returns the updated record', async () => {
-    const newName = { zh: '专注', en: 'Focus' }
-    const updated = await repo.updateName('accent', newName)
+describe('update', () => {
+  it('updates the target category name and returns the updated record', async () => {
+    const newName = '专注'
+    const updated = await repo.update('accent', { name: newName })
     expect(updated.name).toEqual(newName)
   })
 
-  it('persists the change — visible in subsequent getAll', async () => {
-    const newName = { zh: '专注', en: 'Focus' }
-    await repo.updateName('accent', newName)
+  it('persists the name change — visible in subsequent getAll', async () => {
+    const newName = '专注'
+    await repo.update('accent', { name: newName })
     const all    = await repo.getAll()
     const accent = all.find((c) => c.id === 'accent')!
-    expect(accent.name).toEqual(newName)
+    expect(accent.name).toBe(newName)
   })
 
-  it('does not affect other categories', async () => {
+  it('does not affect other categories when updating name', async () => {
     const before     = await repo.getAll()
     const sageBefore = before.find((c) => c.id === 'sage')!.name
 
-    await repo.updateName('accent', { zh: '专注', en: 'Focus' })
+    await repo.update('accent', { name: '专注' })
 
     const after     = await repo.getAll()
     const sageAfter = after.find((c) => c.id === 'sage')!.name
@@ -87,11 +83,22 @@ describe('updateName', () => {
   })
 
   it('can update multiple categories independently', async () => {
-    await repo.updateName('accent', { zh: '专注', en: 'Focus' })
-    await repo.updateName('rose',   { zh: '睡眠', en: 'Sleep' })
+    await repo.update('accent', { name: '专注' })
+    await repo.update('rose', { name: '睡眠' })
 
     const all    = await repo.getAll()
-    expect(all.find((c) => c.id === 'accent')!.name).toEqual({ zh: '专注', en: 'Focus' })
-    expect(all.find((c) => c.id === 'rose')!.name).toEqual({ zh: '睡眠', en: 'Sleep' })
+    expect(all.find((c) => c.id === 'accent')!.name).toBe('专注')
+    expect(all.find((c) => c.id === 'rose')!.name).toBe('睡眠')
+  })
+
+  it('updates folders', async () => {
+    const folders = [{ id: 'f1', name: '工作', keywords: ['开会'] }]
+    const updated = await repo.update('sage', { folders })
+    expect(updated.folders).toEqual(folders)
+  })
+
+  it('updates weeklyBudget', async () => {
+    const updated = await repo.update('sky', { weeklyBudget: 15 })
+    expect(updated.weeklyBudget).toBe(15)
   })
 })

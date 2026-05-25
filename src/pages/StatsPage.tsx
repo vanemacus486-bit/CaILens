@@ -14,10 +14,10 @@ import { fireAndForget } from '@/lib/fireAndForget'
 import { formatISODate, parseISODate } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
-import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useProfileStore } from '@/stores/profileStore'
 import { useDailyContextStore } from '@/stores/dailyContextStore'
 import { useBodyMetricsStore } from '@/stores/bodyMetricsStore'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 import { getDataMaturity } from '@/domain/maturity'
 import type { Granularity } from '@/hooks/useStatsAggregation'
 import { useStatsAggregation } from '@/hooks/useStatsAggregation'
@@ -30,7 +30,8 @@ import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneCard } from '@/components/stats/HygieneCard'
 import { LeisureCard } from '@/components/stats/LeisureCard'
 import { BodyMetricsPanel } from '@/components/stats/BodyMetricsPanel'
-import { CorrelationInsights } from '@/components/stats/CorrelationInsights'
+
+import { NormalizePanel } from '@/features/normalize/NormalizePanel'
 import {
   EasternStatsShell,
   STATS_TABS,
@@ -71,9 +72,9 @@ export function StatsPage() {
   const isLoading              = useEventStore((s) => s.isLoading)
   const loadError              = useEventStore((s) => s.loadError)
   const categories             = useCategoryStore((s) => s.categories)
-  const language               = useAppSettingsStore((s) => s.settings.language)
   const profile                = useProfileStore((s) => s.profile)
   const loadProfile            = useProfileStore((s) => s.loadProfile)
+  const language               = useAppSettingsStore((s) => s.settings.language)
 
   // Lifestyle data
   const outfits       = useDailyContextStore((s) => s.outfits)
@@ -86,8 +87,6 @@ export function StatsPage() {
 
   const bodyRecords   = useBodyMetricsStore((s) => s.records)
   const loadBodyRecords = useBodyMetricsStore((s) => s.loadRecent)
-
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   // ── Tab & view state ─────────────────────────────────────
 
@@ -142,13 +141,9 @@ export function StatsPage() {
 
   useEffect(() => {
     const currentTab = STATS_TABS.find((t) => t.id === tab)
-    const tabLabel = currentTab
-      ? (language === 'zh' ? currentTab.labelZh : currentTab.labelEn)
-      : ''
-    document.title = language === 'zh'
-      ? `CaILens · ${tabLabel}`
-      : `CaILens · ${tabLabel}`
-  }, [language, tab])
+    const tabLabel = currentTab?.label ?? ''
+    document.title = `CaILens · ${tabLabel}`
+  }, [tab])
 
   // ── Routine tab data ─────────────────────────────────────
 
@@ -217,7 +212,7 @@ export function StatsPage() {
             onClick={() => loadRange(Date.now() - 3 * 365 * 24 * 60 * 60_000, Date.now())}
             className="inline-flex items-center justify-center rounded-lg text-white bg-accent px-4 py-2 text-sm font-medium transition-colors duration-200 cursor-pointer border-none"
           >
-            {t('重试', 'Retry')}
+            {'重试'}
           </button>
         </div>
       )
@@ -231,10 +226,10 @@ export function StatsPage() {
         // 子视图 pills
         const pills = ROUTINE_VIEWS.map((v) => ({
           id: v,
-          label: v === 'trend'   ? t('趋势', 'Trend')
-               : v === 'heatmap' ? t('热力', 'Heatmap')
-               : v === 'sleep'   ? t('睡眠', 'Sleep')
-               :                   t('稳态', 'Steady'),
+          label: v === 'trend'   ? '趋势'
+               : v === 'heatmap' ? '热力'
+               : v === 'sleep'   ? '睡眠'
+               :                   '稳态',
         }))
 
         return (
@@ -258,7 +253,6 @@ export function StatsPage() {
                 history={history}
                 categories={categories}
                 periodType={period}
-                language={language}
                 maturity={maturity}
                 onNavigate={navigateRoutine}
                 onPeriodChange={setPeriod}
@@ -274,13 +268,11 @@ export function StatsPage() {
             {routineView === 'sleep' && (
               <SleepScatterChart
                 rangeEvents={rangeEvents}
-                language={language}
               />
             )}
             {routineView === 'steady' && (
               <SteadyMetricsPanel
                 rangeEvents={rangeEvents}
-                language={language}
               />
             )}
           </div>
@@ -294,10 +286,10 @@ export function StatsPage() {
         // 子视图 pills
         const pills = LIFESTYLE_VIEWS.map((v) => ({
           id: v,
-          label: v === 'diet'    ? t('饮食', 'Diet')
-               : v === 'outfit'  ? t('穿搭', 'Outfit')
-               : v === 'hygiene' ? t('卫生', 'Hygiene')
-               :                   t('娱乐', 'Leisure'),
+          label: v === 'diet'    ? '饮食'
+               : v === 'outfit'  ? '穿搭'
+               : v === 'hygiene' ? '卫生'
+               :                   '娱乐',
         }))
 
         return (
@@ -331,13 +323,11 @@ export function StatsPage() {
             {lifestyleView === 'hygiene' && (
               <HygieneCard
                 records={hygieneRecords}
-                language={language}
               />
             )}
             {lifestyleView === 'leisure' && (
               <LeisureCard
                 records={leisureRecords}
-                language={language}
               />
             )}
           </div>
@@ -352,22 +342,15 @@ export function StatsPage() {
           <BodyMetricsPanel
             records={bodyRecords}
             profile={profile}
-            language={language}
           />
         )
       }
 
       /* ════════════════════════════════════════════
-         关联分析 Tab
+         命名整理 Tab
          ════════════════════════════════════════════ */
-      case 'correlation': {
-        return (
-          <CorrelationInsights
-            rangeEvents={rangeEvents}
-            hygieneRecords={hygieneRecords}
-            language={language}
-          />
-        )
+      case 'normalize': {
+        return <NormalizePanel />
       }
 
       default:
@@ -377,7 +360,6 @@ export function StatsPage() {
 
   return (
     <EasternStatsShell
-      language={language}
       currentTab={tab}
       onTabChange={setTab}
     >

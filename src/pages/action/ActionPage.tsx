@@ -34,7 +34,7 @@ type FilterMode = 'all' | 'active' | 'done'
 
 export function ActionPage() {
   const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const { todos, isLoading, isLoaded, error, loadTodos, createTodo, updateTodo, deleteTodo, toggleComplete } = useTodoStore()
   const [filter, setFilter] = useState<FilterMode>('all')
@@ -100,18 +100,18 @@ export function ActionPage() {
       <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
         <h1 className="font-serif text-lg font-medium text-text-primary flex items-center gap-2">
           <ListTodo size={20} strokeWidth={1.5} className="text-accent" />
-          {t('待办事项', 'Todo List')}
+          {'待办事项'}
         </h1>
         {/* 统计 */}
         <div className="flex items-center gap-3 font-sans text-xs text-text-tertiary">
           <span>
             <span className="text-text-secondary font-medium">{activeCount}</span>
-            {' '}{t('待处理', 'active')}
+            {' '}{'待处理'}
           </span>
           <span className="w-0.5 h-0.5 rounded-full bg-text-tertiary/40" />
           <span>
             <span className="text-text-secondary font-medium">{doneCount}</span>
-            {' '}{t('已完成', 'done')}
+            {' '}{'已完成'}
           </span>
         </div>
       </div>
@@ -129,7 +129,7 @@ export function ActionPage() {
             }`}
           >
             <ListTodo size={12} strokeWidth={1.75} className="inline mr-1 align-middle" />
-            {t('待办', 'Todos')}
+            {'待办'}
           </button>
           <button
             onClick={() => setViewMode('projects')}
@@ -140,7 +140,7 @@ export function ActionPage() {
             }`}
           >
             <FolderKanban size={12} strokeWidth={1.75} className="inline mr-1 align-middle" />
-            {t('项目', 'Projects')}
+            {'项目'}
           </button>
         </div>
 
@@ -185,17 +185,17 @@ export function ActionPage() {
         )}
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <p className="font-sans text-sm text-text-tertiary">{t('加载中…', 'Loading…')}</p>
+            <p className="font-sans text-sm text-text-tertiary">{'加载中…'}</p>
           </div>
         ) : filteredTodos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Inbox size={40} strokeWidth={1.25} className="text-text-tertiary/40 mb-4" />
             <p className="font-sans text-sm text-text-tertiary mb-1">
               {filter === 'all'
-                ? t('还没有待办事项，在上方输入框添加', 'No todos yet. Add one above.')
+                ? '还没有待办事项，在上方输入框添加'
                 : filter === 'done'
-                  ? t('还没有已完成的待办', 'No completed todos yet.')
-                  : t('所有待办都已完成！', 'All todos are done!')}
+                  ? '还没有已完成的待办'
+                  : '所有待办都已完成！'}
             </p>
           </div>
         ) : (
@@ -203,7 +203,7 @@ export function ActionPage() {
             {/* 逾期 */}
             {groups.overdue.length > 0 && (
               <Section
-                label={t('已逾期', 'Overdue')}
+                label={'已逾期'}
                 icon={<AlertCircle size={14} strokeWidth={1.75} className="text-[#B53535]" />}
                 count={groups.overdue.length}
                 accent
@@ -223,7 +223,7 @@ export function ActionPage() {
             {/* 今天 */}
             {groups.today.length > 0 && (
               <Section
-                label={t('今天', 'Today')}
+                label={'今天'}
                 icon={<Calendar size={14} strokeWidth={1.75} className="text-accent" />}
                 count={groups.today.length}
               >
@@ -242,7 +242,7 @@ export function ActionPage() {
             {/* 未来 */}
             {groups.future.length > 0 && (
               <Section
-                label={t('将来', 'Upcoming')}
+                label={'将来'}
                 icon={<Calendar size={14} strokeWidth={1.75} className="text-text-tertiary" />}
                 count={groups.future.length}
               >
@@ -261,7 +261,7 @@ export function ActionPage() {
             {/* 无截止日期 */}
             {groups.noDate.length > 0 && (
               <Section
-                label={t('待整理', 'Unsorted')}
+                label={'待整理'}
                 icon={<Inbox size={14} strokeWidth={1.75} className="text-text-tertiary" />}
                 count={groups.noDate.length}
               >

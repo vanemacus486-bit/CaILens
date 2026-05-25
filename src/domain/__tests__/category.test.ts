@@ -4,36 +4,36 @@ import { addKeywordIfValid, flattenFolderKeywords } from '../category'
 describe('addKeywordIfValid', () => {
   it('adds a new keyword to the list', () => {
     const result = addKeywordIfValid(['meeting'], 'coding')
-    expect(result).toEqual(['meeting', 'coding'])
+    expect(result).toEqual({ ok: true, keywords: ['meeting', 'coding'] })
   })
 
   it('returns null when candidate is too short', () => {
-    expect(addKeywordIfValid([], 'a')).toBeNull()
-    expect(addKeywordIfValid([], '')).toBeNull()
-    expect(addKeywordIfValid([], '  ')).toBeNull()
+    expect(addKeywordIfValid([], 'a')).toEqual({ ok: false, reason: 'too-short' })
+    expect(addKeywordIfValid([], '')).toEqual({ ok: false, reason: 'too-short' })
+    expect(addKeywordIfValid([], '  ')).toEqual({ ok: false, reason: 'too-short' })
   })
 
   it('returns null when candidate is a duplicate', () => {
-    expect(addKeywordIfValid(['coding', 'meeting'], 'coding')).toBeNull()
+    expect(addKeywordIfValid(['coding', 'meeting'], 'coding')).toEqual({ ok: false, reason: 'duplicate' })
     // case-sensitive: exact match after trim
-    expect(addKeywordIfValid(['Coding'], 'Coding')).toBeNull()
+    expect(addKeywordIfValid(['Coding'], 'Coding')).toEqual({ ok: false, reason: 'duplicate' })
   })
 
   it('allows unlimited keywords (no MAX_KEYWORDS limit)', () => {
     const many = Array.from({ length: 50 }, (_, i) => `kw${i}`)
     const result = addKeywordIfValid(many, 'new-kw')
-    expect(result).not.toBeNull()
-    expect(result).toHaveLength(51)
+    expect(result.ok).toBe(true)
+    expect(result.keywords).toHaveLength(51)
   })
 
   it('trims whitespace before checking', () => {
     const result = addKeywordIfValid(['meeting'], '  coding  ')
-    expect(result).toEqual(['meeting', 'coding'])
+    expect(result).toEqual({ ok: true, keywords: ['meeting', 'coding'] })
   })
 
   it('handles empty initial list', () => {
     const result = addKeywordIfValid([], 'coding')
-    expect(result).toEqual(['coding'])
+    expect(result).toEqual({ ok: true, keywords: ['coding'] })
   })
 
   it('does not mutate the input array', () => {
@@ -44,8 +44,8 @@ describe('addKeywordIfValid', () => {
 
   it('respects MIN_KEYWORD_LENGTH boundary', () => {
     const justEnough = 'ab'
-    expect(addKeywordIfValid([], justEnough)).not.toBeNull()
-    expect(addKeywordIfValid([], 'a')).toBeNull()
+    expect(addKeywordIfValid([], justEnough).ok).toBe(true)
+    expect(addKeywordIfValid([], 'a')).toEqual({ ok: false, reason: 'too-short' })
   })
 })
 

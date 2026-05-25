@@ -10,21 +10,20 @@
 import { useMemo } from 'react'
 import { format, subDays } from 'date-fns'
 import type { DailyLeisure } from '@/domain/dailyContext'
-import type { AppLanguage } from '@/domain/settings'
 import { RELAX_TYPE_LABELS } from '@/domain/dailyContext'
 import type { RelaxType } from '@/domain/dailyContext'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 
 const RELAX_TYPES: RelaxType[] = ['screen', 'social', 'quiet', 'active']
 
 interface Props {
   records: DailyLeisure[]
-  language: AppLanguage
 }
 
 // ── 组件 ──────────────────────────────────────────────────
 
-export function LeisureCard({ records, language }: Props) {
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+export function LeisureCard({ records }: Props) {
+  const language = useAppSettingsStore((s) => s.settings.language)
 
   // 过去 14 天的每日娱乐数据
   const dailyData = useMemo(() => {
@@ -95,13 +94,13 @@ export function LeisureCard({ records, language }: Props) {
       {/* ── 标题 ──────────────────────────────── */}
       <div className="leisure-header">
         <span className="leisure-header-icon">🎯</span>
-        <span className="leisure-header-title">{t('娱乐放松', 'Leisure & Relaxation')}</span>
+        <span className="leisure-header-title">{'娱乐放松'}</span>
       </div>
 
       {/* ── 堆叠条形图 ────────────────────────── */}
       <div className="leisure-chart">
         <div className="leisure-chart-title">
-          {t('近 15 天放松方式分布', 'Relaxation Type — Last 15 Days')}
+          {'近 15 天放松方式分布'}
         </div>
         <div className="leisure-chart-body">
           {dailyData.map((day) => {
@@ -158,7 +157,7 @@ export function LeisureCard({ records, language }: Props) {
             </span>
           ))}
           <span className="leisure-legend-note">
-            {t('每小时=一格', 'Per day')}
+            {'每小时=一格'}
           </span>
         </div>
       </div>
@@ -180,7 +179,7 @@ export function LeisureCard({ records, language }: Props) {
               </div>
               <div className="leisure-summary-value">
                 {hours.toFixed(1)}
-                <span className="leisure-summary-unit">{t('小时', 'h')}</span>
+                <span className="leisure-summary-unit">{'小时'}</span>
               </div>
               <div className="leisure-summary-bar-wrap">
                 <div

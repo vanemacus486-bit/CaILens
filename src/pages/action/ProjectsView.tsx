@@ -30,7 +30,7 @@ import type { Todo } from '@/domain/todo'
 
 export function ProjectsView() {
   const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const {
     projects,
@@ -103,7 +103,7 @@ export function ProjectsView() {
         <div className="mb-6">
           <h3 className="flex items-center gap-1.5 font-sans text-xs font-medium text-text-tertiary mb-3">
             <Clock size={13} strokeWidth={1.75} />
-            {t('时间追踪项目', 'Active Projects')}
+            {'时间追踪项目'}
           </h3>
           <div className="flex flex-wrap gap-2">
             {activeProjects.map((p) => {
@@ -155,7 +155,7 @@ export function ProjectsView() {
             type="text"
             value={newProjectName}
             onChange={(e) => setNewProjectName(e.target.value)}
-            placeholder={t('新建项目…', 'New project…')}
+            placeholder={'新建项目…'}
             className="flex-1 bg-transparent border-none outline-none font-sans text-sm text-text-primary placeholder:text-text-quaternary"
           />
           <button
@@ -163,7 +163,7 @@ export function ProjectsView() {
             disabled={!newProjectName.trim()}
             className="h-7 px-3 rounded-md text-xs font-medium font-sans bg-accent text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity cursor-pointer border-none"
           >
-            {t('添加', 'Add')}
+            {'添加'}
           </button>
         </form>
       </div>
@@ -177,14 +177,14 @@ export function ProjectsView() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <p className="font-sans text-sm text-text-tertiary">
-            {t('加载中…', 'Loading…')}
+            {'加载中…'}
           </p>
         </div>
       ) : projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <FolderKanban size={40} strokeWidth={1.25} className="text-text-tertiary/40 mb-4" />
           <p className="font-sans text-sm text-text-tertiary mb-1">
-            {t('还没有项目，在上方输入框添加', 'No projects yet. Add one above.')}
+            {'还没有项目，在上方输入框添加'}
           </p>
         </div>
       ) : (
@@ -250,8 +250,7 @@ function ProjectCard({
   onDeleteItem,
   onReorderItem,
 }: ProjectCardProps) {
-  const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const total = todos.length
   const done = todos.filter((t) => t.status === 'done').length
@@ -265,7 +264,7 @@ function ProjectCard({
         <button
           onClick={onToggleExpand}
           className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-tertiary hover:text-text-primary transition-colors"
-          aria-label={isExpanded ? t('折叠', 'Collapse') : t('展开', 'Expand')}
+          aria-label={isExpanded ? '折叠' : '展开'}
         >
           {isExpanded ? (
             <ChevronDown size={16} strokeWidth={1.75} />
@@ -309,14 +308,14 @@ function ProjectCard({
         <button
           onClick={() => onReorderProject('up')}
           className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-text-secondary transition-colors"
-          aria-label={t('上移', 'Move up')}
+          aria-label={'上移'}
         >
           <ChevronUp size={14} strokeWidth={1.75} />
         </button>
         <button
           onClick={() => onReorderProject('down')}
           className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-text-secondary transition-colors"
-          aria-label={t('下移', 'Move down')}
+          aria-label={'下移'}
         >
           <ChevronDownIcon size={14} strokeWidth={1.75} />
         </button>
@@ -325,7 +324,7 @@ function ProjectCard({
         <button
           onClick={onDeleteProject}
           className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-[#B53535] transition-colors"
-          aria-label={t('删除项目', 'Delete project')}
+          aria-label={'删除项目'}
         >
           <Trash2 size={14} strokeWidth={1.75} />
         </button>
@@ -337,7 +336,7 @@ function ProjectCard({
           {/* 子待办列表 */}
           {todos.length === 0 && (
             <p className="px-4 py-6 text-center font-sans text-xs text-text-tertiary italic">
-              {t('暂无子待办，在下方添加', 'No items yet. Add one below.')}
+              {'暂无子待办，在下方添加'}
             </p>
           )}
           {todos.map((todo) => {
@@ -353,8 +352,8 @@ function ProjectCard({
                   className="flex-shrink-0 cursor-pointer bg-transparent border-none transition-colors"
                   aria-label={
                     isDone
-                      ? t('标记未完成', 'Mark incomplete')
-                      : t('标记完成', 'Mark done')
+                      ? '标记未完成'
+                      : '标记完成'
                   }
                 >
                   {isDone ? (
@@ -387,14 +386,14 @@ function ProjectCard({
                 <button
                   onClick={() => onReorderItem(todo.id, 'up')}
                   className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-text-secondary transition-colors opacity-0 group-hover:opacity-100"
-                  aria-label={t('上移', 'Move up')}
+                  aria-label={'上移'}
                 >
                   <ChevronUp size={13} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => onReorderItem(todo.id, 'down')}
                   className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-text-secondary transition-colors opacity-0 group-hover:opacity-100"
-                  aria-label={t('下移', 'Move down')}
+                  aria-label={'下移'}
                 >
                   <ChevronDownIcon size={13} strokeWidth={1.75} />
                 </button>
@@ -403,7 +402,7 @@ function ProjectCard({
                 <button
                   onClick={() => onDeleteItem(todo.id)}
                   className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-[#B53535] transition-colors opacity-0 group-hover:opacity-100"
-                  aria-label={t('删除', 'Delete')}
+                  aria-label={'删除'}
                 >
                   <Trash2 size={13} strokeWidth={1.75} />
                 </button>
@@ -419,7 +418,7 @@ function ProjectCard({
               value={newItemTitle}
               onChange={(e) => onNewItemTitleChange(e.target.value)}
               onKeyDown={onItemKeyDown}
-              placeholder={t('添加子待办…', 'Add item…')}
+              placeholder={'添加子待办…'}
               className="flex-1 bg-transparent border-none outline-none font-sans text-sm text-text-primary placeholder:text-text-quaternary"
             />
             <button
@@ -427,7 +426,7 @@ function ProjectCard({
               disabled={!newItemTitle.trim()}
               className="h-6 px-2.5 rounded-md text-[11px] font-medium font-sans bg-accent text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity cursor-pointer border-none"
             >
-              {t('添加', 'Add')}
+              {'添加'}
             </button>
           </div>
         </div>

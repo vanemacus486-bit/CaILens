@@ -41,7 +41,7 @@ export function ImportSection({ language }: ImportSectionProps) {
       const stats = await importJson(text)
       setResult(stats)
       setStatus(stats.imported > 0 ? 'done' : 'error')
-      if (stats.imported === 0) setError(t('没有可导入的有效事件', 'No valid events to import'))
+      if (stats.imported === 0) setError('没有可导入的有效事件')
     } catch (err) {
       setStatus('error')
       setError((err as Error).message)
@@ -59,7 +59,7 @@ export function ImportSection({ language }: ImportSectionProps) {
       const stats = await importCsv(text)
       setResult(stats)
       setStatus(stats.imported > 0 ? 'done' : 'error')
-      if (stats.imported === 0) setError(t('没有可导入的有效事件', 'No valid events to import'))
+      if (stats.imported === 0) setError('没有可导入的有效事件')
     } catch (err) {
       setStatus('error')
       setError((err as Error).message)
@@ -93,10 +93,10 @@ export function ImportSection({ language }: ImportSectionProps) {
   return (
     <div className="bg-surface-raised border border-border-subtle p-6">
       <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
-        {t('导入数据', 'Import Data')}
+        {'导入数据'}
       </h3>
       <p className="text-body-xs text-text-tertiary mb-4">
-        {t('从 JSON、CSV 或 .cailens 备份中恢复数据。', 'Restore data from JSON, CSV, or .cailens backups.')}
+        {'从 JSON、CSV 或 .cailens 备份中恢复数据。'}
       </p>
 
       {/* Status banner */}
@@ -107,7 +107,7 @@ export function ImportSection({ language }: ImportSectionProps) {
             {'tables' in result ? (
               t('已恢复 ' + Object.values(result.tables).reduce((a, b) => a + b, 0) + ' 条记录', `Restored ${Object.values(result.tables).reduce((a, b) => a + b, 0)} records`)
             ) : (
-              t(`已导入 ${result.imported} 条事件`, `Imported ${result.imported} events`)
+              `已导入 ${result.imported} 条事件`
             )}
           </span>
         </div>
@@ -130,7 +130,7 @@ export function ImportSection({ language }: ImportSectionProps) {
           className="inline-flex items-center gap-1.5 bg-surface-base border border-border-default px-[18px] py-2 text-xs font-sans font-medium text-text-secondary cursor-pointer rounded-sm transition-colors duration-200 hover:bg-surface-sunken hover:border-border-default hover:text-text-primary disabled:opacity-50"
         >
           {status === 'importing' ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileJson size={12} strokeWidth={1.75} />}
-          {t('导入 JSON', 'Import JSON')}
+          {'导入 JSON'}
         </button>
 
         {/* CSV import */}
@@ -141,7 +141,7 @@ export function ImportSection({ language }: ImportSectionProps) {
           className="inline-flex items-center gap-1.5 bg-surface-base border border-border-default px-[18px] py-2 text-xs font-sans font-medium text-text-secondary cursor-pointer rounded-sm transition-colors duration-200 hover:bg-surface-sunken hover:border-border-default hover:text-text-primary disabled:opacity-50"
         >
           {status === 'importing' ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileSpreadsheet size={12} strokeWidth={1.75} />}
-          {t('导入 CSV', 'Import CSV')}
+          {'导入 CSV'}
         </button>
 
         {/* .cailens restore */}
@@ -154,7 +154,7 @@ export function ImportSection({ language }: ImportSectionProps) {
               className="inline-flex items-center gap-1.5 bg-surface-base border border-border-default px-[18px] py-2 text-xs font-sans font-medium text-text-secondary cursor-pointer rounded-sm transition-colors duration-200 hover:bg-surface-sunken hover:border-border-default hover:text-text-primary disabled:opacity-50"
             >
               <Lock size={12} strokeWidth={1.75} />
-              {t('恢复 .cailens', 'Restore .cailens')}
+              {'恢复 .cailens'}
             </button>
           </>
         ) : (
@@ -162,7 +162,7 @@ export function ImportSection({ language }: ImportSectionProps) {
             <span className="text-xs text-text-tertiary italic">{cailensFile.name}</span>
             <input
               type="password"
-              placeholder={t('输入密码', 'Passphrase')}
+              placeholder={'输入密码'}
               value={cailensPassphrase}
               onChange={(e) => setCailensPassphrase(e.target.value)}
               className="w-40 px-2 py-1.5 text-xs rounded border border-border-default bg-surface-base text-text-primary outline-none focus:border-accent"
@@ -174,13 +174,13 @@ export function ImportSection({ language }: ImportSectionProps) {
               className="inline-flex items-center gap-1 bg-accent text-white px-3 py-1.5 text-xs font-medium rounded-sm transition-colors duration-200 hover:bg-accent-hover disabled:opacity-50 cursor-pointer border-none"
             >
               {status === 'importing' ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-              {t('恢复', 'Restore')}
+              {'恢复'}
             </button>
             <button
               onClick={reset}
               className="text-xs text-text-tertiary underline cursor-pointer bg-transparent border-none hover:text-text-secondary"
             >
-              {t('取消', 'Cancel')}
+              {'取消'}
             </button>
           </div>
         )}

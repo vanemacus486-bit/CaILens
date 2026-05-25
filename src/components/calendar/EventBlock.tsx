@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { renderDescription } from '@/domain/descriptionMd'
+
 import type { PositionedEvent } from '@/domain/layout'
 import type { CalendarEvent, EventColor } from '@/domain/event'
 import { EVENT_COLORS } from '@/domain/event'
@@ -22,24 +22,25 @@ export function colSpan(columnIndex: number, totalColumns: number) {
 }
 
 interface EventBlockProps {
-  positioned:    PositionedEvent
-  columnDate:    Date
-  onClick:       (event: CalendarEvent, el: HTMLElement) => void
-  onColorChange: (eventId: string, color: EventColor) => void
-  onEdit:        (event: CalendarEvent, anchorEl: HTMLElement) => void
-  onDuplicate:   (eventId: string) => void
-  onDelete:      (eventId: string) => void
-  onDragMove:    (eventId: string, newStartTime: number, newEndTime: number) => void
-  onDragToEdge:  (eventId: string, newStartTime: number, newEndTime: number, direction: -1 | 1) => void
-  onDragStart:   () => void
+  positioned:         PositionedEvent
+  columnDate:         Date
+  onClick:            (event: CalendarEvent, el: HTMLElement) => void
+  onColorChange:      (eventId: string, color: EventColor) => void
+  onEdit:             (event: CalendarEvent, anchorEl: HTMLElement) => void
+  onDuplicate:        (eventId: string) => void
+  onDelete:           (eventId: string) => void
+  onDragMove:         (eventId: string, newStartTime: number, newEndTime: number) => void
+  onDragToEdge:       (eventId: string, newStartTime: number, newEndTime: number, direction: -1 | 1) => void
+  onDragStart:        () => void
   onDragStateChange?: (dragState: DragState) => void
   /** Called when a resize completes; same signature as onDragMove. */
-  onResize:      (eventId: string, newStartTime: number, newEndTime: number) => void
-  weekDays:      Date[]
-  gridRef:       React.RefObject<HTMLElement | null>
-  isCardOpen?:   boolean
+  onResize:           (eventId: string, newStartTime: number, newEndTime: number) => void
+  weekDays:           Date[]
+  gridRef:            React.RefObject<HTMLElement | null>
+  isCardOpen?:        boolean
+  highlightedEventId?: string | null
   /** 类型化事件角标点击 */
-  onTypedEdit?:  (event: CalendarEvent, el: HTMLElement) => void
+  onTypedEdit?:       (event: CalendarEvent, el: HTMLElement) => void
 }
 
 function fmtHM(ts: number): string {
@@ -49,7 +50,8 @@ function fmtHM(ts: number): string {
 
 export const EventBlock = React.memo(function EventBlock({
   positioned, columnDate, onClick, onColorChange, onEdit, onDuplicate, onDelete,
-  onDragMove, onDragStart, onDragStateChange, onResize, weekDays, gridRef, isCardOpen = false,
+  onDragMove, onDragStart, onDragStateChange, onResize, weekDays, gridRef,
+  isCardOpen = false, highlightedEventId,
   onTypedEdit,
 }: EventBlockProps) {
   const { event, rowStart, rowEnd, columnIndex, totalColumns, startsBeforeDay, endsAfterDay } = positioned
@@ -182,7 +184,9 @@ export const EventBlock = React.memo(function EventBlock({
               ? 'cursor-grabbing'
               : isCardOpen
                 ? 'cursor-grab brightness-90 ring-1 ring-inset ring-current/30'
-                : 'cursor-grab hover:brightness-95',
+                : highlightedEventId === event.id
+                  ? 'cursor-grab hover:brightness-95 animate-search-highlight'
+                  : 'cursor-grab hover:brightness-95',
           )}
           style={{
             gridRowStart: rowStart,
@@ -272,10 +276,9 @@ export const EventBlock = React.memo(function EventBlock({
             </p>
           )}
           {!isCompact && event.description && (
-            <div
-              className="text-xs-alt opacity-70 leading-tight mt-0.5 line-clamp-1 font-sans"
-              dangerouslySetInnerHTML={{ __html: renderDescription(event.description).replace(/<[^>]+>/g, '') }}
-            />
+            <div className="text-xs-alt opacity-70 leading-tight mt-0.5 line-clamp-1 font-sans">
+              {event.description}
+            </div>
           )}
 
           {/* Continue-to-below indicator */}

@@ -27,7 +27,7 @@ const PRIORITY_LABELS: Record<TodoPriority, { zh: string; en: string }> = {
 
 export function TodoInput({ onCreate }: TodoInputProps) {
   const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState<TodoPriority>('medium')
@@ -62,7 +62,7 @@ export function TodoInput({ onCreate }: TodoInputProps) {
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={t('新增待办…', 'Add a new todo…')}
+          placeholder={'新增待办…'}
           className="flex-1 min-w-[120px] bg-transparent border-none outline-none font-sans text-sm text-text-primary placeholder:text-text-quaternary"
           autoFocus
         />
@@ -107,7 +107,7 @@ export function TodoInput({ onCreate }: TodoInputProps) {
           disabled={!title.trim()}
           className="h-7 px-3 rounded-md text-xs font-medium font-sans bg-accent text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity cursor-pointer border-none"
         >
-          {t('添加', 'Add')}
+          {'添加'}
         </button>
       </div>
 
@@ -117,7 +117,7 @@ export function TodoInput({ onCreate }: TodoInputProps) {
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder={t('备注（可选）…', 'Notes (optional)…')}
+          placeholder={'备注（可选）…'}
           className="w-full bg-transparent border-none outline-none font-sans text-xs text-text-tertiary placeholder:text-text-quaternary"
         />
       </div>

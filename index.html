@@ -6,7 +6,6 @@
         var theme = localStorage.getItem('cailens-theme');
         if (!theme) {
           theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          localStorage.setItem('cailens-theme', theme);
         }
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
@@ -23,8 +22,33 @@
     </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="modulepreload" href="/src/main.tsx" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CaILens</title>
+    <script>
+      (function() {
+        var label = document.getElementById('splash-label');
+        var bar   = document.getElementById('splash-bar-fill');
+        function setStatus(text, pct) {
+          if (label) label.textContent = text;
+          if (bar) {
+            bar.classList.remove('indeterminate');
+            if (pct != null) bar.style.width = pct + '%';
+          }
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() {
+            setStatus('Loading resources…', 25);
+          });
+        }
+        var mainScript = document.querySelector('script[type="module"][src*="/src/main"]');
+        if (mainScript) {
+          mainScript.addEventListener('load', function() {
+            setStatus('Initializing…', 50);
+          });
+        }
+      })();
+    </script>
     <style>
       /* ── Critical splash tokens (mirrors src/index.css) ── */
       :root {
@@ -163,7 +187,7 @@
           <div class="splash-bar-fill indeterminate" id="splash-bar-fill"></div>
         </div>
         <div class="splash-label" id="splash-label">Starting up&hellip;</div>
-        <div class="splash-version">v3.7</div>
+        <div class="splash-version">v%APP_VERSION%</div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

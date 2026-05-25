@@ -40,10 +40,12 @@ export function WeekView() {
   const deleteEvent        = useEventStore((s) => s.deleteEvent)
   const duplicateEvent     = useEventStore((s) => s.duplicateEvent)
 
-  const language           = useAppSettingsStore((s) => s.settings.language)
+  const language = useAppSettingsStore((s) => s.settings.language)
 
-  // View mode: derived from URL (single source of truth — no useState)
+    // View mode: derived from URL (single source of truth — no useState)
   const viewMode = (searchParams.get('view') as 'week' | 'month' | 'day' | null) ?? 'week'
+
+  const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null)
 
   const [selectedDay, setSelectedDay] = useState<Date>(() => {
     const dateParam = searchParams.get('date')
@@ -141,6 +143,9 @@ export function WeekView() {
     requestAnimationFrame(() => {
       const el = document.querySelector<HTMLElement>(`[data-event-id="${openEventId}"]`)
       if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        setHighlightedEventId(openEventId)
+        setTimeout(() => setHighlightedEventId(null), 2500)
         setCardState({ mode: 'detail', event, anchorEl: el })
       }
       setSearchParams((prev) => {
@@ -363,6 +368,7 @@ export function WeekView() {
                     date={day}
                     events={eventsByDay.get(day.getTime()) ?? EMPTY}
                     selectedEventId={selectedEventId}
+                    highlightedEventId={highlightedEventId}
                     weekDays={days}
                     gridRef={gridRef}
                     onSlotClick={handleSlotClick}

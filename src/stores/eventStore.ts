@@ -48,6 +48,7 @@ interface EventState {
   importParsedEvents: (parsedEvents: ImportedEvent[], resolveCategory: (event: ImportedEvent, index: number) => CategoryId) => Promise<void>
   reclassifyAllEvents: () => Promise<void>
   duplicateEvent: (id: string) => Promise<CalendarEvent>
+  bulkRenameEvents: (updates: { id: string; title: string }[]) => Promise<void>
 }
 
 export const useEventStore = create<EventState>()((set, get) => ({
@@ -258,6 +259,22 @@ export const useEventStore = create<EventState>()((set, get) => ({
         const update = updates.find((u) => u.id === e.id)
         return update ? { ...e, color: update.color, categoryId: update.categoryId } : e
       }),
+    }))
+  },
+
+  bulkRenameEvents: async (updates) => {
+    if (updates.length === 0) return
+    await getEventRepo().bulkUpdateTitles(updates)
+    clearEventCache()
+
+    const updateMap = new Map(updates.map((u) => [u.id, u.title]))
+    const patchEvent = (e: CalendarEvent) =>
+      updateMap.has(e.id) ? { ...e, title: updateMap.get(e.id)!, updatedAt: Date.now() } : e
+
+    set((state) => ({
+      events: state.events.map(patchEvent),
+      rangeEvents: state.rangeEvents.map(patchEvent),
+      allEvents: state.allEvents.map(patchEvent),
     }))
   },
 }))

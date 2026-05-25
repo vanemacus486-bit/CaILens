@@ -18,14 +18,12 @@ import {
 } from 'recharts'
 import { format } from 'date-fns'
 import type { BodyMetricsRecord } from '@/domain/dailyContext'
-import type { AppLanguage } from '@/domain/settings'
 import type { Profile } from '@/domain/profile'
 import { computeBMI } from '@/domain/dailyContext'
 
 interface Props {
   records: BodyMetricsRecord[]
   profile: Profile | null
-  language: AppLanguage
 }
 
 // ── 辅助 ──────────────────────────────────────────────────
@@ -37,8 +35,7 @@ function fmtDate(dateStr: string): string {
 
 // ── 组件 ──────────────────────────────────────────────────
 
-export function BodyMetricsPanel({ records, profile, language }: Props) {
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+export function BodyMetricsPanel({ records, profile }: Props) {
 
   // 准备图表数据（按日期升序，计算 BMI）
   const chartData = useMemo(() => {
@@ -92,10 +89,10 @@ export function BodyMetricsPanel({ records, profile, language }: Props) {
       {/* ── 标题 ──────────────────────────────── */}
       <div className="body-title-area">
         <span className="body-title-main">
-          {t('身体指标', 'Body Metrics')}
+          {'身体指标'}
         </span>
         <p className="body-title-desc">
-          {t('历史记录趋势，数据来自手动录入', 'Historical trends from manual entries')}
+          {'历史记录趋势，数据来自手动录入'}
         </p>
       </div>
 
@@ -104,9 +101,9 @@ export function BodyMetricsPanel({ records, profile, language }: Props) {
         <div className="body-chart-card">
           <div className="body-chart-header">
             <div>
-              <div className="body-chart-title">{t('体重趋势', 'Weight Trend')}</div>
+              <div className="body-chart-title">{'体重趋势'}</div>
               <div className="body-chart-subtitle">
-                {t('含 7 点移动平均', 'With 7-point moving avg')}
+                {'含 7 点移动平均'}
               </div>
             </div>
             <div className="body-chart-stats">
@@ -119,7 +116,7 @@ export function BodyMetricsPanel({ records, profile, language }: Props) {
               {movingAvg !== null && (
                 <div className="body-chart-stat">
                   <span className="body-stat-num">{movingAvg}</span>
-                  <span className="body-stat-unit">{t('MA7', 'MA7')}</span>
+                  <span className="body-stat-unit">{'MA7'}</span>
                 </div>
               )}
               {trend && (
@@ -136,7 +133,7 @@ export function BodyMetricsPanel({ records, profile, language }: Props) {
                   <span className="body-stat-num">
                     {trend.diff >= 0 ? '+' : ''}{trend.diff}
                   </span>
-                  <span className="body-stat-unit">{t('7d', '7d')}</span>
+                  <span className="body-stat-unit">{'7d'}</span>
                 </div>
               )}
             </div>
@@ -179,7 +176,7 @@ export function BodyMetricsPanel({ records, profile, language }: Props) {
                 <Line
                   type="monotone"
                   dataKey="weight"
-                  name={t('体重', 'Weight')}
+                  name={'体重'}
                   stroke="var(--accent)"
                   strokeWidth={1.5}
                   dot={{ r: 2, fill: 'var(--accent)', strokeWidth: 0 }}
@@ -197,9 +194,9 @@ export function BodyMetricsPanel({ records, profile, language }: Props) {
         <div className="body-chart-card">
           <div className="body-chart-header">
             <div>
-              <div className="body-chart-title">{t('BMI 趋势', 'BMI Trend')}</div>
+              <div className="body-chart-title">{'BMI 趋势'}</div>
               <div className="body-chart-subtitle">
-                {t('基于体重与身高计算', 'Calculated from weight & height')}
+                {'基于体重与身高计算'}
               </div>
             </div>
             <div className="body-chart-stats">
@@ -292,9 +289,9 @@ export function BodyMetricsPanel({ records, profile, language }: Props) {
         <div className="body-chart-card">
           <div className="body-chart-header">
             <div>
-              <div className="body-chart-title">{t('静息心率', 'Resting HR')}</div>
+              <div className="body-chart-title">{'静息心率'}</div>
               <div className="body-chart-subtitle">
-                {t('参考范围: 60-100 bpm', 'Reference: 60-100 bpm')}
+                {'参考范围: 60-100 bpm'}
               </div>
             </div>
             {latest?.restingHR !== null && latest?.restingHR !== undefined && (
@@ -348,7 +345,7 @@ export function BodyMetricsPanel({ records, profile, language }: Props) {
                 <Line
                   type="monotone"
                   dataKey="restingHR"
-                  name={t('心率', 'HR')}
+                  name={'心率'}
                   stroke="var(--event-rose-fill)"
                   strokeWidth={1.5}
                   dot={{ r: 2, fill: 'var(--event-rose-fill)', strokeWidth: 0 }}
@@ -366,26 +363,26 @@ export function BodyMetricsPanel({ records, profile, language }: Props) {
         <div className="body-vision-card">
           <div className="body-vision-header">
             <span className="body-vision-icon">👁</span>
-            <span className="body-vision-title">{t('视力快照', 'Vision Snapshot')}</span>
+            <span className="body-vision-title">{'视力快照'}</span>
           </div>
           <div className="body-vision-body">
             <div className="body-vision-item">
-              <span className="body-vision-label">{t('左眼', 'Left')}</span>
+              <span className="body-vision-label">{'左眼'}</span>
               <span className="body-vision-value">{profile?.body?.visionLeft}</span>
             </div>
             <div className="body-vision-item">
-              <span className="body-vision-label">{t('右眼', 'Right')}</span>
+              <span className="body-vision-label">{'右眼'}</span>
               <span className="body-vision-value">{profile?.body?.visionRight}</span>
             </div>
             {profile?.body?.visionLastCheck && (
               <div className="body-vision-item">
-                <span className="body-vision-label">{t('最近验光', 'Last Check')}</span>
+                <span className="body-vision-label">{'最近验光'}</span>
                 <span className="body-vision-value">{profile?.body?.visionLastCheck}</span>
               </div>
             )}
           </div>
           <div className="body-vision-note">
-            {t('视力变化以年为单位，不适合趋势图', 'Vision changes slowly — trend chart not applicable')}
+            {'视力变化以年为单位，不适合趋势图'}
           </div>
         </div>
       )}
@@ -394,10 +391,7 @@ export function BodyMetricsPanel({ records, profile, language }: Props) {
       {!hasWeightData && !hasHRData && (!profile?.body?.visionLeft) && (
         <div className="body-empty">
           <p className="body-empty-text">
-            {t(
-              '尚无身体指标数据。可在设置或个人档案中录入。',
-              'No body metrics yet. Add entries in Settings or Profile.',
-            )}
+            {'尚无身体指标数据。可在设置或个人档案中录入。'}
           </p>
         </div>
       )}

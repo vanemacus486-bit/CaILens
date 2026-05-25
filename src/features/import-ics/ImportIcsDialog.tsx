@@ -42,12 +42,9 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const categories = useCategoryStore((s) => s.categories)
-  const language = useAppSettingsStore((s) => s.settings.language)
-  const importParsedEvents = useEventStore((s) => s.importParsedEvents)
+    const importParsedEvents = useEventStore((s) => s.importParsedEvents)
 
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-  // Build stable index lookup for individual event overrides
+    // Build stable index lookup for individual event overrides
   const eventIndexMap = useMemo(() => {
     if (!parseResult) return new Map<ImportedEvent, number>()
     const m = new Map<ImportedEvent, number>()
@@ -110,7 +107,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
 
   const processFile = (file: File) => {
     if (!file.name.endsWith('.ics')) {
-      setError(t('请选择 .ics 文件', 'Please select a .ics file'))
+      setError('请选择 .ics 文件')
       return
     }
     setFileName(file.name)
@@ -131,12 +128,12 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
         setIndividualOverrides(new Map())
         setStatus('preview')
       } catch (err) {
-        setError(err instanceof Error ? err.message : t('无法解析文件', 'Cannot parse file'))
+        setError(err instanceof Error ? err.message : '无法解析文件')
         setStatus('idle')
       }
     }
     reader.onerror = () => {
-      setError(t('无法读取文件', 'Cannot read file'))
+      setError('无法读取文件')
       setStatus('idle')
     }
     reader.readAsText(file)
@@ -248,7 +245,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent className="max-w-xl">
         <AlertDialogHeader>
-          <AlertDialogTitle>{t('导入日历', 'Import Calendar')}</AlertDialogTitle>
+          <AlertDialogTitle>{'导入日历'}</AlertDialogTitle>
         </AlertDialogHeader>
 
         <div className="flex flex-col gap-3">
@@ -274,8 +271,8 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
             >
               <Upload className="h-4 w-4 flex-shrink-0" />
               {isDragOver
-                ? t('释放以导入', 'Drop to import')
-                : fileName || t('拖拽或选择 .ics 文件', 'Drag & drop or choose .ics file')}
+                ? '释放以导入'
+                : fileName || '拖拽或选择 .ics 文件'}
             </button>
           </div>
 
@@ -291,29 +288,29 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
           {parseResult && status !== 'importing' && status !== 'done' && (
             <div className="flex flex-col gap-2 text-sm font-sans bg-surface-sunken rounded-xl px-3 py-2">
               <div className="flex items-center justify-between">
-                <span className="text-text-secondary">{t('解析结果', 'Parse result')}</span>
+                <span className="text-text-secondary">{'解析结果'}</span>
                 <span className="text-text-primary font-medium">
-                  {totalCount} {t('个事件', 'events')} &middot; {groups.length} {t('种类型', 'types')}
+                  {totalCount} {'个事件'} &middot; {groups.length} {'种类型'}
                 </span>
               </div>
               {(parseResult.skippedAllDay > 0 || parseResult.skippedRecurring > 0) && (
                 <details className="text-text-tertiary">
                   <summary className="cursor-pointer text-xs">
                     {parseResult.skippedAllDay > 0 &&
-                      t(`跳过 ${parseResult.skippedAllDay} 个全天事件`, `Skipped ${parseResult.skippedAllDay} all-day events`)}
+                      `跳过 ${parseResult.skippedAllDay} 个全天事件`}
                     {parseResult.skippedAllDay > 0 && parseResult.skippedRecurring > 0 && '，'}
                     {parseResult.skippedRecurring > 0 &&
-                      t(`跳过 ${parseResult.skippedRecurring} 个重复事件`, `Skipped ${parseResult.skippedRecurring} recurring events`)}
+                      `跳过 ${parseResult.skippedRecurring} 个重复事件`}
                   </summary>
                   <ul className="mt-1 pl-3 text-body-xs list-disc list-inside max-h-20 overflow-y-auto">
                     {parseResult.skippedAllDayTitles.map((title, i) => (
                       <li key={`ad-${i}`} className="truncate">
-                        {title || t('(无标题)', '(Untitled)')}
+                        {title || '(无标题)'}
                       </li>
                     ))}
                     {parseResult.skippedRecurringTitles.map((title, i) => (
                       <li key={`rr-${i}`} className="truncate">
-                        {title || t('(无标题)', '(Untitled)')}
+                        {title || '(无标题)'}
                       </li>
                     ))}
                   </ul>
@@ -333,7 +330,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('搜索事件名…', 'Search event names…')}
+                  placeholder={'搜索事件名…'}
                   className={cn(
                     'w-full pl-8 pr-3 py-1.5 rounded-lg text-sm font-sans',
                     'bg-surface-sunken text-text-primary placeholder:text-text-tertiary',
@@ -365,7 +362,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                     )}
                   >
                     <Sparkles className="h-3 w-3" />
-                    {t(`应用 ${pendingSuggestions} 条`, `Apply ${pendingSuggestions}`)}
+                    {`应用 ${pendingSuggestions} 条`}
                   </button>
                 )}
               </div>
@@ -373,7 +370,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
               {/* Casting hint */}
               {groups.length > 0 && coveredCount === 0 && (
                 <p className="text-xs text-text-tertiary font-sans">
-                  {t('按 1-6 数字键快速分配，或点击下方按钮', 'Press 1-6 keys to assign, or click buttons below')}
+                  {'按 1-6 数字键快速分配，或点击下方按钮'}
                 </p>
               )}
 
@@ -381,7 +378,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
               <div className="flex flex-col gap-1 max-h-64 overflow-y-auto">
                 {filteredGroups.length === 0 ? (
                   <p className="text-xs text-text-tertiary text-center py-4 font-sans">
-                    {t('没有匹配的事件名', 'No matching event names')}
+                    {'没有匹配的事件名'}
                   </p>
                 ) : (
                   filteredGroups.map((g) => {
@@ -403,7 +400,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                               <Sparkles className="h-3 w-3 text-event-accent-text flex-shrink-0" />
                             )}
                             <span className="flex-1 text-sm font-serif text-text-primary truncate">
-                              {g.title || t('(无标题)', '(Untitled)')}
+                              {g.title || '(无标题)'}
                             </span>
                             <span
                               className={cn(
@@ -502,7 +499,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                                         type="button"
                                         onClick={() => removeIndividualOverride(globalIdx)}
                                         className="text-text-tertiary hover:text-color-text-danger flex-shrink-0"
-                                        title={t('清除覆盖', 'Clear override')}
+                                        title={'清除覆盖'}
                                       >
                                         &times;
                                       </button>
@@ -548,7 +545,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
           {status === 'done' && (
             <div className="flex items-center gap-2 text-sm font-sans text-color-text-success bg-color-bg-positive rounded-xl px-3 py-2">
               <Check className="h-4 w-4 flex-shrink-0" />
-              {t('已导入', 'Imported')} {totalCount} {t('个事件', 'events')}
+              {'已导入'} {totalCount} {'个事件'}
             </div>
           )}
 
@@ -556,12 +553,12 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
           <div className="flex gap-2 justify-end pt-1">
             {status === 'done' ? (
               <Button variant="default" size="sm" onClick={() => handleOpenChange(false)}>
-                {t('完成', 'Done')}
+                {'完成'}
               </Button>
             ) : (
               <>
                 <Button variant="ghost" size="sm" onClick={() => handleOpenChange(false)}>
-                  {t('取消', 'Cancel')}
+                  {'取消'}
                 </Button>
                 {(status === 'preview' || status === 'importing') && (
                   <Button
@@ -572,10 +569,10 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                   >
                     {status === 'importing' ? (
                       <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('导入中…', 'Importing…')}
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> {'导入中…'}
                       </>
                     ) : (
-                      t('导入', 'Import')
+                      '导入'
                     )}
                   </Button>
                 )}

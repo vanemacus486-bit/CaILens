@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { HashRouter, Navigate, Route, Routes, Outlet, useNavigate, useSearchParams } from 'react-router-dom'
+import { HashRouter, Navigate, Route, Routes, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
 import { StatsPage } from '@/pages/StatsPage'
 import { CommandPalette } from '@/features/search/CommandPalette'
@@ -26,10 +26,8 @@ import type { ShortcutAction } from '@/domain/shortcuts'
 function Layout() {
   const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen)
   const settingsDrawerOpen = useUIStore((s) => s.settingsDrawerOpen)
-  const language = useAppSettingsStore((s) => s.settings.language)
   const theme = useAppSettingsStore((s) => s.settings.theme)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
-  const setLanguage = useAppSettingsStore((s) => s.setLanguage)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -99,10 +97,6 @@ function Layout() {
       setTheme(theme === 'dark' ? 'light' : 'dark'),
       'toggle theme',
     ),
-    toggleLanguage: () => fireAndForget(
-      setLanguage(language === 'zh' ? 'en' : 'zh'),
-      'toggle language',
-    ),
     goToPreviousWeek: () => {
       const weekParam = searchParams.get('week')
       const current = weekParam ? parseISO(weekParam) : getWeekStart(new Date(), 1)
@@ -133,7 +127,7 @@ function Layout() {
       if (!eventId) return
       fireAndForget(useEventStore.getState().duplicateEvent(eventId), 'duplicate event')
     },
-  }), [navigate, searchParams, setTheme, setLanguage, theme, language])
+  }), [navigate, searchParams, setTheme, theme])
 
   useShortcutManager(shortcutHandlers)
 
@@ -153,12 +147,18 @@ function Layout() {
   )
 }
 
+/** Preserves query params (week, openEvent, view, date) when redirecting / → /week */
+function RedirectToWeek() {
+  const loc = useLocation()
+  return <Navigate to={{ pathname: '/week', search: loc.search }} replace />
+}
+
 export default function App() {
   return (
     <HashRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/week" replace />} />
+          <Route path="/" element={<RedirectToWeek />} />
           <Route path="/week" element={<WeekView />} />
           <Route path="/action" element={<ActionPage />} />
 

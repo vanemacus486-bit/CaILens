@@ -108,7 +108,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
             {stats.daysWithMeals}
           </div>
           <div className="font-sans text-xs text-text-tertiary mt-1">
-            {t('有记录天数', 'Days tracked')}
+            {'有记录天数'}
           </div>
         </div>
         <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
@@ -116,7 +116,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
             {stats.totalMeals}
           </div>
           <div className="font-sans text-xs text-text-tertiary mt-1">
-            {t('总餐数', 'Total meals')}
+            {'总餐数'}
           </div>
         </div>
         <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
@@ -126,13 +126,13 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
               : '—'}
           </div>
           <div className="font-sans text-xs text-text-tertiary mt-1">
-            {t('均餐/天', 'Meals/day')}
+            {'均餐/天'}
           </div>
         </div>
       </div>
 
       {/* ① 主食构成 */}
-      <StatCard title={t('食物标签构成', 'Food Tag Composition')}>
+      <StatCard title={'食物标签构成'}>
         <div className="space-y-2.5">
           {sortedTags.map(([tag, count]) => {
             const ratio = count / maxTagCount
@@ -166,7 +166,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
       </StatCard>
 
       {/* ② 达标率 */}
-      <StatCard title={t('饮食达标率', 'Diet Achievement Rate')}>
+      <StatCard title={'饮食达标率'}>
         <div className="grid grid-cols-2 gap-4">
           {([
             ['protein', '#5B9E5B'],
@@ -225,10 +225,10 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
       </StatCard>
 
       {/* ③ 外卖频率趋势 */}
-      <StatCard title={t('外卖频率趋势', 'Takeout Frequency Trend')}>
+      <StatCard title={'外卖频率趋势'}>
         {stats.weeklyTakeoutCounts.length === 0 ? (
           <p className="font-sans text-xs text-text-tertiary italic">
-            {t('近 90 天无外卖记录', 'No takeout recorded in the last 90 days.')}
+            {'近 90 天无外卖记录'}
           </p>
         ) : (
           <div className="space-y-1">
@@ -280,7 +280,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
       </StatCard>
 
       {/* ④ 餐次分布 */}
-      <StatCard title={t('餐次分布', 'Meal Distribution')}>
+      <StatCard title={'餐次分布'}>
         <div className="space-y-2.5">
           {(
             Object.entries(stats.mealOrderDistribution) as [MealOrder, number][]
@@ -338,8 +338,8 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
       {/* 脚注 */}
       <p className="font-sans text-[10px] text-text-tertiary text-center italic">
         {t(
-          '食谱从记录中长出来——持续记录，模式会自然显现。相关性不等于因果。',
-          'Your recipe emerges from your records — keep tracking, patterns will surface. Correlation ≠ causation.',
+          '食谱从记录中长出来——持续记录，模式会自然显现。',
+          'Your recipe emerges from your records — keep tracking, patterns will surface.',
         )}
       </p>
     </div>

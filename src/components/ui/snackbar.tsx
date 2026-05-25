@@ -11,10 +11,7 @@ export function showUndoSnackbar(eventId: string): void {
 }
 
 export function SnackbarHost() {
-  const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-  const [eventId, setEventId] = useState<string | null>(null)
+      const [eventId, setEventId] = useState<string | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   useEffect(() => {
@@ -43,13 +40,13 @@ export function SnackbarHost() {
       role="alert"
       className="fixed bottom-4 right-4 z-[200] flex items-center gap-3 bg-surface-raised border border-border-subtle rounded-lg shadow-lg px-4 py-2.5 font-sans text-sm text-text-primary"
     >
-      <span>{t('已保存', 'Event saved')}</span>
+      <span>{'已保存'}</span>
       <span className="text-text-tertiary">·</span>
       <button
         onClick={undo}
         className="font-medium text-accent hover:text-accent-hover transition-colors duration-200 cursor-pointer"
       >
-        {t('撤销', 'Undo')}
+        {'撤销'}
       </button>
     </div>,
     document.body,

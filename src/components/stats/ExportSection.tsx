@@ -70,10 +70,10 @@ export function ExportSection({ language }: ExportSectionProps) {
   return (
     <div className="bg-surface-raised border border-border-subtle p-6">
       <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
-        {t('导出与所有权', 'Export & Ownership')}
+        {'导出与所有权'}
       </h3>
       <p className="text-body-xs text-text-tertiary mb-4">
-        {t('随时下载你的记录，任何格式，任何理由。', 'Download your records in any format, at any time, for any reason.')}
+        {'随时下载你的记录，任何格式，任何理由。'}
       </p>
 
       <div className="flex gap-2.5 items-center flex-wrap">
@@ -83,7 +83,7 @@ export function ExportSection({ language }: ExportSectionProps) {
             onClick={() => doExport(fmt.toLowerCase() as 'csv' | 'json')}
             className="bg-surface-base border border-border-default px-[18px] py-2 text-xs font-sans font-medium text-text-secondary cursor-pointer rounded-sm transition-colors duration-200 hover:bg-surface-sunken hover:border-border-default hover:text-text-primary"
           >
-            {expClk === fmt.toLowerCase() ? t('已准备 ✓', 'Prepared ✓') : t(`导出为 ${fmt}`, `Export as ${fmt}`)}
+            {expClk === fmt.toLowerCase() ? '已准备 ✓' : `导出为 ${fmt}`}
           </button>
         ))}
 
@@ -94,7 +94,7 @@ export function ExportSection({ language }: ExportSectionProps) {
           className="inline-flex items-center gap-1.5 bg-surface-base border border-border-default px-[18px] py-2 text-xs font-sans font-medium text-text-secondary cursor-pointer rounded-sm transition-colors duration-200 hover:bg-surface-sunken hover:border-border-default hover:text-text-primary disabled:opacity-50"
         >
           <Calendar size={12} strokeWidth={1.75} />
-          {icsBusy ? t('生成中…', 'Generating…') : t('导出为 ICS', 'Export as ICS')}
+          {icsBusy ? '生成中…' : '导出为 ICS'}
         </button>
 
         {/* .cailens encrypted export */}
@@ -103,11 +103,11 @@ export function ExportSection({ language }: ExportSectionProps) {
           className="inline-flex items-center gap-1.5 bg-surface-base border border-border-default px-[18px] py-2 text-xs font-sans font-medium text-text-secondary cursor-pointer rounded-sm transition-colors duration-200 hover:bg-surface-sunken hover:border-border-default hover:text-text-primary"
         >
           <Lock size={12} strokeWidth={1.75} />
-          {t('加密导出 (.cailens)', 'Encrypted (.cailens)')}
+          {'加密导出 (.cailens)'}
         </button>
 
         <span className="text-body-xs text-text-tertiary italic">
-          {t('所有数据存储在本地。不会离开你的设备。', 'All data lives locally. Nothing leaves your device.')}
+          {'所有数据存储在本地。不会离开你的设备。'}
         </span>
       </div>
 

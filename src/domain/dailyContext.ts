@@ -145,6 +145,9 @@ export const HYGIENE_MAX_DAILY_SCORE = 100
 /** 每日衰减率（基准线每天下降的分数） */
 export const HYGIENE_DAILY_DECAY = 5
 
+/** 固定基准线（图表参考线用） */
+export const HYGIENE_BASELINE = 50
+
 export interface DailyHygiene {
   id: string
   /** 日期 YYYY-MM-DD */
@@ -183,6 +186,34 @@ export function computeHygieneBaseline(
 
   // 基线 = 移动平均 - 衰减
   return Math.max(0, avg - HYGIENE_DAILY_DECAY)
+}
+
+/**
+ * 计算跨天连续卫生分数（用于折线图时序展示）。
+ * 策略：从 0 开始，每天衰减 HYGIENE_DAILY_DECAY，加上当日卫生分，不低于 0。
+ */
+export function computeRunningHygieneScore(
+  records: ReadonlyArray<DailyHygiene>,
+): Array<{ date: string; score: number }> {
+  const sorted = [...records].sort(
+    (a, b) => a.date.localeCompare(b.date),
+  )
+
+  let running = 0
+  const timeline: Array<{ date: string; score: number }> = []
+
+  for (const day of sorted) {
+    // 每日衰减
+    running = Math.max(0, running - HYGIENE_DAILY_DECAY)
+    // 加上当日活动分
+    running += computeHygieneScore(day.activities)
+    // 不超出上限
+    running = Math.min(running, HYGIENE_MAX_DAILY_SCORE)
+
+    timeline.push({ date: day.date, score: Math.round(running) })
+  }
+
+  return timeline
 }
 
 // ── 娱乐放松 ─────────────────────────────────────────────

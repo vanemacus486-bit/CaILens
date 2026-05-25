@@ -46,9 +46,7 @@ export function MonthView({ monthStart, onDayChange, onMonthChange }: MonthViewP
   const loadRange     = useEventStore((s) => s.loadRange)
   const categories    = useCategoryStore((s) => s.categories)
   const language      = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
-
-  // Click feedback state: briefly highlights the clicked cell
+      // Click feedback state: briefly highlights the clicked cell
   const [clickedKey, setClickedKey] = useState<number | null>(null)
 
   const year = monthStart.getFullYear()
@@ -173,7 +171,7 @@ export function MonthView({ monthStart, onDayChange, onMonthChange }: MonthViewP
           onClick={handleToday}
           className="font-sans text-xs text-text-secondary border border-border-subtle rounded-md px-3 py-1.5 cursor-pointer hover:bg-surface-sunken transition-colors duration-200 bg-transparent"
         >
-          {t('回到本月', 'This month')}
+          {'回到本月'}
         </button>
       </div>
 
@@ -292,7 +290,7 @@ export function MonthView({ monthStart, onDayChange, onMonthChange }: MonthViewP
                   )}
                   {cell.isCurrentMonth && !topEvent && !hasEvents && (
                     <div className="font-serif text-[10px] text-text-tertiary/40 italic leading-snug truncate">
-                      {t('未记录', 'No record')}
+                      {'未记录'}
                     </div>
                   )}
                   {cell.isCurrentMonth && !topEvent && hasEvents && (

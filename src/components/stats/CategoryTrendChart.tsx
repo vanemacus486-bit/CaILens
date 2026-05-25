@@ -47,9 +47,9 @@ function periodLabel(periodType: Granularity, _t: (zh: string, en: string) => st
 
 function periodDesc(periodType: Granularity, t: (zh: string, en: string) => string): string {
   switch (periodType) {
-    case 'day':     return t('过去 14 天的每日投入变化', 'Daily changes for the last 14 days')
-    case 'week':    return t('过去 8 周的逐周投入变化', 'Week-over-week changes for the last 8 weeks')
-    case 'month':   return t('过去 12 个月的逐月投入变化', 'Month-over-month changes for the last 12 months')
+    case 'day':     return '过去 14 天的每日投入变化'
+    case 'week':    return '过去 8 周的逐周投入变化'
+    case 'month':   return '过去 12 个月的逐月投入变化'
   }
 }
 
@@ -95,7 +95,6 @@ interface CategoryTrendChartProps {
   history: Bucket[]
   categories: Category[]
   periodType: Granularity
-  language: 'zh' | 'en'
   maturity: DataMaturity
   onNavigate?: (dir: -1 | 1) => void
   onPeriodChange?: (p: Granularity) => void
@@ -105,7 +104,6 @@ export function CategoryTrendChart({
   history,
   categories,
   periodType,
-  language,
   maturity,
   onNavigate,
   onPeriodChange,
@@ -113,8 +111,6 @@ export function CategoryTrendChart({
   const [selected, setSelected] = useState<CategoryId[]>(loadSelection)
   const [groupEnabled, setGroupEnabled] = useState(loadCoreGroup)
   const [isCompact, setIsCompact] = useState(false)
-
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   useEffect(() => { saveSelection(selected) }, [selected])
   useEffect(() => { saveCoreGroup(groupEnabled) }, [groupEnabled])
@@ -247,7 +243,7 @@ export function CategoryTrendChart({
     const deltas = selected
       .map((id) => ({
         id,
-        name: catMap.get(id)?.name?.[language] ?? id,
+        name: catMap.get(id)?.name ?? id,
         delta: (current.byCategory[id] || 0) - (prev.byCategory[id] || 0),
       }))
       .filter((d) => Math.abs(d.delta) >= 0.3)
@@ -272,7 +268,7 @@ export function CategoryTrendChart({
       `较上期变化：${parts.join('；')}`,
       `Changes vs previous period: ${parts.join('; ')}`,
     )
-  }, [history, selected, catMap, language, t])
+  }, [history, selected, catMap])
 
   /* ── Maturity gate ───────────────────────── */
 
@@ -281,9 +277,7 @@ export function CategoryTrendChart({
       <div className="trend-root" style={{ paddingTop: 40 }}>
         <style>{TREND_CSS}</style>
         <div className="flex items-center justify-center min-h-[240px] text-sm font-sans" style={{ color: 'var(--heatmap-ink-3)' }}>
-          {language === 'zh'
-            ? '记录天数不足，趋势图需要至少 3 天数据'
-            : 'Not enough data — trend chart needs at least 3 days of records'}
+          {'记录天数不足，趋势图需要至少 3 天数据'}
         </div>
       </div>
     )
@@ -303,7 +297,7 @@ export function CategoryTrendChart({
               <button
                 onClick={() => onNavigate(-1)}
                 className="trend-title-arrow"
-                title={t('上一周期', 'Previous')}
+                title={'上一周期'}
               >‹</button>
             )}
             <span className="trend-title-main">
@@ -313,7 +307,7 @@ export function CategoryTrendChart({
               <button
                 onClick={() => onNavigate(1)}
                 className="trend-title-arrow"
-                title={t('下一周期', 'Next')}
+                title={'下一周期'}
               >›</button>
             )}
             {/* Period toggle pills */}
@@ -325,7 +319,7 @@ export function CategoryTrendChart({
                     onClick={() => onPeriodChange(p)}
                     className={`trend-title-period${periodType === p ? ' trend-title-period-active' : ''}`}
                   >
-                    {p === 'day' ? t('日', 'Day') : p === 'week' ? t('周', 'Week') : t('月', 'Month')}
+                    {p === 'day' ? '日' : p === 'week' ? '周' : '月'}
                   </button>
                 ))}
               </div>
@@ -350,7 +344,7 @@ export function CategoryTrendChart({
                     : undefined
                 }
               >
-                {cat?.name?.[language] ?? id}
+                {cat?.name ?? id}
               </button>
             )
           })}
@@ -369,7 +363,7 @@ export function CategoryTrendChart({
               className="trend-pill-dot"
               style={{ backgroundColor: 'var(--accent)' }}
             />
-            {language === 'zh' ? CORE_GROUP.nameZh : CORE_GROUP.nameEn}
+            {CORE_GROUP.name}
           </button>
         </div>
       </div>
@@ -412,7 +406,7 @@ export function CategoryTrendChart({
                     fillOpacity={0.2}
                     stroke={`var(--event-${id}-fill)`}
                     strokeWidth={1}
-                    name={catMap.get(id)?.name?.[language] ?? id}
+                    name={catMap.get(id)?.name ?? id}
                     dot={false}
                     activeDot={{ r: 3, strokeWidth: 0 }}
                     connectNulls={false}
@@ -420,7 +414,7 @@ export function CategoryTrendChart({
                 ))}
                 <Line
                   dataKey={groupDataKey}
-                  name={language === 'zh' ? CORE_GROUP.nameZh : CORE_GROUP.nameEn}
+                  name={CORE_GROUP.name}
                   stroke="var(--accent)"
                   strokeWidth={2.5}
                   dot={false}
@@ -440,7 +434,7 @@ export function CategoryTrendChart({
                     key={id}
                     type="monotone"
                     dataKey={id}
-                    name={cat?.name?.[language] ?? id}
+                    name={cat?.name ?? id}
                     stroke={`var(--event-${id}-fill)`}
                     strokeWidth={1.5}
                     dot={false}
@@ -458,7 +452,7 @@ export function CategoryTrendChart({
                 strokeDasharray="4 4"
                 strokeWidth={1}
                 label={{
-                  value: `${language === 'zh' ? '预算' : 'Budget'} ${budgetLine.toFixed(1)}h`,
+                  value: `${'预算'} ${budgetLine.toFixed(1)}h`,
                   position: 'insideTopRight',
                   fill: 'var(--color-text-warning)',
                   fontSize: 10,
@@ -477,24 +471,24 @@ export function CategoryTrendChart({
           return (
             <span key={id} className="trend-legend-item">
               <span className="trend-legend-dot" style={{ background: `var(--event-${id}-fill)` }} />
-              {cat?.name?.[language] ?? id}
+              {cat?.name ?? id}
             </span>
           )
         })}
         {groupEnabled && coreGroupCategories.length > 0 && (
           <span className="trend-legend-item">
             <span className="trend-legend-line" style={{ borderColor: 'var(--accent)', borderTopWidth: 2.5 }} />
-            {language === 'zh' ? CORE_GROUP.nameZh : CORE_GROUP.nameEn}
+            {CORE_GROUP.name}
           </span>
         )}
         {budgetLine > 0 && (
           <span className="trend-legend-item">
             <span className="trend-legend-dash" style={{ borderColor: 'var(--color-text-warning)' }} />
-            {language === 'zh' ? '预算' : 'Budget'}
+            {'预算'}
           </span>
         )}
         <span className="trend-legend-note">
-          {t('每点 = 一个周期', 'Each point = one period')}
+          {'每点 = 一个周期'}
         </span>
       </div>
 
@@ -510,7 +504,7 @@ export function CategoryTrendChart({
             color: 'var(--heatmap-ink-3)',
           }}
         >
-          {t('数据预热中，趋势仅供参考', 'Data is still warming — trends are approximate')}
+          {'数据预热中，趋势仅供参考'}
         </p>
       )}
 
@@ -519,19 +513,19 @@ export function CategoryTrendChart({
         <div className={`trend-stats-bar${isCompact ? ' trend-stats-compact' : ''}`}>
           {/* Total */}
           <div className="trend-stat">
-            <div className="trend-stat-label">{t('总投入', 'Total')}</div>
+            <div className="trend-stat-label">{'总投入'}</div>
             <div className="trend-stat-value">
               {stats.selectedTotal.toFixed(1)}
               <span className="trend-stat-unit">h</span>
             </div>
             <div className="trend-stat-detail">
-              {t('最近一个周期', 'Last period')}
+              {'最近一个周期'}
             </div>
           </div>
 
           {/* Daily avg */}
           <div className="trend-stat">
-            <div className="trend-stat-label">{t('日 均', 'Daily')}</div>
+            <div className="trend-stat-label">{'日 均'}</div>
             <div className="trend-stat-value">
               {stats.dailyAvg.toFixed(1)}
               <span className="trend-stat-unit">h</span>
@@ -543,26 +537,26 @@ export function CategoryTrendChart({
                   return sum + (cat?.weeklyBudget ?? 0)
                 }, 0) / 7
                 const pct = targetHrs > 0 ? Math.round((stats.dailyAvg / targetHrs) * 100) : null
-                return pct !== null ? t(`达成 ${pct}%`, `${pct}% achieved`) : t('日均', 'Daily avg')
+                return pct !== null ? `达成 ${pct}%` : '日均'
               })()}
             </div>
           </div>
 
           {/* Peak category */}
           <div className="trend-stat">
-            <div className="trend-stat-label">{t('高 峰', 'Peak')}</div>
+            <div className="trend-stat-label">{'高 峰'}</div>
             <div className="trend-stat-value" style={{ color: `var(--event-${stats.peakId}-fill)` }}>
               {stats.peakHours.toFixed(1)}
               <span className="trend-stat-unit">h</span>
             </div>
             <div className="trend-stat-detail">
-              {catMap.get(stats.peakId)?.name?.[language] ?? stats.peakId}
+              {catMap.get(stats.peakId)?.name ?? stats.peakId}
             </div>
           </div>
 
           {/* WoW change */}
           <div className="trend-stat">
-            <div className="trend-stat-label">{t('环 比', 'Change')}</div>
+            <div className="trend-stat-label">{'环 比'}</div>
             <div
               className="trend-stat-value"
               style={{
@@ -577,8 +571,8 @@ export function CategoryTrendChart({
               {stats.hasPrev
                 ? (stats.wowAbs !== null
                     ? `${stats.wowAbs >= 0 ? '+' : ''}${stats.wowAbs.toFixed(1)}h`
-                    : t('较上期', 'vs previous'))
-                : t('需要更多数据', 'Need more data')}
+                    : '较上期')
+                : '需要更多数据'}
             </div>
           </div>
         </div>

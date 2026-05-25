@@ -204,16 +204,16 @@ describe('eventMatchesBinding', () => {
 // ── Registry completeness ──────────────────────────────
 
 describe('SHORTCUT_REGISTRY', () => {
-  it('has exactly 15 actions', () => {
-    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(15)
+  it('has exactly 14 actions', () => {
+    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(14)
   })
 
-  it('all entries have bilingual labels', () => {
+  it('all entries have a label string', () => {
     for (const def of Object.values(SHORTCUT_REGISTRY)) {
-      expect(typeof def.label.zh).toBe('string')
-      expect(def.label.zh.length).toBeGreaterThan(0)
-      expect(typeof def.label.en).toBe('string')
-      expect(def.label.en.length).toBeGreaterThan(0)
+      expect(typeof def.label).toBe('string')
+      expect(def.label.length).toBeGreaterThan(0)
+      expect(typeof def.label).toBe('string')
+      
     }
   })
 })

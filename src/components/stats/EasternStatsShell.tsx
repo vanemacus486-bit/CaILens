@@ -7,10 +7,10 @@
  */
 
 import type { ReactNode } from 'react'
-import type { AppLanguage } from '@/domain/settings'
+
 
 /** 一级 Tab */
-export type StatsTab = 'routine' | 'lifestyle' | 'body' | 'correlation'
+export type StatsTab = 'routine' | 'lifestyle' | 'body' | 'normalize'
 
 /** 作息视图的子视图 */
 export type RoutineViewMode = 'trend' | 'heatmap' | 'sleep' | 'steady'
@@ -23,25 +23,23 @@ export type StatsViewMode = RoutineViewMode
 
 interface TabDefinition {
   id: StatsTab
-  labelZh: string
-  labelEn: string
+  label: string
 }
 
 export const STATS_TABS: readonly TabDefinition[] = [
-  { id: 'routine',     labelZh: '作息', labelEn: 'Routine' },
-  { id: 'lifestyle',   labelZh: '日常', labelEn: 'Lifestyle' },
-  { id: 'body',        labelZh: '身体', labelEn: 'Body' },
-  { id: 'correlation', labelZh: '关联', labelEn: 'Insights' },
+  { id: 'routine',     label: '作息' },
+  { id: 'lifestyle',   label: '日常' },
+  { id: 'body',        label: '身体' },
+  { id: 'normalize',   label: '命名整理' },
 ]
 
 interface Props {
-  language: AppLanguage
   currentTab: StatsTab
   onTabChange: (tab: StatsTab) => void
   children: ReactNode
 }
 
-export function EasternStatsShell({ language, currentTab, onTabChange, children }: Props) {
+export function EasternStatsShell({ currentTab, onTabChange, children }: Props) {
 
   return (
     <div className="eastern-shell-root">
@@ -55,7 +53,7 @@ export function EasternStatsShell({ language, currentTab, onTabChange, children 
             onClick={() => onTabChange(tab.id)}
             className={`shell-tab${currentTab === tab.id ? ' shell-tab-active' : ''}`}
           >
-            {language === 'zh' ? tab.labelZh : tab.labelEn}
+            {tab.label}
           </button>
         ))}
       </div>

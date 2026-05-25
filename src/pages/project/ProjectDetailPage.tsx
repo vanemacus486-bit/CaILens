@@ -12,7 +12,7 @@ export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
   const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const { projects, isLoaded, loadProjects, archiveProject } = useProjectStore()
   const { events, loadAllEvents } = useEventStore()
@@ -54,7 +54,7 @@ export function ProjectDetailPage() {
     return (
       <div className="flex-1 h-full flex items-center justify-center">
         <p className="font-sans text-sm text-text-tertiary">
-          {t('项目未找到', 'Project not found')}
+          {'项目未找到'}
         </p>
       </div>
     )
@@ -70,12 +70,12 @@ export function ProjectDetailPage() {
   }
 
   const categoryNames: Record<string, string> = {
-    accent: t('主要矛盾', 'Core'),
-    sage: t('次要矛盾', 'Tasks'),
-    sand: t('庶务时间', 'Chores'),
-    sky: t('个人提升', 'Growth'),
-    rose: t('休息娱乐', 'Leisure'),
-    stone: t('睡眠时长', 'Sleep'),
+    accent: '主要矛盾',
+    sage: '次要矛盾',
+    sand: '庶务时间',
+    sky: '个人提升',
+    rose: '休息娱乐',
+    stone: '睡眠时长',
   }
 
   return (
@@ -86,7 +86,7 @@ export function ProjectDetailPage() {
         className="flex items-center gap-1.5 text-sm font-sans text-text-secondary hover:text-text-primary cursor-pointer bg-transparent border-none transition-colors mb-6"
       >
         <ArrowLeft size={16} strokeWidth={1.75} />
-        {t('返回', 'Back')}
+        {'返回'}
       </button>
 
       {/* 头部 */}
@@ -107,18 +107,18 @@ export function ProjectDetailPage() {
             </span>
             <span className="w-1 h-1 rounded-full bg-text-tertiary/40" />
             <span>
-              {t('累计', 'Total')} {Math.round(totalMinutes)}
-              {t('分钟', 'min')}
+              {'累计'} {Math.round(totalMinutes)}
+              {'分钟'}
             </span>
             <span className="w-1 h-1 rounded-full bg-text-tertiary/40" />
             <span>
               {projectEvents.length}
-              {t('个事件', ' events')}
+              {'个事件'}
             </span>
             <span className="w-1 h-1 rounded-full bg-text-tertiary/40" />
             <span>
               {inspirations.length}
-              {t('条灵感', ' inspirations')}
+              {'条灵感'}
             </span>
           </div>
         </div>
@@ -128,7 +128,7 @@ export function ProjectDetailPage() {
             className="flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-sans text-text-secondary border border-border-subtle hover:bg-surface-sunken cursor-pointer bg-transparent transition-colors"
           >
             <Archive size={14} strokeWidth={1.75} />
-            {t('归档', 'Archive')}
+            {'归档'}
           </button>
         )}
       </div>
@@ -136,8 +136,8 @@ export function ProjectDetailPage() {
       {/* Tab 导航 */}
       <div className="flex gap-1 border-b border-border-subtle mb-6">
         {[
-          { id: 'events' as const, label: t('事件', 'Events') },
-          { id: 'inspirations' as const, label: t('灵感', 'Insights') },
+          { id: 'events' as const, label: '事件' },
+          { id: 'inspirations' as const, label: '灵感' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -187,7 +187,7 @@ export function ProjectDetailPage() {
               </span>
               <span className="font-mono text-xs text-text-tertiary tabular-nums flex-shrink-0">
                 {Math.round((e.endTime - e.startTime) / 60_000)}
-                {t('分', 'min')}
+                {'分'}
               </span>
             </a>
           ))}
