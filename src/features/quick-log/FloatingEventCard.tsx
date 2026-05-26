@@ -172,7 +172,7 @@ export function FloatingEventCard({
   const [autocompleteVisible, setAutocompleteVisible] = useState(false)
 
   // Refs
-  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const virtualRef = useRef<HTMLElement>(null!)
   virtualRef.current = anchorEl
@@ -208,16 +208,12 @@ export function FloatingEventCard({
   // ── Focus input on mount ────────────────────────────
 
   useEffect(() => {
-    if (open) {
-      const raf = requestAnimationFrame(() => {
-        if (mode === 'meal-food') {
-          // Focus is inside MealFoodPanel's autoFocus input
-        } else {
-          inputRef.current?.focus()
-        }
-      })
-      return () => cancelAnimationFrame(raf)
-    }
+    if (!open) return
+    if (mode === 'meal-food') return // Focus is inside MealFoodPanel's autoFocus input
+    const timer = setTimeout(() => {
+      inputRef.current?.focus()
+    }, 50)
+    return () => clearTimeout(timer)
   }, [open, mode])
 
   // ── Autocomplete search (debounced) ──────────────────
@@ -247,13 +243,13 @@ export function FloatingEventCard({
           .filter((s) => s.title.toLowerCase() !== q.toLowerCase())
 
         setSuggestions(sorted)
-        setSelectedSuggestionIdx(-1)
+        setSelectedSuggestionIdx(sorted.length > 0 ? 0 : -1)
         setAutocompleteVisible(sorted.length > 0)
       } catch {
         setSuggestions([])
         setAutocompleteVisible(false)
       }
-    }, 200)
+    }, 100)
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -591,26 +587,20 @@ export function FloatingEventCard({
 
         {/* Main input */}
         <div className="relative">
-          <textarea
+          <input
             ref={inputRef}
+            type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholderText}
-            rows={1}
             className={cn(
-              'w-full font-sans text-sm text-text-primary resize-none overflow-hidden',
+              'w-full font-sans text-sm text-text-primary',
               'bg-surface-sunken border border-border-subtle rounded-md',
-              'px-3 py-2 min-h-[36px]',
+              'px-3 py-2 h-[36px]',
               'focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
               'placeholder:text-text-tertiary',
             )}
-            onInput={(e) => {
-              // Auto-resize
-              const el = e.currentTarget
-              el.style.height = 'auto'
-              el.style.height = `${Math.min(el.scrollHeight, 120)}px`
-            }}
           />
 
           {/* Autocomplete dropdown */}
