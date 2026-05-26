@@ -10,8 +10,6 @@ import { getEventRepo } from '@/data/getRepositories'
 import { classifyEvent } from '@/domain/icsImport'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
-import { RecentPills } from './RecentPills'
-import { AutocompleteDropdown, type AutocompleteSuggestion } from './AutocompleteDropdown'
 import {
   ChoresPanel, MealFoodPanel, GrowthPanel, GrowthSubPanel,
   LeisurePanel, SleepPanel,
@@ -166,10 +164,8 @@ export function FloatingEventCard({
   const [showTimeEdit, setShowTimeEdit] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Autocomplete state
-  const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([])
-  const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState(-1)
-  const [autocompleteVisible, setAutocompleteVisible] = useState(false)
+  // Inline autocomplete suggestion
+  const [inlineSuggestion, setInlineSuggestion] = useState<string | null>(null)
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null)
@@ -192,6 +188,23 @@ export function FloatingEventCard({
     () => aggregateRecentTitles(allEvents, 'sky', ['阅读', '读书', '看书']),
     [allEvents],
   )
+
+  // ── Top 3 recent titles for current category ─────────
+
+  const topThree = useMemo(() => {
+    const cutoff = Date.now() - 90 * 86_400_000
+    const freq = new Map<string, number>()
+    for (const e of allEvents) {
+      if (!e.title.trim()) continue
+      if (e.endTime < cutoff) continue
+      if (e.categoryId !== categoryId) continue
+      freq.set(e.title, (freq.get(e.title) ?? 0) + 1)
+    }
+    return Array.from(freq.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([t]) => t)
+  }, [allEvents, categoryId])
 
   // ── Auto-classify when title changes ────────────────
 
@@ -216,13 +229,12 @@ export function FloatingEventCard({
     return () => clearTimeout(timer)
   }, [open, mode])
 
-  // ── Autocomplete search (debounced) ──────────────────
+  // ── Inline suggestion (debounced) ─────────────────────
 
   useEffect(() => {
-    const q = title.trim()
+    const q = title.trim().toLowerCase()
     if (q.length < 1) {
-      setSuggestions([])
-      setAutocompleteVisible(false)
+      setInlineSuggestion(null)
       return
     }
 
@@ -233,65 +245,38 @@ export function FloatingEventCard({
         const results = await repo.search(q, 8)
         const freq = new Map<string, number>()
         for (const e of results) {
+          if (e.categoryId !== categoryId) continue
           if (!e.title.trim()) continue
           freq.set(e.title, (freq.get(e.title) ?? 0) + 1)
         }
-        const sorted = Array.from(freq.entries())
+        const matches = Array.from(freq.entries())
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 6)
-          .map(([t, c]) => ({ title: t, count: c }))
-          .filter((s) => s.title.toLowerCase() !== q.toLowerCase())
-
-        setSuggestions(sorted)
-        setSelectedSuggestionIdx(sorted.length > 0 ? 0 : -1)
-        setAutocompleteVisible(sorted.length > 0)
+          .filter(([t]) => t.toLowerCase().startsWith(q) && t.toLowerCase() !== q)
+        setInlineSuggestion(matches.length > 0 ? matches[0][0] : null)
       } catch {
-        setSuggestions([])
-        setAutocompleteVisible(false)
+        setInlineSuggestion(null)
       }
     }, 100)
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [title])
+  }, [title, categoryId])
 
   // ── Keyboard handler ────────────────────────────────
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // 1. Autocomplete: navigation & Tab-accept
-    if (autocompleteVisible && suggestions.length > 0) {
-      if (e.key === 'ArrowDown') {
+    // Tab → accept inline suggestion
+    if (e.key === 'Tab' && !e.shiftKey) {
+      if (inlineSuggestion) {
         e.preventDefault()
-        setSelectedSuggestionIdx((prev) =>
-          prev < suggestions.length - 1 ? prev + 1 : prev,
-        )
-        return
+        setTitle(inlineSuggestion)
+        setInlineSuggestion(null)
       }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setSelectedSuggestionIdx((prev) => prev <= 0 ? -1 : prev - 1)
-        return
-      }
-      // Tab → 填入高亮建议（不保存），无高亮则关闭下拉
-      if (e.key === 'Tab') {
-        if (selectedSuggestionIdx >= 0) {
-          e.preventDefault()
-          setTitle(suggestions[selectedSuggestionIdx].title)
-        }
-        setSuggestions([])
-        setAutocompleteVisible(false)
-        return
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        setSuggestions([])
-        setAutocompleteVisible(false)
-        return
-      }
+      return
     }
 
-    // 2. Alt+1~6 → category switching
+    // Alt+1~6 → category switching
     if (e.altKey && CATEGORY_BY_ALT_KEY[e.key]) {
       e.preventDefault()
       const newCatId = CATEGORY_BY_ALT_KEY[e.key]
@@ -299,39 +284,26 @@ export function FloatingEventCard({
       setUserChangedCategory(true)
       setMode(modeFromCategory(newCatId))
       setError(null)
-      // Clear mode-specific state
+      setInlineSuggestion(null)
       if (modeFromCategory(newCatId) !== 'meal-food') setMealFood('')
       if (modeFromCategory(newCatId) !== 'growth-read' && modeFromCategory(newCatId) !== 'growth-sport') setGrowthSubInput('')
       return
     }
 
-    // 3. Enter → save（有高亮建议时先填入再保存）
+    // Enter → save
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      if (autocompleteVisible && suggestions.length > 0 && selectedSuggestionIdx >= 0) {
-        const chosenTitle = suggestions[selectedSuggestionIdx].title
-        setTitle(chosenTitle)
-        setSuggestions([])
-        setAutocompleteVisible(false)
-        handleSave(chosenTitle)
-      } else {
-        handleSave()
-      }
+      handleSave()
       return
     }
 
-    // 4. Escape → close autocomplete or card
+    // Escape → close card
     if (e.key === 'Escape') {
       e.preventDefault()
-      if (autocompleteVisible) {
-        setSuggestions([])
-        setAutocompleteVisible(false)
-      } else {
-        onClose()
-      }
+      onClose()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autocompleteVisible, suggestions, selectedSuggestionIdx, categoryId, mode])
+  }, [inlineSuggestion, categoryId, mode])
 
   // ── Save logic ──────────────────────────────────────
 
@@ -419,19 +391,6 @@ export function FloatingEventCard({
 
   const selectChore = useCallback((choreTitle: string) => {
     setTitle(choreTitle)
-  }, [])
-
-  const selectRecentPill = useCallback((pillTitle: string) => {
-    setTitle(pillTitle)
-    setSuggestions([])
-    setAutocompleteVisible(false)
-    // Auto-classify will handle category
-  }, [])
-
-  const selectAutocomplete = useCallback((s: string) => {
-    setTitle(s)
-    setSuggestions([])
-    setAutocompleteVisible(false)
   }, [])
 
   const selectLeisure = useCallback((item: string) => {
@@ -561,8 +520,6 @@ export function FloatingEventCard({
       }
     })()
 
-    const showPills = (mode === 'input' || mode === 'growth' || mode === 'leisure' || mode === 'chores')
-
     return (
       <>
         {/* Header */}
@@ -588,67 +545,81 @@ export function FloatingEventCard({
           </div>
         )}
 
-        {/* Main input */}
-        <div className="relative">
+        {/* Main input with inline suggestion */}
+        <div className="relative bg-surface-sunken border border-border-subtle rounded-md">
+          {/* Inline suggestion text (behind input) */}
+          {inlineSuggestion && (
+            <div className="absolute inset-0 flex items-center px-3 py-2 pointer-events-none z-0">
+              <span className="text-sm font-sans whitespace-pre text-text-quaternary/40">
+                {inlineSuggestion}
+              </span>
+            </div>
+          )}
           <input
             ref={inputRef}
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => { setTitle(e.target.value); setInlineSuggestion(null) }}
             onKeyDown={handleKeyDown}
-            placeholder={placeholderText}
+            placeholder={title && inlineSuggestion ? '' : placeholderText}
             className={cn(
-              'w-full font-sans text-sm text-text-primary',
-              'bg-surface-sunken border border-border-subtle rounded-md',
+              'relative z-10 w-full font-sans text-sm text-text-primary',
+              'bg-transparent border-0 rounded-md',
               'px-3 py-2 h-[36px]',
-              'focus:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
+              'focus:outline-none focus:ring-0',
               'placeholder:text-text-tertiary',
             )}
+            style={{ caretColor: 'var(--text-primary)' }}
           />
-
-          {/* Autocomplete dropdown */}
-          {autocompleteVisible && (
-            <AutocompleteDropdown
-              suggestions={suggestions}
-              selectedIndex={selectedSuggestionIdx}
-              onSelect={selectAutocomplete}
-            />
-          )}
         </div>
 
-        {/* Category selector — clickable for input mode, read-only for sub-modes */}
-        {mode === 'input' ? (
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => switchCategory('accent')}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-sans transition-all duration-150 cursor-pointer',
-                categoryId === 'accent'
-                  ? 'bg-[var(--event-accent-bg)] text-[var(--event-accent-text)] ring-1 ring-[var(--event-accent-fill)]'
-                  : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
-              )}
-            >
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--event-accent-fill)' }} />
-              主要
-            </button>
-            <button
-              onClick={() => switchCategory('sage')}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-sans transition-all duration-150 cursor-pointer',
-                categoryId === 'sage'
-                  ? 'bg-[var(--event-sage-bg)] text-[var(--event-sage-text)] ring-1 ring-[var(--event-sage-fill)]'
-                  : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
-              )}
-            >
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--event-sage-fill)' }} />
-              次要
-            </button>
+        {/* 6 color lines + recent Top 3 */}
+        <div
+          className="mt-3 rounded-xl p-3 transition-colors duration-300"
+          style={{ backgroundColor: `color-mix(in srgb, var(--event-${categoryId}-fill) 8%, transparent)` }}
+        >
+          {/* Color lines */}
+          <div className="flex items-center justify-center gap-3 h-10">
+            {(['accent','sage','sand','sky','rose','stone'] as const).map((catId) => {
+              const isSel = catId === categoryId
+              const dist = Math.abs(
+                ['accent','sage','sand','sky','rose','stone'].indexOf(catId) -
+                ['accent','sage','sand','sky','rose','stone'].indexOf(categoryId)
+              )
+              return (
+                <button
+                  key={catId}
+                  onClick={() => switchCategory(catId)}
+                  className="rounded-full transition-all duration-300 ease-out cursor-pointer flex-shrink-0"
+                  style={{
+                    width: '28px',
+                    height: isSel ? '3.5px' : dist <= 1 ? '2.5px' : '1.5px',
+                    transform: `translateY(${isSel ? -8 : dist <= 1 ? -2 : 3}px)`,
+                    opacity: isSel ? 0.9 : dist <= 1 ? 0.5 : 0.2,
+                    backgroundColor: `var(--event-${catId}-fill)`,
+                  }}
+                />
+              )
+            })}
           </div>
-        ) : (
-          <div className="mt-2">
-            {renderCategoryLine()}
-          </div>
-        )}
+
+          {/* Recent Top 3 */}
+          {topThree.length > 0 && !title.trim() && (
+            <div className="text-xs text-text-quaternary font-sans text-center mt-1.5 transition-opacity duration-200">
+              {topThree.map((t, i) => (
+                <span key={t}>
+                  <button
+                    onClick={() => { setTitle(t); inputRef.current?.focus() }}
+                    className="hover:text-text-secondary transition-colors cursor-pointer"
+                  >
+                    {t}
+                  </button>
+                  {i < topThree.length - 1 && <span className="mx-1.5 select-none">·</span>}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Sub-panels */}
         {mode === 'chores' && (
@@ -696,15 +667,6 @@ export function FloatingEventCard({
             recentLeisure={recentLeisure}
             onSelect={selectLeisure}
             language={language}
-          />
-        )}
-
-        {/* Recent pills (when there's no sub-panel taking over) */}
-        {showPills && mode !== 'chores' && (
-          <RecentPills
-            categoryId={mode === 'leisure' ? 'rose' : (mode === 'growth' ? 'sky' : categoryId)}
-            onSelect={selectRecentPill}
-            max={mode === 'input' ? 5 : 4}
           />
         )}
 
