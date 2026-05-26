@@ -131,7 +131,7 @@ export function FloatingEventCard({
   const categories   = useCategoryStore((s) => s.categories)
   const allEvents    = useEventStore((s) => s.allEvents)
   const language     = useAppSettingsStore((s) => s.settings.language)
-      const isEditing = !!editingEvent
+  const isEditing    = !!editingEvent
   const localDate = new Date(defaultTimes.start)
 
   // ── Core state ──────────────────────────────────────
@@ -366,10 +366,7 @@ export function FloatingEventCard({
         bedtime: startTime,
         wakeTime: endTime,
       } as TypedEventData
-      eventTitle = title || t(
-        sleepType === 'main' ? '主睡眠' : sleepType === 'nap' ? '小睡' : '失眠',
-        sleepType === 'main' ? 'Main Sleep' : sleepType === 'nap' ? 'Nap' : 'Insomnia',
-      )
+      eventTitle = title || (sleepType === 'main' ? '主睡眠' : sleepType === 'nap' ? '小睡' : '失眠')
     } else if (mode === 'meal-food' || (editingEvent?.typedData?.type === 'meal')) {
       const foodName = mealFood || title
       typedData = {
@@ -441,17 +438,23 @@ export function FloatingEventCard({
     setTitle(item)
   }, [])
 
+  // ── Switch category (from click or Alt+1~6) ────────
+
+  const switchCategory = useCallback((newCatId: CategoryId) => {
+    setCategoryId(newCatId)
+    setUserChangedCategory(true)
+    setMode(modeFromCategory(newCatId))
+    setError(null)
+    if (modeFromCategory(newCatId) !== 'meal-food') setMealFood('')
+    if (modeFromCategory(newCatId) !== 'growth-read' && modeFromCategory(newCatId) !== 'growth-sport') setGrowthSubInput('')
+  }, [])
+
   // ── Render helpers ──────────────────────────────────
 
   const renderCategoryLine = () => (
-    <div className="flex items-center gap-1.5 mt-3 pt-2 border-t border-border-subtle">
+    <div className="flex items-center gap-1.5">
       <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: catColor }} />
-      <span className="text-xs text-text-tertiary font-sans">
-        {currentCategoryName[language === 'zh' ? 0 : 1]}
-      </span>
-      <span className="text-[10px] text-text-quaternary font-sans ml-auto">
-        {'Alt+1~6 切换'}
-      </span>
+      <span className="text-xs text-text-tertiary font-sans">{currentCategoryName[0]}</span>
     </div>
   )
 
@@ -613,6 +616,40 @@ export function FloatingEventCard({
           )}
         </div>
 
+        {/* Category selector — clickable for input mode, read-only for sub-modes */}
+        {mode === 'input' ? (
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => switchCategory('accent')}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-sans transition-all duration-150 cursor-pointer',
+                categoryId === 'accent'
+                  ? 'bg-[var(--event-accent-bg)] text-[var(--event-accent-text)] ring-1 ring-[var(--event-accent-fill)]'
+                  : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
+              )}
+            >
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--event-accent-fill)' }} />
+              主要
+            </button>
+            <button
+              onClick={() => switchCategory('sage')}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-sans transition-all duration-150 cursor-pointer',
+                categoryId === 'sage'
+                  ? 'bg-[var(--event-sage-bg)] text-[var(--event-sage-text)] ring-1 ring-[var(--event-sage-fill)]'
+                  : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
+              )}
+            >
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--event-sage-fill)' }} />
+              次要
+            </button>
+          </div>
+        ) : (
+          <div className="mt-2">
+            {renderCategoryLine()}
+          </div>
+        )}
+
         {/* Sub-panels */}
         {mode === 'chores' && (
           <ChoresPanel
@@ -672,9 +709,6 @@ export function FloatingEventCard({
         )}
 
         {error && <p className="text-xs text-color-text-danger mt-1 font-sans">{error}</p>}
-
-        {/* Category line */}
-        {renderCategoryLine()}
 
         {/* Actions */}
         <div className="flex justify-end gap-2 mt-3">
