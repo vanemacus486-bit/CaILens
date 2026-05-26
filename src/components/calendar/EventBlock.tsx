@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 import type { PositionedEvent } from '@/domain/layout'
@@ -59,41 +59,6 @@ export const EventBlock = React.memo(function EventBlock({
   const { gridColumnStart, gridColumnEnd } = colSpan(columnIndex, totalColumns)
 
   const divRef = useRef<HTMLDivElement>(null)
-
-  // Hover preview
-  const [showPreview, setShowPreview] = useState(false)
-  const [previewStyle, setPreviewStyle] = useState<React.CSSProperties>({})
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const handleMouseEnter = useCallback(() => {
-    hoverTimerRef.current = setTimeout(() => {
-      const el = divRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      setPreviewStyle({
-        position: 'fixed',
-        top: `${rect.top}px`,
-        left: `${rect.right + 8}px`,
-        maxWidth: '280px',
-        zIndex: 100,
-      })
-      setShowPreview(true)
-    }, 400)
-  }, [])
-
-  const handleMouseLeave = useCallback(() => {
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current)
-      hoverTimerRef.current = null
-    }
-    setShowPreview(false)
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
-    }
-  }, [])
 
   const { onPointerDown: onDragPointerDown, dragState, isDragging, wasDragging } = useEventDrag({
     event,
@@ -159,8 +124,6 @@ export const EventBlock = React.memo(function EventBlock({
           tabIndex={0}
           data-event-id={event.id}
           data-event-category={event.categoryId}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault()
@@ -330,22 +293,7 @@ export const EventBlock = React.memo(function EventBlock({
         </ContextMenuItem>
       </ContextMenuContent>
 
-      {/* Hover preview card */}
-      {showPreview && !isDragging && (
-        <div
-          className="fixed pointer-events-none bg-surface-raised border border-border-subtle rounded-lg shadow-tooltip p-3 transition-opacity duration-150"
-          style={previewStyle}
-        >
-          <p className="font-serif text-sm font-semibold text-text-primary leading-snug">
-            {event.title || <span className="italic opacity-50">Untitled</span>}
-          </p>
-          {event.description && (
-            <p className="font-serif text-xs text-text-secondary leading-relaxed mt-1 line-clamp-2">
-              {event.description.slice(0, 120)}
-            </p>
-          )}
-        </div>
-      )}
+
     </ContextMenu>
   )
 })
