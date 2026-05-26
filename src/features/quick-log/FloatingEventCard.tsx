@@ -10,10 +10,7 @@ import { getEventRepo } from '@/data/getRepositories'
 import { classifyEvent } from '@/domain/icsImport'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
-import {
-  ChoresPanel, MealFoodPanel, GrowthPanel, GrowthSubPanel,
-  LeisurePanel, SleepPanel,
-} from './SubPanels'
+import { MealFoodPanel, SleepPanel } from './SubPanels'
 
 // ── Types ───────────────────────────────────────────────
 
@@ -85,22 +82,6 @@ function isNextDayEnd(startStr: string, endStr: string): boolean {
 }
 
 // ── Aggregate recent items ──────────────────────────────
-
-function aggregateRecentTitles(events: CalendarEvent[], catId: CategoryId, exclude: string[] = []): string[] {
-  const cutoff = Date.now() - 90 * 86_400_000
-  const freq = new Map<string, number>()
-  for (const e of events) {
-    if (!e.title.trim()) continue
-    if (e.endTime < cutoff) continue
-    if (e.categoryId !== catId) continue
-    if (exclude.includes(e.title)) continue
-    freq.set(e.title, (freq.get(e.title) ?? 0) + 1)
-  }
-  return Array.from(freq.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([t]) => t)
-}
 
 function getRecentFoods(events: CalendarEvent[]): string[] {
   const cutoff = Date.now() - 90 * 86_400_000
@@ -178,15 +159,6 @@ export function FloatingEventCard({
   const catColor = `var(--event-${categoryId}-fill)`
 
   const recentFoods = useMemo(() => getRecentFoods(allEvents), [allEvents])
-  const recentLeisure = useMemo(() => aggregateRecentTitles(allEvents, 'rose'), [allEvents])
-  const recentGrowthRead = useMemo(
-    () => aggregateRecentTitles(allEvents, 'sky', ['运动', '跑步', '游泳', '健身', '瑜伽']), 
-    [allEvents],
-  )
-  const recentGrowthSport = useMemo(
-    () => aggregateRecentTitles(allEvents, 'sky', ['阅读', '读书', '看书']),
-    [allEvents],
-  )
 
   // ── Top 3 recent titles for current category ─────────
 
@@ -609,56 +581,7 @@ export function FloatingEventCard({
           </div>
         )}
 
-        {/* Sub-panels */}
-        {mode === 'chores' && (
-          <ChoresPanel
-            onSelectMeal={() => { setMode('meal-food'); setMealFood(''); setTitle('吃饭') }}
-            onSelectWash={() => handleSave('洗漱')}
-            onSelectShower={() => handleSave('洗澡')}
-            onSelectClean={() => handleSave('打扫卫生')}
-            language={language}
-          />
-        )}
-
-        {mode === 'growth' && (
-          <GrowthPanel
-            onSelectRead={() => setMode('growth-read')}
-            onSelectSport={() => setMode('growth-sport')}
-            language={language}
-          />
-        )}
-
-        {mode === 'growth-read' && (
-          <GrowthSubPanel
-            subMode="read"
-            input={title}
-            onChange={setTitle}
-            recent={recentGrowthRead}
-            onSelect={(v) => handleSave(v)}
-            onSubmit={() => handleSave()}
-            language={language}
-          />
-        )}
-
-        {mode === 'growth-sport' && (
-          <GrowthSubPanel
-            subMode="sport"
-            input={title}
-            onChange={setTitle}
-            recent={recentGrowthSport}
-            onSelect={(v) => handleSave(v)}
-            onSubmit={() => handleSave()}
-            language={language}
-          />
-        )}
-
-        {mode === 'leisure' && (
-          <LeisurePanel
-            recentLeisure={recentLeisure}
-            onSelect={(item) => handleSave(item)}
-            language={language}
-          />
-        )}
+        {/* Note: sub-panels removed — Top 3 recent items + direct typing in input handle all category actions */}
 
         {error && <p className="text-xs text-color-text-danger mt-1 font-sans">{error}</p>}
 
