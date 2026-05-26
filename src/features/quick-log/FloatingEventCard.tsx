@@ -545,8 +545,14 @@ export function FloatingEventCard({
           </div>
         )}
 
-        {/* Main input with inline suggestion */}
-        <div className="relative bg-surface-sunken border border-border-subtle rounded-md">
+        {/* Main input with inline suggestion + category tint */}
+        <div
+          className="relative bg-surface-sunken border border-border-subtle rounded-md transition-all duration-200"
+          style={{
+            borderBottomColor: `var(--event-${categoryId}-fill)`,
+            borderBottomWidth: '2px',
+          }}
+        >
           {/* Inline suggestion text (behind input) */}
           {inlineSuggestion && (
             <div className="absolute inset-0 flex items-center px-3 py-2 pointer-events-none z-0">
@@ -573,53 +579,47 @@ export function FloatingEventCard({
           />
         </div>
 
-        {/* 6 color lines + recent Top 3 */}
-        <div
-          className="mt-3 rounded-xl p-3 transition-colors duration-300"
-          style={{ backgroundColor: `color-mix(in srgb, var(--event-${categoryId}-fill) 8%, transparent)` }}
-        >
-          {/* Color lines */}
-          <div className="flex items-center justify-center gap-3 h-10">
-            {(['accent','sage','sand','sky','rose','stone'] as const).map((catId) => {
-              const isSel = catId === categoryId
-              const dist = Math.abs(
-                ['accent','sage','sand','sky','rose','stone'].indexOf(catId) -
-                ['accent','sage','sand','sky','rose','stone'].indexOf(categoryId)
-              )
-              return (
-                <button
-                  key={catId}
-                  onClick={() => switchCategory(catId)}
-                  className="rounded-full transition-all duration-300 ease-out cursor-pointer flex-shrink-0"
-                  style={{
-                    width: '28px',
-                    height: isSel ? '3.5px' : dist <= 1 ? '2.5px' : '1.5px',
-                    transform: `translateY(${isSel ? -8 : dist <= 1 ? -2 : 3}px)`,
-                    opacity: isSel ? 0.9 : dist <= 1 ? 0.5 : 0.2,
-                    backgroundColor: `var(--event-${catId}-fill)`,
-                  }}
-                />
-              )
-            })}
-          </div>
-
-          {/* Recent Top 3 */}
-          {topThree.length > 0 && !title.trim() && (
-            <div className="text-xs text-text-quaternary font-sans text-center mt-1.5 transition-opacity duration-200">
-              {topThree.map((t, i) => (
-                <span key={t}>
-                  <button
-                    onClick={() => { setTitle(t); inputRef.current?.focus() }}
-                    className="hover:text-text-secondary transition-colors cursor-pointer"
-                  >
-                    {t}
-                  </button>
-                  {i < topThree.length - 1 && <span className="mx-1.5 select-none">·</span>}
-                </span>
-              ))}
-            </div>
-          )}
+        {/* Capsules — category selector */}
+        <div className="flex items-center justify-center gap-2.5 mt-3 h-8">
+          {(['accent','sage','sand','sky','rose','stone'] as const).map((catId) => {
+            const isSel = catId === categoryId
+            const dist = Math.abs(
+              ['accent','sage','sand','sky','rose','stone'].indexOf(catId) -
+              ['accent','sage','sand','sky','rose','stone'].indexOf(categoryId)
+            )
+            return (
+              <button
+                key={catId}
+                onClick={() => switchCategory(catId)}
+                className="transition-all duration-200 ease-out cursor-pointer flex-shrink-0 rounded-full"
+                style={{
+                  width: isSel ? '32px' : dist <= 1 ? '22px' : '16px',
+                  height: isSel ? '8px' : '5px',
+                  transform: `translateY(${isSel ? -4 : 0}px)`,
+                  opacity: isSel ? 1 : dist <= 1 ? 0.5 : 0.25,
+                  backgroundColor: `var(--event-${catId}-fill)`,
+                }}
+              />
+            )
+          })}
         </div>
+
+        {/* Recent Top 3 */}
+        {topThree.length > 0 && !title.trim() && (
+          <div className="text-xs text-text-quaternary font-sans text-center mt-2.5 transition-opacity duration-200">
+            {topThree.map((t, i) => (
+              <span key={t}>
+                <button
+                  onClick={() => { setTitle(t); inputRef.current?.focus() }}
+                  className="hover:text-text-secondary transition-colors cursor-pointer"
+                >
+                  {t}
+                </button>
+                {i < topThree.length - 1 && <span className="mx-1.5 select-none">·</span>}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Sub-panels */}
         {mode === 'chores' && (
