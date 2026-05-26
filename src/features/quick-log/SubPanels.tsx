@@ -142,10 +142,11 @@ interface GrowthSubPanelProps {
   onChange: (value: string) => void
   recent:  string[]
   onSelect: (value: string) => void
+  onSubmit?: () => void
   language: 'zh' | 'en'
 }
 
-export function GrowthSubPanel({ subMode, input, onChange, recent, onSelect, language }: GrowthSubPanelProps) {
+export function GrowthSubPanel({ subMode, input, onChange, recent, onSelect, onSubmit, language }: GrowthSubPanelProps) {
     const prompt = subMode === 'read'
     ? '读了什么？'
     : '做了什么运动？'
@@ -161,6 +162,12 @@ export function GrowthSubPanel({ subMode, input, onChange, recent, onSelect, lan
         value={input}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            onSubmit?.()
+          }
+        }}
         className={cn(
           'w-full font-sans text-sm text-text-primary',
           'bg-surface-sunken border border-border-subtle rounded-md',

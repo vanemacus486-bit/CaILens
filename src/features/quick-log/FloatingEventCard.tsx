@@ -150,7 +150,6 @@ export function FloatingEventCard({
   const [mealFood, setMealFood] = useState(
     editingEvent?.typedData?.type === 'meal' ? editingEvent.title : '',
   )
-  const [growthSubInput, setGrowthSubInput] = useState('')
   const [sleepType, setSleepType] = useState<SleepSubType>(
     editingEvent?.typedData?.type === 'sleep' ? editingEvent.typedData.sleepType : 'main',
   )
@@ -286,7 +285,6 @@ export function FloatingEventCard({
       setError(null)
       setInlineSuggestion(null)
       if (modeFromCategory(newCatId) !== 'meal-food') setMealFood('')
-      if (modeFromCategory(newCatId) !== 'growth-read' && modeFromCategory(newCatId) !== 'growth-sport') setGrowthSubInput('')
       return
     }
 
@@ -387,16 +385,6 @@ export function FloatingEventCard({
     }
   }
 
-  // ── Sub-panel callbacks ─────────────────────────────
-
-  const selectChore = useCallback((choreTitle: string) => {
-    setTitle(choreTitle)
-  }, [])
-
-  const selectLeisure = useCallback((item: string) => {
-    setTitle(item)
-  }, [])
-
   // ── Switch category (from click or Alt+1~6) ────────
 
   const switchCategory = useCallback((newCatId: CategoryId) => {
@@ -405,7 +393,6 @@ export function FloatingEventCard({
     setMode(modeFromCategory(newCatId))
     setError(null)
     if (modeFromCategory(newCatId) !== 'meal-food') setMealFood('')
-    if (modeFromCategory(newCatId) !== 'growth-read' && modeFromCategory(newCatId) !== 'growth-sport') setGrowthSubInput('')
   }, [])
 
   // ── Render helpers ──────────────────────────────────
@@ -547,10 +534,11 @@ export function FloatingEventCard({
 
         {/* Main input with inline suggestion + category tint */}
         <div
-          className="relative bg-surface-sunken border border-border-subtle rounded-md transition-all duration-200"
+          className="relative border rounded-md transition-all duration-300"
           style={{
-            borderBottomColor: `var(--event-${categoryId}-fill)`,
-            borderBottomWidth: '2px',
+            borderColor: `var(--event-${categoryId}-fill)`,
+            borderWidth: '1.5px',
+            backgroundColor: `color-mix(in srgb, var(--event-${categoryId}-bg) 30%, var(--surface-sunken))`,
           }}
         >
           {/* Inline suggestion text (behind input) */}
@@ -591,7 +579,7 @@ export function FloatingEventCard({
               <button
                 key={catId}
                 onClick={() => switchCategory(catId)}
-                className="transition-all duration-200 ease-out cursor-pointer flex-shrink-0 rounded-full"
+                className="transition-all duration-300 ease-out cursor-pointer flex-shrink-0 rounded-full"
                 style={{
                   width: isSel ? '32px' : dist <= 1 ? '22px' : '16px',
                   height: isSel ? '8px' : '5px',
@@ -625,9 +613,9 @@ export function FloatingEventCard({
         {mode === 'chores' && (
           <ChoresPanel
             onSelectMeal={() => { setMode('meal-food'); setMealFood(''); setTitle('吃饭') }}
-            onSelectWash={() => selectChore('洗漱')}
-            onSelectShower={() => selectChore('洗澡')}
-            onSelectClean={() => selectChore('打扫卫生')}
+            onSelectWash={() => handleSave('洗漱')}
+            onSelectShower={() => handleSave('洗澡')}
+            onSelectClean={() => handleSave('打扫卫生')}
             language={language}
           />
         )}
@@ -643,10 +631,11 @@ export function FloatingEventCard({
         {mode === 'growth-read' && (
           <GrowthSubPanel
             subMode="read"
-            input={growthSubInput}
-            onChange={setGrowthSubInput}
+            input={title}
+            onChange={setTitle}
             recent={recentGrowthRead}
-            onSelect={(v) => { setGrowthSubInput(v); setTitle(v) }}
+            onSelect={(v) => handleSave(v)}
+            onSubmit={() => handleSave()}
             language={language}
           />
         )}
@@ -654,10 +643,11 @@ export function FloatingEventCard({
         {mode === 'growth-sport' && (
           <GrowthSubPanel
             subMode="sport"
-            input={growthSubInput}
-            onChange={setGrowthSubInput}
+            input={title}
+            onChange={setTitle}
             recent={recentGrowthSport}
-            onSelect={(v) => { setGrowthSubInput(v); setTitle(v) }}
+            onSelect={(v) => handleSave(v)}
+            onSubmit={() => handleSave()}
             language={language}
           />
         )}
@@ -665,7 +655,7 @@ export function FloatingEventCard({
         {mode === 'leisure' && (
           <LeisurePanel
             recentLeisure={recentLeisure}
-            onSelect={selectLeisure}
+            onSelect={(item) => handleSave(item)}
             language={language}
           />
         )}
