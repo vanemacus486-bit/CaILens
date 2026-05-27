@@ -14,9 +14,10 @@ interface TodoState {
   updateTodo: (input: UpdateTodoInput) => Promise<Todo>
   deleteTodo: (id: string) => Promise<void>
   toggleComplete: (id: string) => Promise<Todo>
+  reorderTodo: (id: string, targetId: string, position: 'before' | 'after') => Promise<void>
 }
 
-export const useTodoStore = create<TodoState>()((set) => ({
+export const useTodoStore = create<TodoState>()((set, get) => ({
   todos: [],
   isLoading: false,
   isLoaded: false,
@@ -77,6 +78,44 @@ export const useTodoStore = create<TodoState>()((set) => ({
     } catch (e) {
       set({ error: (e as Error).message })
       throw e
+    }
+  },
+
+  reorderTodo: async (id, targetId, position) => {
+    if (id === targetId) return
+    try {
+      const now = Date.now()
+
+      // ── 1. 从 store 本地数据计算新顺序（立即，0ms） ──
+      const current = get().todos
+      const ungrouped = current
+        .filter((t) => !t.projectId)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+
+      const fromIdx = ungrouped.findIndex((t) => t.id === id)
+      const toIdx = ungrouped.findIndex((t) => t.id === targetId)
+      if (fromIdx === -1 || toIdx === -1) return
+
+      const [moved] = ungrouped.splice(fromIdx, 1)
+      const adjustedTo = fromIdx < toIdx ? toIdx - 1 : toIdx
+      const insertAt = position === 'before' ? adjustedTo : adjustedTo + 1
+      ungrouped.splice(insertAt, 0, moved)
+
+      // ── 2. 乐观更新 store（立即刷新 UI） ──
+      const updatedUngrouped = ungrouped.map((t, i) => ({ ...t, sortOrder: i, updatedAt: now }))
+      const updatedIds = new Set(updatedUngrouped.map((t) => t.id))
+      const merged = sortTodos([
+        ...current.filter((t) => !updatedIds.has(t.id)),
+        ...updatedUngrouped,
+      ])
+      set({ todos: merged })
+
+      // ── 3. 后台写入 DB（用户无感知） ──
+      await getTodoRepo().bulkPut(updatedUngrouped)
+    } catch (e) {
+      // 出错时从 DB 恢复
+      const all = sortTodos(await getTodoRepo().getAll())
+      set({ todos: all, error: (e as Error).message })
     }
   },
 }))

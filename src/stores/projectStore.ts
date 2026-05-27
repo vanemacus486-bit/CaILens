@@ -33,6 +33,8 @@ interface ProjectState {
   deleteTodoInProject: (id: string) => Promise<void>
   toggleTodoDone: (id: string) => Promise<void>
   reorderTodo: (id: string, direction: 'up' | 'down') => Promise<void>
+  reorderTodoArbitrary: (id: string, targetId: string, position: 'before' | 'after') => Promise<void>
+  updateTodoInProject: (id: string, updates: { title?: string }) => Promise<Todo>
 }
 
 export const useProjectStore = create<ProjectState>()((set, get) => ({
@@ -141,6 +143,22 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     return getProjectRepo().searchByName(query, limit)
   },
 
+  updateTodoInProject: async (id: string, updates: { title?: string }) => {
+    const todoRepo = getTodoRepo()
+    const updated = await todoRepo.update({ id, ...updates })
+    set((state) => {
+      const pid = updated.projectId
+      if (!pid) return state
+      const items = (state.todosByProject[pid] ?? []).map((t) =>
+        t.id === updated.id ? updated : t,
+      )
+      return {
+        todosByProject: { ...state.todosByProject, [pid]: items },
+      }
+    })
+    return updated
+  },
+
   // ── Project-scoped todo operations ──
 
   getTodosByProject: (projectId) => {
@@ -230,5 +248,43 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     set((state) => ({
       todosByProject: { ...state.todosByProject, [pid]: fresh },
     }))
+  },
+
+  reorderTodoArbitrary: async (id, targetId, position) => {
+    if (id === targetId) return
+    const todoRepo = getTodoRepo()
+    const existing = await todoRepo.getById(id)
+    if (!existing || !existing.projectId) return
+    const pid = existing.projectId
+    const items = (get().todosByProject[pid] ?? [])
+      .filter((t) => t.projectId === pid)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+
+    const fromIdx = items.findIndex((t) => t.id === id)
+    const toIdx = items.findIndex((t) => t.id === targetId)
+    if (fromIdx === -1 || toIdx === -1) return
+
+    const [moved] = items.splice(fromIdx, 1)
+    const adjustedTo = fromIdx < toIdx ? toIdx - 1 : toIdx
+    const insertAt = position === 'before' ? adjustedTo : adjustedTo + 1
+    items.splice(insertAt, 0, moved)
+
+    const now = Date.now()
+    const updated = items.map((t, i) => ({ ...t, sortOrder: i, updatedAt: now }))
+
+    // 乐观更新：立即刷新 UI（0ms，不再等待 DB）
+    set((state) => ({
+      todosByProject: { ...state.todosByProject, [pid]: updated },
+    }))
+
+    // 后台写入 DB（用户无感知）
+    await todoRepo.bulkPut(updated).catch(() => {
+      // 写入失败时从 DB 恢复
+      todoRepo.getByProject(pid).then((fresh) => {
+        set((state) => ({
+          todosByProject: { ...state.todosByProject, [pid]: fresh },
+        }))
+      })
+    })
   },
 }))

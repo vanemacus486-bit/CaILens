@@ -1,23 +1,26 @@
 /**
- * # ActionPage — 规划 Tab
+ * # ActionPage — 规划 Tab（待办散点图版）
  *
- * 统一视图：待办按"未分组 + 项目分组"展示。
- * - 顶部快速添加待办
- * - "待整理"区：未归属项目的独立待办
- * - 项目卡片区：每个项目下展示其待办子项
- * - 底部创建新项目
+ * QuadrantChart 是主视图：每条待办一个圆点，Y=分类, X=紧迫度。
+ * - 统一输入：标题 + 分类 + 期限（默认一周）+ 归属项目
+ * - 点击圆点 → 弹框编辑/完成/删除
+ * - 已完成待办不显示在图中
  */
 
 import { useEffect, useState, useCallback, type FormEvent } from 'react'
-import { ListTodo, Inbox, FolderKanban } from 'lucide-react'
+import { ListTodo, FolderKanban } from 'lucide-react'
 import { usePageScrollRestore } from '@/hooks/usePageScrollRestore'
 import { useTodoStore } from '@/stores/todoStore'
 import { useProjectStore } from '@/stores/projectStore'
+import { calcTodoPositions } from '@/domain/quadrant'
+import type { CategoryId } from '@/domain/category'
 import { TodoInput } from './TodoInput'
-import { TodoItem } from './TodoItem'
+import { QuadrantChart } from './QuadrantChart'
+import { TodoDotDialog } from './TodoDotDialog'
 import { ProjectsView } from './ProjectsView'
 
 export function ActionPage() {
+  // ── Stores ──
   const {
     todos,
     isLoading: todosLoading,
@@ -30,60 +33,87 @@ export function ActionPage() {
     toggleComplete,
   } = useTodoStore()
 
-  const { createProject } = useProjectStore()
+  const {
+    projects,
+    createProject,
+    loadAll: loadAllProjects,
+    isLoaded: projectsLoaded,
+  } = useProjectStore()
 
-  const [newProjectName, setNewProjectName] = useState('')
-
+  // ── 数据加载 ──
   useEffect(() => {
     if (!todosLoaded) loadTodos()
-  }, [todosLoaded, loadTodos])
+    if (!projectsLoaded) loadAllProjects()
+  }, [todosLoaded, loadTodos, projectsLoaded, loadAllProjects])
 
-  // ── 操作 handlers ──
+  // ── 本地状态 ──
+  const [newProjectName, setNewProjectName] = useState('')
+  const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null)
 
-  const handleCreate = useCallback(
-    (title: string) => {
-      createTodo({ title })
-    },
-    [createTodo],
-  )
+  // ── 散点图数据 ──
+  const positions = calcTodoPositions(todos, projects, Date.now())
 
-  const handleToggle = useCallback(
-    (id: string) => {
-      toggleComplete(id)
-    },
-    [toggleComplete],
-  )
+  // ── 选中的待办 ──
+  const selectedPosition = selectedTodoId
+    ? positions.find((p) => p.todoId === selectedTodoId) ?? null
+    : null
 
-  const handleUpdate = useCallback(
-    (id: string, updates: { title?: string }) => {
-      updateTodo({ id, ...updates })
-    },
-    [updateTodo],
-  )
+  // ── 统一创建 ──
+  const handleCreate = useCallback((input: {
+    title: string
+    categoryId: CategoryId | null
+    dueDate: number | null
+    projectId: string | null
+  }) => {
+    createTodo({
+      title: input.title,
+      dueDate: input.dueDate,
+      projectId: input.projectId,
+      categoryId: input.categoryId,
+    })
+  }, [createTodo])
 
-  const handleDelete = useCallback(
-    (id: string) => {
-      deleteTodo(id)
-    },
-    [deleteTodo],
-  )
+  // ── 弹框操作 ──
+  const handleDotClick = useCallback((id: string) => {
+    setSelectedTodoId(id)
+  }, [])
 
-  const handleCreateProject = useCallback(
-    (e: FormEvent) => {
-      e.preventDefault()
-      const trimmed = newProjectName.trim()
-      if (!trimmed) return
-      createProject({ name: trimmed, categoryId: 'accent' })
-      setNewProjectName('')
-    },
-    [newProjectName, createProject],
-  )
+  const handleDotSave = useCallback((updates: {
+    title?: string
+    categoryId?: string | null
+    dueDate?: number | null
+    projectId?: string | null
+  }) => {
+    if (!selectedTodoId) return
+    updateTodo({ id: selectedTodoId, ...updates })
+  }, [selectedTodoId, updateTodo])
 
-  // ── 统计与分组 ──
+  const handleToggleDone = useCallback((id: string) => {
+    toggleComplete(id)
+  }, [toggleComplete])
 
+  const handleDelete = useCallback((id: string) => {
+    deleteTodo(id)
+    if (selectedTodoId === id) setSelectedTodoId(null)
+  }, [deleteTodo, selectedTodoId])
+
+  // ── 新建项目 ──
+  const handleCreateProject = useCallback((e: FormEvent) => {
+    e.preventDefault()
+    const trimmed = newProjectName.trim()
+    if (!trimmed) return
+    createProject({ name: trimmed, categoryId: 'accent' })
+    setNewProjectName('')
+  }, [newProjectName, createProject])
+
+  // ── 统计 ──
   const doneCount = todos.filter((t) => t.status === 'done').length
   const activeCount = todos.length - doneCount
-  const ungroupedTodos = todos.filter((t) => t.projectId === null)
+
+  // ── 项目列表（给输入框用） ──
+  const activeProjects = projects
+    .filter((p) => p.status === 'active')
+    .map((p) => ({ id: p.id, name: p.name, categoryId: p.categoryId }))
 
   return (
     <div className="flex-1 h-full overflow-hidden flex flex-col">
@@ -108,9 +138,12 @@ export function ActionPage() {
 
       {/* ── 内容区 ── */}
       <div ref={usePageScrollRestore('/action')} className="flex-1 overflow-y-auto px-6 pb-8">
-        {/* 新建待办（顶部固定） */}
+        {/* 统一输入 */}
         <div className="mb-5">
-          <TodoInput onCreate={handleCreate} />
+          <TodoInput
+            projects={activeProjects}
+            onCreate={handleCreate}
+          />
         </div>
 
         {todosError && (
@@ -119,99 +152,110 @@ export function ActionPage() {
           </div>
         )}
 
-        {todosLoading ? (
+        {todosLoading && todos.length === 0 ? (
           <div className="flex items-center justify-center py-20">
             <p className="font-sans text-sm text-text-tertiary">{'加载中…'}</p>
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* ── 待整理（未归属项目的独立待办） ── */}
-            {ungroupedTodos.length > 0 && (
-              <Section
-                label="待整理"
-                icon={<Inbox size={14} strokeWidth={1.75} className="text-text-tertiary" />}
-                count={ungroupedTodos.length}
-              >
-                {ungroupedTodos.map((todo) => (
-                  <TodoItem
-                    key={todo.id}
-                    todo={todo}
-                    onToggle={handleToggle}
-                    onUpdate={handleUpdate}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </Section>
+          <div className="space-y-6">
+            {/* ── 待办散点图 ── */}
+            {positions.length > 0 && (
+              <QuadrantChart
+                positions={positions}
+                selectedId={selectedTodoId}
+                onDotClick={handleDotClick}
+              />
             )}
 
-            {/* ── 待办为空且无项目时的引导 ── */}
-            {ungroupedTodos.length === 0 && todos.length === 0 && (
+            {/* ── 空态 ── */}
+            {positions.length === 0 && todos.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Inbox size={40} strokeWidth={1.25} className="text-text-tertiary/40 mb-4" />
                 <p className="font-sans text-sm text-text-tertiary mb-1">
                   {'还没有待办，在上方输入框添加'}
                 </p>
               </div>
             )}
 
-            {/* ── 项目分组待办 ── */}
-            <div>
-              <ProjectsView />
-            </div>
+            {/* ── 已完成待办简约列表 ── */}
+            {doneCount > 0 && (
+              <details className="group">
+                <summary className="font-sans text-xs text-text-tertiary cursor-pointer hover:text-text-secondary transition-colors select-none list-none flex items-center gap-2">
+                  <span className="inline-block w-3 transition-transform group-open:rotate-90 text-text-quaternary">{'›'}</span>
+                  {'已完成'} <span className="font-mono text-[10px] text-text-quaternary">{doneCount}</span>
+                </summary>
+                <div className="mt-2 rounded-xl border border-border-subtle bg-surface-raised divide-y divide-border-subtle/50">
+                  {todos
+                    .filter((t) => t.status === 'done')
+                    .slice(0, 20)
+                    .map((todo) => (
+                      <div key={todo.id} className="flex items-center gap-3 px-4 py-2">
+                        <span className="font-sans text-xs text-text-tertiary line-through truncate flex-1">
+                          {todo.title}
+                        </span>
+                        <button
+                          onClick={() => toggleComplete(todo.id)}
+                          className="text-[10px] font-sans text-text-quaternary hover:text-text-secondary transition-colors cursor-pointer border-none bg-transparent"
+                        >
+                          {'撤回'}
+                        </button>
+                      </div>
+                    ))}
+                  {doneCount > 20 && (
+                    <div className="px-4 py-2 font-sans text-[10px] text-text-quaternary text-center">
+                      {'仅显示最近 20 条'}
+                    </div>
+                  )}
+                </div>
+              </details>
+            )}
+
+            {/* ── 项目分组视图 ── */}
+            {projects.filter((p) => p.status === 'active').length > 0 && (
+              <section>
+                <h2 className="font-serif text-sm font-medium text-text-primary mb-3 flex items-center gap-2">
+                  <FolderKanban size={16} strokeWidth={1.5} className="text-accent" />
+                  {'项目待办'}
+                </h2>
+                <ProjectsView />
+              </section>
+            )}
 
             {/* ── 新建项目 ── */}
-            <div>
-              <form
-                onSubmit={handleCreateProject}
-                className="flex items-center gap-2 rounded-xl border border-border-subtle bg-surface-sunken px-4 py-2.5 transition-shadow duration-200 focus-within:shadow-sm"
+            <form
+              onSubmit={handleCreateProject}
+              className="flex items-center gap-2 rounded-xl border border-border-subtle bg-surface-sunken px-4 py-2.5 transition-shadow duration-200 focus-within:shadow-sm"
+            >
+              <FolderKanban size={16} strokeWidth={1.75} className="text-text-quaternary flex-shrink-0" />
+              <input
+                type="text"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder={'新建项目…'}
+                className="flex-1 bg-transparent border-none outline-none font-sans text-sm text-text-primary placeholder:text-text-quaternary"
+              />
+              <button
+                type="submit"
+                disabled={!newProjectName.trim()}
+                className="h-7 px-3 rounded-md text-xs font-medium font-sans bg-accent text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity cursor-pointer border-none"
               >
-                <FolderKanban size={16} strokeWidth={1.75} className="text-text-quaternary flex-shrink-0" />
-                <input
-                  type="text"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  placeholder={'新建项目…'}
-                  className="flex-1 bg-transparent border-none outline-none font-sans text-sm text-text-primary placeholder:text-text-quaternary"
-                />
-                <button
-                  type="submit"
-                  disabled={!newProjectName.trim()}
-                  className="h-7 px-3 rounded-md text-xs font-medium font-sans bg-accent text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity cursor-pointer border-none"
-                >
-                  {'添加'}
-                </button>
-              </form>
-            </div>
+                {'添加'}
+              </button>
+            </form>
           </div>
         )}
       </div>
-    </div>
-  )
-}
 
-// ── Section 分组组件 ──────────────────────────────
-
-function Section({
-  label,
-  icon,
-  count,
-  children,
-}: {
-  label: string
-  icon: React.ReactNode
-  count: number
-  children: React.ReactNode
-}) {
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-2 px-1">
-        {icon}
-        <h2 className="font-serif text-xs font-medium text-text-secondary">{label}</h2>
-        <span className="font-mono text-[10px] text-text-quaternary">{count}</span>
-      </div>
-      <div className="rounded-xl border border-border-subtle bg-surface-raised divide-y divide-border-subtle/50">
-        {children}
-      </div>
+      {/* ── 待办编辑弹框 ── */}
+      {selectedPosition && (
+        <TodoDotDialog
+          position={selectedPosition}
+          projects={activeProjects}
+          onSave={handleDotSave}
+          onToggleDone={handleToggleDone}
+          onDelete={handleDelete}
+          onClose={() => setSelectedTodoId(null)}
+        />
+      )}
     </div>
   )
 }

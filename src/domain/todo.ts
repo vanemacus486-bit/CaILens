@@ -62,6 +62,8 @@ export interface Todo {
   sortOrder: number
   /** 归属项目 ID，null 表示独立待办 */
   projectId: string | null
+  /** 所属分类 ID，仅独立待办 (projectId===null) 有值时用于象限 Y 轴定位 */
+  categoryId: string | null
   createdAt: number
   updatedAt: number
   /** 完成时间戳，仅 status === 'done' 时有值 */
@@ -76,6 +78,7 @@ export interface CreateTodoInput {
   priority?: TodoPriority
   dueDate?: number | null
   projectId?: string | null
+  categoryId?: string | null
 }
 
 export interface UpdateTodoInput {
@@ -87,6 +90,7 @@ export interface UpdateTodoInput {
   dueDate?: number | null
   sortOrder?: number
   projectId?: string | null
+  categoryId?: string | null
 }
 
 // ── 纯函数工具 ──────────────────────────────────────────────

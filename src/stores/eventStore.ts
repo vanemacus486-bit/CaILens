@@ -29,6 +29,9 @@ function clearEventCache(): void {
   _eventCache.clear()
 }
 
+// 外部使用：watchdog 在文件系统变更后强制刷新
+export { clearEventCache }
+
 // ── Store ────────────────────────────────────────────────────
 
 interface EventState {

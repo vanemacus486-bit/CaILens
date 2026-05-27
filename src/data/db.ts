@@ -147,6 +147,22 @@ export class CailensDB extends Dexie {
       todos: 'id, status, dueDate, sortOrder, projectId',
     }).upgrade(upgradeV21)
 
+    // v22：todos 新增 categoryId 索引（独立待办分类归属）
+    this.version(22).stores({
+      events: 'id, startTime, endTime, projectId',
+      categories: 'id', settings: 'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+      projects: 'id, categoryId, name, status, sortOrder, useCount, lastUsedAt',
+      inspirations: 'id, projectId, eventId',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+      profiles: 'id',
+      outfitLogs: 'id, date',
+      hygieneLogs: 'id, date',
+      leisureLogs: 'id, date',
+      bodyMetricsRecords: 'id, date',
+      todos: 'id, status, dueDate, sortOrder, projectId, categoryId',
+    })
+
     // 全新 DB 首次创建时触发（version 0 → any）
     this.on('populate', () =>
       Promise.all([

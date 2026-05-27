@@ -57,6 +57,7 @@ export class TodoRepository {
       dueDate: input.dueDate ?? null,
       sortOrder: maxOrder + 1,
       projectId: input.projectId ?? null,
+      categoryId: input.categoryId ?? null,
       createdAt: now,
       updatedAt: now,
       completedAt: null,

@@ -150,6 +150,8 @@ export function FloatingEventCard({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const virtualRef = useRef<HTMLElement>(null!)
   virtualRef.current = anchorEl
+  const handleSaveRef = useRef(handleSave)
+  handleSaveRef.current = handleSave
 
   // ── Derived ─────────────────────────────────────────
 
@@ -261,7 +263,7 @@ export function FloatingEventCard({
     // Enter → save
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSave()
+      handleSaveRef.current()
       return
     }
 

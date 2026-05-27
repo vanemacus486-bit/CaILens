@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { getAdapter } from '@/data/adapterFactory'
 import { initRepositories } from '@/data/getRepositories'
+import type { FileSystemAdapter } from '@/data/adapters/FileSystemAdapter'
 import './index.css'
 import App from './App.tsx'
 
@@ -22,6 +23,12 @@ async function bootstrap() {
 
   updateSplash(55, 'Initializing database...')
   initRepositories(adapter)
+
+  // 文件系统变更监听：外部修改 todos.json / events.json 后自动刷新 stores
+  if (adapter.storagePath) {
+    const { startFsWatcher } = await import('./stores/watchdog')
+    startFsWatcher(adapter as FileSystemAdapter)
+  }
 
   updateSplash(85, 'Loading application...')
 
