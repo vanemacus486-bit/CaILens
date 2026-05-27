@@ -3,8 +3,7 @@ import type { Project, CreateProjectInput, UpdateProjectInput } from '@/domain/p
 import { sortProjects } from '@/domain/project'
 import type { Todo } from '@/domain/todo'
 import { calcProjectProgress } from '@/domain/todo'
-import { getProjectRepo } from '@/data/getRepositories'
-import { getTodoRepo } from '@/data/getRepositories'
+import { getProjectRepo, getTodoRepo, getEventRepo, getInspirationRepo } from '@/data/getRepositories'
 
 interface ProjectState {
   projects: Project[]
@@ -96,7 +95,32 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   },
 
   deleteProject: async (id) => {
+    // Cascade: delete all todos for this project
+    const todoRepo = getTodoRepo()
+    const projectTodos = await todoRepo.getByProject(id)
+    for (const t of projectTodos) {
+      await todoRepo.delete(t.id)
+    }
+
+    // Cascade: delete all inspirations for this project
+    const inspirationRepo = getInspirationRepo()
+    const projectInspirations = await inspirationRepo.getByProject(id)
+    for (const i of projectInspirations) {
+      await inspirationRepo.delete(i.id)
+    }
+
+    // Cascade: clear projectId on linked events (events themselves stay)
+    const eventRepo = getEventRepo()
+    const allEvents = await eventRepo.getAll()
+    for (const e of allEvents) {
+      if (e.projectId === id) {
+        await eventRepo.update({ id: e.id, projectId: undefined })
+      }
+    }
+
+    // Delete the project itself
     await getProjectRepo().delete(id)
+
     set((state) => {
       const { [id]: _removed, ...rest } = state.todosByProject
       return {

@@ -5,7 +5,7 @@
  * 精简版：已去掉标签云和独立新建项目表单。
  */
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   ChevronRight,
   ChevronDown,
@@ -28,6 +28,7 @@ export function ProjectsView() {
     loadAll,
     createTodoInProject,
     deleteTodoInProject,
+    deleteProject,
     toggleTodoDone,
     getTodosByProject,
   } = useProjectStore()
@@ -89,6 +90,11 @@ export function ProjectsView() {
           onItemKeyDown={(e) => handleItemKeyDown(e, project.id)}
           onToggleItem={toggleTodoDone}
           onDeleteItem={deleteTodoInProject}
+          onDeleteProject={() => {
+            if (window.confirm(`删除项目「${project.name}」及其所有子待办？`)) {
+              deleteProject(project.id)
+            }
+          }}
         />
       ))}
     </div>
@@ -108,6 +114,7 @@ interface ProjectCardProps {
   onItemKeyDown: (e: React.KeyboardEvent) => void
   onToggleItem: (id: string) => void
   onDeleteItem: (id: string) => void
+  onDeleteProject: () => void
 }
 
 function ProjectCard({
@@ -121,16 +128,41 @@ function ProjectCard({
   onItemKeyDown,
   onToggleItem,
   onDeleteItem,
+  onDeleteProject,
 }: ProjectCardProps) {
 
   const total = todos.length
   const done = todos.filter((t) => t.status === 'done').length
   const percent = total === 0 ? 0 : Math.round((done / total) * 100)
 
+  // ── Context menu state ──
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+
+  // Close menu on click outside
+  useEffect(() => {
+    if (!contextMenu) return
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setContextMenu(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [contextMenu])
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }, [])
+
   return (
     <div className="rounded-xl border border-border-subtle bg-surface-raised overflow-hidden transition-shadow duration-200 hover:shadow-sm">
       {/* ── 项目头：名称 + 进度条 + 操作 ── */}
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div
+        className="flex items-center gap-3 px-4 py-3"
+        onContextMenu={handleContextMenu}
+      >
         {/* 展开按钮 */}
         <button
           onClick={onToggleExpand}
@@ -175,6 +207,26 @@ function ProjectCard({
           {percent}%
         </span>
       </div>
+
+      {/* ── 右键菜单 ── */}
+      {contextMenu && (
+        <div
+          ref={menuRef}
+          className="fixed z-50 min-w-[140px] rounded-lg border border-border-subtle bg-surface-raised py-1 shadow-lg"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            onClick={() => {
+              setContextMenu(null)
+              onDeleteProject()
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm font-sans text-[#B53535] hover:bg-surface-sunken cursor-pointer border-none bg-transparent text-left transition-colors"
+          >
+            <Trash2 size={14} strokeWidth={1.75} />
+            删除项目
+          </button>
+        </div>
+      )}
 
       {/* ── 展开的子待办列表 ── */}
       {isExpanded && (
