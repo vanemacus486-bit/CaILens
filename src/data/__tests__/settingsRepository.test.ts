@@ -41,7 +41,7 @@ describe('get', () => {
 describe('update', () => {
   it('updates the language field', async () => {
     await repo.update({ language: 'en' })
-    const result = await repo.get()
+    await repo.get()
     })
 
   it('persists across successive get calls', async () => {

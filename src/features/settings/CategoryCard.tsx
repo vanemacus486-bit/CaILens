@@ -66,7 +66,7 @@ export function CategoryCard({
           <div className="flex-1 min-w-0">
             <CategoryNameEditor
               id={category.id}
-              name={category.name[language]}
+              name={category.name}
               onCommit={onNameCommit}
             />
           </div>

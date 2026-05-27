@@ -1,7 +1,6 @@
 import { X, Search, Settings, Calendar } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useUIStore } from '@/stores/uiStore'
-import { useAppSettingsStore } from '@/stores/settingsStore'
 import { formatISODate } from '@/domain/time'
 import { cn } from '@/lib/utils'
 

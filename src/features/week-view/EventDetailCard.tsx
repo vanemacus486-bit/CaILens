@@ -8,8 +8,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import type { CalendarEvent } from '@/domain/event'
-import { useAppSettingsStore } from '@/stores/settingsStore'
-
 interface EventDetailCardProps {
   event:    CalendarEvent
   anchorEl: HTMLElement

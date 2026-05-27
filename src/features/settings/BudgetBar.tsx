@@ -3,12 +3,11 @@ import type { Category } from '@/domain/category'
 
 interface BudgetBarProps {
   categories: Category[]
-  language: 'zh' | 'en'
 }
 
 const WEEK_TOTAL = 168
 
-export function BudgetBar({ categories, language }: BudgetBarProps) {
+export function BudgetBar({ categories }: BudgetBarProps) {
     const totalBudgeted = useMemo(
     () => categories.reduce((sum, c) => sum + c.weeklyBudget, 0),
     [categories],
@@ -65,7 +64,7 @@ export function BudgetBar({ categories, language }: BudgetBarProps) {
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ backgroundColor: `var(--event-${cat.id}-text)` }}
             />
-            <span className="font-sans">{cat.name[language]}</span>
+            <span className="font-sans">{cat.name}</span>
             <span className="font-mono text-text-tertiary">{cat.weeklyBudget}</span>
           </span>
         ))}

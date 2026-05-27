@@ -4,7 +4,6 @@ import { getWeekDays, isSameDay, formatWeekday } from '@/domain/time'
 import type { CalendarEvent } from '@/domain/event'
 import { EVENT_COLOR_CLASSES } from '@/components/calendar/eventColors'
 import { useEventStore } from '@/stores/eventStore'
-import { useAppSettingsStore } from '@/stores/settingsStore'
 
 interface MobileDayViewProps {
   weekStart: Date
@@ -115,7 +114,7 @@ export function MobileDayView({ weekStart, onWeekStartChange }: MobileDayViewPro
           </div>
         ) : (
           dayEvents.map(event => (
-            <MobileEventCard key={event.id} event={event} language={language} />
+            <MobileEventCard key={event.id} event={event} />
           ))
         )}
       </div>
@@ -125,7 +124,7 @@ export function MobileDayView({ weekStart, onWeekStartChange }: MobileDayViewPro
 
 // ── MobileEventCard ──────────────────────────────────────
 
-function MobileEventCard({ event, language }: { event: CalendarEvent; language: 'zh' | 'en' }) {
+function MobileEventCard({ event }: { event: CalendarEvent }) {
   const { text } = EVENT_COLOR_CLASSES[event.color]
     return (
     <div className="flex items-start gap-3 py-2.5 border-b border-border-subtle last:border-b-0">

@@ -1,17 +1,16 @@
 import { fireAndForget } from '@/lib/fireAndForget'
-import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useCategoryStore } from '@/stores/categoryStore'
 import { useEventStore } from '@/stores/eventStore'
 import type { CategoryId } from '@/domain/category'
 import { BudgetBar } from './BudgetBar'
 import { CategoryCard } from './CategoryCard'
 
 export function SettingsCategories() {
-  const language = useAppSettingsStore((s) => s.settings.language)
   const categories = useCategoryStore((s) => s.categories)
+  const language = useAppSettingsStore((s) => s.settings.language)
   const updateCategory = useCategoryStore((s) => s.updateCategory)
   const reclassifyAllEvents = useEventStore((s) => s.reclassifyAllEvents)
-    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const handleNameCommit = (id: CategoryId, newName: string) => {
     fireAndForget(updateCategory(id, { name: newName }), 'update category name')
@@ -63,7 +62,7 @@ export function SettingsCategories() {
         </div>
       </div>
 
-      <BudgetBar categories={categories} language={language} />
+      <BudgetBar categories={categories} />
 
       <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-3">
         {categories.map((cat) => (

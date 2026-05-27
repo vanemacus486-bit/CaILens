@@ -276,7 +276,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
                           style={{ backgroundColor: catFill(cat) }}
                         />
                         <span className="font-sans text-[11px] text-text-secondary">
-                          {cat.name[language]}
+                          {cat.name}
                         </span>
                         <span className="font-mono text-[10px] text-text-tertiary">
                           {fmtShortDuration(dur)}
@@ -358,7 +358,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
                           color: catText(cat),
                         }}
                       >
-                        {cat.name[language]}
+                        {cat.name}
                       </span>
                     )}
                   </div>

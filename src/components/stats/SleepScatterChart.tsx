@@ -2,7 +2,6 @@ import { useMemo, useState, startTransition, memo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized } from 'recharts'
 import type { CalendarEvent } from '@/domain/event'
 import { computeNapStats } from '@/domain/napStats'
-import { useAppSettingsStore } from '@/stores/settingsStore'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -66,7 +65,7 @@ function viewLabel(vm: SleepViewMode, anchor: Date): string {
   }
 }
 
-function viewDesc(vm: SleepViewMode, t: (a: string, b: string) => string): string {
+function viewDesc(vm: SleepViewMode): string {
   switch (vm) {
     case 'month':   return '就寝与起床时间'
     case 'quarter': return '季度睡眠模式'
@@ -108,8 +107,6 @@ interface SleepScatterChartProps {
 }
 
 export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
-  const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
   const isCompact = typeof window !== 'undefined' && window.innerWidth < 720
 
   const cutoff = Date.now() - 365 * 86_400_000
@@ -332,7 +329,7 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
      ════════════════════════════════════════════════════════════ */
 
   const label = viewLabel(viewMode, anchorDate)
-  const desc = viewDesc(viewMode, t)
+  const desc = viewDesc(viewMode)
 
   // X-axis props (split to avoid conditional hooks)
   const xTickFont = viewMode === 'month'
@@ -527,7 +524,7 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
 
           {/* ── 小睡统计 ──────────────────────────── */}
           {napStats.totalNaps > 0 && (
-            <NapStatsPanel stats={napStats} t={t} />
+            <NapStatsPanel stats={napStats} />
           )}
         </>
       )}
@@ -541,10 +538,8 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
 
 function NapStatsPanel({
   stats,
-  t,
 }: {
   stats: import('@/domain/napStats').NapStats
-  t: (zh: string, en: string) => string
 }) {
   const maxHourCount = Math.max(...stats.hourDistribution, 1)
   const hourLabels = ['0', '', '2', '', '4', '', '6', '', '8', '', '10', '',

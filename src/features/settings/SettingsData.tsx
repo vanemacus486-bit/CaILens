@@ -8,7 +8,6 @@ import { ImportIcsDialog } from '@/features/import-ics/ImportIcsDialog'
 export function SettingsData() {
   const settings = useAppSettingsStore((s) => s.settings)
   const language = settings.language
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const [importOpen, setImportOpen] = useState(false)
 

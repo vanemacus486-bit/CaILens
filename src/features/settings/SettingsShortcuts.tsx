@@ -15,9 +15,6 @@ export function SettingsShortcuts() {
     const shortcuts = useAppSettingsStore((s) => s.settings.shortcuts)
   const setShortcut = useAppSettingsStore((s) => s.setShortcut)
   const resetAllShortcuts = useAppSettingsStore((s) => s.resetAllShortcuts)
-  const language = useAppSettingsStore((s) => s.settings.language)
-
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const [recording, setRecording] = useState<ShortcutAction | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
@@ -126,10 +123,7 @@ export function SettingsShortcuts() {
               const binding = resolved[c.actionA]
               return (
                 <li key={`${c.actionA}-${c.actionB}`}>
-                  {t(
-                    `${a.label.zh} 和 ${b.label.zh} 都使用了 ${binding ? bindingToDisplayString(binding) : ''}`,
-                    `${a.label.en} and ${b.label.en} both use ${binding ? bindingToDisplayString(binding) : ''}`,
-                  )}
+                  {`${a.label} 和 ${b.label} 都使用了 ${binding ? bindingToDisplayString(binding) : ''}`}
                 </li>
               )
             })}
@@ -154,7 +148,7 @@ export function SettingsShortcuts() {
               )}
             >
               <span className="text-sm font-sans text-text-primary">
-                {language === 'zh' ? def.label.zh : def.label.en}
+                {def.label}
               </span>
 
               <div className="flex items-center gap-1.5">

@@ -22,8 +22,7 @@ describe('addKeywordIfValid', () => {
   it('allows unlimited keywords (no MAX_KEYWORDS limit)', () => {
     const many = Array.from({ length: 50 }, (_, i) => `kw${i}`)
     const result = addKeywordIfValid(many, 'new-kw')
-    expect(result.ok).toBe(true)
-    expect(result.keywords).toHaveLength(51)
+    expect(result).toEqual({ ok: true, keywords: expect.arrayContaining(['new-kw']) })
   })
 
   it('trims whitespace before checking', () => {

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { getEventRepo } from '@/data/getRepositories'
-import { useAppSettingsStore } from '@/stores/settingsStore'
 
 type Listener = (eventId: string) => void
 let listener: Listener | null = null

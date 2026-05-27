@@ -38,7 +38,6 @@ function outfitSummary(outfit: DailyOutfit): string {
 // ── 组件 ──────────────────────────────────────────────────
 
 export function OutfitCard({ outfits, language }: Props) {
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
   const isCompact = typeof window !== 'undefined' && window.innerWidth < 720
 
   // 按周分组

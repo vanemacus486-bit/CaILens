@@ -6,7 +6,7 @@ interface CategoryState {
   categories: Category[]
   isLoaded: boolean
   loadCategories: () => Promise<void>
-  updateCategory: (id: CategoryId, changes: Pick<Category, 'name' | 'folders' | 'weeklyBudget'>) => Promise<void>
+  updateCategory: (id: CategoryId, changes: Partial<Pick<Category, 'name' | 'folders' | 'weeklyBudget'>>) => Promise<void>
 }
 
 export const useCategoryStore = create<CategoryState>()((set) => ({

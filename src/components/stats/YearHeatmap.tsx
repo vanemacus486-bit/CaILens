@@ -604,7 +604,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now }: Ye
                     : undefined
                 }
               >
-                {cat?.name?.[language] ?? id}
+                {cat?.name ?? id}
               </button>
             )
           })}

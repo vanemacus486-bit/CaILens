@@ -4,9 +4,9 @@ import type { CalendarEvent } from '../event'
 import type { Category } from '../category'
 
 const MOCK_CATEGORIES: Category[] = [
-  { id: 'accent', name: { zh: '主要矛盾', en: 'Core Focus' }, color: 'accent', weeklyBudget: 20, folders: [] },
-  { id: 'sage', name: { zh: '次要矛盾', en: 'Support Tasks' }, color: 'sage', weeklyBudget: 10, folders: [] },
-  { id: 'stone', name: { zh: '睡眠时长', en: 'Sleep' }, color: 'stone', weeklyBudget: 3, folders: [] },
+  { id: 'accent', name: '主要矛盾', color: 'accent', weeklyBudget: 20, folders: [] },
+  { id: 'sage', name: '次要矛盾', color: 'sage', weeklyBudget: 10, folders: [] },
+  { id: 'stone', name: '睡眠时长', color: 'stone', weeklyBudget: 3, folders: [] },
 ]
 
 // April 30, 2025 00:00 UTC → ms

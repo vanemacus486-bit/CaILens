@@ -15,12 +15,12 @@ const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'st
 
 function makeCategories(): Category[] {
   return [
-    { id: 'accent', name: { zh: '主要矛盾', en: 'Core Focus' }, color: 'accent', weeklyBudget: 20, folders: [] },
-    { id: 'sage', name: { zh: '次要矛盾', en: 'Support Tasks' }, color: 'sage', weeklyBudget: 10, folders: [] },
-    { id: 'sand', name: { zh: '庶务时间', en: 'Chores & Admin' }, color: 'sand', weeklyBudget: 5, folders: [] },
-    { id: 'sky', name: { zh: '个人提升', en: 'Personal Growth' }, color: 'sky', weeklyBudget: 5, folders: [] },
-    { id: 'rose', name: { zh: '休息娱乐', en: 'Rest & Leisure' }, color: 'rose', weeklyBudget: 5, folders: [] },
-    { id: 'stone', name: { zh: '睡眠时长', en: 'Sleep' }, color: 'stone', weeklyBudget: 3, folders: [] },
+    { id: 'accent', name: '主要矛盾', color: 'accent', weeklyBudget: 20, folders: [] },
+    { id: 'sage', name: '次要矛盾', color: 'sage', weeklyBudget: 10, folders: [] },
+    { id: 'sand', name: '庶务时间', color: 'sand', weeklyBudget: 5, folders: [] },
+    { id: 'sky', name: '个人提升', color: 'sky', weeklyBudget: 5, folders: [] },
+    { id: 'rose', name: '休息娱乐', color: 'rose', weeklyBudget: 5, folders: [] },
+    { id: 'stone', name: '睡眠时长', color: 'stone', weeklyBudget: 3, folders: [] },
   ]
 }
 

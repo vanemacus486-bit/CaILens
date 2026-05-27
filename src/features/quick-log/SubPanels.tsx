@@ -7,10 +7,9 @@ interface ChoresPanelProps {
   onSelectWash:   () => void
   onSelectShower: () => void
   onSelectClean:  () => void
-  language: 'zh' | 'en'
 }
 
-export function ChoresPanel({ onSelectMeal, onSelectWash, onSelectShower, onSelectClean, language }: ChoresPanelProps) {
+export function ChoresPanel({ onSelectMeal, onSelectWash, onSelectShower, onSelectClean }: ChoresPanelProps) {
     return (
     <div className="flex flex-wrap gap-2 mt-3">
       <button
@@ -59,10 +58,9 @@ interface MealFoodPanelProps {
   onChange:   (value: string) => void
   recentFoods: string[]
   onSelect:   (food: string) => void
-  language:   'zh' | 'en'
 }
 
-export function MealFoodPanel({ foodInput, onChange, recentFoods, onSelect, language }: MealFoodPanelProps) {
+export function MealFoodPanel({ foodInput, onChange, recentFoods, onSelect }: MealFoodPanelProps) {
     return (
     <div className="animate-slide-down mt-2">
       <div className="font-serif text-sm text-text-secondary italic mb-2">
@@ -109,10 +107,9 @@ export function MealFoodPanel({ foodInput, onChange, recentFoods, onSelect, lang
 interface GrowthPanelProps {
   onSelectRead:   () => void
   onSelectSport:  () => void
-  language: 'zh' | 'en'
 }
 
-export function GrowthPanel({ onSelectRead, onSelectSport, language }: GrowthPanelProps) {
+export function GrowthPanel({ onSelectRead, onSelectSport }: GrowthPanelProps) {
     return (
     <div className="flex flex-wrap gap-2 mt-3">
       <button onClick={onSelectRead} className={growthBtn}>
@@ -143,10 +140,9 @@ interface GrowthSubPanelProps {
   recent:  string[]
   onSelect: (value: string) => void
   onSubmit?: () => void
-  language: 'zh' | 'en'
 }
 
-export function GrowthSubPanel({ subMode, input, onChange, recent, onSelect, onSubmit, language }: GrowthSubPanelProps) {
+export function GrowthSubPanel({ subMode, input, onChange, recent, onSelect, onSubmit }: GrowthSubPanelProps) {
     const prompt = subMode === 'read'
     ? '读了什么？'
     : '做了什么运动？'
@@ -198,10 +194,9 @@ export function GrowthSubPanel({ subMode, input, onChange, recent, onSelect, onS
 interface LeisurePanelProps {
   recentLeisure: string[]
   onSelect: (title: string) => void
-  language: 'zh' | 'en'
 }
 
-export function LeisurePanel({ recentLeisure, onSelect, language }: LeisurePanelProps) {
+export function LeisurePanel({ recentLeisure, onSelect }: LeisurePanelProps) {
     if (recentLeisure.length === 0) return null
   return (
     <div className="mt-3">
@@ -233,7 +228,6 @@ interface SleepPanelProps {
   quality:   1 | 2 | 3 | 4 | 5 | null
   onChangeSleepType:  (type: 'main' | 'nap' | 'insomnia') => void
   onChangeQuality:    (q: 1 | 2 | 3 | 4 | 5) => void
-  language: 'zh' | 'en'
 }
 
 const QUALITY_EMOJIS: Record<number, string> = {
@@ -252,7 +246,7 @@ const QUALITY_LABELS: Record<number, [string, string]> = {
   5: ['很好', 'Great'],
 }
 
-export function SleepPanel({ sleepType, quality, onChangeSleepType, onChangeQuality, language }: SleepPanelProps) {
+export function SleepPanel({ sleepType, quality, onChangeSleepType, onChangeQuality }: SleepPanelProps) {
     return (
     <div className="animate-slide-down mt-2">
       {/* Type toggle */}
@@ -310,7 +304,7 @@ export function SleepPanel({ sleepType, quality, onChangeSleepType, onChangeQual
               )}
             >
               <span className="text-lg leading-none">{QUALITY_EMOJIS[q]}</span>
-              <span className="text-[10px] leading-tight">{isSelected ? label[language === 'zh' ? 0 : 1] : ''}</span>
+              <span className="text-[10px] leading-tight">{isSelected ? label[0] : ''}</span>
             </button>
           )
         })}

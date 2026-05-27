@@ -3,7 +3,7 @@ import { DEFAULT_CATEGORIES } from '@/domain/category'
 import type { StorageAdapter } from './adapters/StorageAdapter'
 
 /** 允许从外部更新的字段集合 */
-type CategoryUpdatable = Pick<Category, 'name' | 'folders' | 'weeklyBudget'>
+type CategoryUpdatable = Partial<Pick<Category, 'name' | 'folders' | 'weeklyBudget'>>
 
 /** 兼容旧版 {zh,en} → 新版 string */
 function normalizeName(name: unknown): string {

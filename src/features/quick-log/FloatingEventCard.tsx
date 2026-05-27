@@ -5,7 +5,6 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useEventStore } from '@/stores/eventStore'
-import { useAppSettingsStore } from '@/stores/settingsStore'
 import { getEventRepo } from '@/data/getRepositories'
 import { classifyEvent } from '@/domain/icsImport'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType } from '@/domain/event'
@@ -109,7 +108,6 @@ export function FloatingEventCard({
 }: FloatingEventCardProps) {
   const categories   = useCategoryStore((s) => s.categories)
   const allEvents    = useEventStore((s) => s.allEvents)
-  const language     = useAppSettingsStore((s) => s.settings.language)
   const isEditing    = !!editingEvent
   const localDate = new Date(defaultTimes.start)
 
@@ -396,7 +394,6 @@ export function FloatingEventCard({
           quality={quality}
           onChangeSleepType={setSleepType}
           onChangeQuality={setQuality}
-          language={language}
         />
 
         {error && <p className="text-xs text-color-text-danger mt-2 font-sans">{error}</p>}
@@ -443,7 +440,6 @@ export function FloatingEventCard({
           onChange={setMealFood}
           recentFoods={recentFoods}
           onSelect={(food) => { setMealFood(food); setTitle(food) }}
-          language={language}
         />
 
         {error && <p className="text-xs text-color-text-danger mt-2 font-sans">{error}</p>}
@@ -510,13 +506,13 @@ export function FloatingEventCard({
           style={{
             borderColor: `var(--event-${categoryId}-fill)`,
             borderWidth: '1.5px',
-            backgroundColor: `color-mix(in srgb, var(--event-${categoryId}-bg) 30%, var(--surface-sunken))`,
+            backgroundColor: `color-mix(in srgb, var(--surface-raised) 88%, transparent)`,
           }}
         >
           {/* Inline suggestion text (behind input) */}
           {inlineSuggestion && (
             <div className="absolute inset-0 flex items-center px-3 py-2 pointer-events-none z-0">
-              <span className="text-sm font-sans whitespace-pre text-text-quaternary/40">
+              <span className="text-sm font-sans whitespace-pre text-text-tertiary">
                 {inlineSuggestion}
               </span>
             </div>
@@ -621,6 +617,9 @@ export function FloatingEventCard({
         sideOffset={8}
         collisionPadding={16}
         className="w-72 p-4 rounded-xl border-border-default max-md:!w-[calc(100vw-1rem)] max-md:max-w-72"
+        style={{
+          backgroundColor: `var(--event-${categoryId}-bg)`,
+        }}
         onPointerDownOutside={onClose}
         onEscapeKeyDown={onClose}
         onOpenAutoFocus={(e) => e.preventDefault()}

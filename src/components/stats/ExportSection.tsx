@@ -12,8 +12,6 @@ export function ExportSection({ language }: ExportSectionProps) {
   const [expClk, setExpClk] = useState<string | null>(null)
   const [encDialogOpen, setEncDialogOpen] = useState(false)
   const [icsBusy, setIcsBusy] = useState(false)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
-
   async function doExport(format: 'csv' | 'json') {
     setExpClk(format)
     setTimeout(() => setExpClk(null), 1400)

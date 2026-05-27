@@ -13,7 +13,6 @@ import { parseIcs, aggregateByName, classifyEvent } from '@/domain/icsImport'
 import type { ImportResult, EventNameGroup, ImportedEvent } from '@/domain/icsImport'
 import type { CategoryId } from '@/domain/category'
 import { useCategoryStore } from '@/stores/categoryStore'
-import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useEventStore } from '@/stores/eventStore'
 
 interface ImportIcsDialogProps {
@@ -56,12 +55,12 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
   const filteredGroups = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return groups
-    const untitledLabel = language === 'zh' ? '(无标题)' : '(Untitled)'
+    const untitledLabel = '(无标题)'
     return groups.filter((g) => {
       const displayName = g.title || untitledLabel
       return displayName.toLowerCase().includes(q)
     })
-  }, [groups, searchQuery, language])
+  }, [groups, searchQuery])
 
   // Event coverage (explicitly assigned, not just suggested)
   const coveredCount = useMemo(() => {
@@ -461,7 +460,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                                         }
                                       : {}),
                                   }}
-                                  title={`${idx + 1}: ${categories.find((c) => c.id === catId)?.name[language]}`}
+                                  title={`${idx + 1}: ${categories.find((c) => c.id === catId)?.name}`}
                                 >
                                   {idx + 1}
                                 </button>
@@ -523,7 +522,7 @@ export function ImportIcsDialog({ open, onOpenChange }: ImportIcsDialogProps) {
                                           style={{
                                             backgroundColor: `var(--event-${catId}-bg)`,
                                           }}
-                                          title={categories.find((c) => c.id === catId)?.name[language]}
+                                          title={categories.find((c) => c.id === catId)?.name}
                                         />
                                       ))}
                                     </div>

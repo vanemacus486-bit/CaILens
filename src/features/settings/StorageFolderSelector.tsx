@@ -4,9 +4,7 @@ import { getAdapterSync } from '@/data/adapterFactory'
 import { isTauri } from '@/data/tauriFs'
 import type { StorageAdapter } from '@/data/adapters/StorageAdapter'
 
-export function StorageFolderSelector({ language }: { language: 'zh' | 'en' }) {
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
-
+export function StorageFolderSelector() {
   const [adapter] = useState<StorageAdapter>(() => getAdapterSync())
   const [path, setPath] = useState<string | null>(adapter.storagePath)
   const [scanning, setScanning] = useState(false)
