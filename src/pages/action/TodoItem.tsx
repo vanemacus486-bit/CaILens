@@ -1,74 +1,37 @@
 /**
  * # TodoItem — 单个待办组件
  *
- * 显示行（checkbox + 标题 + 优先级标识 + 截止日期）+ 内联编辑态。
+ * 精简版：checkbox + 标题 + 编辑/删除。无优先级/截止日期/备注。
  */
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback } from 'react'
 import {
   Circle,
   CheckCircle2,
   Trash2,
   Pencil,
-  Clock,
-  AlertCircle,
 } from 'lucide-react'
-import { useAppSettingsStore } from '@/stores/settingsStore'
-import type { Todo, TodoPriority } from '@/domain/todo'
+import type { Todo } from '@/domain/todo'
 
 interface TodoItemProps {
   todo: Todo
   onToggle: (id: string) => void
-  onUpdate: (id: string, updates: { title?: string; description?: string; priority?: TodoPriority; dueDate?: number | null }) => void
+  onUpdate: (id: string, updates: { title?: string }) => void
   onDelete: (id: string) => void
 }
 
-const PRIORITY_COLORS: Record<TodoPriority, string> = {
-  high:   '#c47a5a',
-  medium: '#a8986e',
-  low:    '#8e8e8e',
-}
-
-const PRIORITY_LABELS_ZH: Record<TodoPriority, string> = {
-  high:   '高',
-  medium: '中',
-  low:    '低',
-}
-
-const PRIORITY_LABELS_EN: Record<TodoPriority, string> = {
-  high:   'High',
-  medium: 'Med',
-  low:    'Low',
-}
-
 export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) {
-  const language = useAppSettingsStore((s) => s.settings.language)
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(todo.title)
-  const [editDesc, setEditDesc] = useState(todo.description)
-  const [editPriority, setEditPriority] = useState(todo.priority)
-  const [editDueDate, setEditDueDate] = useState(
-    todo.dueDate ? new Date(todo.dueDate).toISOString().slice(0, 10) : '',
-  )
 
   const isDone = todo.status === 'done'
-  const isOverdue = useMemo(
-    () => !isDone && todo.dueDate !== null && todo.dueDate < Date.now(),
-    [isDone, todo.dueDate],
-  )
-  const priorityColor = PRIORITY_COLORS[todo.priority]
 
   const handleSave = useCallback(() => {
     const trimmed = editTitle.trim()
     if (!trimmed) return
-    onUpdate(todo.id, {
-      title: trimmed,
-      description: editDesc.trim(),
-      priority: editPriority,
-      dueDate: editDueDate ? new Date(editDueDate + 'T23:59:59').getTime() : null,
-    })
+    onUpdate(todo.id, { title: trimmed })
     setEditing(false)
-  }, [editTitle, editDesc, editPriority, editDueDate, todo.id, onUpdate])
+  }, [editTitle, todo.id, onUpdate])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -79,12 +42,9 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
       if (e.key === 'Escape') {
         setEditing(false)
         setEditTitle(todo.title)
-        setEditDesc(todo.description)
-        setEditPriority(todo.priority)
-        setEditDueDate(todo.dueDate ? new Date(todo.dueDate).toISOString().slice(0, 10) : '')
       }
     },
-    [handleSave, todo],
+    [handleSave, todo.title],
   )
 
   // ── 编辑态 ──
@@ -100,49 +60,12 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
           className="w-full bg-transparent border-none outline-none font-serif text-sm font-medium text-text-primary placeholder:text-text-quaternary"
           placeholder={'待办标题'}
         />
-        <textarea
-          value={editDesc}
-          onChange={(e) => setEditDesc(e.target.value)}
-          rows={2}
-          className="w-full bg-surface-sunken rounded-md border border-border-subtle px-2.5 py-1.5 text-xs font-sans text-text-secondary placeholder:text-text-quaternary outline-none resize-none focus:border-accent"
-          placeholder={'描述（可选）'}
-        />
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* 优先级 */}
-          <div className="flex items-center gap-1.5">
-            <span className="font-sans text-[10px] text-text-tertiary">{'优先级:'}</span>
-            {(['high', 'medium', 'low'] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setEditPriority(p)}
-                className={`h-6 px-2 rounded text-[10px] font-medium font-sans transition-colors cursor-pointer border ${
-                  editPriority === p
-                    ? 'border-border-default text-text-primary bg-surface-sunken'
-                    : 'border-transparent text-text-tertiary hover:text-text-secondary'
-                }`}
-              >
-                <span
-                  className="inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle"
-                  style={{ backgroundColor: PRIORITY_COLORS[p] }}
-                />
-                {language === 'zh' ? PRIORITY_LABELS_ZH[p] : PRIORITY_LABELS_EN[p]}
-              </button>
-            ))}
-          </div>
-          {/* 截止日期 */}
-          <div className="flex items-center gap-1.5">
-            <span className="font-sans text-[10px] text-text-tertiary">{'截止:'}</span>
-            <input
-              type="date"
-              value={editDueDate}
-              onChange={(e) => setEditDueDate(e.target.value)}
-              className="h-6 px-1.5 rounded border border-border-subtle bg-transparent font-sans text-[10px] text-text-primary outline-none"
-            />
-          </div>
-        </div>
         <div className="flex justify-end gap-2 pt-1">
           <button
-            onClick={() => setEditing(false)}
+            onClick={() => {
+              setEditing(false)
+              setEditTitle(todo.title)
+            }}
             className="h-7 px-3 rounded-md text-xs font-sans text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors cursor-pointer border-none bg-transparent"
           >
             {'取消'}
@@ -178,53 +101,15 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
         )}
       </button>
 
-      {/* 内容 */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* 优先级圆点 */}
-          <span
-            className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-            style={{ backgroundColor: priorityColor }}
-          />
-          {/* 标题 */}
-          <span
-            className={`font-serif text-sm ${
-              isDone ? 'line-through text-text-tertiary' : 'text-text-primary'
-            }`}
-          >
-            {todo.title}
-          </span>
-          {/* 截止日期 */}
-          {todo.dueDate && (
-            <span
-              className={`inline-flex items-center gap-0.5 font-sans text-[10px] ${
-                isOverdue ? 'text-[#B53535]' : 'text-text-quaternary'
-              }`}
-            >
-              {isOverdue ? (
-                <AlertCircle size={10} strokeWidth={1.75} />
-              ) : (
-                <Clock size={10} strokeWidth={1.75} />
-              )}
-              {new Date(todo.dueDate).toLocaleDateString(
-                language === 'zh' ? 'zh-CN' : 'en-US',
-                { month: 'short', day: 'numeric' },
-              )}
-            </span>
-          )}
-          {/* 进行中标识 */}
-          {todo.status === 'in_progress' && (
-            <span className="font-sans text-[10px] text-accent bg-accent-light px-1.5 py-0.5 rounded">
-              {'进行中'}
-            </span>
-          )}
-        </div>
-        {/* 描述 */}
-        {todo.description && (
-          <p className="font-sans text-xs text-text-tertiary mt-1 line-clamp-2">
-            {todo.description}
-          </p>
-        )}
+      {/* 标题 */}
+      <div className="flex-1 min-w-0 flex items-center">
+        <span
+          className={`font-serif text-sm ${
+            isDone ? 'line-through text-text-tertiary' : 'text-text-primary'
+          }`}
+        >
+          {todo.title}
+        </span>
       </div>
 
       {/* 操作按钮 */}
@@ -233,9 +118,6 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
           onClick={() => {
             setEditing(true)
             setEditTitle(todo.title)
-            setEditDesc(todo.description)
-            setEditPriority(todo.priority)
-            setEditDueDate(todo.dueDate ? new Date(todo.dueDate).toISOString().slice(0, 10) : '')
           }}
           className="w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-raised transition-colors cursor-pointer border-none bg-transparent"
           aria-label={'编辑'}

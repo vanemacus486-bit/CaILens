@@ -2,26 +2,19 @@
  * # ProjectsView — 项目分组待办视图（嵌入 ActionPage 使用）
  *
  * 展示项目列表（带完成进度条），展开后可查看/新增/排序/删除子待办。
- * 使用统一的 Project 实体（替代旧的 TaskGroup）。
+ * 精简版：已去掉标签云和独立新建项目表单。
  */
 
-import { useEffect, useState, useCallback, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState, useCallback } from 'react'
 import {
-  FolderKanban,
   ChevronRight,
   ChevronDown,
   Plus,
   Circle,
   CheckCircle2,
-  ChevronUp,
-  ChevronDown as ChevronDownIcon,
   Trash2,
-  Clock,
 } from 'lucide-react'
 import { useProjectStore } from '@/stores/projectStore'
-import { useCategoryColors } from '@/constants/categoryColors'
-import { DEFAULT_CATEGORIES } from '@/domain/category'
 import type { Project } from '@/domain/project'
 import type { Todo } from '@/domain/todo'
 
@@ -32,41 +25,18 @@ export function ProjectsView() {
     projects,
     isLoading,
     isLoaded,
-    error,
     loadAll,
-    createProject,
-    deleteProject,
-    reorderProject,
     createTodoInProject,
     deleteTodoInProject,
     toggleTodoDone,
-    reorderTodo,
     getTodosByProject,
   } = useProjectStore()
 
-  const navigate = useNavigate()
-  const colorMap = useCategoryColors()
-  const activeProjects = projects.filter((p) => p.status === 'active')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoaded) loadAll()
   }, [isLoaded, loadAll])
-
-  // ── 新建项目 ──
-
-  const [newProjectName, setNewProjectName] = useState('')
-
-  const handleCreateProject = useCallback(
-    (e: FormEvent) => {
-      e.preventDefault()
-      const trimmed = newProjectName.trim()
-      if (!trimmed) return
-      createProject({ name: trimmed, categoryId: 'accent' })
-      setNewProjectName('')
-    },
-    [newProjectName, createProject],
-  )
 
   // ── 在展开的项目内新增子待办 ──
 
@@ -92,122 +62,36 @@ export function ProjectsView() {
     [handleCreateItem],
   )
 
-  return (
-    <>
-      {/* 时间追踪项目 (活跃项目引导) */}
-      {activeProjects.length > 0 && (
-        <div className="mb-6">
-          <h3 className="flex items-center gap-1.5 font-sans text-xs font-medium text-text-tertiary mb-3">
-            <Clock size={13} strokeWidth={1.75} />
-            {'时间追踪项目'}
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {activeProjects.map((p) => {
-              const cat = DEFAULT_CATEGORIES.find((c) => c.id === p.categoryId)
-              const catName = cat
-                ? cat.name
-                : ''
-              const fill = colorMap[p.categoryId]?.fill ?? '#888'
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => navigate(`/projects/${p.id}`)}
-                  className="group inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium font-sans border border-border-default bg-surface-raised hover:bg-surface-hover hover:border-accent/30 transition-all duration-150 cursor-pointer"
-                >
-                  <span
-                    className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: fill }}
-                  />
-                  <span className="text-text-primary group-hover:text-accent transition-colors">
-                    {p.name}
-                  </span>
-                  {p.eventCount > 0 && (
-                    <span className="text-text-quaternary text-[11px] font-normal">
-                      {p.eventCount}
-                    </span>
-                  )}
-                  {catName && (
-                    <span className="text-text-quaternary text-[10px] font-normal hidden sm:inline">
-                      · {catName}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* 新建项目输入 */}
-      <div className="mb-5">
-        <form
-          onSubmit={handleCreateProject}
-          className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-raised px-4 py-2.5 transition-shadow duration-200 focus-within:shadow-sm"
-        >
-          <Plus size={16} strokeWidth={1.75} className="text-text-tertiary flex-shrink-0" />
-          <input
-            type="text"
-            value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
-            placeholder={'新建项目…'}
-            className="flex-1 bg-transparent border-none outline-none font-sans text-sm text-text-primary placeholder:text-text-quaternary"
-          />
-          <button
-            type="submit"
-            disabled={!newProjectName.trim()}
-            className="h-7 px-3 rounded-md text-xs font-medium font-sans bg-accent text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity cursor-pointer border-none"
-          >
-            {'添加'}
-          </button>
-        </form>
+  if (!isLoaded && isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="font-sans text-sm text-text-tertiary">{'加载中…'}</p>
       </div>
+    )
+  }
 
-      {error && (
-        <div className="mb-4 px-4 py-2 rounded-lg bg-[#B53535]/10 border border-[#B53535]/20 text-xs font-sans text-[#B53535]">
-          {error}
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <p className="font-sans text-sm text-text-tertiary">
-            {'加载中…'}
-          </p>
-        </div>
-      ) : projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <FolderKanban size={40} strokeWidth={1.25} className="text-text-tertiary/40 mb-4" />
-          <p className="font-sans text-sm text-text-tertiary mb-1">
-            {'还没有项目，在上方输入框添加'}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              todos={getTodosByProject(project.id)}
-              isExpanded={expandedId === project.id}
-              onToggleExpand={() =>
-                setExpandedId(expandedId === project.id ? null : project.id)
-              }
-              onDeleteProject={() => deleteProject(project.id)}
-              onReorderProject={(dir) => reorderProject(project.id, dir)}
-              newItemTitle={(newItemTitles[project.id] ?? '')}
-              onNewItemTitleChange={(val) =>
-                setNewItemTitles((prev) => ({ ...prev, [project.id]: val }))
-              }
-              onCreateItem={() => handleCreateItem(project.id)}
-              onItemKeyDown={(e) => handleItemKeyDown(e, project.id)}
-              onToggleItem={toggleTodoDone}
-              onDeleteItem={deleteTodoInProject}
-              onReorderItem={(itemId, dir) => reorderTodo(itemId, dir)}
-            />
-          ))}
-        </div>
-      )}
-    </>
+  return (
+    <div className="space-y-3">
+      {projects.map((project) => (
+        <ProjectCard
+          key={project.id}
+          project={project}
+          todos={getTodosByProject(project.id)}
+          isExpanded={expandedId === project.id}
+          onToggleExpand={() =>
+            setExpandedId(expandedId === project.id ? null : project.id)
+          }
+          newItemTitle={(newItemTitles[project.id] ?? '')}
+          onNewItemTitleChange={(val) =>
+            setNewItemTitles((prev) => ({ ...prev, [project.id]: val }))
+          }
+          onCreateItem={() => handleCreateItem(project.id)}
+          onItemKeyDown={(e) => handleItemKeyDown(e, project.id)}
+          onToggleItem={toggleTodoDone}
+          onDeleteItem={deleteTodoInProject}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -218,15 +102,12 @@ interface ProjectCardProps {
   todos: Todo[]
   isExpanded: boolean
   onToggleExpand: () => void
-  onDeleteProject: () => void
-  onReorderProject: (dir: 'up' | 'down') => void
   newItemTitle: string
   onNewItemTitleChange: (val: string) => void
   onCreateItem: () => void
   onItemKeyDown: (e: React.KeyboardEvent) => void
   onToggleItem: (id: string) => void
   onDeleteItem: (id: string) => void
-  onReorderItem: (id: string, dir: 'up' | 'down') => void
 }
 
 function ProjectCard({
@@ -234,15 +115,12 @@ function ProjectCard({
   todos,
   isExpanded,
   onToggleExpand,
-  onDeleteProject,
-  onReorderProject,
   newItemTitle,
   onNewItemTitleChange,
   onCreateItem,
   onItemKeyDown,
   onToggleItem,
   onDeleteItem,
-  onReorderItem,
 }: ProjectCardProps) {
 
   const total = todos.length
@@ -296,31 +174,6 @@ function ProjectCard({
         <span className="font-mono text-[11px] text-text-tertiary tabular-nums w-8 text-right flex-shrink-0">
           {percent}%
         </span>
-
-        {/* 排序按钮 */}
-        <button
-          onClick={() => onReorderProject('up')}
-          className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-text-secondary transition-colors"
-          aria-label={'上移'}
-        >
-          <ChevronUp size={14} strokeWidth={1.75} />
-        </button>
-        <button
-          onClick={() => onReorderProject('down')}
-          className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-text-secondary transition-colors"
-          aria-label={'下移'}
-        >
-          <ChevronDownIcon size={14} strokeWidth={1.75} />
-        </button>
-
-        {/* 删除项目 */}
-        <button
-          onClick={onDeleteProject}
-          className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-[#B53535] transition-colors"
-          aria-label={'删除项目'}
-        >
-          <Trash2 size={14} strokeWidth={1.75} />
-        </button>
       </div>
 
       {/* ── 展开的子待办列表 ── */}
@@ -374,22 +227,6 @@ function ProjectCard({
                 >
                   {todo.title}
                 </span>
-
-                {/* 排序 */}
-                <button
-                  onClick={() => onReorderItem(todo.id, 'up')}
-                  className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-text-secondary transition-colors opacity-0 group-hover:opacity-100"
-                  aria-label={'上移'}
-                >
-                  <ChevronUp size={13} strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => onReorderItem(todo.id, 'down')}
-                  className="flex-shrink-0 cursor-pointer bg-transparent border-none text-text-quaternary hover:text-text-secondary transition-colors opacity-0 group-hover:opacity-100"
-                  aria-label={'下移'}
-                >
-                  <ChevronDownIcon size={13} strokeWidth={1.75} />
-                </button>
 
                 {/* 删除 */}
                 <button
