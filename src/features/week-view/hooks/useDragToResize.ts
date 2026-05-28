@@ -10,7 +10,6 @@ const SNAP_MINUTES = 15
 const MINUTES_PER_DAY = 24 * 60
 
 interface UseDragToResizeParams {
-  edge:              'top' | 'bottom'
   eventId:           string          // not used internally; caller closes over it
   originalStartTime: number
   originalEndTime:   number
@@ -57,18 +56,17 @@ function fmtTime(ts: number): string {
 }
 
 /**
- * Encapsulates resize logic for a single edge (top = startTime, bottom = endTime).
+ * Encapsulates resize logic for the bottom edge (adjusts endTime).
  *
  * Visual feedback:
  * - A 2 px accent-coloured indicator line in the source DayColumn (no React renders).
- * - When the event extends past midnight (bottom edge only), a ghost block is
- *   injected into the WeekGrid (gridRef) showing the overflow portion in the
- *   next day's column, with an end-time label.
+ * - When the event extends past midnight, a ghost block is injected into the
+ *   WeekGrid (gridRef) showing the overflow portion in the next day's column,
+ *   with an end-time label.
  *
  * Snapping: 15-minute grid. Minimum event duration: 15 min.
  */
 export function useDragToResize({
-  edge,
   originalStartTime,
   originalEndTime,
   eventBlockRef,
@@ -126,8 +124,6 @@ export function useDragToResize({
     gridGhostRef.current?.remove()
     gridGhostRef.current = null
 
-    // Only bottom-edge resize can cross midnight
-    if (edge !== 'bottom') return
     // Not crossing midnight → nothing to render
     if (snappedMin <= MINUTES_PER_DAY) return
 
@@ -233,7 +229,6 @@ export function useDragToResize({
       if (rect.height === 0) return null
 
       const origStart = originalStartRef.current
-      const origEnd   = originalEndRef.current
       const colDate   = columnDateRef.current
 
       const dayStart  = getDayStart(colDate)
@@ -242,23 +237,12 @@ export function useDragToResize({
       const rawMin    = (relY / rect.height) * MINUTES_PER_DAY
       let snappedMin  = Math.round(rawMin / SNAP_MINUTES) * SNAP_MINUTES
 
-      let newStart: number, newEnd: number
-
-      if (edge === 'top') {
-        // Top edge: moves startTime; endTime is fixed.
-        // Clamp: start must be at least SNAP_MINUTES min before end.
-        const maxStartMin = Math.round((origEnd - dayStart) / 60_000) - SNAP_MINUTES
-        snappedMin = Math.min(snappedMin, maxStartMin)
-        newStart   = dayStart + snappedMin * 60_000
-        newEnd     = origEnd
-      } else {
-        // Bottom edge: moves endTime; startTime is fixed.
-        // Clamp: end must be at least SNAP_MINUTES min after start.
-        const minEndMin = Math.round((origStart - dayStart) / 60_000) + SNAP_MINUTES
-        snappedMin = Math.max(snappedMin, minEndMin)
-        newStart   = origStart
-        newEnd     = dayStart + snappedMin * 60_000
-      }
+      // Bottom edge: moves endTime; startTime is fixed.
+      // Clamp: end must be at least SNAP_MINUTES min after start.
+      const minEndMin = Math.round((origStart - dayStart) / 60_000) + SNAP_MINUTES
+      snappedMin = Math.max(snappedMin, minEndMin)
+      const newStart = origStart
+      const newEnd   = dayStart + snappedMin * 60_000
 
       return { snappedMin, newStart, newEnd }
     }
@@ -345,7 +329,7 @@ export function useDragToResize({
 
     // Prevent bubbling to the event block's drag handler and to any ContextMenu.
     e.stopPropagation()
-  }, [edge, eventBlockRef, gridRef])
+  }, [eventBlockRef, gridRef])
 
   // Safety: clean up if the component unmounts while a resize is in progress.
   useEffect(() => () => {

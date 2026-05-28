@@ -78,20 +78,8 @@ export const EventBlock = React.memo(function EventBlock({
   // don't have enough height for usable handles.
   const showResizeHandles = (event.endTime - event.startTime) >= 60 * 60_000
 
-  const topResize = useDragToResize({
-    edge: 'top', eventId: event.id,
-    originalStartTime: event.startTime,
-    originalEndTime:   event.endTime,
-    eventBlockRef:     divRef,
-    gridRef,
-    columnDate,
-    onResizeStart:     onDragStart,   // reuse: closes any open card
-    onResizeEnd: (s, e) => onResize(event.id, s, e),
-    onResizeCancel: () => {},
-  })
-
   const bottomResize = useDragToResize({
-    edge: 'bottom', eventId: event.id,
+    eventId: event.id,
     originalStartTime: event.startTime,
     originalEndTime:   event.endTime,
     eventBlockRef:     divRef,
@@ -170,15 +158,6 @@ export const EventBlock = React.memo(function EventBlock({
             onClick(event, e.currentTarget as HTMLElement)
           }}
         >
-          {/* Top resize handle */}
-          {showResizeHandles && (
-            <div
-              className="absolute top-0 left-0 right-0 h-5 cursor-ns-resize z-20"
-              onPointerDown={topResize.onPointerDown}
-              onClick={(e) => e.stopPropagation()}
-            />
-          )}
-
           {/* Continue-from-above indicator */}
           {startsBeforeDay && (
             <div className="flex items-center gap-0.5 mb-0.5 opacity-60">

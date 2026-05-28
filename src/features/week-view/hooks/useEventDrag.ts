@@ -14,6 +14,8 @@ import { getDayStart } from '@/domain/time'
 const DRAG_THRESHOLD = 5
 /** 事件块最小高度（分钟），即使 end <= start 也保留占位 */
 const MIN_EVENT_HEIGHT_MINUTES = 15
+/** 拖拽移动吸附精度（分钟），避免非整数分钟时间 */
+const SNAP_MINUTES = 30
 
 // ── 类型 ──────────────────────────────────────────────────────
 
@@ -295,10 +297,11 @@ export function useEventDrag({
             dateRangeRef.current.length,
             tcw,
           )
-          const newStartAxis =
+          const rawStartAxis =
             pointerAxis - dragOffsetMsRef.current / 60_000
+          const snappedAxis = Math.round(rawStartAxis / SNAP_MINUTES) * SNAP_MINUTES
           const newStartTime = minuteAxisToTime(
-            newStartAxis,
+            snappedAxis,
             dateRangeRef.current,
           )
           const newEndTime = newStartTime + eventDurationMs
@@ -342,10 +345,11 @@ export function useEventDrag({
           dateRangeRef.current.length,
           tcw,
         )
-        const newStartAxis =
+        const rawStartAxis =
           pointerAxis - dragOffsetMsRef.current / 60_000
+        const snappedAxis = Math.round(rawStartAxis / SNAP_MINUTES) * SNAP_MINUTES
         const newStartTime = minuteAxisToTime(
-          newStartAxis,
+          snappedAxis,
           dateRangeRef.current,
         )
         const newEndTime = newStartTime + eventDurationMs
