@@ -207,13 +207,7 @@ export function WeekView() {
   const handleEventClick = useCallback((event: CalendarEvent, el: HTMLElement) => {
     useUIStore.getState().setLastFocusedEventId(event.id)
 
-    setFloatingCard({
-      open: true,
-      anchorEl: el,
-      times: { start: event.startTime, end: event.endTime },
-      color: event.color,
-      editingEvent: event,
-    })
+    setCardState({ mode: 'detail', event, anchorEl: el })
   }, [])
 
   const handleDetailDelete = useCallback(() => {
@@ -414,9 +408,11 @@ export function WeekView() {
           anchorEl={cardState.anchorEl}
           onEdit={() => {
             const ev = cardState.event
+            const anchor = cardState.anchorEl
+            closeCard()
             setFloatingCard({
               open: true,
-              anchorEl: cardState.anchorEl,
+              anchorEl: anchor,
               times: { start: ev.startTime, end: ev.endTime },
               color: ev.color,
               editingEvent: ev,

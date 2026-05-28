@@ -8,16 +8,16 @@ interface WeekDateHeaderProps {
 
 export function WeekDateHeader({ days, onDayClick }: WeekDateHeaderProps) {
   return (
-    <div className="grid border-b border-border-subtle flex-shrink-0 min-w-[540px]" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)' }}>
+    <div className="grid flex-shrink-0 min-w-[540px]" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)' }}>
       {/* Spacer — aligns with TimeGrid's 80px label column */}
-      <div className="bg-surface-sunken/50 border-l border-border-subtle" />
+      <div className="bg-surface-sunken/50 border-l border-grid-line" />
 
       {days.map((day) => {
         const today = isToday(day.getTime())
         return (
           <div
             key={day.getTime()}
-            className="flex flex-col items-center justify-center py-2.5 select-none cursor-pointer hover:bg-surface-sunken/50 transition-colors duration-150"
+            className="flex flex-col items-center justify-center py-2.5 select-none cursor-pointer hover:bg-surface-sunken/50 transition-colors duration-150 border-b border-grid-line-date-sep relative"
             onClick={() => onDayClick?.(day)}
           >
             <span className="text-body-xs font-sans font-medium text-text-tertiary uppercase tracking-[0.06em] leading-none">
@@ -31,6 +31,8 @@ export function WeekDateHeader({ days, onDayClick }: WeekDateHeaderProps) {
             >
               {day.getDate()}
             </span>
+            {/* Column hint — short vertical tick extends up from date separator */}
+            <div className="absolute right-0 bottom-0 w-px h-1.5 bg-grid-line" />
           </div>
         )
       })}

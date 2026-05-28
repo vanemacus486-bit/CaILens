@@ -23,6 +23,8 @@
 
   --border-subtle:   #e2ddd5;
   --border-default:  #ccc7be;
+  --grid-line:          rgba(0,0,0,0.15);
+  --grid-line-date-sep: rgba(0,0,0,0.22);
 
   --text-primary:    #28241f;
   --text-secondary:  #6b6460;
@@ -95,8 +97,10 @@
   --shadow-pill:       0 1px 3px rgba(0,0,0,0.08);
   --shadow-tooltip:    0 2px 8px rgba(0,0,0,0.08);
   --shadow-dialog:     0 8px 32px rgba(40,36,31,0.12);
+  --shadow-card-float: 0 2px 8px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
 
   --transition-default: 200ms ease-out;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   --text-xs-alt:       10px;
   --text-body-xs:      11px;
@@ -115,6 +119,8 @@
 
   --border-subtle:   #262626;
   --border-default:  #333333;
+  --grid-line:          rgba(255,255,255,0.12);
+  --grid-line-date-sep: rgba(255,255,255,0.18);
 
   --text-primary:    #ededed;
   --text-secondary:  #8a8a8a;
@@ -187,8 +193,10 @@
   --shadow-pill:       0 1px 3px rgba(0,0,0,0.15);
   --shadow-tooltip:    0 2px 8px rgba(0,0,0,0.25);
   --shadow-dialog:     0 8px 32px rgba(0,0,0,0.40);
+  --shadow-card-float: 0 2px 8px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.20);
 
   --transition-default: 200ms ease-out;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ── Current-time breathing animation ──────────────────── */
@@ -257,6 +265,8 @@ summary:focus-visible:not(.focus-ring-custom),
   --surface-sunken:      #eeeff2;
   --border-subtle:       #dfe1e5;
   --border-default:      #c9ccd1;
+  --grid-line:           rgba(0,0,0,0.12);
+  --grid-line-date-sep:  rgba(0,0,0,0.18);
   --accent:              #4A7090;
   --accent-hover:        #3A6078;
   --accent-light:        #E8F0F5;
@@ -268,6 +278,8 @@ summary:focus-visible:not(.focus-ring-custom),
   --surface-sunken:      #141414;
   --border-subtle:       #262626;
   --border-default:      #333333;
+  --grid-line:           rgba(255,255,255,0.12);
+  --grid-line-date-sep:  rgba(255,255,255,0.18);
   --accent:              #6A90B0;
   --accent-hover:        #7AA0C0;
   --accent-light:        #1A2835;
@@ -281,6 +293,8 @@ summary:focus-visible:not(.focus-ring-custom),
   --surface-sunken:      #f1f0e8;
   --border-subtle:       #e0ded5;
   --border-default:      #cac7be;
+  --grid-line:           rgba(0,0,0,0.12);
+  --grid-line-date-sep:  rgba(0,0,0,0.18);
   --accent:              #5A7A5E;
   --accent-hover:        #4A6B4E;
   --accent-light:        #EEF2EC;
@@ -292,6 +306,8 @@ summary:focus-visible:not(.focus-ring-custom),
   --surface-sunken:      #141414;
   --border-subtle:       #262626;
   --border-default:      #333333;
+  --grid-line:           rgba(255,255,255,0.12);
+  --grid-line-date-sep:  rgba(255,255,255,0.18);
   --accent:              #7A9A7E;
   --accent-hover:        #8AAA8E;
   --accent-light:        #1E281E;
@@ -305,6 +321,8 @@ summary:focus-visible:not(.focus-ring-custom),
   --surface-sunken:      #f3efe9;
   --border-subtle:       #e2ddd7;
   --border-default:      #ccc7c0;
+  --grid-line:           rgba(0,0,0,0.12);
+  --grid-line-date-sep:  rgba(0,0,0,0.18);
   --accent:              #8A6A7A;
   --accent-hover:        #7A5A6A;
   --accent-light:        #F2ECF0;
@@ -316,6 +334,8 @@ summary:focus-visible:not(.focus-ring-custom),
   --surface-sunken:      #141414;
   --border-subtle:       #262626;
   --border-default:      #333333;
+  --grid-line:           rgba(255,255,255,0.12);
+  --grid-line-date-sep:  rgba(255,255,255,0.18);
   --accent:              #A08090;
   --accent-hover:        #B090A0;
   --accent-light:        #281E22;

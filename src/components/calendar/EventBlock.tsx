@@ -146,10 +146,10 @@ export const EventBlock = React.memo(function EventBlock({
             isDragging
               ? 'cursor-grabbing'
               : isCardOpen
-                ? 'cursor-grab brightness-90 ring-1 ring-inset ring-current/30'
+                ? 'cursor-default z-20'
                 : highlightedEventId === event.id
-                  ? 'cursor-grab hover:brightness-95 animate-search-highlight'
-                  : 'cursor-grab hover:brightness-95',
+                  ? 'cursor-grab animate-search-highlight'
+                  : 'cursor-grab',
           )}
           style={{
             gridRowStart: rowStart,
@@ -159,6 +159,9 @@ export const EventBlock = React.memo(function EventBlock({
             opacity: isDragging ? 0.85 : 1,
             zIndex:  isDragging ? 50   : undefined,
             borderLeftColor: `var(--event-${event.color}-fill)`,
+            transform: isCardOpen ? 'translateY(-3px)' : 'translateY(0)',
+            boxShadow: isCardOpen ? 'var(--shadow-card-float)' : 'none',
+            transition: 'transform 250ms var(--ease-spring), box-shadow 250ms ease-out, opacity 200ms ease-out',
           }}
           onPointerDown={onDragPointerDown}
           onClick={(e) => {

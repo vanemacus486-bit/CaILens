@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { MapPin, Trash2 } from 'lucide-react'
+import { MapPin, Trash2, Pencil } from 'lucide-react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import type { CalendarEvent } from '@/domain/event'
+
 interface EventDetailCardProps {
   event:    CalendarEvent
   anchorEl: HTMLElement
@@ -22,13 +23,17 @@ function fmtTime(ts: number): string {
 }
 
 export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: EventDetailCardProps) {
-      const [showConfirm, setShowConfirm] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   // Stable ref pointing to the anchor element — Radix reads this for positioning.
   const virtualRef = useRef<HTMLElement>(null!)
   virtualRef.current = anchorEl
 
   const isEmpty = !event.title.trim()
+
+  const d = new Date(event.startTime)
+  const dateStr = `${d.getMonth() + 1}月${d.getDate()}日`
+  const weekdayStr = d.toLocaleDateString('zh-CN', { weekday: 'long' })
 
   return (
     <>
@@ -43,42 +48,38 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <div className="flex">
-            {/* Colored accent strip */}
+            {/* Colored accent strip — matches event category color */}
             <div
-              className="w-[3px] flex-shrink-0"
+              className="w-1 flex-shrink-0"
               style={{ backgroundColor: `var(--event-${event.color}-fill)` }}
             />
 
             <div className="flex-1 p-4 flex flex-col gap-3">
               {/* Title */}
-              <p className={`text-[16px] font-serif leading-snug ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary'}`}>
+              <p className={`text-[16px] font-serif leading-snug ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary font-medium'}`}>
                 {isEmpty ? '(无标题)' : event.title}
               </p>
 
-              {/* Time */}
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm text-accent font-medium tracking-tight">
+              {/* Date + Weekday — e.g. "3月15日 星期六" */}
+              <p className="text-[13px] text-text-secondary font-sans leading-none">
+                {dateStr} {weekdayStr}
+              </p>
+
+              {/* Time range — start | end in mono */}
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-mono text-sm font-semibold text-accent tabular-nums tracking-tight">
                   {fmtTime(event.startTime)}
                 </span>
                 <span className="text-text-tertiary text-xs">–</span>
-                <span className="font-mono text-sm text-text-secondary tracking-tight">
+                <span className="font-mono text-sm text-text-secondary tabular-nums tracking-tight">
                   {fmtTime(event.endTime)}
                 </span>
               </div>
 
-              {/* Colour indicator — dot + label */}
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: `var(--event-${event.color}-text)` }}
-                />
-                <span className="text-xs text-text-tertiary capitalize font-sans">{event.color}</span>
-              </div>
-
-              {/* Notes — plain-text truncated to avoid line-clamp issues with block HTML */}
+              {/* Description */}
               {event.description && (
-                <p className="text-sm text-text-secondary line-clamp-2 font-sans leading-snug">
-                  {event.description.slice(0, 120)}
+                <p className="text-sm text-text-secondary line-clamp-3 font-sans leading-relaxed">
+                  {event.description}
                 </p>
               )}
 
@@ -91,20 +92,19 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
               )}
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-2.5 border-t border-border-subtle mt-0.5">
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost" size="sm"
-                    onClick={() => setShowConfirm(true)}
-                    className="text-color-text-danger hover:bg-surface-sunken gap-1.5 px-2 h-8"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    {'删除'}
-                  </Button>
+              <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
+                <Button
+                  variant="ghost" size="sm"
+                  onClick={() => setShowConfirm(true)}
+                  className="text-color-text-danger hover:bg-surface-sunken gap-1.5 px-2 h-8"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  删除
+                </Button>
 
-                </div>
-                <Button variant="default" size="sm" onClick={onEdit} className="h-8">
-                  {'编辑'}
+                <Button variant="default" size="sm" onClick={onEdit} className="h-8 gap-1.5">
+                  <Pencil className="h-3.5 w-3.5" />
+                  编辑
                 </Button>
               </div>
             </div>
@@ -116,7 +116,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{'删除事件？'}</AlertDialogTitle>
+            <AlertDialogTitle>删除事件？</AlertDialogTitle>
             <AlertDialogDescription>
               {isEmpty
                 ? '此事件将被永久删除。'
@@ -125,12 +125,12 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{'取消'}</AlertDialogCancel>
+            <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
               onClick={onDelete}
               className="bg-color-text-danger text-white"
             >
-              {'删除'}
+              删除
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

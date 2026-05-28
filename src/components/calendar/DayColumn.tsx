@@ -6,7 +6,7 @@ import { EventBlock } from './EventBlock'
 import { CurrentTimeLine } from './CurrentTimeLine'
 import { MAX_OVERLAP_COLUMNS, TOTAL_SLOTS } from '@/features/week-view/constants'
 
-const SLOT_STYLE_HOUR  = 'border-t border-border-subtle cursor-pointer hover:bg-surface-sunken/20'
+const SLOT_STYLE_HOUR  = 'border-t border-grid-line cursor-pointer hover:bg-surface-sunken/20'
 const SLOT_STYLE_HALF  = 'cursor-pointer hover:bg-surface-sunken/20'
 
 const SLOT_INDICES = Array.from({ length: TOTAL_SLOTS }, (_, i) => i)
@@ -56,7 +56,7 @@ function DayColumnInner({
   )
 
   return (
-    <div className="h-full border-r border-border-subtle relative">
+    <div className="h-full border-r border-grid-line relative">
       {today && <CurrentTimeLine />}
 
       <div className="absolute inset-0 grid" style={GRID_STYLE}>

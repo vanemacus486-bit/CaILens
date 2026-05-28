@@ -15,6 +15,8 @@ export default {
           subtle:  'var(--border-subtle)',
           default: 'var(--border-default)',
         },
+        'grid-line':          'var(--grid-line)',
+        'grid-line-date-sep': 'var(--grid-line-date-sep)',
         text: {
           primary:   'var(--text-primary)',
           secondary: 'var(--text-secondary)',
