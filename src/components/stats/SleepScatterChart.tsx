@@ -1,8 +1,6 @@
 import { useMemo, useState, startTransition, memo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized } from 'recharts'
 import type { CalendarEvent } from '@/domain/event'
-import { computeNapStats } from '@/domain/napStats'
-
 /* ── Types ─────────────────────────────────────────────────── */
 
 interface SleepNight {
@@ -310,15 +308,6 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
     return { n, avgDuration, avgBed, avgWake }
   }, [viewNights])
 
-  // ════════════════════════════════════════════════════════════
-  // 小睡统计（与视图窗口对齐）
-  // ════════════════════════════════════════════════════════════
-
-  const napStats = useMemo(
-    () => computeNapStats(rangeEvents, { start: viewWindow.start.getTime(), end: viewWindow.end.getTime() }),
-    [rangeEvents, viewWindow],
-  )
-
   /* ── Colors ────────────────────────────────── */
 
   const colorBed = 'var(--event-accent-fill)'
@@ -522,113 +511,13 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
             </div>
           )}
 
-          {/* ── 小睡统计 ──────────────────────────── */}
-          {napStats.totalNaps > 0 && (
-            <NapStatsPanel stats={napStats} />
-          )}
         </>
       )}
     </div>
   )
 }
 
-/* ════════════════════════════════════════════════════════════
-   小睡统计面板
-   ════════════════════════════════════════════════════════════ */
 
-function NapStatsPanel({
-  stats,
-}: {
-  stats: import('@/domain/napStats').NapStats
-}) {
-  const maxHourCount = Math.max(...stats.hourDistribution, 1)
-  const hourLabels = ['0', '', '2', '', '4', '', '6', '', '8', '', '10', '',
-    '12', '', '14', '', '16', '', '18', '', '20', '', '22', '']
-
-  return (
-    <div className="mt-10 pt-6 border-t border-border-subtle">
-      <h3 className="font-serif text-sm font-medium text-text-primary mb-4">
-        {'小睡统计'}
-      </h3>
-
-      {/* 概览行 */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
-          <div className="font-mono text-xl font-semibold text-text-primary">
-            {stats.totalNaps}
-          </div>
-          <div className="font-sans text-xs text-text-tertiary mt-1">
-            {'小睡次数'}
-          </div>
-        </div>
-        <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
-          <div className="font-mono text-xl font-semibold text-text-primary">
-            {stats.avgDurationMinutes}
-            <span className="text-sm text-text-tertiary ml-1">
-              {'分'}
-            </span>
-          </div>
-          <div className="font-sans text-xs text-text-tertiary mt-1">
-            {'平均时长'}
-          </div>
-        </div>
-        <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
-          <div className="font-mono text-xl font-semibold text-text-primary">
-            {stats.medianDurationMinutes}
-            <span className="text-sm text-text-tertiary ml-1">
-              {'分'}
-            </span>
-          </div>
-          <div className="font-sans text-xs text-text-tertiary mt-1">
-            {'中位时长'}
-          </div>
-        </div>
-      </div>
-
-      {/* 小睡时间分布 */}
-      <div className="flex flex-col gap-1.5">
-        <span className="font-sans text-xs text-text-tertiary">
-          {'小睡时间分布'}
-        </span>
-        <div className="flex items-end gap-0.5 h-20">
-          {stats.hourDistribution.map((count, hour) => {
-            const height = (count / maxHourCount) * 100
-            return (
-              <div
-                key={hour}
-                className="flex-1 flex flex-col items-center justify-end"
-                title={`${hour}:00 — ${count} ${'次'}`}
-              >
-                <span className="font-mono text-[9px] text-text-tertiary tabular-nums leading-none mb-0.5">
-                  {count > 0 ? count : ''}
-                </span>
-                <div
-                  className="w-full rounded-t"
-                  style={{
-                    height: `${Math.max(height, count > 0 ? 4 : 1)}%`,
-                    backgroundColor: 'var(--event-stone-text)',
-                    opacity: 0.3 + 0.5 * (count / maxHourCount),
-                  }}
-                />
-              </div>
-            )
-          })}
-        </div>
-        {/* X 轴标签 */}
-        <div className="flex gap-0.5">
-          {hourLabels.map((label, i) => (
-            <div
-              key={i}
-              className="flex-1 text-center font-sans text-[8px] text-text-tertiary"
-            >
-              {label}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 /* ── Scoped CSS (matches trend chart style) ─────────────────── */
 

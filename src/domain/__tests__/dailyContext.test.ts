@@ -98,11 +98,11 @@ describe('computeHygieneScore', () => {
 
   it('caps at HYGIENE_MAX_DAILY_SCORE', () => {
     const all: Array<keyof typeof HYGIENE_ACTIVITY_SCORES> = [
-      'shower', 'brush_teeth', 'skincare', 'shave', 'hair_wash', 'nail_care', 'floss',
+      'shower', 'brush_teeth', 'skincare', 'shave', 'hair_wash', 'nail_care',
     ]
     const score = computeHygieneScore(all)
     expect(score).toBeLessThanOrEqual(HYGIENE_MAX_DAILY_SCORE)
-    expect(score).toBe(HYGIENE_MAX_DAILY_SCORE)
+    expect(score).toBe(90)
   })
 
   it('ignores unknown activities', () => {

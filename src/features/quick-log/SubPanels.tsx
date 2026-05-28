@@ -260,7 +260,7 @@ export function SleepPanel({ sleepType, quality, onChangeSleepType, onChangeQual
               : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
           )}
         >
-          😴 {'主睡眠'}
+          😴 {'睡觉'}
         </button>
         <button
           onClick={() => onChangeSleepType('nap')}

@@ -27,7 +27,7 @@ interface Props {
 }
 
 const HYGIENE_ACTIVITIES: HygieneActivity[] = [
-  'shower', 'brush_teeth', 'skincare', 'shave', 'hair_wash', 'nail_care', 'floss',
+  'shower', 'brush_teeth', 'skincare', 'shave', 'hair_wash', 'nail_care',
 ]
 
 // ── 组件 ──────────────────────────────────────────────────
@@ -35,6 +35,7 @@ const HYGIENE_ACTIVITIES: HygieneActivity[] = [
 export function HygieneCard({ records }: Props) {
   const [isRecording, setIsRecording] = useState(false)
   const [selected, setSelected] = useState<HygieneActivity[]>([])
+  const [recordDate, setRecordDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const saveHygiene = useDailyContextStore((s) => s.saveHygiene)
   const loadHygiene = useDailyContextStore((s) => s.loadHygiene)
 
@@ -44,11 +45,10 @@ export function HygieneCard({ records }: Props) {
   // 最新分数
   const currentScore = timeline.length > 0 ? timeline[timeline.length - 1].score : null
 
-  // 今日是否已记录
-  const today = format(new Date(), 'yyyy-MM-dd')
+  // 当前选择日期是否已记录
   const alreadyRecorded = useMemo(
-    () => records.some((r) => r.date === today && r.activities.length > 0),
-    [records, today],
+    () => records.some((r) => r.date === recordDate && r.activities.length > 0),
+    [records, recordDate],
   )
 
   // ── 等级判定 ──────────────────────────────
@@ -70,17 +70,18 @@ export function HygieneCard({ records }: Props) {
   // ── 保存与取消 ────────────────────────────
   const handleSave = useCallback(async () => {
     if (selected.length === 0) return
-    await saveHygiene(today, selected)
+    await saveHygiene(recordDate, selected)
     const end = format(new Date(), 'yyyy-MM-dd')
     const start = format(subDays(new Date(), 60), 'yyyy-MM-dd')
     await loadHygiene(start, end)
     setIsRecording(false)
     setSelected([])
-  }, [selected, today, saveHygiene, loadHygiene])
+  }, [selected, recordDate, saveHygiene, loadHygiene])
 
   const handleCancel = useCallback(() => {
     setIsRecording(false)
     setSelected([])
+    setRecordDate(format(new Date(), 'yyyy-MM-dd'))
   }, [])
 
   const toggleActivity = useCallback((activity: HygieneActivity) => {
@@ -101,16 +102,19 @@ export function HygieneCard({ records }: Props) {
       <div className="hygiene-header">
         <span className="hygiene-header-icon">🧹</span>
         <span className="hygiene-header-title">{'个人卫生'}</span>
-        {alreadyRecorded ? (
-          <span className="hygiene-done-badge">{'今日已记录 ✓'}</span>
-        ) : isRecording ? null : (
-          <button
-            className="hygiene-record-btn"
-            onClick={() => { setSelected([]); setIsRecording(true) }}
-          >
-            {'记录今日'}
-          </button>
-        )}
+        <div className="hygiene-header-actions">
+          {alreadyRecorded && (
+            <span className="hygiene-done-badge">{'已记录 ✓'}</span>
+          )}
+          {!isRecording && (
+            <button
+              className="hygiene-record-btn"
+              onClick={() => { setSelected([]); setIsRecording(true) }}
+            >
+              {'记录'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── 当前分数概览 ──────────────────────── */}
@@ -224,8 +228,14 @@ export function HygieneCard({ records }: Props) {
       {isRecording && (
         <div className="hygiene-recording">
           <div className="hygiene-recording-title">
-            {'记录今日卫生'}
+            {'记录卫生'}
           </div>
+          <input
+            type="date"
+            value={recordDate}
+            onChange={(e) => setRecordDate(e.target.value)}
+            className="hygiene-date-input"
+          />
           <div className="hygiene-checkbox-grid">
             {HYGIENE_ACTIVITIES.map((activity) => {
               const label = HYGIENE_ACTIVITY_LABELS[activity]
@@ -284,6 +294,11 @@ const HYGIENE_CSS = `
   font-weight: 500;
   color: var(--heatmap-ink-1);
   flex: 1;
+}
+.hygiene-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .hygiene-done-badge {
   font-size: 11px;
@@ -365,6 +380,24 @@ const HYGIENE_CSS = `
   font-weight: 500;
   margin-bottom: 12px;
   color: var(--heatmap-ink-1);
+}
+.hygiene-date-input {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid var(--heatmap-rule);
+  background: var(--heatmap-bg);
+  color: var(--heatmap-ink-1);
+  outline: none;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+.hygiene-date-input:focus {
+  border-color: var(--accent);
 }
 .hygiene-checkbox-grid {
   display: grid;

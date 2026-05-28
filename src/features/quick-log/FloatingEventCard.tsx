@@ -308,7 +308,7 @@ export function FloatingEventCard({
         bedtime: startTime,
         wakeTime: endTime,
       } as TypedEventData
-      eventTitle = title || (sleepType === 'main' ? '主睡眠' : sleepType === 'nap' ? '小睡' : '失眠')
+      eventTitle = sleepType === 'main' ? '睡觉' : sleepType === 'nap' ? '小睡' : '失眠'
     } else if (mode === 'meal-food' || (editingEvent?.typedData?.type === 'meal')) {
       const foodName = mealFood || title
       typedData = {

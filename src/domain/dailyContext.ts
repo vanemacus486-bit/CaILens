@@ -116,7 +116,7 @@ export type HygieneActivity =
   | 'shave'       // 刮胡子
   | 'hair_wash'   // 洗头
   | 'nail_care'   // 修剪指甲
-  | 'floss'       // 牙线
+
 
 export const HYGIENE_ACTIVITY_LABELS: Record<HygieneActivity, { zh: string; en: string }> = {
   shower:     { zh: '洗澡',     en: 'Shower' },
@@ -125,7 +125,6 @@ export const HYGIENE_ACTIVITY_LABELS: Record<HygieneActivity, { zh: string; en: 
   shave:      { zh: '刮胡子',   en: 'Shave' },
   hair_wash:  { zh: '洗头',     en: 'Hair Wash' },
   nail_care:  { zh: '修剪指甲', en: 'Nail Care' },
-  floss:      { zh: '牙线',     en: 'Floss' },
 }
 
 /** 每个卫生活动的分数权重 */
@@ -136,7 +135,6 @@ export const HYGIENE_ACTIVITY_SCORES: Record<HygieneActivity, number> = {
   shave:       10,
   hair_wash:   15,
   nail_care:   10,
-  floss:       10,
 }
 
 /** 单日最高卫生分数 */
