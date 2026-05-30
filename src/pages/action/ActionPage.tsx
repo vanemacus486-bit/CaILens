@@ -1,10 +1,10 @@
 /**
- * # ActionPage — 规划 Tab（待办散点图版）
+ * # ActionPage — 规划 Tab（优先级矩阵版）
  *
- * QuadrantChart 是主视图：每条待办一个圆点，Y=分类, X=紧迫度。
- * - 统一输入：标题 + 分类 + 期限（默认一周）+ 归属项目
- * - 点击圆点 → 弹框编辑/完成/删除
- * - 已完成待办不显示在图中
+ * PriorityMatrix 是主视图：5 行 (分类) × 3 列 (优先级) 网格。
+ * 每个格子展示该组合下的待办卡片，点击卡片→编辑弹框。
+ * - 统一输入：标题 + 分类 + 优先级 + 期限（默认一周）+ 归属项目
+ * - 已完成待办不显示在矩阵中
  */
 
 import { useEffect, useState, useCallback, type FormEvent } from 'react'
@@ -12,12 +12,15 @@ import { ListTodo, FolderKanban } from 'lucide-react'
 import { usePageScrollRestore } from '@/hooks/usePageScrollRestore'
 import { useTodoStore } from '@/stores/todoStore'
 import { useProjectStore } from '@/stores/projectStore'
-import { calcTodoPositions } from '@/domain/quadrant'
+import { groupTodosByPriority } from '@/domain/todo'
 import type { CategoryId } from '@/domain/category'
 import { TodoInput } from './TodoInput'
-import { QuadrantChart } from './QuadrantChart'
+import { PriorityMatrix } from './PriorityMatrix'
 import { TodoDotDialog } from './TodoDotDialog'
 import { ProjectsView } from './ProjectsView'
+
+// 分类顺序（矩阵行序）
+const CATEGORY_ORDER: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose']
 
 export function ActionPage() {
   // ── Stores ──
@@ -28,8 +31,6 @@ export function ActionPage() {
     error: todosError,
     loadTodos,
     createTodo,
-    updateTodo,
-    deleteTodo,
     toggleComplete,
   } = useTodoStore()
 
@@ -51,13 +52,14 @@ export function ActionPage() {
   const [newProjectCategory, setNewProjectCategory] = useState<CategoryId>('accent')
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null)
 
-  // ── 散点图数据 ──
-  const positions = calcTodoPositions(todos, projects, Date.now())
+  // ── 项目→分类映射（供分组函数继承用） ──
+  const projectCategoryMap: Record<string, string> = {}
+  for (const p of projects) {
+    projectCategoryMap[p.id] = p.categoryId
+  }
 
-  // ── 选中的待办 ──
-  const selectedPosition = selectedTodoId
-    ? positions.find((p) => p.todoId === selectedTodoId) ?? null
-    : null
+  // ── 优先级矩阵数据 ──
+  const grouped = groupTodosByPriority(todos, projectCategoryMap, CATEGORY_ORDER)
 
   // ── 统一创建 ──
   const handleCreate = useCallback((input: {
@@ -65,38 +67,21 @@ export function ActionPage() {
     categoryId: CategoryId | null
     dueDate: number | null
     projectId: string | null
+    priority: 'high' | 'medium' | 'low'
   }) => {
     createTodo({
       title: input.title,
+      priority: input.priority,
       dueDate: input.dueDate,
       projectId: input.projectId,
       categoryId: input.categoryId,
     })
   }, [createTodo])
 
-  // ── 弹框操作 ──
-  const handleDotClick = useCallback((id: string) => {
+  // ── 卡片点击 ──
+  const handleCardClick = useCallback((id: string) => {
     setSelectedTodoId(id)
   }, [])
-
-  const handleDotSave = useCallback((updates: {
-    title?: string
-    categoryId?: string | null
-    dueDate?: number | null
-    projectId?: string | null
-  }) => {
-    if (!selectedTodoId) return
-    updateTodo({ id: selectedTodoId, ...updates })
-  }, [selectedTodoId, updateTodo])
-
-  const handleToggleDone = useCallback((id: string) => {
-    toggleComplete(id)
-  }, [toggleComplete])
-
-  const handleDelete = useCallback((id: string) => {
-    deleteTodo(id)
-    if (selectedTodoId === id) setSelectedTodoId(null)
-  }, [deleteTodo, selectedTodoId])
 
   // ── 新建项目 ──
   const handleCreateProject = useCallback((e: FormEvent) => {
@@ -118,6 +103,9 @@ export function ActionPage() {
     .map((p) => ({ id: p.id, name: p.name, categoryId: p.categoryId }))
 
   const activeProjectCount = projects.filter((p) => p.status === 'active').length
+
+  // 是否有未完成待办
+  const hasActiveTodos = todos.some((t) => t.status !== 'done')
 
   return (
     <div className="flex-1 h-full overflow-hidden flex flex-col">
@@ -173,19 +161,19 @@ export function ActionPage() {
           </div>
         ) : (
           <div className="xl:grid xl:grid-cols-[1fr_360px] xl:grid-rows-1 xl:gap-6 flex-1 flex flex-col gap-6">
-            {/* ── 左列：图表 + 已完成 ── */}
+            {/* ── 左列：矩阵 + 已完成 ── */}
             <div className="space-y-6 min-w-0 flex-1 xl:h-full flex flex-col">
-              {/* ── 待办散点图 ── */}
-              {positions.length > 0 && (
-                <QuadrantChart
-                  positions={positions}
+              {/* ── 优先级矩阵 ── */}
+              {hasActiveTodos && (
+                <PriorityMatrix
+                  grouped={grouped}
                   selectedId={selectedTodoId}
-                  onDotClick={handleDotClick}
+                  onCardClick={handleCardClick}
                 />
               )}
 
               {/* ── 空态 ── */}
-              {positions.length === 0 && todos.length === 0 && (
+              {!hasActiveTodos && todos.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="w-12 h-12 rounded-full bg-surface-sunken flex items-center justify-center mb-4">
                     <ListTodo size={24} strokeWidth={1.5} className="text-text-quaternary" />
@@ -195,6 +183,18 @@ export function ActionPage() {
                   </p>
                   <p className="font-sans text-[11px] text-text-quaternary">
                     {'或新建一个项目来分组管理待办事项'}
+                  </p>
+                </div>
+              )}
+
+              {/* ── 全部完成态 ── */}
+              {!hasActiveTodos && todos.length > 0 && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mb-3">
+                    <CheckIcon />
+                  </div>
+                  <p className="font-sans text-sm text-text-tertiary">
+                    {'全部完成！'}
                   </p>
                 </div>
               )}
@@ -287,16 +287,22 @@ export function ActionPage() {
       </div>
 
       {/* ── 待办编辑弹框 ── */}
-      {selectedPosition && (
+      {selectedTodoId && (
         <TodoDotDialog
-          position={selectedPosition}
+          todoId={selectedTodoId}
           projects={activeProjects}
-          onSave={handleDotSave}
-          onToggleDone={handleToggleDone}
-          onDelete={handleDelete}
           onClose={() => setSelectedTodoId(null)}
         />
       )}
     </div>
+  )
+}
+
+/** 小勾图标 */
+function CheckIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   )
 }

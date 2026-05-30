@@ -1,28 +1,21 @@
 /**
- * # TodoDotDialog — 待办圆点编辑弹框
+ * # TodoDotDialog — 待办编辑弹框
  *
- * 点击 QuadrantChart 中的圆点后弹出。
- * 可编辑标题/分类/期限/归属项目，标记完成或删除。
+ * 点击优先级矩阵中的卡片后弹出。
+ * 可编辑标题/分类/优先级/期限/归属项目，标记完成或删除。
  */
 
 import { useState, useEffect, useCallback } from 'react'
 import { Circle, CheckCircle2, Trash2, Save, X, CalendarDays } from 'lucide-react'
 import type { CategoryId } from '@/domain/category'
-import type { TodoDotPosition } from '@/domain/quadrant'
-import { catIdToName } from '@/domain/quadrant'
+import type { TodoPriority } from '@/domain/todo'
 import { DatePickerPopover } from '@/components/ui/DatePickerPopover'
+import { useTodoStore } from '@/stores/todoStore'
+import { useProjectStore } from '@/stores/projectStore'
 
 interface TodoDotDialogProps {
-  position: TodoDotPosition
+  todoId: string
   projects: { id: string; name: string; categoryId: CategoryId }[]
-  onSave: (updates: {
-    title?: string
-    categoryId?: string | null
-    dueDate?: number | null
-    projectId?: string | null
-  }) => void
-  onToggleDone: (id: string) => void
-  onDelete: (id: string) => void
   onClose: () => void
 }
 
@@ -32,6 +25,20 @@ const CATEGORIES: { id: CategoryId; name: string }[] = [
   { id: 'sky',    name: '个人提升' },
   { id: 'sand',   name: '庶务时间' },
   { id: 'rose',   name: '娱乐休息' },
+]
+
+const CATEGORY_NAMES: Record<string, string> = {
+  accent: '主要矛盾',
+  sage: '次要矛盾',
+  sky: '个人提升',
+  sand: '庶务时间',
+  rose: '娱乐休息',
+}
+
+const PRIORITY_OPTIONS: { id: TodoPriority; label: string; color: string }[] = [
+  { id: 'high',   label: '高优先', color: '#B53535' },
+  { id: 'medium', label: '中优先', color: '#B58A35' },
+  { id: 'low',    label: '低优先', color: '#2D7D46' },
 ]
 
 const QUICK_DEADLINES = [
@@ -56,20 +63,21 @@ function daysToTs(days: number): number {
 }
 
 export function TodoDotDialog({
-  position,
+  todoId,
   projects,
-  onSave,
-  onToggleDone,
-  onDelete,
   onClose,
 }: TodoDotDialogProps) {
-  const [title, setTitle] = useState(position.title)
-  // 项目子待办继承分类时用 __inherit__ 标记
-  const [categoryId, setCategoryId] = useState(
-    position.isCategoryInherited ? '__inherit__' : position.categoryId,
-  )
-  const [projectId, setProjectId] = useState(position.projectId ?? '')
-  const [currentDueDate, setCurrentDueDate] = useState<number | null>(position.dueDate ?? null)
+  const { todos, updateTodo, toggleComplete, deleteTodo } = useTodoStore()
+  const { projects: allProjects } = useProjectStore()
+
+  // 从 store 中找当前 todo
+  const todo = todos.find((t) => t.id === todoId)
+
+  const [title, setTitle] = useState(todo?.title ?? '')
+  const [categoryId, setCategoryId] = useState<string>(todo?.categoryId ?? '')
+  const [priority, setPriority] = useState<TodoPriority>(todo?.priority ?? 'medium')
+  const [projectId, setProjectId] = useState(todo?.projectId ?? '')
+  const [currentDueDate, setCurrentDueDate] = useState<number | null>(todo?.dueDate ?? null)
   const [closing, setClosing] = useState(false)
 
   /** 带退出动画的关闭 */
@@ -78,25 +86,48 @@ export function TodoDotDialog({
     setTimeout(() => onClose(), 160)
   }, [onClose])
 
-  // 切换 position 时同步所有字段
+  // todo 切换时同步字段
   useEffect(() => {
-    setTitle(position.title)
-    setCategoryId(position.isCategoryInherited ? '__inherit__' : position.categoryId)
-    setProjectId(position.projectId ?? '')
-    setCurrentDueDate(position.dueDate ?? null)
-  }, [position])
+    if (!todo) return
+    setTitle(todo.title)
+    setCategoryId(todo.categoryId ?? '')
+    setPriority(todo.priority)
+    setProjectId(todo.projectId ?? '')
+    setCurrentDueDate(todo.dueDate)
+  }, [todo])
 
-  const isDone = position.status === 'done'
+  // 如果 todo 被删除了，关闭弹框
+  useEffect(() => {
+    if (!todos.find((t) => t.id === todoId)) {
+      animateClose()
+    }
+  }, [todos, todoId, animateClose])
 
+  if (!todo) return null
 
+  const currentTodoId = todo.id
+  const isDone = todo.status === 'done'
+
+  // 确定显示用的分类
+  const effectiveCategoryId = categoryId || (() => {
+    if (projectId) {
+      const proj = allProjects.find((p) => p.id === projectId)
+      return proj?.categoryId ?? ''
+    }
+    return ''
+  })()
+
+  const categoryName = CATEGORY_NAMES[effectiveCategoryId] ?? '未分类'
 
   function handleSave() {
     const trimmed = title.trim()
     if (!trimmed) return
 
-    onSave({
+    updateTodo({
+      id: currentTodoId,
       title: trimmed,
-      categoryId: categoryId === '__inherit__' ? null : (categoryId || null),
+      categoryId: categoryId || null,
+      priority,
       dueDate: currentDueDate,
       projectId: projectId || null,
     })
@@ -137,7 +168,12 @@ export function TodoDotDialog({
 
         {/* 头部 */}
         <div className="flex items-center justify-between">
-          <h3 className="font-serif text-sm font-medium text-text-primary">编辑待办</h3>
+          <h3 className="font-serif text-sm font-medium text-text-primary flex items-center gap-2">
+            编辑待办
+            <span className="text-[10px] font-sans text-text-quaternary font-normal">
+              {categoryName}
+            </span>
+          </h3>
           <button
             onClick={animateClose}
             className="w-6 h-6 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-sunken transition-colors cursor-pointer border-none bg-transparent"
@@ -161,6 +197,32 @@ export function TodoDotDialog({
             />
           </div>
 
+          {/* 优先级 */}
+          <div>
+            <label className="font-sans text-[11px] text-text-tertiary mb-1.5 block tracking-wide">优先级</label>
+            <div className="flex items-center gap-1">
+              {PRIORITY_OPTIONS.map((p) => {
+                const isActive = priority === p.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPriority(p.id)}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-sans cursor-pointer border-none transition-all duration-150
+                      ${isActive
+                        ? 'text-white font-medium'
+                        : 'text-text-tertiary bg-surface-sunken hover:text-text-secondary'
+                      }
+                    `}
+                    style={{ backgroundColor: isActive ? p.color : undefined }}
+                  >
+                    {p.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           {/* 分类 */}
           <div>
             <label className="font-sans text-[11px] text-text-tertiary mb-1.5 block tracking-wide">分类</label>
@@ -169,11 +231,7 @@ export function TodoDotDialog({
               onChange={(e) => setCategoryId(e.target.value)}
               className="w-full h-9 rounded-lg border border-border-subtle bg-surface-sunken text-xs font-sans text-text-secondary px-3 outline-none cursor-pointer"
             >
-              {projectId && (
-                <option value="__inherit__">
-                  {'继承自项目（'}{catIdToName(position.categoryId)}{'）'}
-                </option>
-              )}
+              <option value="">{'未分类（继承项目）'}</option>
               {CATEGORIES.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -181,7 +239,7 @@ export function TodoDotDialog({
           </div>
 
           {/* 期限 */}
-          <div>
+          <div className="col-span-2">
             <label className="font-sans text-[11px] text-text-tertiary mb-1.5 block tracking-wide">期限</label>
             <div className="flex flex-wrap items-center gap-1">
               {QUICK_DEADLINES.map((d) => {
@@ -269,7 +327,7 @@ export function TodoDotDialog({
           </button>
 
           <button
-            onClick={() => { onToggleDone(position.todoId); animateClose() }}
+            onClick={() => { toggleComplete(currentTodoId); animateClose() }}
             className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-sans font-medium bg-surface-sunken text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors cursor-pointer border border-border-subtle"
           >
             {isDone ? (
@@ -281,7 +339,7 @@ export function TodoDotDialog({
           </button>
 
           <button
-            onClick={() => { onDelete(position.todoId); animateClose() }}
+            onClick={() => { deleteTodo(currentTodoId); animateClose() }}
             className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-sans font-medium text-[#B53535] hover:bg-[#B53535]/10 transition-colors cursor-pointer border border-[#B53535]/20 bg-transparent"
           >
             <Trash2 size={13} strokeWidth={1.75} />

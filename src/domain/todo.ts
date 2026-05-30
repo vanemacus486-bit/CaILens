@@ -165,3 +165,40 @@ export function nextSortOrder(todos: Todo[]): number {
   if (todos.length === 0) return 0
   return Math.max(...todos.map((t) => t.sortOrder)) + 1
 }
+
+/**
+ * 按 (categoryId, priority) 将未完成待办分组，供优先级矩阵使用。
+ *
+ * @param todos - 全部待办
+ * @param projectCategoryMap - projectId → categoryId 映射（项目继承用）
+ * @param categoryOrder - 分类 ID 顺序（决定行序）
+ * @returns { categoryId: { high: [...], medium: [...], low: [...] } }
+ *          每个格子都是数组，保证 categoryOrder 中所有分类都存在
+ */
+export function groupTodosByPriority(
+  todos: Todo[],
+  projectCategoryMap: Record<string, string>,
+  categoryOrder: string[],
+): Record<string, Record<string, Todo[]>> {
+  // 按分类初始化空结构
+  const result: Record<string, Record<string, Todo[]>> = {}
+  for (const catId of categoryOrder) {
+    result[catId] = { high: [], medium: [], low: [] }
+  }
+
+  // 只处理未完成的待办
+  const activeTodos = todos.filter((t) => t.status !== 'done')
+
+  for (const todo of activeTodos) {
+    // 确定分类：优先用 todo.categoryId，否则从项目继承
+    let catId = todo.categoryId
+    if (!catId && todo.projectId) {
+      catId = projectCategoryMap[todo.projectId] ?? null
+    }
+    if (!catId || !result[catId]) continue // 跳过无分类或不在列表中的分类
+
+    result[catId][todo.priority].push(todo)
+  }
+
+  return result
+}

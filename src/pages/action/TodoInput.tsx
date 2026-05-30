@@ -8,6 +8,7 @@
 import { useState, useRef, type FormEvent } from 'react'
 import { Plus, CalendarDays } from 'lucide-react'
 import type { CategoryId } from '@/domain/category'
+import type { TodoPriority } from '@/domain/todo'
 import { DatePickerPopover } from '@/components/ui/DatePickerPopover'
 
 interface TodoInputProps {
@@ -17,6 +18,7 @@ interface TodoInputProps {
     categoryId: CategoryId | null
     dueDate: number | null
     projectId: string | null
+    priority: TodoPriority
   }) => void
 }
 
@@ -56,6 +58,7 @@ const CATEGORIES: { id: CategoryId; name: string }[] = [
 export function TodoInput({ projects, onCreate }: TodoInputProps) {
   const [title, setTitle] = useState('')
   const [categoryId, setCategoryId] = useState<CategoryId | ''>('sand')
+  const [priority, setPriority] = useState<TodoPriority>('medium')
   const [deadline, setDeadline] = useState<number | null>(daysToTs(7)) // 默认一周
   const [projectId, setProjectId] = useState<string>('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -70,10 +73,12 @@ export function TodoInput({ projects, onCreate }: TodoInputProps) {
       categoryId: projectId ? null : (categoryId || null),   // 项目内不用传，继承项目分类
       dueDate: deadline,
       projectId: projectId || null,
+      priority,
     })
 
     setTitle('')
     setProjectId('')
+    setPriority('medium')
     setDeadline(daysToTs(7))
     inputRef.current?.focus()
   }
@@ -118,7 +123,45 @@ export function TodoInput({ projects, onCreate }: TodoInputProps) {
           </button>
         </div>
 
-        {/* 第二行：分类 pills + 期限 chips */}
+        {/* 第二行：优先级选择 */}
+        <div className="flex items-center gap-2 pl-6">
+          <span className="font-sans text-[10px] text-text-quaternary w-8 flex-shrink-0">优先级</span>
+          <div className="flex items-center gap-1">
+            {([
+              { id: 'high' as TodoPriority, label: '高优先', color: '#B53535' },
+              { id: 'medium' as TodoPriority, label: '中优先', color: '#B58A35' },
+              { id: 'low' as TodoPriority, label: '低优先', color: '#2D7D46' },
+            ] as const).map((p) => {
+              const isActive = priority === p.id
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPriority(p.id)}
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-sans cursor-pointer border-none transition-all duration-150 flex items-center gap-1
+                    ${isActive
+                      ? 'text-white font-medium'
+                      : 'text-text-tertiary bg-surface-sunken hover:text-text-secondary'
+                    }
+                  `}
+                  style={{
+                    backgroundColor: isActive ? p.color : undefined,
+                  }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{
+                      backgroundColor: isActive ? '#fff' : p.color,
+                    }}
+                  />
+                  {p.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* 第三行：分类 pills + 期限 chips */}
         <div className="flex items-center gap-3 pl-6">
           {/* 分类 pills */}
           <div className="flex items-center gap-1" title={projectId ? '项目内待办继承项目分类' : undefined}>
