@@ -392,33 +392,31 @@ export function CategoryTrendChart({
             <Tooltip content={<RechartsTooltip decimals={1} />} />
 
             {/* Stacked area + total line for core focus group */}
+            {groupEnabled && coreGroupCategories.length > 0 && coreGroupCategories.map((id) => (
+              <Area
+                key={id}
+                dataKey={id}
+                stackId="core-group"
+                fill={`var(--event-${id}-fill)`}
+                fillOpacity={0.2}
+                stroke={`var(--event-${id}-fill)`}
+                strokeWidth={1}
+                name={catMap.get(id)?.name ?? id}
+                dot={false}
+                activeDot={{ r: 3, strokeWidth: 0 }}
+                connectNulls={false}
+              />
+            ))}
             {groupEnabled && coreGroupCategories.length > 0 && (
-              <g>
-                {coreGroupCategories.map((id) => (
-                  <Area
-                    key={id}
-                    dataKey={id}
-                    stackId="core-group"
-                    fill={`var(--event-${id}-fill)`}
-                    fillOpacity={0.2}
-                    stroke={`var(--event-${id}-fill)`}
-                    strokeWidth={1}
-                    name={catMap.get(id)?.name ?? id}
-                    dot={false}
-                    activeDot={{ r: 3, strokeWidth: 0 }}
-                    connectNulls={false}
-                  />
-                ))}
-                <Line
-                  dataKey={groupDataKey}
-                  name={CORE_GROUP.nameZh}
-                  stroke="var(--accent)"
-                  strokeWidth={2.5}
-                  dot={false}
-                  activeDot={{ r: 3, strokeWidth: 0 }}
-                  connectNulls={false}
-                />
-              </g>
+              <Line
+                dataKey={groupDataKey}
+                name={CORE_GROUP.nameZh}
+                stroke="var(--accent)"
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 3, strokeWidth: 0 }}
+                connectNulls={false}
+              />
             )}
 
             {/* Individual lines for categories not in group, or when group is off */}
