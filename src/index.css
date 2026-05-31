@@ -223,6 +223,34 @@
   animation: slide-down 180ms ease-out;
 }
 
+/* ── Todo complete (fade + slide left) ──────────────────── */
+@keyframes todo-complete {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-6px); }
+}
+.animate-todo-complete {
+  animation: todo-complete 280ms ease-out forwards;
+  pointer-events: none;
+}
+
+/* ── Quick-create menu entrance ────────────────────────── */
+@keyframes scale-up {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-up {
+  animation: scale-up 180ms var(--ease-spring);
+}
+
+/* ── Todo appear (new item slides in) ──────────────────── */
+@keyframes todo-appear {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-todo-appear {
+  animation: todo-appear 220ms var(--ease-spring);
+}
+
 /* ── Search result highlight pulse ────────────────────── */
 @keyframes search-highlight-pulse {
   0%, 100% {

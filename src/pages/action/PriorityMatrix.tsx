@@ -39,11 +39,13 @@ interface PriorityMatrixProps {
   onReorder: (sourceId: string, targetId: string, position: 'before' | 'after') => void
   /** 跨格移动回调（改分类/优先级） */
   onMoveToCell: (sourceId: string, catId: string, priId: string) => void
+  /** 快速完成回调（带退出动画） */
+  onComplete?: (todoId: string) => void
 }
 
 // ── 组件 ──────────────────────────────────────────────────
 
-export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell }: PriorityMatrixProps) {
+export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell, onComplete }: PriorityMatrixProps) {
   const colorMap = useCategoryColors()
 
   // 统计总数
@@ -88,14 +90,14 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, on
           if (!row) return null
 
           return (
-            <div key={catId} className="grid grid-cols-[64px_repeat(3,1fr)] gap-1.5">
+            <div
+              key={catId}
+              className="grid grid-cols-[64px_repeat(3,1fr)] gap-1.5 pl-2 rounded-l-lg"
+              style={{ borderLeft: `3px solid ${cellColors?.fill ?? '#888'}` }}
+            >
               {/* ── 行头：分类名 ── */}
-              <div className="flex items-center justify-end gap-1.5 pr-2 min-h-[72px]">
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: cellColors?.fill ?? '#888' }}
-                />
-                <span className="font-sans text-[11px] text-text-tertiary leading-tight text-right">
+              <div className="flex items-center justify-end gap-2 pr-2 min-h-[72px]">
+                <span className="font-serif text-xs text-text-secondary leading-tight text-right tracking-wide">
                   {CATEGORY_NAMES[catId] ?? catId}
                 </span>
               </div>
@@ -112,12 +114,12 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, on
                     priId={pri.id}
                     todos={cellTodos}
                     categoryFill={cellColors?.fill ?? '#888'}
-                    priorityColor={pri.color}
                     isSelected={isSelected}
                     selectedId={selectedId}
                     onCardClick={onCardClick}
                     onReorder={onReorder}
                     onMoveToCell={onMoveToCell}
+                    onComplete={onComplete}
                   />
                 )
               })}
@@ -146,15 +148,15 @@ interface CellProps {
   priId: string
   todos: Todo[]
   categoryFill: string
-  priorityColor: string
   isSelected: boolean
   selectedId: string | null
   onCardClick: (id: string) => void
   onReorder: (sourceId: string, targetId: string, position: 'before' | 'after') => void
   onMoveToCell: (sourceId: string, catId: string, priId: string) => void
+  onComplete?: (todoId: string) => void
 }
 
-function Cell({ catId, priId, todos, categoryFill, priorityColor, isSelected, selectedId, onCardClick, onReorder, onMoveToCell }: CellProps) {
+function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete }: CellProps) {
   const count = todos.length
 
   // ── 拖拽状态 ──
@@ -162,6 +164,19 @@ function Cell({ catId, priId, todos, categoryFill, priorityColor, isSelected, se
   const [dropPos, setDropPos] = useState<'before' | 'after' | null>(null)
   const [isCellHover, setIsCellHover] = useState(false)
   const dragEnterCount = useRef(0)
+
+  // ── 完成动画状态 ──
+  const [completingId, setCompletingId] = useState<string | null>(null)
+
+  const handleQuickComplete = useCallback((e: React.MouseEvent, todoId: string) => {
+    e.stopPropagation()
+    if (!onComplete) return
+    setCompletingId(todoId)
+    setTimeout(() => {
+      onComplete(todoId)
+      setCompletingId(null)
+    }, 260)
+  }, [onComplete])
 
   /** 解析 sourceCell 判断是否同格 */
   function isSameCell(dataTransfer: DataTransfer): boolean {
@@ -308,16 +323,25 @@ function Cell({ catId, priId, todos, categoryFill, priorityColor, isSelected, se
       {count > 0 && (
         <span
           className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-mono text-[10px] font-medium text-white leading-none px-1 shadow-xs z-10"
-          style={{ backgroundColor: priorityColor }}
+          style={{
+            backgroundColor: categoryFill,
+            opacity: priId === 'high' ? 1 : priId === 'medium' ? 0.65 : 0.35,
+          }}
         >
           {count > 99 ? '99+' : count}
         </span>
       )}
 
-      {/* ── 空态 ── */}
+      {/* ── 空态 — 虚线暗示可拖入 ── */}
       {count === 0 && (
-        <div className="flex items-center justify-center h-full min-h-[56px]">
-          <span className="font-sans text-[10px] text-text-quaternary/40">0</span>
+        <div
+          className="flex items-center justify-center h-full min-h-[56px] rounded-md border border-dashed transition-colors duration-200"
+          style={{ borderColor: `${categoryFill}20` }}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: `${categoryFill}30` }}
+          />
         </div>
       )}
 
@@ -331,10 +355,11 @@ function Cell({ catId, priId, todos, categoryFill, priorityColor, isSelected, se
           {todos.map((todo) => {
             const cardSelected = todo.id === selectedId
             const isDropTarget = dragOverCardId === todo.id
+            const isCompleting = completingId === todo.id
             return (
               <button
                 key={todo.id}
-                draggable={true}
+                draggable={!isCompleting}
                 onClick={() => onCardClick(todo.id)}
                 onDragStart={(e) => handleDragStart(e, todo.id)}
                 onDragEnd={handleDragEnd}
@@ -342,26 +367,42 @@ function Cell({ catId, priId, todos, categoryFill, priorityColor, isSelected, se
                 onDragLeave={handleCardDragLeave}
                 onDrop={(e) => handleCardDrop(e, todo.id)}
                 className={`w-full text-left rounded-md border cursor-grab active:cursor-grabbing transition-all duration-150 group overflow-hidden ${
-                  cardSelected
-                    ? 'border-accent/40 bg-accent/5 shadow-xs'
-                    : 'border-border-subtle bg-surface-raised hover:border-border-default hover:shadow-xs'
+                  isCompleting
+                    ? 'animate-todo-complete'
+                    : cardSelected
+                      ? 'border-accent/40 bg-accent/5 shadow-xs'
+                      : 'border-border-subtle bg-surface-raised hover:border-border-default hover:shadow-xs'
                 }`}
                 style={{
                   borderLeftWidth: 3,
                   borderLeftColor: categoryFill,
-                  ...(isDropTarget && dropPos === 'before' ? { borderTop: `2px solid ${priorityColor}` } : {}),
-                  ...(isDropTarget && dropPos === 'after' ? { borderBottom: `2px solid ${priorityColor}` } : {}),
+                  ...(isDropTarget && dropPos === 'before' ? { borderTop: '2px solid var(--accent)' } : {}),
+                  ...(isDropTarget && dropPos === 'after' ? { borderBottom: '2px solid var(--accent)' } : {}),
                 }}
               >
-                <div className="px-2.5 py-2">
+                <div className="px-2.5 py-2 relative">
                   {/* 标题 */}
-                  <div className="font-sans text-[12px] text-text-primary leading-tight truncate">
+                  <div className="font-sans text-[12px] text-text-primary leading-tight truncate pr-5">
                     {todo.title}
                   </div>
 
                   {/* 期限 */}
                   {todo.dueDate && (
                     <DueDateBadge dueDate={todo.dueDate} />
+                  )}
+
+                  {/* hover 时出现的快速完成按钮 */}
+                  {onComplete && !isCompleting && (
+                    <span
+                      onClick={(e) => handleQuickComplete(e, todo.id)}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all duration-150 hover:scale-110 cursor-pointer"
+                      style={{ color: categoryFill }}
+                      title="标记完成"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
                   )}
                 </div>
               </button>

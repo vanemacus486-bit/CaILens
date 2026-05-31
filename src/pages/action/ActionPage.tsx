@@ -1,23 +1,25 @@
 /**
- * # ActionPage — 规划 Tab（优先级矩阵版）
+ * # ActionPage — 规划 Tab（右键创建版）
  *
  * PriorityMatrix 是主视图：5 行 (分类) × 3 列 (优先级) 网格。
- * 每个格子展示该组合下的待办卡片，点击卡片→编辑弹框。
- * - 统一输入：标题 + 分类 + 优先级 + 期限（默认一周）+ 归属项目
+ * 右键矩阵区域 → QuickCreateMenu 快速创建待办。
+ * 右列：ProjectChipList（项目色标组）+ OrphanTodoList（独立待办）。
+ * - 分类用色点表达，优先级用浓度表达，尽量少文字
  * - 已完成待办不显示在矩阵中
  */
 
-import { useEffect, useState, useCallback, type FormEvent } from 'react'
-import { ListTodo, FolderKanban } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { ListTodo } from 'lucide-react'
 import { usePageScrollRestore } from '@/hooks/usePageScrollRestore'
 import { useTodoStore } from '@/stores/todoStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { groupTodosByPriority } from '@/domain/todo'
 import type { CategoryId } from '@/domain/category'
-import { TodoInput } from './TodoInput'
 import { PriorityMatrix } from './PriorityMatrix'
 import { TodoDotDialog } from './TodoDotDialog'
-import { ProjectsView } from './ProjectsView'
+import { QuickCreateMenu } from './QuickCreateMenu'
+import { ProjectChipList } from './ProjectChipList'
+import { OrphanTodoList } from './OrphanTodoList'
 
 // 分类顺序（矩阵行序）
 const CATEGORY_ORDER: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose']
@@ -38,7 +40,6 @@ export function ActionPage() {
 
   const {
     projects,
-    createProject,
     loadAll: loadAllProjects,
     isLoaded: projectsLoaded,
     reorderTodoArbitrary,
@@ -51,9 +52,8 @@ export function ActionPage() {
   }, [todosLoaded, loadTodos, projectsLoaded, loadAllProjects])
 
   // ── 本地状态 ──
-  const [newProjectName, setNewProjectName] = useState('')
-  const [newProjectCategory, setNewProjectCategory] = useState<CategoryId>('accent')
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
 
   // ── 项目→分类映射（供分组函数继承用） ──
   const projectCategoryMap: Record<string, string> = {}
@@ -64,22 +64,11 @@ export function ActionPage() {
   // ── 优先级矩阵数据 ──
   const grouped = groupTodosByPriority(todos, projectCategoryMap, CATEGORY_ORDER)
 
-  // ── 统一创建 ──
-  const handleCreate = useCallback((input: {
-    title: string
-    categoryId: CategoryId | null
-    dueDate: number | null
-    projectId: string | null
-    priority: 'high' | 'medium' | 'low'
-  }) => {
-    createTodo({
-      title: input.title,
-      priority: input.priority,
-      dueDate: input.dueDate,
-      projectId: input.projectId,
-      categoryId: input.categoryId,
-    })
-  }, [createTodo])
+  // ── 右键菜单处理器 ──
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }, [])
 
   // ── 卡片点击 ──
   const handleCardClick = useCallback((id: string) => {
@@ -116,16 +105,6 @@ export function ActionPage() {
     })
   }, [todos, updateTodo])
 
-  // ── 新建项目 ──
-  const handleCreateProject = useCallback((e: FormEvent) => {
-    e.preventDefault()
-    const trimmed = newProjectName.trim()
-    if (!trimmed) return
-    createProject({ name: trimmed, categoryId: newProjectCategory })
-    setNewProjectName('')
-    setNewProjectCategory('accent')
-  }, [newProjectName, newProjectCategory, createProject])
-
   // ── 统计 ──
   const doneCount = todos.filter((t) => t.status === 'done').length
   const activeCount = todos.length - doneCount
@@ -136,6 +115,9 @@ export function ActionPage() {
     .map((p) => ({ id: p.id, name: p.name, categoryId: p.categoryId }))
 
   const activeProjectCount = projects.filter((p) => p.status === 'active').length
+
+  // 独立待办（无项目归属 + 未完成）
+  const orphanTodos = todos.filter((t) => !t.projectId && t.status !== 'done')
 
   // 是否有未完成待办
   const hasActiveTodos = todos.some((t) => t.status !== 'done')
@@ -188,8 +170,11 @@ export function ActionPage() {
           </div>
         ) : (
           <div className="xl:grid xl:grid-cols-[1fr_360px] xl:grid-rows-1 xl:gap-6 flex-1 flex flex-col gap-6">
-            {/* ── 左列：矩阵 + 已完成 ── */}
-            <div className="space-y-6 min-w-0 flex-1 xl:h-full flex flex-col">
+            {/* ── 左列：矩阵 + 已完成（右键创建） ── */}
+            <div
+              className="space-y-6 min-w-0 flex-1 xl:h-full flex flex-col"
+              onContextMenu={handleContextMenu}
+            >
               {/* ── 优先级矩阵 ── */}
               {hasActiveTodos && (
                 <PriorityMatrix
@@ -198,6 +183,7 @@ export function ActionPage() {
                   onCardClick={handleCardClick}
                   onReorder={handleReorder}
                   onMoveToCell={handleMoveToCell}
+                  onComplete={toggleComplete}
                 />
               )}
 
@@ -208,10 +194,10 @@ export function ActionPage() {
                     <ListTodo size={24} strokeWidth={1.5} className="text-text-quaternary" />
                   </div>
                   <p className="font-sans text-sm text-text-tertiary mb-1">
-                    {'还没有待办，在上方输入框添加'}
+                    右键此处创建第一个待办
                   </p>
                   <p className="font-sans text-[11px] text-text-quaternary">
-                    {'或新建一个项目来分组管理待办事项'}
+                    或先在右侧新建项目
                   </p>
                 </div>
               )}
@@ -265,63 +251,14 @@ export function ActionPage() {
             <div className="flex-1 min-h-4" />
             </div>
 
-            {/* ── 右列：新建待办 + 项目视图 ── */}
+            {/* ── 右列：项目色标组 + 独立待办 ── */}
             <div className="space-y-4 xl:min-h-0">
-              {/* ── 统一新建待办 ── */}
-              <section>
-                <h2 className="font-serif text-sm font-medium text-text-primary mb-3 flex items-center gap-2">
-                  <ListTodo size={16} strokeWidth={1.5} className="text-accent" />
-                  {'新建待办'}
-                </h2>
-                <TodoInput
-                  projects={activeProjects}
-                  onCreate={handleCreate}
-                />
-              </section>
-
-              {/* ── 项目分组视图 ── */}
-              {activeProjectCount > 0 && (
-                <section>
-                  <h2 className="font-serif text-sm font-medium text-text-primary mb-3 flex items-center gap-2">
-                    <FolderKanban size={16} strokeWidth={1.5} className="text-accent" />
-                    {'项目待办'}
-                  </h2>
-                  <ProjectsView />
-                </section>
-              )}
-
-              {/* ── 新建项目 ── */}
-              <form
-                onSubmit={handleCreateProject}
-                className="flex items-center gap-2 rounded-xl border border-border-subtle bg-surface-sunken px-4 py-2.5 transition-shadow duration-200 focus-within:shadow-sm"
-              >
-                <FolderKanban size={16} strokeWidth={1.75} className="text-text-quaternary flex-shrink-0" />
-                <select
-                  value={newProjectCategory}
-                  onChange={(e) => setNewProjectCategory(e.target.value as CategoryId)}
-                  className="h-7 rounded-md border border-border-subtle bg-surface-sunken text-[11px] font-sans text-text-secondary px-2 outline-none cursor-pointer min-w-[70px]"
-                >
-                  <option value="accent">{'主要矛盾'}</option>
-                  <option value="sage">{'次要矛盾'}</option>
-                  <option value="sky">{'个人提升'}</option>
-                  <option value="sand">{'庶务时间'}</option>
-                  <option value="rose">{'娱乐休息'}</option>
-                </select>
-                <input
-                  type="text"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  placeholder={'新建项目…'}
-                  className="flex-1 bg-transparent border-none outline-none font-sans text-sm text-text-primary placeholder:text-text-quaternary"
-                />
-                <button
-                  type="submit"
-                  disabled={!newProjectName.trim()}
-                  className="h-7 px-3 rounded-md text-xs font-medium font-sans bg-accent text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity cursor-pointer border-none"
-                >
-                  {'添加'}
-                </button>
-              </form>
+              <ProjectChipList />
+              <OrphanTodoList
+                todos={orphanTodos}
+                onCardClick={handleCardClick}
+                onComplete={toggleComplete}
+              />
             </div>
           </div>
         )}
@@ -333,6 +270,26 @@ export function ActionPage() {
           todoId={selectedTodoId}
           projects={activeProjects}
           onClose={() => setSelectedTodoId(null)}
+        />
+      )}
+
+      {/* ── 右键快速创建菜单 ── */}
+      {contextMenu && (
+        <QuickCreateMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          projects={activeProjects}
+          onCreate={(input) => {
+            createTodo({
+              title: input.title,
+              priority: input.priority,
+              dueDate: input.dueDate,
+              projectId: input.projectId,
+              categoryId: input.categoryId,
+            })
+            setContextMenu(null)
+          }}
+          onClose={() => setContextMenu(null)}
         />
       )}
     </div>
