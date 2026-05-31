@@ -32,6 +32,8 @@ export function ActionPage() {
     loadTodos,
     createTodo,
     toggleComplete,
+    reorderTodo,
+    updateTodo,
   } = useTodoStore()
 
   const {
@@ -39,6 +41,7 @@ export function ActionPage() {
     createProject,
     loadAll: loadAllProjects,
     isLoaded: projectsLoaded,
+    reorderTodoArbitrary,
   } = useProjectStore()
 
   // ── 数据加载 ──
@@ -82,6 +85,36 @@ export function ActionPage() {
   const handleCardClick = useCallback((id: string) => {
     setSelectedTodoId(id)
   }, [])
+
+  // ── 拖拽重排 ──
+  const handleReorder = useCallback((
+    sourceId: string,
+    targetId: string,
+    position: 'before' | 'after',
+  ) => {
+    const sourceTodo = todos.find((t) => t.id === sourceId)
+    if (!sourceTodo) return
+    if (sourceTodo.projectId) {
+      reorderTodoArbitrary(sourceId, targetId, position)
+    } else {
+      reorderTodo(sourceId, targetId, position)
+    }
+  }, [todos, reorderTodo, reorderTodoArbitrary])
+
+  // ── 跨格拖拽移动（改分类/优先级） ──
+  const handleMoveToCell = useCallback((
+    sourceId: string,
+    catId: string,
+    priId: string,
+  ) => {
+    const sourceTodo = todos.find((t) => t.id === sourceId)
+    if (!sourceTodo) return
+    updateTodo({
+      id: sourceId,
+      categoryId: catId as CategoryId,
+      priority: priId as 'high' | 'medium' | 'low',
+    })
+  }, [todos, updateTodo])
 
   // ── 新建项目 ──
   const handleCreateProject = useCallback((e: FormEvent) => {
@@ -141,13 +174,7 @@ export function ActionPage() {
 
       {/* ── 内容区 ── */}
       <div ref={usePageScrollRestore('/action')} className="flex-1 overflow-y-auto px-6 pb-8 pt-4 flex flex-col min-h-0">
-        {/* 统一输入 */}
-        <div className="mb-6">
-          <TodoInput
-            projects={activeProjects}
-            onCreate={handleCreate}
-          />
-        </div>
+        {/* 统一输入 — 已移至右列 */}
 
         {todosError && (
           <div className="mb-4 px-4 py-2 rounded-lg bg-[#B53535]/10 border border-[#B53535]/20 text-xs font-sans text-[#B53535]">
@@ -169,6 +196,8 @@ export function ActionPage() {
                   grouped={grouped}
                   selectedId={selectedTodoId}
                   onCardClick={handleCardClick}
+                  onReorder={handleReorder}
+                  onMoveToCell={handleMoveToCell}
                 />
               )}
 
@@ -236,8 +265,20 @@ export function ActionPage() {
             <div className="flex-1 min-h-4" />
             </div>
 
-            {/* ── 右列：项目视图 ── */}
+            {/* ── 右列：新建待办 + 项目视图 ── */}
             <div className="space-y-4 xl:min-h-0">
+              {/* ── 统一新建待办 ── */}
+              <section>
+                <h2 className="font-serif text-sm font-medium text-text-primary mb-3 flex items-center gap-2">
+                  <ListTodo size={16} strokeWidth={1.5} className="text-accent" />
+                  {'新建待办'}
+                </h2>
+                <TodoInput
+                  projects={activeProjects}
+                  onCreate={handleCreate}
+                />
+              </section>
+
               {/* ── 项目分组视图 ── */}
               {activeProjectCount > 0 && (
                 <section>

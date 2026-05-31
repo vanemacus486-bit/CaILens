@@ -28,7 +28,7 @@ interface ProjectState {
   // Todo-scoped-to-project operations
   getTodosByProject: (projectId: string) => Todo[]
   getProjectProgress: (projectId: string) => { done: number; total: number; percent: number }
-  createTodoInProject: (projectId: string, title: string) => Promise<Todo>
+  createTodoInProject: (projectId: string, title: string, dueDate?: number | null) => Promise<Todo>
   deleteTodoInProject: (id: string) => Promise<void>
   toggleTodoDone: (id: string) => Promise<void>
   reorderTodo: (id: string, direction: 'up' | 'down') => Promise<void>
@@ -194,7 +194,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     return calcProjectProgress(todos)
   },
 
-  createTodoInProject: async (projectId, title) => {
+  createTodoInProject: async (projectId, title, dueDate?: number | null) => {
     const todoRepo = getTodoRepo()
     const allTodos = await todoRepo.getAll()
     const projectTodos = allTodos.filter((t) => t.projectId === projectId)
@@ -204,6 +204,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     const todo = await todoRepo.create({
       title,
       projectId,
+      dueDate: dueDate ?? null,
     })
     // Patch sortOrder to be project-local
     await todoRepo.update({ id: todo.id, sortOrder: maxOrder + 1 })

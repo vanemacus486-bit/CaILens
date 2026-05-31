@@ -1,15 +1,15 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { addDays } from 'date-fns'
 import { X } from 'lucide-react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useCategoryStore } from '@/stores/categoryStore'
-import { useEventStore } from '@/stores/eventStore'
+
 import { getEventRepo } from '@/data/getRepositories'
 import { classifyEvent } from '@/domain/icsImport'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
-import { MealFoodPanel, SleepPanel } from './SubPanels'
+import { SleepPanel } from './SubPanels'
 
 // ── Types ───────────────────────────────────────────────
 
@@ -82,20 +82,11 @@ function isNextDayEnd(startStr: string, endStr: string): boolean {
 
 // ── Aggregate recent items ──────────────────────────────
 
-function getRecentFoods(events: CalendarEvent[]): string[] {
-  const cutoff = Date.now() - 90 * 86_400_000
-  const freq = new Map<string, number>()
-  for (const e of events) {
-    if (!e.title.trim()) continue
-    if (e.endTime < cutoff) continue
-    if (e.typedData?.type !== 'meal' && e.categoryId !== 'sand') continue
-    // Only food-related titles (this is heuristic, but works for now)
-    freq.set(e.title, (freq.get(e.title) ?? 0) + 1)
-  }
-  return Array.from(freq.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([t]) => t)
+
+function isMealTitle(text: string): boolean {
+  const mealKeywords = ['吃饭', '早餐', '午餐', '晚餐', '宵夜', '午饭', '晚饭']
+  const t = text.trim()
+  return mealKeywords.some(k => t === k || t.startsWith(k))
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -107,7 +98,6 @@ export function FloatingEventCard({
   editingEvent, onClose, onSave, onUpdate, onDelete,
 }: FloatingEventCardProps) {
   const categories   = useCategoryStore((s) => s.categories)
-  const allEvents    = useEventStore((s) => s.allEvents)
   const isEditing    = !!editingEvent
   const localDate = new Date(defaultTimes.start)
 
@@ -116,7 +106,7 @@ export function FloatingEventCard({
   const [mode, setMode] = useState<CardMode>(() => {
     if (editingEvent?.typedData?.type === 'sleep') return 'sleep'
     if (editingEvent?.typedData?.type === 'meal') return 'meal-food'
-    return 'input'
+    return modeFromCategory(editingEvent?.categoryId ?? defaultColor ?? 'accent')
   })
 
   const [categoryId, setCategoryId] = useState<CategoryId>(
@@ -126,9 +116,6 @@ export function FloatingEventCard({
   const [userChangedCategory, setUserChangedCategory] = useState(false)
 
   // Sub-mode states
-  const [mealFood, setMealFood] = useState(
-    editingEvent?.typedData?.type === 'meal' ? editingEvent.title : '',
-  )
   const [sleepType, setSleepType] = useState<SleepSubType>(
     editingEvent?.typedData?.type === 'sleep' ? editingEvent.typedData.sleepType : 'main',
   )
@@ -158,24 +145,8 @@ export function FloatingEventCard({
   const currentCategoryName = CATEGORY_NAMES[categoryId]
   const catColor = `var(--event-${categoryId}-fill)`
 
-  const recentFoods = useMemo(() => getRecentFoods(allEvents), [allEvents])
-
   // ── Top 3 recent titles for current category ─────────
-
-  const topThree = useMemo(() => {
-    const cutoff = Date.now() - 90 * 86_400_000
-    const freq = new Map<string, number>()
-    for (const e of allEvents) {
-      if (!e.title.trim()) continue
-      if (e.endTime < cutoff) continue
-      if (e.categoryId !== categoryId) continue
-      freq.set(e.title, (freq.get(e.title) ?? 0) + 1)
-    }
-    return Array.from(freq.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([t]) => t)
-  }, [allEvents, categoryId])
+  // (removed — no longer displayed)
 
   // ── Auto-classify when title changes ────────────────
 
@@ -193,7 +164,7 @@ export function FloatingEventCard({
 
   useEffect(() => {
     if (!open) return
-    if (mode === 'meal-food') return // Focus is inside MealFoodPanel's autoFocus input
+
     const timer = setTimeout(() => {
       inputRef.current?.focus()
     }, 50)
@@ -256,7 +227,6 @@ export function FloatingEventCard({
       setMode(modeFromCategory(newCatId))
       setError(null)
       setInlineSuggestion(null)
-      if (modeFromCategory(newCatId) !== 'meal-food') setMealFood('')
       return
     }
 
@@ -267,10 +237,16 @@ export function FloatingEventCard({
       return
     }
 
-    // Escape → close card
+    // Escape → close card or go back to chores
     if (e.key === 'Escape') {
       e.preventDefault()
-      onClose()
+      if (mode === 'meal-food') {
+        setMode('chores')
+        setTitle('')
+        setInlineSuggestion(null)
+      } else {
+        onClose()
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inlineSuggestion, categoryId, mode])
@@ -289,6 +265,16 @@ export function FloatingEventCard({
   }
 
   async function handleSave(overrideTitle?: string) {
+    // If user typed a meal keyword (吃饭 etc.) in chores/input mode,
+    // switch to meal-food mode instead of saving
+    const effectiveTitle = overrideTitle ?? title
+    if (!overrideTitle && (mode === 'chores' || mode === 'input') && isMealTitle(effectiveTitle)) {
+      setMode('meal-food')
+      setTitle('')
+      setInlineSuggestion(null)
+      return
+    }
+
     const timeErr = getTimeError()
     if (timeErr) { setError(timeErr); return }
 
@@ -298,7 +284,7 @@ export function FloatingEventCard({
 
     // Build typedData based on mode
     let typedData: TypedEventData | undefined
-    let eventTitle = overrideTitle ?? title
+    let eventTitle = effectiveTitle
 
     if (mode === 'sleep' || (editingEvent?.typedData?.type === 'sleep')) {
       typedData = {
@@ -310,14 +296,13 @@ export function FloatingEventCard({
       } as TypedEventData
       eventTitle = sleepType === 'main' ? '睡觉' : sleepType === 'nap' ? '小睡' : '失眠'
     } else if (mode === 'meal-food' || (editingEvent?.typedData?.type === 'meal')) {
-      const foodName = mealFood || title
       typedData = {
         type: 'meal',
         mealOrder: inferMealOrder(startTime),
         foodTags: [],
         source: 'home',
       } as TypedEventData
-      eventTitle = foodName || '吃饭'
+      eventTitle = title || '吃饭'
     }
 
     // Also set typedKey
@@ -364,7 +349,6 @@ export function FloatingEventCard({
     setUserChangedCategory(true)
     setMode(modeFromCategory(newCatId))
     setError(null)
-    if (modeFromCategory(newCatId) !== 'meal-food') setMealFood('')
   }, [])
 
   // ── Render helpers ──────────────────────────────────
@@ -420,57 +404,13 @@ export function FloatingEventCard({
     )
   }
 
-  // ── Render meal-food mode ───────────────────────────
-
-  function renderMealFoodMode() {
-    return (
-      <>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: catColor }} />
-            <span className="font-mono text-xs text-text-secondary">{startStr} – {endStr}</span>
-            <span className="text-xs text-text-tertiary font-sans">🍚 {'吃饭'}</span>
-          </div>
-          <button onClick={onClose} className="text-text-tertiary hover:text-text-primary cursor-pointer p-1">
-            <X size={16} />
-          </button>
-        </div>
-
-        <MealFoodPanel
-          foodInput={mealFood}
-          onChange={setMealFood}
-          recentFoods={recentFoods}
-          onSelect={(food) => { setMealFood(food); setTitle(food) }}
-        />
-
-        {error && <p className="text-xs text-color-text-danger mt-2 font-sans">{error}</p>}
-
-        {renderCategoryLine()}
-
-        <div className="flex justify-end gap-2 mt-4">
-          {isEditing && (
-            <button onClick={handleDelete} className="font-sans text-xs text-color-text-danger bg-transparent border border-color-text-danger/30 rounded-md px-3 py-1.5 cursor-pointer hover:bg-color-text-danger/10 transition-colors">
-              {'删除'}
-            </button>
-          )}
-          <button
-            onClick={() => handleSave()}
-            className="font-sans text-xs font-medium text-white bg-accent border-none rounded-md px-4 py-1.5 cursor-pointer hover:bg-accent-hover transition-colors"
-          >
-            {'记录'}
-          </button>
-        </div>
-      </>
-    )
-  }
-
   // ── Default render (input / chores / growth / leisure / growth sub-modes) ──
 
   function renderDefaultMode() {
     const placeholderText = (() => {
       switch (mode) {
         case 'chores': return '做了哪些杂务？'
+        case 'meal-food': return '例如：牛肉面'
         case 'growth': return '学了/练了什么？'
         case 'leisure': return '怎么放松的？'
         default: return '这段时间在做什么？'
@@ -486,8 +426,14 @@ export function FloatingEventCard({
             <span className="font-mono text-xs text-text-secondary cursor-pointer hover:text-text-primary transition-colors" onClick={() => setShowTimeEdit(!showTimeEdit)}>
               {startStr} – {endStr}
             </span>
+            {mode === 'meal-food' && (
+              <span className="text-xs text-text-tertiary font-sans ml-1">🍚 吃饭</span>
+            )}
           </div>
-          <button onClick={onClose} className="text-text-tertiary hover:text-text-primary cursor-pointer p-1">
+          <button
+            onClick={mode === 'meal-food' ? () => { setMode('chores'); setTitle(''); setInlineSuggestion(null) } : onClose}
+            className="text-text-tertiary hover:text-text-primary cursor-pointer p-1"
+          >
             <X size={16} />
           </button>
         </div>
@@ -562,24 +508,6 @@ export function FloatingEventCard({
           })}
         </div>
 
-        {/* Recent Top 3 */}
-        {topThree.length > 0 && !title.trim() && (
-          <div className="text-xs text-text-quaternary font-sans text-center mt-2.5 transition-opacity duration-200">
-            {topThree.map((t, i) => (
-              <span key={t}>
-                <button
-                  onClick={() => { setTitle(t); inputRef.current?.focus() }}
-                  className="hover:text-text-secondary transition-colors cursor-pointer"
-                >
-                  {t}
-                </button>
-                {i < topThree.length - 1 && <span className="mx-1.5 select-none">·</span>}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Note: sub-panels removed — Top 3 recent items + direct typing in input handle all category actions */}
 
         {error && <p className="text-xs text-color-text-danger mt-1 font-sans">{error}</p>}
 
@@ -608,7 +536,6 @@ export function FloatingEventCard({
   if (!open) return null
 
   const content = mode === 'sleep' ? renderSleepMode()
-    : mode === 'meal-food' ? renderMealFoodMode()
     : renderDefaultMode()
 
   return (

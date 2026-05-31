@@ -6,6 +6,7 @@
  * 替代原先的 QuadrantChart 散点图。
  */
 
+import { useState, useCallback, useRef, type DragEvent } from 'react'
 import { type Todo, type TodoPriority } from '@/domain/todo'
 import { useCategoryColors } from '@/constants/categoryColors'
 
@@ -34,11 +35,15 @@ interface PriorityMatrixProps {
   grouped: Record<string, Record<string, Todo[]>>
   selectedId: string | null
   onCardClick: (todoId: string) => void
+  /** 拖拽重排回调（同格内） */
+  onReorder: (sourceId: string, targetId: string, position: 'before' | 'after') => void
+  /** 跨格移动回调（改分类/优先级） */
+  onMoveToCell: (sourceId: string, catId: string, priId: string) => void
 }
 
 // ── 组件 ──────────────────────────────────────────────────
 
-export function PriorityMatrix({ grouped, selectedId, onCardClick }: PriorityMatrixProps) {
+export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell }: PriorityMatrixProps) {
   const colorMap = useCategoryColors()
 
   // 统计总数
@@ -103,12 +108,16 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick }: PriorityMat
                 return (
                   <Cell
                     key={pri.id}
+                    catId={catId}
+                    priId={pri.id}
                     todos={cellTodos}
                     categoryFill={cellColors?.fill ?? '#888'}
                     priorityColor={pri.color}
                     isSelected={isSelected}
                     selectedId={selectedId}
                     onCardClick={onCardClick}
+                    onReorder={onReorder}
+                    onMoveToCell={onMoveToCell}
                   />
                 )
               })}
@@ -133,24 +142,167 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick }: PriorityMat
 // ── Cell 子组件 ────────────────────────────────────────────
 
 interface CellProps {
+  catId: string
+  priId: string
   todos: Todo[]
   categoryFill: string
   priorityColor: string
   isSelected: boolean
   selectedId: string | null
   onCardClick: (id: string) => void
+  onReorder: (sourceId: string, targetId: string, position: 'before' | 'after') => void
+  onMoveToCell: (sourceId: string, catId: string, priId: string) => void
 }
 
-function Cell({ todos, categoryFill, priorityColor, isSelected, selectedId, onCardClick }: CellProps) {
+function Cell({ catId, priId, todos, categoryFill, priorityColor, isSelected, selectedId, onCardClick, onReorder, onMoveToCell }: CellProps) {
   const count = todos.length
+
+  // ── 拖拽状态 ──
+  const [dragOverCardId, setDragOverCardId] = useState<string | null>(null)
+  const [dropPos, setDropPos] = useState<'before' | 'after' | null>(null)
+  const [isCellHover, setIsCellHover] = useState(false)
+  const dragEnterCount = useRef(0)
+
+  /** 解析 sourceCell 判断是否同格 */
+  function isSameCell(dataTransfer: DataTransfer): boolean {
+    const raw = dataTransfer.getData('application/todo-cell')
+    if (!raw) return false
+    try {
+      const sc = JSON.parse(raw)
+      return sc.catId === catId && sc.priId === priId
+    } catch {
+      return false
+    }
+  }
+
+  const handleDragStart = useCallback((e: DragEvent, todoId: string) => {
+    e.dataTransfer.setData('text/plain', todoId)
+    e.dataTransfer.setData('application/todo-cell', JSON.stringify({ catId, priId }))
+    e.dataTransfer.effectAllowed = 'move'
+    const el = e.currentTarget as HTMLElement
+    el.style.opacity = '0.4'
+  }, [catId, priId])
+
+  const handleDragEnd = useCallback((e: DragEvent) => {
+    const el = e.currentTarget as HTMLElement
+    el.style.opacity = '1'
+    setDragOverCardId(null)
+    setDropPos(null)
+    setIsCellHover(false)
+    dragEnterCount.current = 0
+  }, [])
+
+  // ── 格级拖拽（用于跨格视觉反馈 + 空白区落点） ──
+  const handleCellDragEnter = useCallback((_e: DragEvent) => {
+    dragEnterCount.current += 1
+    setIsCellHover(true)
+  }, [])
+
+  const handleCellDragLeave = useCallback((_e: DragEvent) => {
+    dragEnterCount.current -= 1
+    if (dragEnterCount.current <= 0) {
+      dragEnterCount.current = 0
+      setIsCellHover(false)
+    }
+  }, [])
+
+  const handleCellDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }, [])
+
+  const handleCellDrop = useCallback((e: DragEvent) => {
+    e.preventDefault()
+    const sourceId = e.dataTransfer.getData('text/plain')
+    if (!sourceId) { setIsCellHover(false); return }
+
+    if (isSameCell(e.dataTransfer)) {
+      // 同格空白区 → 末尾重排
+      if (todos.length > 0) {
+        const lastTodo = todos[todos.length - 1]
+        if (sourceId !== lastTodo.id) onReorder(sourceId, lastTodo.id, 'after')
+      }
+    } else {
+      // 跨格 → 移动到此格
+      onMoveToCell(sourceId, catId, priId)
+    }
+    setIsCellHover(false)
+    dragEnterCount.current = 0
+  }, [catId, priId, todos, onReorder, onMoveToCell])
+
+  // ── 卡片级拖拽 ──
+  const handleCardDragOver = useCallback((e: DragEvent, todoId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const y = e.clientY - rect.top
+    const pos = y < rect.height / 2 ? 'before' : 'after'
+    setDragOverCardId(todoId)
+    setDropPos(pos)
+  }, [])
+
+  const handleCardDragLeave = useCallback((e: DragEvent) => {
+    const target = e.currentTarget as HTMLElement
+    const related = e.relatedTarget as HTMLElement | null
+    if (related && target.contains(related)) return
+    setDragOverCardId(null)
+    setDropPos(null)
+  }, [])
+
+  const handleCardDrop = useCallback((e: DragEvent, targetId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const sourceId = e.dataTransfer.getData('text/plain')
+    if (!sourceId || sourceId === targetId || !dropPos) {
+      setDragOverCardId(null); setDropPos(null)
+      return
+    }
+
+    if (isSameCell(e.dataTransfer)) {
+      onReorder(sourceId, targetId, dropPos)
+    } else {
+      onMoveToCell(sourceId, catId, priId)
+    }
+    setDragOverCardId(null); setDropPos(null)
+  }, [catId, priId, dropPos, onReorder, onMoveToCell])
+
+  const handleScrollAreaDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    e.stopPropagation()
+  }, [])
+
+  const handleScrollAreaDrop = useCallback((e: DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const sourceId = e.dataTransfer.getData('text/plain')
+    if (!sourceId) { setDragOverCardId(null); setDropPos(null); return }
+
+    if (isSameCell(e.dataTransfer)) {
+      if (todos.length > 0) {
+        const lastTodo = todos[todos.length - 1]
+        if (sourceId !== lastTodo.id) onReorder(sourceId, lastTodo.id, 'after')
+      }
+    } else {
+      onMoveToCell(sourceId, catId, priId)
+    }
+    setDragOverCardId(null); setDropPos(null)
+  }, [catId, priId, todos, onReorder, onMoveToCell])
 
   return (
     <div
       className={`relative rounded-lg border min-h-[72px] p-2 transition-all duration-200 ${
-        isSelected
-          ? 'border-accent/50 bg-surface-raised shadow-sm'
-          : 'border-border-subtle/60 bg-surface-sunken/40'
+        isCellHover
+          ? 'border-accent/60 bg-accent/[0.04] shadow-sm ring-1 ring-accent/20'
+          : isSelected
+            ? 'border-accent/50 bg-surface-raised shadow-sm'
+            : 'border-border-subtle/60 bg-surface-sunken/40'
       }`}
+      onDragEnter={handleCellDragEnter}
+      onDragLeave={handleCellDragLeave}
+      onDragOver={handleCellDragOver}
+      onDrop={handleCellDrop}
     >
       {/* ── 计数徽标 ── */}
       {count > 0 && (
@@ -169,21 +321,37 @@ function Cell({ todos, categoryFill, priorityColor, isSelected, selectedId, onCa
         </div>
       )}
 
-      {/* ── 卡片列表 ── */}
+      {/* ── 卡片列表（可拖拽） ── */}
       {count > 0 && (
-        <div className="space-y-1.5 max-h-[240px] overflow-y-auto scrollbar-thin">
+        <div
+          className="space-y-1.5 max-h-[240px] overflow-y-auto scrollbar-thin"
+          onDragOver={handleScrollAreaDragOver}
+          onDrop={handleScrollAreaDrop}
+        >
           {todos.map((todo) => {
             const cardSelected = todo.id === selectedId
+            const isDropTarget = dragOverCardId === todo.id
             return (
               <button
                 key={todo.id}
+                draggable={true}
                 onClick={() => onCardClick(todo.id)}
-                className={`w-full text-left rounded-md border cursor-pointer transition-all duration-150 group overflow-hidden ${
+                onDragStart={(e) => handleDragStart(e, todo.id)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleCardDragOver(e, todo.id)}
+                onDragLeave={handleCardDragLeave}
+                onDrop={(e) => handleCardDrop(e, todo.id)}
+                className={`w-full text-left rounded-md border cursor-grab active:cursor-grabbing transition-all duration-150 group overflow-hidden ${
                   cardSelected
                     ? 'border-accent/40 bg-accent/5 shadow-xs'
                     : 'border-border-subtle bg-surface-raised hover:border-border-default hover:shadow-xs'
                 }`}
-                style={{ borderLeftWidth: 3, borderLeftColor: categoryFill }}
+                style={{
+                  borderLeftWidth: 3,
+                  borderLeftColor: categoryFill,
+                  ...(isDropTarget && dropPos === 'before' ? { borderTop: `2px solid ${priorityColor}` } : {}),
+                  ...(isDropTarget && dropPos === 'after' ? { borderBottom: `2px solid ${priorityColor}` } : {}),
+                }}
               >
                 <div className="px-2.5 py-2">
                   {/* 标题 */}

@@ -54,6 +54,9 @@ const URGENCY_WINDOW_DAYS = 30
 /** 同层微调幅度（± 占整个画布的比例） */
 const SPREAD_RANGE = 0.07
 
+/** 待办散点图同层微调幅度 — 略小于象限，因为待办数量更多 */
+const SPREAD_RANGE_TODO = 0.05
+
 // ── 计算入口 ────────────────────────────────────────────────
 
 export function calcQuadrantPositions(
@@ -153,6 +156,7 @@ export interface TodoDotPosition {
   x: number          // 紧迫度 0–1（基于 dueDate）
   y: number          // 重要度 0–1（基于分类）
   categoryId: string
+  isCategoryInherited: boolean  // 项目子待办的分类是否继承自项目
   status: string     // 'todo' | 'done'
   dueDate: number | null  // 原始截止日期 UTC ms
   projectId: string | null
@@ -183,11 +187,17 @@ export function calcTodoPositions(
   for (const todo of todos) {
     if (todo.status === 'done') continue  // 已完成暂不显示
 
-    // Y 轴：确定分类
+    // Y 轴：确定分类 — 子待办优先使用独立设置的分类，再回退到项目分类
     let catId: string
+    let isCategoryInherited = false
     if (todo.projectId) {
-      const proj = projectMap.get(todo.projectId)
-      catId = proj?.categoryId ?? 'uncategorized'
+      if (todo.categoryId) {
+        catId = todo.categoryId
+      } else {
+        const proj = projectMap.get(todo.projectId)
+        catId = proj?.categoryId ?? 'uncategorized'
+        isCategoryInherited = true
+      }
     } else {
       catId = todo.categoryId ?? 'uncategorized'
     }
@@ -214,11 +224,57 @@ export function calcTodoPositions(
       x,
       y,
       categoryId: catId,
+      isCategoryInherited,
       status: todo.status,
       dueDate: todo.dueDate,
       projectId: todo.projectId,
       projectName,
     })
+  }
+
+  return spreadPositions(result)
+}
+
+// ── 同层微调 ──────────────────────────────────────────────
+
+/**
+ * 对相同坐标的待办进行网格式分散，避免视觉堆叠。
+ * 每组内按行优先排列，偏移幅度 ±SPREAD_RANGE_TODO。
+ */
+function spreadPositions(positions: TodoDotPosition[]): TodoDotPosition[] {
+  const groups = new Map<string, TodoDotPosition[]>()
+  for (const p of positions) {
+    const key = `${p.x.toFixed(4)},${p.y.toFixed(4)}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(p)
+  }
+
+  const result: TodoDotPosition[] = []
+  for (const [, group] of groups) {
+    if (group.length === 1) {
+      result.push(group[0])
+      continue
+    }
+
+    const cols = Math.ceil(Math.sqrt(group.length))
+    const rows = Math.ceil(group.length / cols)
+
+    for (let i = 0; i < group.length; i++) {
+      const row = Math.floor(i / cols)
+      const col = i % cols
+      const xOff = cols > 1
+        ? (col / (cols - 1) - 0.5) * SPREAD_RANGE_TODO * 2
+        : 0
+      const yOff = rows > 1
+        ? (row / (rows - 1) - 0.5) * SPREAD_RANGE_TODO * 2
+        : 0
+
+      result.push({
+        ...group[i],
+        x: clamp(group[i].x + xOff, 0, 1),
+        y: clamp(group[i].y + yOff, 0, 1),
+      })
+    }
   }
 
   return result
