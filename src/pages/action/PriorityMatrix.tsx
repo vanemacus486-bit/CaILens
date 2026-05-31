@@ -22,10 +22,10 @@ const CATEGORY_NAMES: Record<string, string> = {
   rose:   '休息娱乐',
 }
 
-const PRIORITIES: { id: TodoPriority; label: string; subtitle: string; color: string }[] = [
-  { id: 'high',   label: '高优先', subtitle: '立即处理', color: '#B53535' },
-  { id: 'medium', label: '中优先', subtitle: '计划安排', color: '#B58A35' },
-  { id: 'low',    label: '低优先', subtitle: '有空再做', color: '#2D7D46' },
+const PRIORITIES: { id: TodoPriority; label: string; color: string }[] = [
+  { id: 'high',   label: '高优先', color: '#B53535' },
+  { id: 'medium', label: '中优先', color: '#B58A35' },
+  { id: 'low',    label: '低优先', color: '#2D7D46' },
 ]
 
 // ── Props ──────────────────────────────────────────────────
@@ -41,11 +41,13 @@ interface PriorityMatrixProps {
   onMoveToCell: (sourceId: string, catId: string, priId: string) => void
   /** 快速完成回调（带退出动画） */
   onComplete?: (todoId: string) => void
+  /** 格子右键回调，传递该格的分类+优先级 */
+  onCellContextMenu?: (e: React.MouseEvent, catId: string, priId: string) => void
 }
 
 // ── 组件 ──────────────────────────────────────────────────
 
-export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell, onComplete }: PriorityMatrixProps) {
+export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onCellContextMenu }: PriorityMatrixProps) {
   const colorMap = useCategoryColors()
 
   // 统计总数
@@ -74,9 +76,6 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, on
               <span className="font-sans text-xs font-medium text-text-primary">
                 {p.label}
               </span>
-            </div>
-            <div className="font-sans text-[10px] text-text-quaternary mt-0.5">
-              {p.subtitle}
             </div>
           </div>
         ))}
@@ -120,6 +119,7 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, on
                     onReorder={onReorder}
                     onMoveToCell={onMoveToCell}
                     onComplete={onComplete}
+                    onContextMenu={onCellContextMenu}
                   />
                 )
               })}
@@ -154,9 +154,10 @@ interface CellProps {
   onReorder: (sourceId: string, targetId: string, position: 'before' | 'after') => void
   onMoveToCell: (sourceId: string, catId: string, priId: string) => void
   onComplete?: (todoId: string) => void
+  onContextMenu?: (e: React.MouseEvent, catId: string, priId: string) => void
 }
 
-function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete }: CellProps) {
+function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onContextMenu }: CellProps) {
   const count = todos.length
 
   // ── 拖拽状态 ──
@@ -318,6 +319,7 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
       onDragLeave={handleCellDragLeave}
       onDragOver={handleCellDragOver}
       onDrop={handleCellDrop}
+      onContextMenu={(e) => onContextMenu?.(e, catId, priId)}
     >
       {/* ── 计数徽标 ── */}
       {count > 0 && (

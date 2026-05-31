@@ -145,6 +145,50 @@ export function groupTodosByDueDate(todos: Todo[], now: number): {
   return { overdue, today, future, noDate }
 }
 
+/** 按完成日期分组已完成待办，按日期倒序排列 */
+export interface CompletionGroup {
+  /** 日期标签，例如 "3月15日 周六" */
+  dateLabel: string
+  /** 当天 0 点时间戳 */
+  dateTs: number
+  /** 该日期下完成的待办，按 completedAt 降序 */
+  todos: Todo[]
+}
+
+const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+export function groupTodosByCompletionDate(todos: Todo[]): CompletionGroup[] {
+  const groups = new Map<number, Todo[]>()
+
+  for (const todo of todos) {
+    if (todo.status !== 'done' || todo.completedAt === null) continue
+    const d = new Date(todo.completedAt)
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+    const list = groups.get(dayStart)
+    if (list) {
+      list.push(todo)
+    } else {
+      groups.set(dayStart, [todo])
+    }
+  }
+
+  const result: CompletionGroup[] = []
+  for (const [dateTs, todoList] of groups) {
+    // Sort todos within group by completedAt descending
+    todoList.sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+
+    const d = new Date(dateTs)
+    const label = `${d.getMonth() + 1}月${d.getDate()}日 ${WEEKDAY_NAMES[d.getDay()]}`
+
+    result.push({ dateLabel: label, dateTs, todos: todoList })
+  }
+
+  // Sort groups by date descending
+  result.sort((a, b) => b.dateTs - a.dateTs)
+
+  return result
+}
+
 /** 计算项目完成进度（基于 status === 'done' 的待办比例） */
 export function calcProjectProgress(todos: Todo[]): {
   done: number

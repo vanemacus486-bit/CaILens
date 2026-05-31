@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   sortTodos,
   groupTodosByDueDate,
+  groupTodosByCompletionDate,
   nextSortOrder,
   calcProjectProgress,
   TODO_PRIORITY_ORDER,
@@ -176,6 +177,90 @@ describe('calcProjectProgress', () => {
       makeTodo({ id: '2', status: 'in_progress' }),
     ]
     expect(calcProjectProgress(todos).percent).toBe(0)
+  })
+})
+
+describe('groupTodosByCompletionDate', () => {
+  // Use fixed reference date: 2025-03-15T12:00:00Z
+  const day1 = new Date('2025-03-15T10:00:00Z').getTime()  // March 15
+  const day2 = new Date('2025-03-14T08:00:00Z').getTime()  // March 14
+  const day3 = new Date('2025-03-13T22:00:00Z').getTime()  // March 13
+
+  it('groups completed todos by completion date', () => {
+    const todos = [
+      makeTodo({ id: '1', status: 'done', completedAt: day1 }),
+      makeTodo({ id: '2', status: 'done', completedAt: day2 }),
+      makeTodo({ id: '3', status: 'done', completedAt: day1 }),
+    ]
+    const result = groupTodosByCompletionDate(todos)
+    expect(result).toHaveLength(2) // 2 distinct days
+    expect(result[0].todos).toHaveLength(2) // day1 has 2
+    expect(result[1].todos).toHaveLength(1) // day2 has 1
+  })
+
+  it('sorts groups by date descending (most recent first)', () => {
+    const todos = [
+      makeTodo({ id: '1', status: 'done', completedAt: day3 }), // oldest
+      makeTodo({ id: '2', status: 'done', completedAt: day1 }), // newest
+    ]
+    const result = groupTodosByCompletionDate(todos)
+    expect(result[0].dateTs).toBeGreaterThan(result[1].dateTs)
+  })
+
+  it('sorts todos within a group by completedAt descending', () => {
+    // Use midday timestamps to avoid timezone day-crossing issues
+    const earlier = new Date('2025-03-15T11:00:00Z').getTime()
+    const later = new Date('2025-03-15T13:00:00Z').getTime()
+    const todos = [
+      makeTodo({ id: '1', status: 'done', completedAt: earlier }),
+      makeTodo({ id: '2', status: 'done', completedAt: later }),
+    ]
+    const result = groupTodosByCompletionDate(todos)
+    expect(result).toHaveLength(1)
+    expect(result[0].todos[0].id).toBe('2') // later first
+    expect(result[0].todos[1].id).toBe('1') // earlier second
+  })
+
+  it('excludes non-done todos', () => {
+    const todos = [
+      makeTodo({ id: '1', status: 'done', completedAt: day1 }),
+      makeTodo({ id: '2', status: 'todo', completedAt: day1 }),
+      makeTodo({ id: '3', status: 'in_progress', completedAt: day1 }),
+    ]
+    const result = groupTodosByCompletionDate(todos)
+    expect(result).toHaveLength(1)
+    expect(result[0].todos).toHaveLength(1)
+    expect(result[0].todos[0].id).toBe('1')
+  })
+
+  it('excludes done todos with null completedAt', () => {
+    const todos = [
+      makeTodo({ id: '1', status: 'done', completedAt: day1 }),
+      makeTodo({ id: '2', status: 'done', completedAt: null }),
+    ]
+    const result = groupTodosByCompletionDate(todos)
+    expect(result).toHaveLength(1)
+    expect(result[0].todos).toHaveLength(1)
+    expect(result[0].todos[0].id).toBe('1')
+  })
+
+  it('handles empty array', () => {
+    expect(groupTodosByCompletionDate([])).toEqual([])
+  })
+
+  it('handles all non-done todos (returns empty)', () => {
+    const todos = [
+      makeTodo({ id: '1', status: 'todo' }),
+      makeTodo({ id: '2', status: 'in_progress' }),
+    ]
+    expect(groupTodosByCompletionDate(todos)).toEqual([])
+  })
+
+  it('produces dateLabel in a readable format', () => {
+    const todos = [makeTodo({ id: '1', status: 'done', completedAt: day1 })]
+    const result = groupTodosByCompletionDate(todos)
+    expect(result[0].dateLabel).toBeTruthy()
+    expect(typeof result[0].dateLabel).toBe('string')
   })
 })
 
