@@ -65,12 +65,14 @@ export function MonthView({ monthStart, onDayChange, onMonthChange }: MonthViewP
 
   const gridData = useMemo(() => {
     const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const firstDayOfWeek = new Date(year, month, 1).getDay() // 0=Sun
+    // Monday-first: convert JS getDay() (0=Sun) to Monday-based index (0=Mon)
+    const jsDay = new Date(year, month, 1).getDay() // 0=Sun, 1=Mon, ...
+    const mondayFirstIndex = jsDay === 0 ? 6 : jsDay - 1 // 0=Mon, ..., 6=Sun
 
-    // Compute leading filler days (from previous month)
+    // Compute leading filler days (from previous month) to align with Monday-first headers
     const cells: Array<{ date: Date; isCurrentMonth: boolean; dayEvents: CalendarEvent[] }> = []
     const prevMonthDays = new Date(year, month, 0).getDate()
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    for (let i = mondayFirstIndex - 1; i >= 0; i--) {
       const d = new Date(year, month - 1, prevMonthDays - i)
       cells.push({ date: d, isCurrentMonth: false, dayEvents: [] })
     }

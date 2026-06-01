@@ -3,6 +3,7 @@ import {
   sortTodos,
   groupTodosByDueDate,
   groupTodosByCompletionDate,
+  groupTodosByWeekDays,
   nextSortOrder,
   calcProjectProgress,
   TODO_PRIORITY_ORDER,
@@ -261,6 +262,153 @@ describe('groupTodosByCompletionDate', () => {
     const result = groupTodosByCompletionDate(todos)
     expect(result[0].dateLabel).toBeTruthy()
     expect(typeof result[0].dateLabel).toBe('string')
+  })
+})
+
+// ── groupTodosByWeekDays ────────────────────────────
+
+describe('groupTodosByWeekDays', () => {
+  // 以 2025-03-17（周一）为 weekStart，用本地时区构造时间戳
+  const weekStart = new Date(2025, 2, 17).getTime() // Monday March 17, 2025 local midnight
+
+  /** 创建指定本地日期的 completedAt 时间戳（当天 12:00） */
+  function localTs(year: number, month: number, day: number, hour = 12): number {
+    return new Date(year, month, day, hour, 0, 0).getTime()
+  }
+
+  it('groups active todos by dueDate into correct weekdays', () => {
+    // days[] layout (Monday-first): 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
+    const tueTodo = makeTodo({ id: '1', dueDate: localTs(2025, 2, 18) })   // Tuesday
+    const friTodo = makeTodo({ id: '2', dueDate: localTs(2025, 2, 21) })   // Friday
+    const result = groupTodosByWeekDays([tueTodo, friTodo], weekStart)
+
+    // Tuesday → days[1]
+    expect(result.days[1].activeTodos).toHaveLength(1)
+    expect(result.days[1].activeTodos[0].id).toBe('1')
+    // Friday → days[4]
+    expect(result.days[4].activeTodos).toHaveLength(1)
+    expect(result.days[4].activeTodos[0].id).toBe('2')
+  })
+
+  it('groups done todos by completedAt into correct weekdays', () => {
+    const doneOnWed = makeTodo({
+      id: '1', status: 'done',
+      dueDate: localTs(2025, 2, 21),            // dueDate = Friday
+      completedAt: localTs(2025, 2, 19),          // completedAt = Wednesday
+    })
+    const result = groupTodosByWeekDays([doneOnWed], weekStart)
+
+    // 应该出现在 Wednesday (days[2])，而非 Friday (days[4])
+    expect(result.days[2].doneTodos).toHaveLength(1)
+    expect(result.days[2].doneTodos[0].id).toBe('1')
+    expect(result.days[4].doneTodos).toHaveLength(0)
+  })
+
+  it('excludes done todos whose completedAt is outside current week', () => {
+    const doneBeforeWeek = makeTodo({
+      id: '1', status: 'done',
+      completedAt: localTs(2025, 2, 14),          // Friday before the week
+    })
+    const doneAfterWeek = makeTodo({
+      id: '2', status: 'done',
+      completedAt: localTs(2025, 2, 24),          // Monday after the week
+    })
+    const doneInWeek = makeTodo({
+      id: '3', status: 'done',
+      completedAt: localTs(2025, 2, 19),          // Wednesday → days[2]
+    })
+    const result = groupTodosByWeekDays([doneBeforeWeek, doneAfterWeek, doneInWeek], weekStart)
+
+    // 仅本周完成的出现在 days 中
+    expect(result.days[2].doneTodos).toHaveLength(1)
+    expect(result.days[2].doneTodos[0].id).toBe('3')
+    // 其他天应该都没有
+    for (const day of result.days) {
+      const total = day.doneTodos.filter((t) => t.id === '1' || t.id === '2')
+      expect(total).toHaveLength(0)
+    }
+  })
+
+  it('handles done todos with dueDate: null (previously went to unscheduledTodos)', () => {
+    const doneNoDue = makeTodo({
+      id: '1', status: 'done',
+      dueDate: null,
+      completedAt: localTs(2025, 2, 20),          // Thursday → days[3]
+    })
+    const result = groupTodosByWeekDays([doneNoDue], weekStart)
+
+    expect(result.days[3].doneTodos).toHaveLength(1)
+    expect(result.days[3].doneTodos[0].id).toBe('1')
+    expect(result.unscheduledTodos).toHaveLength(0)
+  })
+
+  it('skips done todos with null completedAt (defensive)', () => {
+    const badTodo = makeTodo({ id: '1', status: 'done', completedAt: null })
+    const result = groupTodosByWeekDays([badTodo], weekStart)
+    // 不应出现在任何 day 或列表
+    for (const day of result.days) {
+      expect(day.doneTodos).toHaveLength(0)
+      expect(day.activeTodos).toHaveLength(0)
+    }
+    expect(result.overdueTodos).toHaveLength(0)
+    expect(result.unscheduledTodos).toHaveLength(0)
+  })
+
+  it('mixed: active + done todos each use their own date field', () => {
+    const activeTue = makeTodo({ id: 'a', dueDate: localTs(2025, 2, 18) })  // Tuesday → days[1]
+    const doneMon = makeTodo({
+      id: 'd', status: 'done',
+      dueDate: localTs(2025, 2, 21),              // due = Friday
+      completedAt: localTs(2025, 2, 17),            // completed = Monday → days[0]
+    })
+    const result = groupTodosByWeekDays([activeTue, doneMon], weekStart)
+
+    // activeTue → Tuesday (days[1]) activeTodos
+    expect(result.days[1].activeTodos).toHaveLength(1)
+    expect(result.days[1].activeTodos[0].id).toBe('a')
+    // doneMon → Monday (days[0]) doneTodos
+    expect(result.days[0].doneTodos).toHaveLength(1)
+    expect(result.days[0].doneTodos[0].id).toBe('d')
+  })
+
+  it('active overdue and unscheduled still work correctly', () => {
+    const overdue = makeTodo({ id: 'o', dueDate: localTs(2025, 2, 10) })   // before week
+    const unscheduled = makeTodo({ id: 'u', dueDate: null })
+    const result = groupTodosByWeekDays([overdue, unscheduled], weekStart)
+
+    expect(result.overdueTodos).toHaveLength(1)
+    expect(result.overdueTodos[0].id).toBe('o')
+    expect(result.unscheduledTodos).toHaveLength(1)
+    expect(result.unscheduledTodos[0].id).toBe('u')
+  })
+
+  it('handles empty array', () => {
+    const result = groupTodosByWeekDays([], weekStart)
+    expect(result.days).toHaveLength(7)
+    for (const day of result.days) {
+      expect(day.activeTodos).toEqual([])
+      expect(day.doneTodos).toEqual([])
+    }
+    expect(result.overdueTodos).toEqual([])
+    expect(result.unscheduledTodos).toEqual([])
+  })
+
+  it('sorts doneTodos within each day by completedAt descending', () => {
+    const earlier = makeTodo({ id: '1', status: 'done', completedAt: localTs(2025, 2, 19, 10) })
+    const later = makeTodo({ id: '2', status: 'done', completedAt: localTs(2025, 2, 19, 14) })
+    const result = groupTodosByWeekDays([earlier, later], weekStart)
+
+    // 同一天 (Wed = days[2])，later 应排在前面
+    expect(result.days[2].doneTodos).toHaveLength(2)
+    expect(result.days[2].doneTodos[0].id).toBe('2')
+    expect(result.days[2].doneTodos[1].id).toBe('1')
+  })
+
+  it('does not mutate input array', () => {
+    const input = [makeTodo({ id: '1', dueDate: localTs(2025, 2, 18) })]
+    const copy = [...input]
+    groupTodosByWeekDays(input, weekStart)
+    expect(input).toEqual(copy)
   })
 })
 

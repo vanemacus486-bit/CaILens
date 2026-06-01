@@ -246,3 +246,139 @@ export function groupTodosByPriority(
 
   return result
 }
+
+// ── 周视图分组 ─────────────────────────────────────────────
+
+/**
+ * 单日分组结果：该日待办区 + 已完成区
+ */
+export interface DayGroup {
+  /** 日期时间戳（当天 0 点 UTC ms） */
+  dateTs: number
+  /** 日期标签，如 "3月17日" */
+  dateLabel: string
+  /** 周几（0=周日，1=周一…6=周六） */
+  weekday: number
+  /** 未完成的待办（按优先级+sortOrder 排序） */
+  activeTodos: Todo[]
+  /** 已完成的待办（按 completedAt 降序） */
+  doneTodos: Todo[]
+}
+
+/**
+ * 周视图分组结果
+ */
+export interface WeekDayGroups {
+  /** 本周一 0 点时间戳 */
+  weekStart: number
+  /** 本周日 23:59:59 时间戳 */
+  weekEnd: number
+  /** 周标签，如 "3月17日 – 3月23日" */
+  weekLabel: string
+  /** 周一~周日，每天一组 */
+  days: [DayGroup, DayGroup, DayGroup, DayGroup, DayGroup, DayGroup, DayGroup]
+  /** 逾期（dueDate < weekStart，且未完成） */
+  overdueTodos: Todo[]
+  /** 无截止日期的未完成待办 */
+  unscheduledTodos: Todo[]
+}
+
+/**
+ * 按周分组待办：将 todo 按 dueDate 分到周一~周日，
+ * 逾期归逾期，无日期归 unscheduled。
+ *
+ * @param todos - 全部待办
+ * @param weekStart - 本周一 0 点时间戳
+ * @returns 按周结构分组的待办
+ */
+export function groupTodosByWeekDays(todos: Todo[], weekStart: number): WeekDayGroups {
+  const weekEnd = weekStart + 7 * 86400000 - 1 // 周日 23:59:59.999
+
+  // 初始化 7 天（按周一~周日排列），weekday 由 dateTs 自动计算
+  const days: [DayGroup, DayGroup, DayGroup, DayGroup, DayGroup, DayGroup, DayGroup] = [
+    createDayGroup(weekStart),                       // 周一
+    createDayGroup(weekStart + 86400000),            // 周二
+    createDayGroup(weekStart + 2 * 86400000),        // 周三
+    createDayGroup(weekStart + 3 * 86400000),        // 周四
+    createDayGroup(weekStart + 4 * 86400000),        // 周五
+    createDayGroup(weekStart + 5 * 86400000),        // 周六
+    createDayGroup(weekStart + 6 * 86400000),        // 周日
+  ]
+
+  const overdueTodos: Todo[] = []
+  const unscheduledTodos: Todo[] = []
+
+  for (const todo of todos) {
+    // ── 已完成：按 completedAt 分组（日志按完成日归档） ──
+    if (todo.status === 'done') {
+      if (todo.completedAt === null) continue // 防御：已完成但无完成时间戳
+
+      // UTC 时间戳 → 本地时区当天 0 点
+      const cd = new Date(todo.completedAt)
+      const localDayStart = new Date(cd.getFullYear(), cd.getMonth(), cd.getDate()).getTime()
+
+      // 完成日不在本周范围内则不显示
+      if (localDayStart < weekStart || localDayStart > weekEnd) continue
+
+      const dayIndex = (localDayStart - weekStart) / 86400000
+      if (dayIndex < 0 || dayIndex > 6) continue
+
+      days[dayIndex].doneTodos.push(todo)
+      continue
+    }
+
+    // ── 未完成：按 dueDate 分组（原有逻辑不变） ──
+    if (todo.dueDate === null) {
+      unscheduledTodos.push(todo)
+      continue
+    }
+
+    if (todo.dueDate < weekStart) {
+      overdueTodos.push(todo)
+      continue
+    }
+
+    if (todo.dueDate > weekEnd) continue // 未来周，忽略
+
+    const dayIndex = Math.floor((todo.dueDate - weekStart) / 86400000)
+    if (dayIndex < 0 || dayIndex > 6) continue
+
+    days[dayIndex].activeTodos.push(todo)
+  }
+
+  // 排序
+  for (const day of days) {
+    day.activeTodos.sort((a, b) => {
+      const pDiff = TODO_PRIORITY_ORDER[b.priority] - TODO_PRIORITY_ORDER[a.priority]
+      if (pDiff !== 0) return pDiff
+      return a.sortOrder - b.sortOrder
+    })
+    day.doneTodos.sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+  }
+
+  overdueTodos.sort((a, b) => {
+    const pDiff = TODO_PRIORITY_ORDER[b.priority] - TODO_PRIORITY_ORDER[a.priority]
+    if (pDiff !== 0) return pDiff
+    return a.sortOrder - b.sortOrder
+  })
+
+  unscheduledTodos.sort((a, b) => {
+    const pDiff = TODO_PRIORITY_ORDER[b.priority] - TODO_PRIORITY_ORDER[a.priority]
+    if (pDiff !== 0) return pDiff
+    return a.sortOrder - b.sortOrder
+  })
+
+  // 周标签
+  const startDate = new Date(weekStart)
+  const endDate = new Date(weekStart + 6 * 86400000)
+  const weekLabel = `${startDate.getMonth() + 1}月${startDate.getDate()}日 – ${endDate.getMonth() + 1}月${endDate.getDate()}日`
+
+  return { weekStart, weekEnd, weekLabel, days, overdueTodos, unscheduledTodos }
+}
+
+function createDayGroup(dateTs: number): DayGroup {
+  const d = new Date(dateTs)
+  const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日`
+  const weekday = d.getDay() // 0=Sun, 1=Mon, ..., 与 WEEKDAY_NAMES 索引一致
+  return { dateTs, dateLabel, weekday, activeTodos: [], doneTodos: [] }
+}

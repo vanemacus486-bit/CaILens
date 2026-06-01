@@ -25,7 +25,11 @@ import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
 import { SteadyMetricsPanel } from '@/components/stats/SteadyMetricsPanel'
-import { DietNutrientCard } from '@/components/stats/DietNutrientCard'
+import { DietCalendarCard } from '@/components/stats/DietCalendarCard'
+import { DietFrequencyPanel } from '@/components/stats/DietFrequencyPanel'
+import { DietScatterChart } from '@/components/stats/DietScatterChart'
+import { DietTagTrendChart } from '@/components/stats/DietTagTrendChart'
+import { RecipeSummary } from '@/components/stats/RecipeSummary'
 import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneCard } from '@/components/stats/HygieneCard'
 import { LeisureCard } from '@/components/stats/LeisureCard'
@@ -307,12 +311,15 @@ export function StatsPage() {
               ))}
             </div>
 
-            {/* 内容 */}
+            {/* 内容 — 饮食：四段堆叠 */}
             {lifestyleView === 'diet' && (
-              <DietNutrientCard
-                rangeEvents={rangeEvents}
-                language={language}
-              />
+              <div className="diet-stack">
+                <DietCalendarCard rangeEvents={rangeEvents} />
+                <DietFrequencyPanel rangeEvents={rangeEvents} />
+                <DietScatterChart rangeEvents={rangeEvents} />
+                <RecipeSummary rangeEvents={rangeEvents} language={language} />
+                <DietTagTrendChart rangeEvents={rangeEvents} />
+              </div>
             )}
             {lifestyleView === 'outfit' && (
               <OutfitCard
@@ -442,6 +449,13 @@ const STATS_PAGE_CSS = `
   color: var(--heatmap-ink-1);
   background: var(--heatmap-bg);
   font-weight: 600;
+}
+
+/* ── Diet stack ────────────────────────── */
+.diet-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
 }
 
 /* ── Misc ──────────────────────────────── */

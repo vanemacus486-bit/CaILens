@@ -388,10 +388,7 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
                     {todo.title}
                   </div>
 
-                  {/* 期限 */}
-                  {todo.dueDate && (
-                    <DueDateBadge dueDate={todo.dueDate} />
-                  )}
+
 
                   {/* hover 时出现的快速完成按钮 */}
                   {onComplete && !isCompleting && (
@@ -416,37 +413,4 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
   )
 }
 
-// ── 期限徽标 ──────────────────────────────────────────────
 
-function DueDateBadge({ dueDate }: { dueDate: number }) {
-  const now = Date.now()
-  const todayStart = new Date(now).setHours(0, 0, 0, 0)
-  const diffDays = Math.round((dueDate - todayStart) / 86_400_000)
-
-  let label: string
-  let isOverdue = false
-
-  if (diffDays < 0) {
-    label = `逾期${Math.abs(diffDays)}天`
-    isOverdue = true
-  } else if (diffDays === 0) {
-    label = '今天'
-  } else if (diffDays === 1) {
-    label = '明天'
-  } else {
-    const d = new Date(dueDate)
-    label = `${d.getMonth() + 1}/${d.getDate()}`
-  }
-
-  return (
-    <span
-      className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-mono leading-none ${
-        isOverdue
-          ? 'bg-[#B53535]/10 text-[#B53535]'
-          : 'bg-surface-sunken text-text-tertiary'
-      }`}
-    >
-      {label}
-    </span>
-  )
-}
