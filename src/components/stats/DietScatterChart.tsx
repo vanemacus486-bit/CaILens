@@ -26,13 +26,16 @@ type ViewMode = 'month' | 'quarter' | 'year'
 
 interface MealPoint {
   day: number
-  dayOfYear: number
   time: number   // hour of day (0-24)
   mealOrder: MealOrder
   title: string
   foodTags: string
   startTime: number
 }
+
+// ── 餐次常量 ────────────────────────────────────────────────
+
+const MEAL_ORDERS: MealOrder[] = ['breakfast', 'lunch', 'dinner', 'night_snack']
 
 // ── 餐次颜色 ────────────────────────────────────────────────
 
@@ -143,7 +146,6 @@ export function DietScatterChart({ rangeEvents }: Props) {
 
       result.push({
         day,
-        dayOfYear: dayOfYear(e.startTime, year),
         time: hourDecimal(e.startTime),
         mealOrder: data.mealOrder,
         title: e.title || '吃饭',
@@ -155,10 +157,13 @@ export function DietScatterChart({ rangeEvents }: Props) {
   }, [mealEvents, viewWindow, viewMode, anchorDate])
 
   /* ── Step 4: 按餐次分组（Recharts Scatter 需要分离 series）─ */
-  const breakfastPoints = useMemo(() => points.filter((p) => p.mealOrder === 'breakfast'), [points])
-  const lunchPoints = useMemo(() => points.filter((p) => p.mealOrder === 'lunch'), [points])
-  const dinnerPoints = useMemo(() => points.filter((p) => p.mealOrder === 'dinner'), [points])
-  const nightSnackPoints = useMemo(() => points.filter((p) => p.mealOrder === 'night_snack'), [points])
+  const pointsByMeal = useMemo(() => {
+    const grouped: Record<MealOrder, MealPoint[]> = { breakfast: [], lunch: [], dinner: [], night_snack: [] }
+    for (const p of points) {
+      grouped[p.mealOrder].push(p)
+    }
+    return grouped
+  }, [points])
 
   /* ── Step 5: X 轴刻度 ───────────────────────── */
   const xTicks = useMemo(() => {
@@ -288,6 +293,7 @@ export function DietScatterChart({ rangeEvents }: Props) {
                 />
 
                 <YAxis
+                  dataKey="time"
                   domain={[0, 24]}
                   reversed={true}
                   tickFormatter={(v: number) => fmtHour(v)}
@@ -325,45 +331,23 @@ export function DietScatterChart({ rangeEvents }: Props) {
                   }}
                 />
 
-                {/* 早餐 */}
-                <Scatter
-                  data={breakfastPoints}
-                  fill={MEAL_ORDER_COLORS.breakfast}
-                  name="breakfast"
-                  shape="circle"
-                  legendType="circle"
-                />
-                {/* 午餐 */}
-                <Scatter
-                  data={lunchPoints}
-                  fill={MEAL_ORDER_COLORS.lunch}
-                  name="lunch"
-                  shape="circle"
-                  legendType="circle"
-                />
-                {/* 晚餐 */}
-                <Scatter
-                  data={dinnerPoints}
-                  fill={MEAL_ORDER_COLORS.dinner}
-                  name="dinner"
-                  shape="circle"
-                  legendType="circle"
-                />
-                {/* 宵夜 */}
-                <Scatter
-                  data={nightSnackPoints}
-                  fill={MEAL_ORDER_COLORS.night_snack}
-                  name="night_snack"
-                  shape="circle"
-                  legendType="circle"
-                />
+                {MEAL_ORDERS.map((mo) => (
+                  <Scatter
+                    key={mo}
+                    data={pointsByMeal[mo]}
+                    fill={MEAL_ORDER_COLORS[mo]}
+                    name={mo}
+                    shape="circle"
+                    legendType="circle"
+                  />
+                ))}
               </ScatterChart>
             </ResponsiveContainer>
           </div>
 
           {/* ── Legend ──────────────────────────── */}
           <div className="dsc-legend">
-            {(['breakfast', 'lunch', 'dinner', 'night_snack'] as MealOrder[]).map((mo) => (
+            {MEAL_ORDERS.map((mo) => (
               <span key={mo} className="dsc-legend-item">
                 <span
                   className="dsc-legend-dot"

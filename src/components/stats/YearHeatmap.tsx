@@ -855,14 +855,14 @@ const HEATMAP_CSS = `
 
 /* ── Grid scroll wrapper ──────────────────── */
 .heatmap-grid-scroll {
-  overflow-x: auto;
+  overflow-x: hidden;
   padding-bottom: 8px;
   margin-top: 28px;
 }
 .heatmap-grid {
   display: grid;
   gap: 4px;
-  min-width: fit-content;
+  width: 100%;
 }
 
 /* ── Month labels ─────────────────────────── */
