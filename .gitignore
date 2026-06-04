@@ -30,3 +30,6 @@ android/
 .reasonix/
 release/
 graphify-out/
+# Codegraph cache
+.codegraph/
+

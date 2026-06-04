@@ -62,7 +62,6 @@ export function TopNavBar() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const language = useAppSettingsStore((s) => s.settings.language)
-  const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
   const isMobile = useIsMobile()
 
   const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
@@ -225,7 +224,7 @@ export function TopNavBar() {
 
       {/* ── 右：设置 ── */}
       <button
-        onClick={() => setSettingsDrawerOpen(true)}
+        onClick={() => navigate('/settings')}
         className="w-8 h-8 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-200 cursor-pointer flex-shrink-0"
         aria-label="Settings"
       >

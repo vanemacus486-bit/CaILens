@@ -14,9 +14,7 @@ import { fireAndForget } from '@/lib/fireAndForget'
 import { formatISODate, parseISODate } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
-import { useProfileStore } from '@/stores/profileStore'
 import { useDailyContextStore } from '@/stores/dailyContextStore'
-import { useBodyMetricsStore } from '@/stores/bodyMetricsStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { getDataMaturity } from '@/domain/maturity'
 import type { Granularity } from '@/hooks/useStatsAggregation'
@@ -24,7 +22,6 @@ import { useStatsAggregation, useTitleStatsAggregation } from '@/hooks/useStatsA
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
-import { SteadyMetricsPanel } from '@/components/stats/SteadyMetricsPanel'
 import { DietCalendarCard } from '@/components/stats/DietCalendarCard'
 import { DietFrequencyPanel } from '@/components/stats/DietFrequencyPanel'
 import { DietScatterChart } from '@/components/stats/DietScatterChart'
@@ -32,10 +29,7 @@ import { DietTagTrendChart } from '@/components/stats/DietTagTrendChart'
 import { RecipeSummary } from '@/components/stats/RecipeSummary'
 import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneCard } from '@/components/stats/HygieneCard'
-import { LeisureCard } from '@/components/stats/LeisureCard'
-import { BodyMetricsPanel } from '@/components/stats/BodyMetricsPanel'
 
-import { NormalizePanel } from '@/features/normalize/NormalizePanel'
 import {
   EasternStatsShell,
   STATS_TABS,
@@ -64,8 +58,8 @@ function shiftAnchor(anchor: Date, period: Granularity, dir: -1 | 1): Date {
 
 // ── 常量 ──────────────────────────────────────────────────
 
-const ROUTINE_VIEWS: RoutineViewMode[] = ['trend', 'heatmap', 'sleep', 'steady']
-const LIFESTYLE_VIEWS: LifestyleViewMode[] = ['diet', 'outfit', 'hygiene', 'leisure']
+const ROUTINE_VIEWS: RoutineViewMode[] = ['trend', 'heatmap', 'sleep']
+const LIFESTYLE_VIEWS: LifestyleViewMode[] = ['diet', 'outfit', 'hygiene']
 
 // ── 主组件 ────────────────────────────────────────────────
 
@@ -76,21 +70,14 @@ export function StatsPage() {
   const isLoading              = useEventStore((s) => s.isLoading)
   const loadError              = useEventStore((s) => s.loadError)
   const categories             = useCategoryStore((s) => s.categories)
-  const profile                = useProfileStore((s) => s.profile)
-  const loadProfile            = useProfileStore((s) => s.loadProfile)
   const language               = useAppSettingsStore((s) => s.settings.language)
 
   // Lifestyle data
   const outfits       = useDailyContextStore((s) => s.outfits)
   const hygieneRecords = useDailyContextStore((s) => s.hygieneRecords)
-  const leisureRecords = useDailyContextStore((s) => s.leisureRecords)
   const loadOutfits   = useDailyContextStore((s) => s.loadOutfits)
   const loadHygiene   = useDailyContextStore((s) => s.loadHygiene)
-  const loadLeisure   = useDailyContextStore((s) => s.loadLeisure)
   const loadRecentHygiene = useDailyContextStore((s) => s.loadRecentHygiene)
-
-  const bodyRecords   = useBodyMetricsStore((s) => s.records)
-  const loadBodyRecords = useBodyMetricsStore((s) => s.loadRecent)
 
   // ── Tab & view state ─────────────────────────────────────
 
@@ -117,12 +104,7 @@ export function StatsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Profile (for body metrics height reference)
-  useEffect(() => {
-    if (!useProfileStore.getState().isLoaded) {
-      fireAndForget(loadProfile(), 'load profile')
-    }
-  }, [loadProfile])
+
 
   // Lifestyle data (load when tab is lifestyle)
   useEffect(() => {
@@ -132,15 +114,8 @@ export function StatsPage() {
     const start = formatISODate(addDays(now, -60))
     fireAndForget(loadOutfits(start, end), 'load outfits')
     fireAndForget(loadHygiene(start, end), 'load hygiene')
-    fireAndForget(loadLeisure(start, end), 'load leisure')
     fireAndForget(loadRecentHygiene(30), 'load recent hygiene')
-  }, [tab, loadOutfits, loadHygiene, loadLeisure, loadRecentHygiene])
-
-  // Body metrics data
-  useEffect(() => {
-    if (tab !== 'body') return
-    fireAndForget(loadBodyRecords(90), 'load body records')
-  }, [tab, loadBodyRecords])
+  }, [tab, loadOutfits, loadHygiene, loadRecentHygiene])
 
   // ── Tab title ────────────────────────────────────────────
 
@@ -293,11 +268,7 @@ export function StatsPage() {
                 rangeEvents={rangeEvents}
               />
             )}
-            {routineView === 'steady' && (
-              <SteadyMetricsPanel
-                rangeEvents={rangeEvents}
-              />
-            )}
+
           </div>
         )
       }
@@ -311,8 +282,7 @@ export function StatsPage() {
           id: v,
           label: v === 'diet'    ? '饮食'
                : v === 'outfit'  ? '穿搭'
-               : v === 'hygiene' ? '卫生'
-               :                   '娱乐',
+               :                   '卫生',
         }))
 
         return (
@@ -351,33 +321,12 @@ export function StatsPage() {
                 records={hygieneRecords}
               />
             )}
-            {lifestyleView === 'leisure' && (
-              <LeisureCard
-                records={leisureRecords}
-              />
-            )}
+
           </div>
         )
       }
 
-      /* ════════════════════════════════════════════
-         身体指标 Tab
-         ════════════════════════════════════════════ */
-      case 'body': {
-        return (
-          <BodyMetricsPanel
-            records={bodyRecords}
-            profile={profile}
-          />
-        )
-      }
 
-      /* ════════════════════════════════════════════
-         命名整理 Tab
-         ════════════════════════════════════════════ */
-      case 'normalize': {
-        return <NormalizePanel />
-      }
 
       default:
         return null

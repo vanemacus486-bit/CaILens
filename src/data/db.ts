@@ -25,8 +25,6 @@ export class CailensDB extends Dexie {
   sleepRecords!:    Table<import('@/domain/event').SleepRecord, string>
   outfitLogs!:      Table<import('@/domain/dailyContext').DailyOutfit, string>
   hygieneLogs!:     Table<import('@/domain/dailyContext').DailyHygiene, string>
-  leisureLogs!:     Table<import('@/domain/dailyContext').DailyLeisure, string>
-  bodyMetricsRecords!: Table<import('@/domain/dailyContext').BodyMetricsRecord, string>
   todos!: Table<Todo, string>
 
   constructor(name = 'cailens') {
@@ -111,8 +109,6 @@ export class CailensDB extends Dexie {
       profiles: 'id',
       outfitLogs: 'id, date',
       hygieneLogs: 'id, date',
-      leisureLogs: 'id, date',
-      bodyMetricsRecords: 'id, date',
     })
 
     // v19：新增 todos 表
@@ -126,8 +122,6 @@ export class CailensDB extends Dexie {
       profiles: 'id',
       outfitLogs: 'id, date',
       hygieneLogs: 'id, date',
-      leisureLogs: 'id, date',
-      bodyMetricsRecords: 'id, date',
       todos: 'id, status, dueDate, sortOrder',
     })
 
@@ -142,8 +136,6 @@ export class CailensDB extends Dexie {
       profiles: 'id',
       outfitLogs: 'id, date',
       hygieneLogs: 'id, date',
-      leisureLogs: 'id, date',
-      bodyMetricsRecords: 'id, date',
       todos: 'id, status, dueDate, sortOrder, projectId',
     }).upgrade(upgradeV21)
 
@@ -158,8 +150,6 @@ export class CailensDB extends Dexie {
       profiles: 'id',
       outfitLogs: 'id, date',
       hygieneLogs: 'id, date',
-      leisureLogs: 'id, date',
-      bodyMetricsRecords: 'id, date',
       todos: 'id, status, dueDate, sortOrder, projectId, categoryId',
     })
 

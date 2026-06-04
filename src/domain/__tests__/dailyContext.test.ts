@@ -2,7 +2,7 @@
  * # dailyContext 纯函数测试
  *
  * 覆盖：aggregateNutrientStatus, computeHygieneScore,
- *       computeHygieneBaseline, computeBMI
+ *       computeHygieneBaseline
  */
 
 import { describe, it, expect } from 'vitest'
@@ -10,7 +10,6 @@ import {
   aggregateNutrientStatus,
   computeHygieneScore,
   computeHygieneBaseline,
-  computeBMI,
   HYGIENE_ACTIVITY_SCORES,
   HYGIENE_MAX_DAILY_SCORE,
   SUGAR_DAILY_LIMIT,
@@ -141,26 +140,5 @@ describe('computeHygieneBaseline', () => {
     const baseline = computeHygieneBaseline(history, 2) // last 2
     const avg = (10 + 10) / 2
     expect(baseline).toBeCloseTo(Math.max(0, avg - 5), 1)
-  })
-})
-
-// ── computeBMI ────────────────────────────────────────────
-
-describe('computeBMI', () => {
-  it('computes correct BMI', () => {
-    const bmi = computeBMI(70, 175)
-    expect(bmi).toBeCloseTo(22.9, 1) // 70 / (1.75^2) = 22.86
-  })
-
-  it('returns 0 for invalid input', () => {
-    expect(computeBMI(0, 175)).toBe(0)
-    expect(computeBMI(70, 0)).toBe(0)
-    expect(computeBMI(-1, 175)).toBe(0)
-  })
-
-  it('rounds to 1 decimal place', () => {
-    const bmi = computeBMI(72, 168)
-    const expected = Math.round((72 / (1.68 * 1.68)) * 10) / 10
-    expect(bmi).toBe(expected)
   })
 })

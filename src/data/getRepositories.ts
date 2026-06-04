@@ -6,7 +6,6 @@ import { ProjectRepository } from './projectRepository'
 import { InspirationRepository } from './inspirationRepository'
 import { ProfileRepository } from './profileRepository'
 import { DailyContextRepository } from './dailyContextRepository'
-import { BodyMetricsRepository } from './bodyMetricsRepository'
 import { TodoRepository } from './todoRepository'
 import type { StorageAdapter } from './adapters/StorageAdapter'
 
@@ -18,7 +17,6 @@ let _projectRepo: ProjectRepository
 let _inspirationRepo: InspirationRepository
 let _profileRepo: ProfileRepository
 let _dailyContextRepo: DailyContextRepository
-let _bodyMetricsRepo: BodyMetricsRepository
 let _todoRepo: TodoRepository
 
 export function initRepositories(adapter: StorageAdapter) {
@@ -30,7 +28,6 @@ export function initRepositories(adapter: StorageAdapter) {
   _inspirationRepo = new InspirationRepository(adapter)
   _profileRepo = new ProfileRepository(adapter)
   _dailyContextRepo = new DailyContextRepository(adapter)
-  _bodyMetricsRepo = new BodyMetricsRepository(adapter)
   _todoRepo = new TodoRepository(adapter)
 }
 
@@ -72,11 +69,6 @@ export function getProfileRepo(): ProfileRepository {
 export function getDailyContextRepo(): DailyContextRepository {
   if (!_dailyContextRepo) throw new Error('DailyContextRepository not initialized.')
   return _dailyContextRepo
-}
-
-export function getBodyMetricsRepo(): BodyMetricsRepository {
-  if (!_bodyMetricsRepo) throw new Error('BodyMetricsRepository not initialized.')
-  return _bodyMetricsRepo
 }
 
 export function getTodoRepo(): TodoRepository {

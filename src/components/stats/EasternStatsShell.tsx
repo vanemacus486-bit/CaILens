@@ -10,13 +10,13 @@ import type { ReactNode } from 'react'
 
 
 /** 一级 Tab */
-export type StatsTab = 'routine' | 'lifestyle' | 'body' | 'normalize'
+export type StatsTab = 'routine' | 'lifestyle'
 
 /** 作息视图的子视图 */
-export type RoutineViewMode = 'trend' | 'heatmap' | 'sleep' | 'steady'
+export type RoutineViewMode = 'trend' | 'heatmap' | 'sleep'
 
 /** 日常视图的子视图 */
-export type LifestyleViewMode = 'diet' | 'outfit' | 'hygiene' | 'leisure'
+export type LifestyleViewMode = 'diet' | 'outfit' | 'hygiene'
 
 /** 兼容旧的 view mode（逐步淘汰） */
 export type StatsViewMode = RoutineViewMode
@@ -29,8 +29,6 @@ interface TabDefinition {
 export const STATS_TABS: readonly TabDefinition[] = [
   { id: 'routine',     label: '作息' },
   { id: 'lifestyle',   label: '日常' },
-  { id: 'body',        label: '身体' },
-  { id: 'normalize',   label: '命名整理' },
 ]
 
 interface Props {

@@ -9,7 +9,7 @@
  */
 
 import type { StorageAdapter } from './adapters/StorageAdapter'
-import type { DailyOutfit, DailyHygiene, DailyLeisure } from '@/domain/dailyContext'
+import type { DailyOutfit, DailyHygiene } from '@/domain/dailyContext'
 import { computeHygieneScore } from '@/domain/dailyContext'
 
 export interface Clock {
@@ -96,30 +96,6 @@ export class DailyContextRepository {
       orderBy: 'date',
       orderDir: 'desc',
       limit: limitDays,
-    })
-  }
-
-  // ── Leisure ─────────────────────────────────────────────
-
-  async getLeisureByDate(date: string): Promise<DailyLeisure[]> {
-    return this.adapter.leisureLogs.query({
-      where: { key: 'date', op: 'equals', value: date },
-    })
-  }
-
-  async saveLeisure(leisure: Omit<DailyLeisure, 'id'>): Promise<DailyLeisure> {
-    const record: DailyLeisure = { ...leisure, id: this.idGen.generate() }
-    await this.adapter.leisureLogs.put(record)
-    return record
-  }
-
-  async deleteLeisure(id: string): Promise<void> {
-    await this.adapter.leisureLogs.delete(id)
-  }
-
-  async getLeisureByDateRange(startDate: string, endDate: string): Promise<DailyLeisure[]> {
-    return this.adapter.leisureLogs.query({
-      filter: (l) => l.date >= startDate && l.date <= endDate,
     })
   }
 }

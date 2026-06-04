@@ -13,7 +13,6 @@ interface MobileMenuProps {
 
 export function MobileMenu({ open, onClose, mobileViewMode, onMobileViewModeChange }: MobileMenuProps) {
   const navigate = useNavigate()
-    const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
     return (
     <>
       {/* Overlay */}
@@ -49,7 +48,7 @@ export function MobileMenu({ open, onClose, mobileViewMode, onMobileViewModeChan
         <div className="flex-1 overflow-y-auto py-2">
           <MenuItem icon={Search} label={'搜索事件'} onClick={() => { useUIStore.getState().setCommandPaletteOpen(true); onClose() }} />
           <MenuItem icon={Calendar} label={'日视图'} onClick={() => { navigate(`/day?date=${formatISODate(new Date())}`); onClose() }} />
-          <MenuItem icon={Settings} label={'设置'} onClick={() => { setSettingsDrawerOpen(true); onClose() }} />
+          <MenuItem icon={Settings} label={'设置'} onClick={() => { navigate('/settings'); onClose() }} />
 
           <div className="h-px bg-border-subtle my-2 mx-4" />
 

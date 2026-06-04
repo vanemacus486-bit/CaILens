@@ -214,34 +214,6 @@ export function computeRunningHygieneScore(
   return timeline
 }
 
-// ── 娱乐放松 ─────────────────────────────────────────────
-
-export type RelaxType = 'screen' | 'social' | 'quiet' | 'active'
-
-export const RELAX_TYPE_LABELS: Record<RelaxType, { zh: string; en: string }> = {
-  screen: { zh: '屏幕类',  en: 'Screen' },
-  social: { zh: '社交类',  en: 'Social' },
-  quiet:  { zh: '安静类',  en: 'Quiet'  },
-  active: { zh: '运动类',  en: 'Active' },
-}
-
-export const RELAX_TYPE_ICONS: Record<RelaxType, string> = {
-  screen: '📱',
-  social: '👥',
-  quiet:  '📖',
-  active: '🏃',
-}
-
-export interface DailyLeisure {
-  id: string
-  /** 日期 YYYY-MM-DD */
-  date: string
-  /** 放松方式 */
-  relaxType: RelaxType
-  /** 持续时间（分钟） */
-  durationMinutes: number
-}
-
 // ── 聚合类型 ─────────────────────────────────────────────
 
 /** 每日上下文聚合（各子域数据汇总到一天） */
@@ -250,39 +222,4 @@ export interface DailyContextSummary {
   diet: NutrientStatus | null
   outfit: DailyOutfit | null
   hygiene: DailyHygiene | null
-  leisure: DailyLeisure[]
-}
-
-// ── 身体指标时序记录 ────────────────────────────────────
-
-/**
- * 身体指标的时序记录，不同于 Profile 的单次快照。
- */
-export interface BodyMetricsRecord {
-  id: string
-  /** 记录日期 YYYY-MM-DD */
-  date: string
-  /** 体重 kg */
-  weight: number | null
-  /** BMI（可由 height + weight 计算，也可直接录入） */
-  bmi: number | null
-  /** 体脂率 % */
-  bodyFat: number | null
-  /** 静息心率 bpm */
-  restingHR: number | null
-  /** 收缩压 mmHg */
-  bloodPressureSystolic: number | null
-  /** 舒张压 mmHg */
-  bloodPressureDiastolic: number | null
-  createdAt: number
-}
-
-/**
- * 从体重和身高计算 BMI。
- * 公式：体重(kg) / (身高(m)²)
- */
-export function computeBMI(weightKg: number, heightCm: number): number {
-  if (weightKg <= 0 || heightCm <= 0) return 0
-  const heightM = heightCm / 100
-  return Math.round((weightKg / (heightM * heightM)) * 10) / 10
 }

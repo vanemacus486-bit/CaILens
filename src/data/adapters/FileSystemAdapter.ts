@@ -5,7 +5,7 @@ import type { WeeklyEstimate } from '@/domain/estimate'
 import type { Profile } from '@/domain/profile'
 import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
-import type { DailyOutfit, DailyHygiene, DailyLeisure, BodyMetricsRecord } from '@/domain/dailyContext'
+import type { DailyOutfit, DailyHygiene } from '@/domain/dailyContext'
 import type { Todo } from '@/domain/todo'
 import type { StorageAdapter, StorageTable, QueryOptions } from './StorageAdapter'
 import {
@@ -71,8 +71,6 @@ interface MemoryIndex {
   inspirations: Map<string, InspirationLog>
   outfitLogs: Map<string, DailyOutfit>
   hygieneLogs: Map<string, DailyHygiene>
-  leisureLogs: Map<string, DailyLeisure>
-  bodyMetricsRecords: Map<string, BodyMetricsRecord>
   todos: Map<string, Todo>
 }
 
@@ -775,8 +773,6 @@ export class FileSystemAdapter implements StorageAdapter {
   inspirations: StorageTable<InspirationLog>
   outfitLogs: StorageTable<DailyOutfit>
   hygieneLogs: StorageTable<DailyHygiene>
-  leisureLogs: StorageTable<DailyLeisure>
-  bodyMetricsRecords: StorageTable<BodyMetricsRecord>
   todos: StorageTable<Todo>
 
   private index: MemoryIndex = {
@@ -793,8 +789,6 @@ export class FileSystemAdapter implements StorageAdapter {
     inspirations: new Map(),
     outfitLogs: new Map(),
     hygieneLogs: new Map(),
-    leisureLogs: new Map(),
-    bodyMetricsRecords: new Map(),
     todos: new Map(),
   }
 
@@ -813,8 +807,6 @@ export class FileSystemAdapter implements StorageAdapter {
     this.inspirations = new GenericFsTable(this.index, 'inspirations')
     this.outfitLogs = new GenericFsTable(this.index, 'outfitLogs')
     this.hygieneLogs = new GenericFsTable(this.index, 'hygieneLogs')
-    this.leisureLogs = new GenericFsTable(this.index, 'leisureLogs')
-    this.bodyMetricsRecords = new GenericFsTable(this.index, 'bodyMetricsRecords')
     this.todos = new TodosFsTable(this.index, '')
   }
 
@@ -839,8 +831,6 @@ export class FileSystemAdapter implements StorageAdapter {
     this.inspirations = new GenericFsTable(this.index, 'inspirations')
     this.outfitLogs = new GenericFsTable(this.index, 'outfitLogs')
     this.hygieneLogs = new GenericFsTable(this.index, 'hygieneLogs')
-    this.leisureLogs = new GenericFsTable(this.index, 'leisureLogs')
-    this.bodyMetricsRecords = new GenericFsTable(this.index, 'bodyMetricsRecords')
     this.todos = new TodosFsTable(this.index, this.rootPath)
   }
 

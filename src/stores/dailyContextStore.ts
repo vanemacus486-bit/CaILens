@@ -6,7 +6,7 @@
  */
 
 import { create } from 'zustand'
-import type { DailyOutfit, DailyHygiene, DailyLeisure, HygieneActivity } from '@/domain/dailyContext'
+import type { DailyOutfit, DailyHygiene, HygieneActivity } from '@/domain/dailyContext'
 import { getDailyContextRepo } from '@/data/getRepositories'
 
 interface DailyContextState {
@@ -26,13 +26,6 @@ interface DailyContextState {
   /** 获取最近 N 条卫生记录（用于基线计算） */
   recentHygiene: DailyHygiene[]
   loadRecentHygiene: (limitDays?: number) => Promise<void>
-
-  // ── 娱乐 ──
-  leisureRecords: DailyLeisure[]
-  isLoadingLeisure: boolean
-  loadLeisure: (startDate: string, endDate: string) => Promise<void>
-  saveLeisure: (leisure: Omit<DailyLeisure, 'id'>) => Promise<DailyLeisure>
-  deleteLeisure: (id: string) => Promise<void>
 }
 
 export const useDailyContextStore = create<DailyContextState>()((set, get) => ({
@@ -88,32 +81,5 @@ export const useDailyContextStore = create<DailyContextState>()((set, get) => ({
       const recent = await getDailyContextRepo().getRecentHygiene(limitDays)
       set({ recentHygiene: recent })
     } catch { /* ignore */ }
-  },
-
-  // ── Leisure ──
-  leisureRecords: [],
-  isLoadingLeisure: false,
-
-  loadLeisure: async (startDate, endDate) => {
-    set({ isLoadingLeisure: true })
-    try {
-      const records = await getDailyContextRepo().getLeisureByDateRange(startDate, endDate)
-      set({ leisureRecords: records, isLoadingLeisure: false })
-    } catch {
-      set({ isLoadingLeisure: false })
-    }
-  },
-
-  saveLeisure: async (leisure) => {
-    const saved = await getDailyContextRepo().saveLeisure(leisure)
-    const { leisureRecords } = get()
-    set({ leisureRecords: [...leisureRecords, saved] })
-    return saved
-  },
-
-  deleteLeisure: async (id) => {
-    await getDailyContextRepo().deleteLeisure(id)
-    const { leisureRecords } = get()
-    set({ leisureRecords: leisureRecords.filter((l) => l.id !== id) })
   },
 }))

@@ -56,7 +56,6 @@ interface Command {
 export function CommandPalette() {
   const navigate = useNavigate()
   const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen)
-  const setSettingsDrawerOpen = useUIStore((s) => s.setSettingsDrawerOpen)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
   const settings = useAppSettingsStore((s) => s.settings)
 
@@ -102,7 +101,7 @@ export function CommandPalette() {
       id: 'settings',
       label: '打开设置',
       shortcut: shortcutDisplay.openSettings,
-      invoke: () => { setSettingsDrawerOpen(true); close() },
+      invoke: () => { navigate('/settings'); close() },
     },
     {
       id: 'theme',
@@ -113,7 +112,7 @@ export function CommandPalette() {
         close()
       },
     },
-  ], [navigate, close, setSettingsDrawerOpen, setTheme, settings.theme, shortcutDisplay])
+  ], [navigate, close, setTheme, settings.theme, shortcutDisplay])
 
   // Filter commands based on query
   const matchedCommands = useMemo(() => {

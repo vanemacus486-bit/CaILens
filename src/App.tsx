@@ -3,7 +3,6 @@ import { HashRouter, Navigate, Route, Routes, Outlet, useLocation, useNavigate, 
 import { WeekView } from '@/features/week-view/WeekView'
 import { StatsPage } from '@/pages/StatsPage'
 import { CommandPalette } from '@/features/search/CommandPalette'
-import { SettingsDrawer } from '@/features/settings/SettingsDrawer'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { ProjectDetailPage } from '@/pages/project/ProjectDetailPage'
 
@@ -25,7 +24,6 @@ import type { ShortcutAction } from '@/domain/shortcuts'
 
 function Layout() {
   const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen)
-  const settingsDrawerOpen = useUIStore((s) => s.settingsDrawerOpen)
   const theme = useAppSettingsStore((s) => s.settings.theme)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
   const navigate = useNavigate()
@@ -92,7 +90,7 @@ function Layout() {
     goToThisWeek: () => navigate('/week'),
     goToDayView: () => navigate(`/week?view=day&date=${formatISODate(new Date())}`),
     goToStats: () => navigate('/stats'),
-    openSettings: () => useUIStore.getState().setSettingsDrawerOpen(true),
+    openSettings: () => navigate('/settings'),
     toggleTheme: () => fireAndForget(
       setTheme(theme === 'dark' ? 'light' : 'dark'),
       'toggle theme',
@@ -141,7 +139,6 @@ function Layout() {
       </main>
 
       {commandPaletteOpen && <CommandPalette />}
-      {settingsDrawerOpen && <SettingsDrawer />}
       <SnackbarHost />
     </div>
   )
