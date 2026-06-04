@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { format } from 'date-fns'
 import {
   ComposedChart,
@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import { RechartsTooltip } from './RechartsTooltip'
 import type { Category, CategoryId } from '@/domain/category'
+import type { CalendarEvent } from '@/domain/event'
 import type { DataMaturity } from '@/domain/maturity'
 import type { Granularity, Bucket } from '@/hooks/useStatsAggregation'
 
@@ -98,6 +99,11 @@ interface CategoryTrendChartProps {
   maturity: DataMaturity
   onNavigate?: (dir: -1 | 1) => void
   onPeriodChange?: (p: Granularity) => void
+  /** 事件标题集成 */
+  allEvents?: CalendarEvent[]
+  eventTitle?: string
+  eventHistory?: Bucket[]
+  onEventTitleChange?: (title: string) => void
 }
 
 export function CategoryTrendChart({
@@ -107,10 +113,51 @@ export function CategoryTrendChart({
   maturity,
   onNavigate,
   onPeriodChange,
+  allEvents = [],
+  eventTitle = '',
+  eventHistory = [],
+  onEventTitleChange,
 }: CategoryTrendChartProps) {
   const [selected, setSelected] = useState<CategoryId[]>(loadSelection)
   const [groupEnabled, setGroupEnabled] = useState(loadCoreGroup)
   const [isCompact, setIsCompact] = useState(false)
+  const [eventInput, setEventInput] = useState(eventTitle)
+  const [eventOpen, setEventOpen] = useState(false)
+  const eventRef = useRef<HTMLDivElement>(null)
+
+  // Sync eventTitle from URL
+  useEffect(() => { setEventInput(eventTitle) }, [eventTitle])
+
+  // Click outside to close event dropdown
+  useEffect(() => {
+    if (!eventOpen) return
+    const handler = (e: MouseEvent) => {
+      if (eventRef.current && !eventRef.current.contains(e.target as Node)) setEventOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [eventOpen])
+
+  // Unique event titles sorted by frequency
+  const eventSuggestions = useMemo(() => {
+    const freq = new Map<string, number>()
+    for (const e of allEvents) {
+      const t = e.title.trim()
+      if (!t) continue
+      freq.set(t, (freq.get(t) ?? 0) + 1)
+    }
+    return Array.from(freq.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([t]) => t)
+  }, [allEvents])
+
+  const filteredEvents = useMemo(() => {
+    if (!eventInput.trim()) return eventSuggestions.slice(0, 20)
+    const q = eventInput.toLowerCase()
+    return eventSuggestions
+      .filter((t) => t.toLowerCase().includes(q))
+      .slice(0, 20)
+  }, [eventSuggestions, eventInput])
 
   useEffect(() => { saveSelection(selected) }, [selected])
   useEffect(() => { saveCoreGroup(groupEnabled) }, [groupEnabled])
@@ -152,9 +199,17 @@ export function CategoryTrendChart({
   const groupDataKey = `__group__${CORE_GROUP.id}`
 
   const chartData = useMemo(() => {
+    const eventDataKey = '__event__'
+    // Build event data map
+    const eventMap = new Map<string, number>()
+    for (const b of eventHistory) {
+      eventMap.set(formatBucketLabel(b, periodType), b.total)
+    }
+
     return history.map((b) => {
+      const label = formatBucketLabel(b, periodType)
       const row: Record<string, string | number> = {
-        label: formatBucketLabel(b, periodType),
+        label,
       }
       for (const id of CATEGORY_IDS) {
         row[id] = b.byCategory[id] ?? 0
@@ -164,9 +219,12 @@ export function CategoryTrendChart({
         sum += (b.byCategory[id] as number) ?? 0
       }
       row[groupDataKey] = sum
+      if (eventTitle) {
+        row[eventDataKey] = eventMap.get(label) ?? 0
+      }
       return row
     })
-  }, [history, periodType])
+  }, [history, periodType, eventTitle, eventHistory])
 
   const dynamicMax = useMemo(() => {
     if (chartData.length === 0) return 80
@@ -180,11 +238,15 @@ export function CategoryTrendChart({
         const v = (row[groupDataKey] as number) || 0
         if (v > maxVal) maxVal = v
       }
+      if (eventTitle) {
+        const v = (row['__event__'] as number) || 0
+        if (v > maxVal) maxVal = v
+      }
     }
     if (maxVal === 0) return 80
     const scaled = maxVal * 1.15
     return Math.ceil(scaled / 10) * 10
-  }, [chartData, selected, groupEnabled])
+  }, [chartData, selected, groupEnabled, eventTitle])
 
   const budgetLine = useMemo(() => {
     if (categories.length === 0) return 0
@@ -363,6 +425,78 @@ export function CategoryTrendChart({
             {CORE_GROUP.nameZh}
           </button>
         </div>
+
+        {/* ── Event title selector ──────────────────── */}
+        {onEventTitleChange && (
+          <div ref={eventRef} className="trend-event-selector" style={{ position: 'relative', marginTop: 12, width: 260 }}>
+            <input
+              type="text"
+              value={eventInput}
+              onChange={(e) => { setEventInput(e.target.value); setEventOpen(true) }}
+              onFocus={() => setEventOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && filteredEvents.length > 0) {
+                  onEventTitleChange(filteredEvents[0])
+                  setEventOpen(false)
+                }
+                if (e.key === 'Escape') setEventOpen(false)
+              }}
+              placeholder={'🔍 搜索事件标题叠加趋势…'}
+              style={{
+                width: '100%',
+                padding: '5px 10px',
+                fontSize: 12,
+                fontFamily: "'Noto Sans SC', sans-serif",
+                borderRadius: 6,
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--surface-raised)',
+                color: 'var(--text-primary)',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            {eventTitle && (
+              <button
+                onClick={() => { onEventTitleChange(''); setEventInput('') }}
+                style={{
+                  position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', fontSize: 14,
+                  color: 'var(--text-tertiary)', padding: '2px 6px',
+                }}
+                title={'清除'}
+              >×</button>
+            )}
+            {eventOpen && filteredEvents.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                  maxHeight: 200, overflowY: 'auto',
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border-default)', borderRadius: 6,
+                  marginTop: 2, boxShadow: 'var(--shadow-dialog)',
+                }}
+              >
+                {filteredEvents.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => { onEventTitleChange(t); setEventInput(t); setEventOpen(false) }}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left',
+                      padding: '5px 10px', fontSize: 12,
+                      fontFamily: "'Noto Sans SC', sans-serif",
+                      color: 'var(--text-primary)', background: 'transparent',
+                      border: 'none', cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-sunken)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Chart ───────────────────────────────────────── */}
@@ -439,6 +573,21 @@ export function CategoryTrendChart({
                 )
               })}
 
+            {/* ── Event title overlay line ─────────── */}
+            {eventTitle && (
+              <Line
+                type="monotone"
+                dataKey="__event__"
+                name={eventTitle}
+                stroke="var(--accent)"
+                strokeWidth={3}
+                strokeDasharray="6 3"
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 0, fill: 'var(--accent)' }}
+                connectNulls={false}
+              />
+            )}
+
             {/* Budget reference line */}
             {budgetLine > 0 && (
               <ReferenceLine
@@ -480,6 +629,12 @@ export function CategoryTrendChart({
           <span className="trend-legend-item">
             <span className="trend-legend-dash" style={{ borderColor: 'var(--color-text-warning)' }} />
             {'预算'}
+          </span>
+        )}
+        {eventTitle && (
+          <span className="trend-legend-item">
+            <span className="trend-legend-line" style={{ borderColor: 'var(--accent)', borderTopWidth: 3, borderTopStyle: 'dashed' }} />
+            {eventTitle.length > 14 ? eventTitle.slice(0, 14) + '…' : eventTitle}
           </span>
         )}
         <span className="trend-legend-note">
@@ -583,6 +738,35 @@ export function CategoryTrendChart({
             </svg>
           </div>
           <p className="trend-insight-text">{insight}</p>
+        </div>
+      )}
+
+      {/* ── Event insight bar ────────────────────────────── */}
+      {eventTitle && eventHistory.length > 0 && (
+        <div className="trend-insight" style={{ marginTop: 16 }}>
+          <div className="trend-insight-icon" style={{ color: 'var(--accent)' }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="6.5" stroke="currentColor" strokeWidth="0.8" />
+              <path d="M7 4V8M7 9.5V10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div className="trend-insight-text" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+            <span>事件：<strong>{eventTitle}</strong></span>
+            {(() => {
+              const last = eventHistory[eventHistory.length - 1]
+              const allNonZero = eventHistory.filter((b) => b.total > 0)
+              const avg = allNonZero.length > 0
+                ? allNonZero.reduce((s, b) => s + b.total, 0) / allNonZero.length
+                : 0
+              return (
+                <>
+                  <span>本期 <strong className="hm-dot" style={{ color: 'var(--accent)' }}>{last.total.toFixed(1)}h</strong></span>
+                  <span>平均 <strong>{avg.toFixed(1)}h</strong></span>
+                  <span>出现 <strong>{allNonZero.length}/{eventHistory.length}</strong> 个周期</span>
+                </>
+              )
+            })()}
+          </div>
         </div>
       )}
 

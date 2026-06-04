@@ -11,13 +11,17 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ListTodo } from 'lucide-react'
+import { fireAndForget } from '@/lib/fireAndForget'
 import { usePageScrollRestore } from '@/hooks/usePageScrollRestore'
 import { useTodoStore } from '@/stores/todoStore'
 import { useProjectStore } from '@/stores/projectStore'
-import { groupTodosByWeekDays, groupTodosByPriority } from '@/domain/todo'
+import { useEventStore } from '@/stores/eventStore'
+import { useCategoryStore } from '@/stores/categoryStore'
+import { groupTodosByPriorityWithDoneFocus, getTodayFocusStats, getTodayStart, isTodayFocus, getWeekCompletionStats, calcCompletionStreak } from '@/domain/todo'
 import type { CategoryId } from '@/domain/category'
 import type { TodoPriority } from '@/domain/todo'
-import { DayCard } from './DayCard'
+import { computeWeekTimeline } from '@/domain/log'
+import { DayTimelineCard } from '@/features/week-view/DayTimelineCard'
 import { WeekNavigation } from './WeekNavigation'
 import { PriorityMatrix } from './PriorityMatrix'
 import { TodoDotDialog } from './TodoDotDialog'
@@ -78,6 +82,10 @@ export function ActionPage() {
     reorderTodoArbitrary,
   } = useProjectStore()
 
+  const rangeEvents = useEventStore((s) => s.rangeEvents)
+  const loadRange = useEventStore((s) => s.loadRange)
+  const categories = useCategoryStore((s) => s.categories)
+
   // ── 数据加载 ──
   useEffect(() => {
     if (!todosLoaded) loadTodos()
@@ -108,14 +116,46 @@ export function ActionPage() {
   const handleNextWeek = useCallback(() => setWeekOffset((p) => p + 1), [])
   const handleGoToday = useCallback(() => setWeekOffset(0), [])
 
-  // ── 周数据（日志 Tab 用） ──
-  const weekData = useMemo(
-    () => groupTodosByWeekDays(todos, weekStart),
-    [todos, weekStart],
-  )
+  // ── 加载日志 Tab 所需的事件 ──
+  useEffect(() => {
+    const weekEnd = weekStart + 7 * 86_400_000
+    fireAndForget(loadRange(weekStart, weekEnd), 'load log week events')
+  }, [weekStart, loadRange])
+
+  // ── 周数据（日志 Tab 用）：聚合事件 + 已完成待办 ──
+  const weekTimeline = useMemo(() => {
+    const doneTodos = todos.filter((t) => t.status === 'done')
+    return computeWeekTimeline(rangeEvents, doneTodos, weekStart)
+  }, [rangeEvents, todos, weekStart])
+
+  // ── 本周完成总数（用于空态判断） ──
+  const weekDoneCount = useMemo(() => {
+    let count = 0
+    for (const day of weekTimeline.days) {
+      count += day.doneTodos.length
+    }
+    return count
+  }, [weekTimeline])
+
+  // 日志 Tab: 周完成统计（圆点阵用，含每日时数）
+  const weekCompletionStats = useMemo(() => {
+    const stats = getWeekCompletionStats(
+      todos.filter((t) => t.status === 'done'),
+      weekStart,
+    )
+    // Augment with totalMs from weekTimeline
+    const enhanced = stats.map((stat, i) => ({
+      ...stat,
+      totalMs: weekTimeline.days[i]?.totalMs ?? 0,
+    }))
+    return enhanced
+  }, [todos, weekStart, weekTimeline])
 
   // ── 本地状态 ──
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null)
+
+  // 连续聚焦天数
+  const streakDays = useMemo(() => calcCompletionStreak(todos), [todos])
 
   // 右键菜单：位置 + 格子上下文
   const [contextMenu, setContextMenu] = useState<{
@@ -132,7 +172,11 @@ export function ActionPage() {
   }
 
   // ── 优先级矩阵数据 ──
-  const grouped = groupTodosByPriority(todos, projectCategoryMap, CATEGORY_ORDER)
+  const grouped = groupTodosByPriorityWithDoneFocus(todos, projectCategoryMap, CATEGORY_ORDER)
+
+  // ── 今日聚焦数据 ──
+  const focusStats = getTodayFocusStats(todos)
+  const focusIds = new Set(focusStats.focused.map((t) => t.id))
 
   // ── 右键菜单处理器 ──
   const handleCellContextMenu = useCallback((
@@ -181,10 +225,6 @@ export function ActionPage() {
   }, [todos, reorderTodo, reorderTodoArbitrary])
 
   // ── 跨日拖拽移动（日志 Tab 用） ──
-  const handleDropOnDay = useCallback((todoId: string, targetDateTs: number) => {
-    updateTodo({ id: todoId, dueDate: targetDateTs })
-  }, [updateTodo])
-
   // ── 跨格拖拽移动 ──
   const handleMoveToCell = useCallback((
     sourceId: string,
@@ -198,6 +238,26 @@ export function ActionPage() {
       categoryId: catId as CategoryId,
       priority: priId as 'high' | 'medium' | 'low',
     })
+  }, [todos, updateTodo])
+
+  // ── 聚焦切换：设置/清除 today dueDate ──
+  const handleToggleFocus = useCallback((todoId: string, isFocus: boolean) => {
+    const todo = todos.find((t) => t.id === todoId)
+    if (!todo) return
+    if (isFocus) {
+      updateTodo({ id: todoId, dueDate: getTodayStart() })
+    } else {
+      updateTodo({ id: todoId, dueDate: null })
+    }
+  }, [todos, updateTodo])
+
+  /** 清除所有未完成的今日聚焦 */
+  const handleClearTodayFocus = useCallback(() => {
+    for (const t of todos) {
+      if (isTodayFocus(t) && t.status !== 'done') {
+        updateTodo({ id: t.id, dueDate: null })
+      }
+    }
   }, [todos, updateTodo])
 
   // ── 统计 ──
@@ -220,14 +280,6 @@ export function ActionPage() {
   // Autocomplete: unique existing titles
   const existingTitles = Array.from(new Set(todos.map((t) => t.title).filter(Boolean)))
 
-  // 日志 Tab 周统计（该周完成的项数）
-  const weekDoneCount = useMemo(() => {
-    let count = 0
-    for (const day of weekData.days) {
-      count += day.doneTodos.length
-    }
-    return count
-  }, [weekData])
 
   return (
     <div className="flex-1 h-full overflow-hidden flex flex-col">
@@ -302,8 +354,37 @@ export function ActionPage() {
                   className="space-y-6 min-w-0 flex-1 xl:h-full flex flex-col"
                   onContextMenu={handleContextMenu}
                 >
+                  {/* ── 今日聚焦状态条 ── */}
+                  {focusStats.total > 0 && (
+                    <div className="flex items-center justify-between px-3 py-1.5 rounded-lg border border-border-subtle/40 bg-surface-sunken/30">
+                      <div className="flex items-center gap-2">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        </svg>
+                        {focusStats.completed === focusStats.total ? (
+                          <span className="font-sans text-xs text-accent">
+                            {'✓ 今日采摘完成'}
+                          </span>
+                        ) : (
+                          <span className="font-sans text-xs text-text-secondary">
+                            {'今日采摘'}<span className="font-mono ml-1 text-text-tertiary">{focusStats.completed}/{focusStats.total}</span>
+                          </span>
+                        )}
+                      </div>
+                      {focusStats.completed < focusStats.total && (
+                        <button
+                          onClick={handleClearTodayFocus}
+                          className="font-sans text-[10px] text-text-quaternary hover:text-text-secondary transition-colors cursor-pointer border-none bg-transparent px-2 py-0.5 rounded hover:bg-surface-sunken"
+                          title="清除所有今日聚焦"
+                        >
+                          {'清空'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* ── 优先级矩阵 ── */}
-                  {hasActiveTodos && (
+                  {(hasActiveTodos || focusStats.total > 0) && (
                     <PriorityMatrix
                       grouped={grouped}
                       selectedId={selectedTodoId}
@@ -312,6 +393,8 @@ export function ActionPage() {
                       onMoveToCell={handleMoveToCell}
                       onComplete={toggleComplete}
                       onCellContextMenu={handleCellContextMenu}
+                      focusIds={focusIds}
+                      onToggleFocus={handleToggleFocus}
                     />
                   )}
 
@@ -331,7 +414,7 @@ export function ActionPage() {
                   )}
 
                   {/* ── 全部完成态 ── */}
-                  {!hasActiveTodos && todos.length > 0 && (
+                  {!hasActiveTodos && todos.length > 0 && focusStats.total === 0 && (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mb-3">
                         <CheckIcon />
@@ -359,13 +442,13 @@ export function ActionPage() {
             )}
 
             {/* ════════════════════════════════════════════
-                Tab: 日志 — 七日卡片墙
+                Tab: 日志 — 纵向流式时间线
                 ════════════════════════════════════════════ */}
             {tab === 'log' && (
-              <div className="flex flex-col gap-4 flex-1">
+              <div className="flex flex-col gap-3 flex-1">
                 {/* ── 周导航 ── */}
                 <WeekNavigation
-                  weekLabel={weekData.weekLabel}
+                  weekLabel={weekTimeline.weekLabel}
                   doneCount={weekDoneCount}
                   totalCount={weekDoneCount}
                   showToday={!isCurrentWeek}
@@ -373,37 +456,45 @@ export function ActionPage() {
                   onNextWeek={handleNextWeek}
                   onGoToday={handleGoToday}
                   hideProgress
+                  weekTotalHours={weekTimeline.weekTotalMs}
+                  completionStats={weekCompletionStats}
                 />
 
-                {/* ── 卡片墙：响应式 1→2→4→7 列 ── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 min-h-0">
-                  {weekData.days.map((day) => (
-                    <DayCard
+                {/* ── 连续聚焦日 ── */}
+                {streakDays > 0 && (
+                  <div className="flex items-center gap-1.5 px-1 -mt-1">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" strokeWidth="1.5" className="opacity-50">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                    <span className="font-sans text-[10px] text-text-quaternary">
+                      {'连续聚焦 '}<span className="font-medium text-text-tertiary">{streakDays}</span>{' 天'}
+                    </span>
+                  </div>
+                )}
+
+                {/* ── 时间线列表：纵向流式 ── */}
+                <div className="flex flex-col gap-3 min-h-0">
+                  {weekTimeline.days.map((day) => (
+                    <DayTimelineCard
                       key={day.dateTs}
-                      dayGroup={day}
+                      day={day}
+                      categories={categories}
                       isToday={isToday(day.dateTs)}
-                      selectedId={selectedTodoId}
-                      onCardClick={handleCardClick}
-                      onComplete={toggleComplete}
-                      onUndo={toggleComplete}
-                      onDropOnDay={handleDropOnDay}
-                      defaultDoneOpen
-                      hideActive
                     />
                   ))}
                 </div>
 
-                {/* ── 空态 ── */}
-                {weekDoneCount === 0 && (
+                {/* ── 空态（整周无任何记录） ── */}
+                {weekTimeline.weekTotalMs === 0 && weekDoneCount === 0 && (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
                     <div className="w-12 h-12 rounded-full bg-surface-sunken flex items-center justify-center mb-4">
                       <ListTodo size={24} strokeWidth={1.5} className="text-text-quaternary" />
                     </div>
                     <p className="font-sans text-sm text-text-tertiary mb-1">
-                      {'该周暂无完成记录'}
+                      {'该周暂无记录'}
                     </p>
                     <p className="font-sans text-[11px] text-text-quaternary">
-                      {'完成待办后，会在此按日归档'}
+                      {'在日历页面记录事件或在矩阵页面创建待办后，会在此按日呈现'}
                     </p>
                   </div>
                 )}

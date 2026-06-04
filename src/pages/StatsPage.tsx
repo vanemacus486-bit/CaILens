@@ -20,7 +20,7 @@ import { useBodyMetricsStore } from '@/stores/bodyMetricsStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { getDataMaturity } from '@/domain/maturity'
 import type { Granularity } from '@/hooks/useStatsAggregation'
-import { useStatsAggregation } from '@/hooks/useStatsAggregation'
+import { useStatsAggregation, useTitleStatsAggregation } from '@/hooks/useStatsAggregation'
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
@@ -99,6 +99,7 @@ export function StatsPage() {
   const lifestyleView = (searchParams.get('lifestyle') as LifestyleViewMode | null) ?? 'diet'
   const period = (searchParams.get('period') as Granularity | null) ?? 'week'
   const dateStr = searchParams.get('date') ?? formatISODate(new Date())
+  const eventTitle = searchParams.get('eventTitle') ?? ''
 
   const date = useMemo(() => {
     const d = parseISODate(dateStr)
@@ -160,6 +161,14 @@ export function StatsPage() {
 
   const maturity = useMemo(() => getDataMaturity(rangeEvents), [rangeEvents])
 
+  // ── Event title stats aggregation ─────────────────────────
+  const { history: eventHistory } = useTitleStatsAggregation({
+    granularity: period,
+    anchorDate: anchor,
+    lookbackBuckets: lookback,
+    titleFilter: eventTitle,
+  })
+
   // ── URL helpers ──────────────────────────────────────────
 
   const updateParams = (upd: Record<string, string | undefined>) => {
@@ -185,6 +194,10 @@ export function StatsPage() {
 
   const setPeriod = (p: Granularity) => {
     updateParams({ period: p === 'week' ? undefined : p })
+  }
+
+  const setEventTitle = (title: string) => {
+    updateParams({ eventTitle: title || undefined })
   }
 
   const navigateRoutine = (dir: -1 | 1) => {
@@ -260,6 +273,10 @@ export function StatsPage() {
                 maturity={maturity}
                 onNavigate={navigateRoutine}
                 onPeriodChange={setPeriod}
+                allEvents={rangeEvents}
+                eventTitle={eventTitle}
+                eventHistory={eventHistory}
+                onEventTitleChange={setEventTitle}
               />
             )}
             {routineView === 'heatmap' && (
@@ -267,6 +284,8 @@ export function StatsPage() {
                 rangeEvents={rangeEvents}
                 categories={categories}
                 language={language}
+                eventTitle={eventTitle}
+                onEventTitleChange={setEventTitle}
               />
             )}
             {routineView === 'sleep' && (

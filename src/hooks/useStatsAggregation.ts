@@ -124,8 +124,13 @@ export function computeBucket(
   events: readonly CalendarEvent[],
   rangeStart: number,
   rangeEnd: number,
+  titleFilter?: string,
 ): Bucket {
-  const clipped = events
+  const rawFiltered = titleFilter
+    ? events.filter((e) => e.title.toLowerCase() === titleFilter.toLowerCase())
+    : events
+
+  const clipped = rawFiltered
     .map((e) => clipEvent(e, rangeStart, rangeEnd))
     .filter((e): e is CalendarEvent => e !== null)
 
@@ -158,12 +163,13 @@ function computeHistory(
   anchorDate: Date,
   granularity: Granularity,
   lookbackBuckets: number,
+  titleFilter?: string,
 ): Bucket[] {
   const buckets: Bucket[] = []
   for (let i = lookbackBuckets - 1; i >= 0; i--) {
     const anchor = shiftAnchor(anchorDate, granularity, -i)
     const [start, end] = getBucketRange(anchor, granularity)
-    buckets.push(computeBucket(events, start, end))
+    buckets.push(computeBucket(events, start, end, titleFilter))
   }
   return buckets.sort((a, b) => a.start.getTime() - b.start.getTime())
 }
@@ -187,4 +193,41 @@ export function useStatsAggregation(opts: {
   // anchorMs is the stable dep; anchorDate object reference may change
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rangeEvents, anchorMs, granularity, lookbackBuckets])
+}
+
+/**
+ * useTitleStatsAggregation — useStatsAggregation 的变体，增加标题过滤。
+ * 当 titleFilter 为空时返回空数据（而非全部事件）。
+ */
+export function useTitleStatsAggregation(opts: {
+  granularity: Granularity
+  anchorDate: Date
+  lookbackBuckets?: number
+  titleFilter: string
+}): StatsAggregationResult {
+  const { granularity, anchorDate, lookbackBuckets = 1, titleFilter } = opts
+  const rangeEvents = useEventStore((s) => s.rangeEvents)
+  const anchorMs = anchorDate.getTime()
+
+  return useMemo(() => {
+    if (!titleFilter.trim()) {
+      const empty = emptyByCategory()
+      const emptyBucket: Bucket = {
+        start: anchorDate,
+        end: anchorDate,
+        byCategory: empty,
+        byHourSlot: emptyByHourSlot(),
+        total: 0,
+      }
+      return { current: emptyBucket, history: [], previous: null }
+    }
+
+    const history = computeHistory(rangeEvents, anchorDate, granularity, lookbackBuckets, titleFilter)
+    return {
+      current: history[history.length - 1],
+      history,
+      previous: history.length >= 2 ? history[history.length - 2] : null,
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangeEvents, anchorMs, granularity, lookbackBuckets, titleFilter])
 }

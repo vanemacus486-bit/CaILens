@@ -382,3 +382,129 @@ function createDayGroup(dateTs: number): DayGroup {
   const weekday = d.getDay() // 0=Sun, 1=Mon, ..., 与 WEEKDAY_NAMES 索引一致
   return { dateTs, dateLabel, weekday, activeTodos: [], doneTodos: [] }
 }
+
+// ── 今日聚焦 ────────────────────────────────────────────────
+
+/** 判断待办是否标记为"今日聚焦"（dueDate 为今天） */
+export function isTodayFocus(todo: Todo, now: number = Date.now()): boolean {
+  if (!todo.dueDate) return false
+  const todayStart = new Date(now).setHours(0, 0, 0, 0)
+  const tomorrowStart = todayStart + 86400000
+  return todo.dueDate >= todayStart && todo.dueDate < tomorrowStart
+}
+
+/** 今日聚焦统计数据 */
+export interface TodayFocusStats {
+  total: number
+  completed: number
+  focused: Todo[]
+}
+
+export function getTodayFocusStats(todos: Todo[], now: number = Date.now()): TodayFocusStats {
+  const focused: Todo[] = []
+  let completed = 0
+  for (const todo of todos) {
+    if (isTodayFocus(todo, now)) {
+      focused.push(todo)
+      if (todo.status === 'done') completed++
+    }
+  }
+  return { total: focused.length, completed, focused }
+}
+
+/**
+ * 按 (categoryId, priority) 分组，但已完成的今日聚焦项保留在格子中。
+ * 用于"完成即留存"——已完成的今日聚焦项仍显示在原位（划线+淡化）。
+ */
+export function groupTodosByPriorityWithDoneFocus(
+  todos: Todo[],
+  projectCategoryMap: Record<string, string>,
+  categoryOrder: string[],
+  now: number = Date.now(),
+): Record<string, Record<string, Todo[]>> {
+  // 先做标准分组（过滤掉所有已完成项）
+  const grouped = groupTodosByPriority(todos, projectCategoryMap, categoryOrder)
+
+  // 把已完成的今日聚焦项加回对应格子
+  for (const todo of todos) {
+    if (todo.status !== 'done') continue
+    if (!isTodayFocus(todo, now)) continue
+
+    let catId = todo.categoryId
+    if (!catId && todo.projectId) {
+      catId = projectCategoryMap[todo.projectId] ?? null
+    }
+    if (!catId || !grouped[catId]) continue
+
+    grouped[catId][todo.priority].push(todo)
+  }
+
+  return grouped
+}
+
+/** 获取今天 0 点的时间戳 */
+export function getTodayStart(now: number = Date.now()): number {
+  return new Date(now).setHours(0, 0, 0, 0)
+}
+
+
+// ── 动量沉淀（连续聚焦日） ──────────────────────────────────
+
+/** 计算连续完成聚焦的天数（从今天往前数） */
+export function calcCompletionStreak(todos: Todo[], now: number = Date.now()): number {
+  const todayStart = getTodayStart(now)
+  let streak = 0
+  for (let i = 0; ; i++) {
+    const dayStart = todayStart - i * 86400000
+    const dayEnd = dayStart + 86400000
+    // 检查该日是否有完成的聚焦项
+    const hasCompleted = todos.some(
+      (t) =>
+        t.status === 'done' &&
+        t.completedAt !== null &&
+        t.completedAt >= dayStart &&
+        t.completedAt < dayEnd &&
+        t.dueDate !== null &&
+        t.dueDate >= dayStart &&
+        t.dueDate < dayEnd,
+    )
+    if (hasCompleted) {
+      streak++
+    } else if (i > 0) {
+      // 从昨天起必须连续
+      break
+    } else {
+      // 今天还没完成，不中断连续
+    }
+  }
+  return streak
+}
+
+/** 周中各日的完成统计（日志 Tab 小圆点用） */
+export interface DayCompletionStat {
+  dateTs: number
+  /** 当日是否有完成项 */
+  hasDone: boolean
+  /** 当日完成总数 */
+  doneCount: number
+}
+
+export function getWeekCompletionStats(
+  doneTodos: Todo[],
+  weekStart: number,
+): DayCompletionStat[] {
+  const result: DayCompletionStat[] = []
+  for (let i = 0; i < 7; i++) {
+    const dayStart = weekStart + i * 86400000
+    const dayEnd = dayStart + 86400000
+    const dayTodos = doneTodos.filter(
+      (t) => t.completedAt !== null && t.completedAt >= dayStart && t.completedAt < dayEnd,
+    )
+    result.push({
+      dateTs: dayStart,
+      hasDone: dayTodos.length > 0,
+      doneCount: dayTodos.length,
+    })
+  }
+  return result
+}

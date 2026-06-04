@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Archive, Lightbulb } from 'lucide-react'
+import { ArrowLeft, Archive, Lightbulb, Plus } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useEventStore } from '@/stores/eventStore'
+import { useTodoStore } from '@/stores/todoStore'
 import { getInspirationRepo } from '@/data/getRepositories'
 import type { InspirationLog } from '@/domain/inspiration'
 import { fireAndForget } from '@/lib/fireAndForget'
+import { sortTodos, calcProjectProgress } from '@/domain/todo'
+import { TodoItem } from '@/pages/action/TodoItem'
 
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -16,20 +19,23 @@ export function ProjectDetailPage() {
 
   const { projects, isLoaded, loadProjects, archiveProject } = useProjectStore()
   const { events, loadAllEvents } = useEventStore()
+  const { todos, isLoaded: todosLoaded, loadTodos, toggleComplete, deleteTodo, updateTodo, createTodo } = useTodoStore()
 
-  const [activeTab, setActiveTab] = useState<'events' | 'inspirations'>('events')
+  const [activeTab, setActiveTab] = useState<'events' | 'inspirations' | 'todos'>('events')
   const [inspirations, setInspirations] = useState<InspirationLog[]>([])
+  const [newTodoTitle, setNewTodoTitle] = useState('')
 
   useEffect(() => {
     if (!isLoaded) loadProjects()
     loadAllEvents()
+    if (!todosLoaded) loadTodos()
     if (projectId) {
       fireAndForget(
         getInspirationRepo().getByProject(projectId).then(setInspirations),
         'load inspirations',
       )
     }
-  }, [isLoaded, loadProjects, loadAllEvents, projectId])
+  }, [isLoaded, loadProjects, loadAllEvents, todosLoaded, loadTodos, projectId])
 
   const project = projects.find((p) => p.id === projectId)
 
@@ -48,6 +54,30 @@ export function ProjectDetailPage() {
         0,
       ),
     [projectEvents],
+  )
+
+  const projectTodos = useMemo(
+    () => sortTodos(todos.filter((t) => t.projectId === projectId)),
+    [todos, projectId],
+  )
+
+  const progress = useMemo(() => calcProjectProgress(projectTodos), [projectTodos])
+
+  const handleCreateTodo = useCallback(() => {
+    const title = newTodoTitle.trim()
+    if (!title || !projectId) return
+    createTodo({ title, projectId })
+    setNewTodoTitle('')
+  }, [newTodoTitle, projectId, createTodo])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        handleCreateTodo()
+      }
+    },
+    [handleCreateTodo],
   )
 
   if (!project) {
@@ -120,6 +150,11 @@ export function ProjectDetailPage() {
               {inspirations.length}
               {'条灵感'}
             </span>
+            <span className="w-1 h-1 rounded-full bg-text-tertiary/40" />
+            <span>
+              {progress.done}/{progress.total}
+              {'待办'}
+            </span>
           </div>
         </div>
         {project.status === 'active' && (
@@ -138,6 +173,7 @@ export function ProjectDetailPage() {
         {[
           { id: 'events' as const, label: '事件' },
           { id: 'inspirations' as const, label: '灵感' },
+          { id: 'todos' as const, label: '待办' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -252,6 +288,62 @@ export function ProjectDetailPage() {
                   </div>
                 )
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'todos' && (
+        <div>
+          {/* 快速添加 */}
+          <div className="flex items-center gap-2 mb-6">
+            <input
+              type="text"
+              value={newTodoTitle}
+              onChange={(e) => setNewTodoTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t('输入待办标题，按回车添加', 'Add a to-do, press Enter')}
+              className="flex-1 h-10 px-4 rounded-xl bg-surface-raised border border-border-subtle text-sm font-sans text-text-primary placeholder:text-text-quaternary outline-none focus:border-accent transition-colors"
+            />
+            <button
+              onClick={handleCreateTodo}
+              disabled={!newTodoTitle.trim()}
+              className="h-10 w-10 flex items-center justify-center rounded-xl bg-accent text-white hover:opacity-90 disabled:opacity-40 transition-opacity cursor-pointer border-none"
+            >
+              <Plus size={18} strokeWidth={1.75} />
+            </button>
+          </div>
+
+          {projectTodos.length === 0 ? (
+            <p className="font-sans text-sm text-text-tertiary italic py-8 text-center">
+              {t('暂无待办', 'No to-dos yet.')}
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {/* 已完成进度 */}
+              {progress.total > 0 && (
+                <div className="flex items-center gap-3 px-4 py-2 mb-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-surface-raised overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-accent transition-all duration-500"
+                      style={{ width: `${progress.percent}%` }}
+                    />
+                  </div>
+                  <span className="font-mono text-[11px] text-text-tertiary tabular-nums flex-shrink-0">
+                    {progress.done}/{progress.total}
+                  </span>
+                </div>
+              )}
+
+              {projectTodos.map((todo) => (
+                <TodoItem
+                  key={todo.id}
+                  todo={todo}
+                  onToggle={toggleComplete}
+                  onUpdate={(id, updates) => updateTodo({ id, ...updates })}
+                  onDelete={deleteTodo}
+                />
+              ))}
             </div>
           )}
         </div>

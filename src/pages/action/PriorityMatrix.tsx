@@ -43,11 +43,15 @@ interface PriorityMatrixProps {
   onComplete?: (todoId: string) => void
   /** 格子右键回调，传递该格的分类+优先级 */
   onCellContextMenu?: (e: React.MouseEvent, catId: string, priId: string) => void
+  /** 今日聚焦 ID 集合 */
+  focusIds: Set<string>
+  /** 切换聚焦状态：todoId, 是否聚焦 */
+  onToggleFocus: (todoId: string, isFocus: boolean) => void
 }
 
 // ── 组件 ──────────────────────────────────────────────────
 
-export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onCellContextMenu }: PriorityMatrixProps) {
+export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onCellContextMenu, focusIds, onToggleFocus }: PriorityMatrixProps) {
   const colorMap = useCategoryColors()
 
   // 统计总数
@@ -120,6 +124,8 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, on
                     onMoveToCell={onMoveToCell}
                     onComplete={onComplete}
                     onContextMenu={onCellContextMenu}
+                    focusIds={focusIds}
+                    onToggleFocus={onToggleFocus}
                   />
                 )
               })}
@@ -155,9 +161,11 @@ interface CellProps {
   onMoveToCell: (sourceId: string, catId: string, priId: string) => void
   onComplete?: (todoId: string) => void
   onContextMenu?: (e: React.MouseEvent, catId: string, priId: string) => void
+  focusIds: Set<string>
+  onToggleFocus: (todoId: string, isFocus: boolean) => void
 }
 
-function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onContextMenu }: CellProps) {
+function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onContextMenu, focusIds, onToggleFocus }: CellProps) {
   const count = todos.length
 
   // ── 拖拽状态 ──
@@ -358,6 +366,9 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
             const cardSelected = todo.id === selectedId
             const isDropTarget = dragOverCardId === todo.id
             const isCompleting = completingId === todo.id
+            const isFocus = focusIds.has(todo.id)
+            const hasNoDueDate = todo.dueDate === null
+            const isDoneFocus = isFocus && todo.status === 'done'
             return (
               <button
                 key={todo.id}
@@ -368,12 +379,18 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
                 onDragOver={(e) => handleCardDragOver(e, todo.id)}
                 onDragLeave={handleCardDragLeave}
                 onDrop={(e) => handleCardDrop(e, todo.id)}
-                className={`w-full text-left rounded-md border cursor-grab active:cursor-grabbing transition-all duration-150 group overflow-hidden ${
+                className={`w-full text-left rounded-md border cursor-grab active:cursor-grabbing transition-all duration-150 group overflow-hidden default-border ${
                   isCompleting
                     ? 'animate-todo-complete'
-                    : cardSelected
-                      ? 'border-accent/40 bg-accent/5 shadow-xs'
-                      : 'border-border-subtle bg-surface-raised hover:border-border-default hover:shadow-xs'
+                    : isDoneFocus
+                      ? 'border-accent/20 bg-accent/[0.02] opacity-60'
+                      : isFocus
+                        ? 'border-accent/60 bg-accent/[0.06] shadow-sm ring-1 ring-accent/20'
+                        : cardSelected
+                          ? 'border-accent/40 bg-accent/5 shadow-xs'
+                          : hasNoDueDate
+                            ? 'border-border-subtle bg-surface-raised hover:border-border-default hover:shadow-xs opacity-65'
+                            : 'border-border-subtle bg-surface-raised hover:border-border-default hover:shadow-xs'
                 }`}
                 style={{
                   borderLeftWidth: 3,
@@ -383,25 +400,47 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
                 }}
               >
                 <div className="px-2.5 py-2 relative">
-                  {/* 标题 */}
-                  <div className="font-sans text-[12px] text-text-primary leading-tight truncate pr-5">
-                    {todo.title}
+                  {/* 标题 + 今日标签 */}
+                  <div className="font-sans text-[12px] leading-tight truncate pr-7 flex items-center gap-1.5">
+                    {isFocus && (
+                      <span className="inline-flex items-center px-1.5 py-[1px] rounded-full text-[8px] font-medium leading-none flex-shrink-0"
+                        style={{ backgroundColor: categoryFill + '20', color: categoryFill, opacity: isDoneFocus ? 0.6 : 1 }}>
+                        {'今日'}
+                      </span>
+                    )}
+                    <span className={isDoneFocus ? 'line-through text-text-tertiary truncate' : 'text-text-primary truncate'}>
+                      {todo.title}
+                    </span>
                   </div>
 
-
-
-                  {/* hover 时出现的快速完成按钮 */}
-                  {onComplete && !isCompleting && (
-                    <span
-                      onClick={(e) => handleQuickComplete(e, todo.id)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all duration-150 hover:scale-110 cursor-pointer"
-                      style={{ color: categoryFill }}
-                      title="标记完成"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    </span>
+                  {/* hover 时出现的操作按钮 */}
+                  {!isCompleting && (
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-150">
+                      {/* 聚焦切换按钮 */}
+                      <span
+                        onClick={(e) => { e.stopPropagation(); onToggleFocus(todo.id, !isFocus) }}
+                        className="w-5 h-5 flex items-center justify-center rounded-full hover:scale-110 cursor-pointer"
+                        style={{ color: isFocus ? categoryFill : 'var(--text-quaternary)' }}
+                        title={isFocus ? '取消今日聚焦' : '标记为今日聚焦'}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill={isFocus ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        </svg>
+                      </span>
+                      {/* 完成按钮 */}
+                      {onComplete && (
+                        <span
+                          onClick={(e) => handleQuickComplete(e, todo.id)}
+                          className="w-5 h-5 flex items-center justify-center rounded-full hover:scale-110 cursor-pointer"
+                          style={{ color: categoryFill }}
+                          title="标记完成"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </button>
