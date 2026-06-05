@@ -2,18 +2,28 @@
  * # OutfitCard — 穿搭卡片
  *
  * 展示每日穿搭记录。按周分组的卡片流，每格显示当日穿搭简述。
- * 数据来自 DailyOutfit 记录（需从 dailyContextStore 加载）。
+ * 新增记录面板：选择日期 → 添加单品（类别+描述）→ 可选备注 → 保存。
  */
 
-import { useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { format, subDays, startOfWeek, addDays } from 'date-fns'
-import type { DailyOutfit } from '@/domain/dailyContext'
+import type { DailyOutfit, OutfitCategory, OutfitItem } from '@/domain/dailyContext'
 import type { AppLanguage } from '@/domain/settings'
+import { useDailyContextStore } from '@/stores/dailyContextStore'
 
 interface Props {
   outfits: DailyOutfit[]
   language: AppLanguage
 }
+
+// ── 常量 ──────────────────────────────────────────────────
+
+const CATEGORY_OPTIONS: { id: OutfitCategory; label: string }[] = [
+  { id: 'top',       label: '上装' },
+  { id: 'bottom',    label: '下装' },
+  { id: 'shoes',     label: '鞋' },
+  { id: 'accessory', label: '配饰' },
+]
 
 // ── 辅助 ──────────────────────────────────────────────────
 
@@ -40,11 +50,21 @@ function outfitSummary(outfit: DailyOutfit): string {
 export function OutfitCard({ outfits, language }: Props) {
   const isCompact = typeof window !== 'undefined' && window.innerWidth < 720
 
+  const saveOutfit  = useDailyContextStore((s) => s.saveOutfit)
+  const loadOutfits = useDailyContextStore((s) => s.loadOutfits)
+
+  // ── 记录面板状态 ─────────────────────────
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordDate, setRecordDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+  const [items, setItems] = useState<OutfitItem[]>([])
+  const [itemCategory, setItemCategory] = useState<OutfitCategory>('top')
+  const [itemLabel, setItemLabel] = useState('')
+  const [note, setNote] = useState('')
+
   // 按周分组
   const weeklyOutfits = useMemo(() => {
     const grouped = new Map<string, DailyOutfit[]>()
 
-    // 最近 2 周
     const now = new Date()
     for (let i = 0; i < 14; i++) {
       const day = subDays(now, i)
@@ -59,7 +79,6 @@ export function OutfitCard({ outfits, language }: Props) {
       grouped.set(wk, list)
     }
 
-    // 按日期排序
     for (const [wk, list] of grouped) {
       grouped.set(
         wk,
@@ -85,6 +104,51 @@ export function OutfitCard({ outfits, language }: Props) {
     return { uniqueOutfits, uniqueItemsCount: uniqueItems.size, topItem, noteCount }
   }, [outfits])
 
+  // ── 保存与取消 ────────────────────────────
+  const addItem = useCallback(() => {
+    const label = itemLabel.trim()
+    if (!label) return
+    setItems((prev) => [...prev, { category: itemCategory, label }])
+    setItemLabel('')
+    setItemCategory('top')
+  }, [itemCategory, itemLabel])
+
+  const removeItem = useCallback((index: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== index))
+  }, [])
+
+  const handleSave = useCallback(async () => {
+    if (items.length === 0) return
+    await saveOutfit({ date: recordDate, items, note: note.trim() || undefined })
+    const end = format(new Date(), 'yyyy-MM-dd')
+    const start = format(subDays(new Date(), 60), 'yyyy-MM-dd')
+    await loadOutfits(start, end)
+    setIsRecording(false)
+    setItems([])
+    setNote('')
+    setItemLabel('')
+    setItemCategory('top')
+  }, [items, recordDate, note, saveOutfit, loadOutfits])
+
+  const handleCancel = useCallback(() => {
+    setIsRecording(false)
+    setItems([])
+    setNote('')
+    setItemLabel('')
+    setItemCategory('top')
+    setRecordDate(format(new Date(), 'yyyy-MM-dd'))
+  }, [])
+
+  // ── 键盘事件（Add item on Enter） ─────────
+  const handleItemKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      addItem()
+    }
+  }, [addItem])
+
+  // ── Render ──────────────────────────────────────────────
+
   return (
     <div className="outfit-root">
       <style>{OUTFIT_CSS}</style>
@@ -93,14 +157,105 @@ export function OutfitCard({ outfits, language }: Props) {
       <div className="outfit-header">
         <span className="outfit-header-icon">👔</span>
         <span className="outfit-header-title">{'穿搭记录'}</span>
+        <div className="outfit-header-actions">
+          {!isRecording && (
+            <button
+              className="outfit-record-btn"
+              onClick={() => { setItems([]); setNote(''); setIsRecording(true) }}
+            >
+              {'记录'}
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* ── 记录面板 ──────────────────────────── */}
+      {isRecording && (
+        <div className="outfit-recording">
+          <div className="outfit-recording-title">{'记录穿搭'}</div>
+
+          {/* 日期 */}
+          <input
+            type="date"
+            value={recordDate}
+            onChange={(e) => setRecordDate(e.target.value)}
+            className="outfit-date-input"
+          />
+
+          {/* 单品添加 */}
+          <div className="outfit-item-add-row">
+            <select
+              value={itemCategory}
+              onChange={(e) => setItemCategory(e.target.value as OutfitCategory)}
+              className="outfit-category-select"
+            >
+              {CATEGORY_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={itemLabel}
+              onChange={(e) => setItemLabel(e.target.value)}
+              onKeyDown={handleItemKeyDown}
+              placeholder={'输入单品描述'}
+              className="outfit-item-input"
+            />
+            <button
+              onClick={addItem}
+              disabled={!itemLabel.trim()}
+              className="outfit-add-btn"
+            >
+              {'+'}
+            </button>
+          </div>
+
+          {/* 已添加单品 */}
+          {items.length > 0 && (
+            <div className="outfit-item-list">
+              {items.map((item, i) => {
+                const catLabel = CATEGORY_OPTIONS.find((opt) => opt.id === item.category)?.label ?? item.category
+                return (
+                  <span key={i} className="outfit-item-tag" onClick={() => removeItem(i)}>
+                    <span className="outfit-item-tag-cat">{catLabel}</span>
+                    <span>{item.label}</span>
+                    <span className="outfit-item-tag-remove">&times;</span>
+                  </span>
+                )
+              })}
+            </div>
+          )}
+
+          {/* 备注 */}
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={'备注（可选）'}
+            className="outfit-note-input"
+          />
+
+          {/* 操作按钮 */}
+          <div className="outfit-recording-actions">
+            <button
+              className="outfit-save-btn"
+              onClick={handleSave}
+              disabled={items.length === 0}
+            >
+              {'保存'}
+            </button>
+            <button className="outfit-cancel-btn" onClick={handleCancel}>
+              {'取消'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── 周卡片流 ──────────────────────────── */}
       <div className={`outfit-weeks${isCompact ? ' outfit-weeks-compact' : ''}`}>
         {weeklyOutfits.map(([weekId, dayOutfits]) => {
           const weekStart = new Date(weekId + 'T00:00:00')
 
-          // 本周七天填充
           const dayMap = new Map<string, DailyOutfit>()
           for (const o of dayOutfits) dayMap.set(o.date, o)
 
@@ -188,6 +343,202 @@ const OUTFIT_CSS = `
   font-family: 'Noto Serif SC', serif;
   font-size: 16px;
   font-weight: 500;
+  color: var(--heatmap-ink-1);
+  flex: 1;
+}
+.outfit-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.outfit-record-btn {
+  font-size: 11px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: all 0.15s ease;
+}
+.outfit-record-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+/* ── Recording panel ──────────────────── */
+.outfit-recording {
+  background: var(--heatmap-bg-card);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--accent);
+  margin-bottom: 16px;
+}
+.outfit-recording-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: var(--heatmap-ink-1);
+}
+.outfit-date-input {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid var(--heatmap-rule);
+  background: var(--heatmap-bg);
+  color: var(--heatmap-ink-1);
+  outline: none;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+.outfit-date-input:focus {
+  border-color: var(--accent);
+}
+.outfit-item-add-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.outfit-category-select {
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--heatmap-rule);
+  background: var(--heatmap-bg);
+  color: var(--heatmap-ink-1);
+  outline: none;
+  font-family: 'Noto Sans SC', sans-serif;
+  cursor: pointer;
+}
+.outfit-category-select:focus {
+  border-color: var(--accent);
+}
+.outfit-item-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--heatmap-rule);
+  background: var(--heatmap-bg);
+  color: var(--heatmap-ink-1);
+  outline: none;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.outfit-item-input:focus {
+  border-color: var(--accent);
+}
+.outfit-add-btn {
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: opacity 0.15s ease;
+}
+.outfit-add-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.outfit-add-btn:not(:disabled):hover {
+  opacity: 0.85;
+}
+.outfit-item-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.outfit-item-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--heatmap-bg);
+  border: 1px solid var(--heatmap-rule);
+  color: var(--heatmap-ink-1);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  user-select: none;
+}
+.outfit-item-tag:hover {
+  border-color: var(--color-text-danger);
+}
+.outfit-item-tag-cat {
+  font-size: 9px;
+  color: var(--heatmap-ink-3);
+  margin-right: 2px;
+}
+.outfit-item-tag-remove {
+  font-size: 13px;
+  line-height: 1;
+  color: var(--heatmap-ink-3);
+  margin-left: 2px;
+}
+.outfit-note-input {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--heatmap-rule);
+  background: var(--heatmap-bg);
+  color: var(--heatmap-ink-1);
+  outline: none;
+  font-family: 'Noto Sans SC', sans-serif;
+  box-sizing: border-box;
+}
+.outfit-note-input:focus {
+  border-color: var(--accent);
+}
+.outfit-recording-actions {
+  display: flex;
+  gap: 8px;
+}
+.outfit-save-btn {
+  font-size: 12px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: opacity 0.15s ease;
+}
+.outfit-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.outfit-save-btn:not(:disabled):hover {
+  opacity: 0.85;
+}
+.outfit-cancel-btn {
+  font-size: 12px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: 1px solid var(--heatmap-rule);
+  background: transparent;
+  color: var(--heatmap-ink-2);
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: all 0.15s ease;
+}
+.outfit-cancel-btn:hover {
+  border-color: var(--heatmap-ink-3);
   color: var(--heatmap-ink-1);
 }
 

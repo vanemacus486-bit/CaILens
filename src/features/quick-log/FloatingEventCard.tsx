@@ -9,7 +9,7 @@ import { getEventRepo } from '@/data/getRepositories'
 import { classifyEvent } from '@/domain/icsImport'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
-import { SleepPanel } from './SubPanels'
+import { SleepPanel, ChoresPanel } from './SubPanels'
 
 // ── Types ───────────────────────────────────────────────
 
@@ -446,6 +446,16 @@ export function FloatingEventCard({
             <input type="time" value={endStr} onChange={(e) => { setEndStr(e.target.value); setError(null) }}
               className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded-md px-2 py-1.5 focus:border-border-default focus-visible:outline-none" />
           </div>
+        )}
+
+        {/* 庶务快速按钮 — 仅在 chores 模式显示 */}
+        {mode === 'chores' && (
+          <ChoresPanel
+            onSelectMeal={() => { setMode('meal-food'); setTitle(''); setInlineSuggestion(null) }}
+            onSelectWash={() => { setTitle('洗漱'); handleSaveRef.current() }}
+            onSelectShower={() => { setTitle('洗澡'); handleSaveRef.current() }}
+            onSelectClean={() => { setTitle('打扫'); handleSaveRef.current() }}
+          />
         )}
 
         {/* Main input with inline suggestion + category tint */}

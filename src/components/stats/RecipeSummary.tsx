@@ -7,10 +7,7 @@
 
 import { useMemo } from 'react'
 import type { CalendarEvent, MealOrder, MealSource } from '@/domain/event'
-import type { MealTag } from '@/domain/event'
 import {
-  MEAL_TAG_LABELS,
-  MEAL_TAG_LABELS_EN,
   MEAL_ORDER_LABELS,
   MEAL_ORDER_LABELS_EN,
   MEAL_SOURCE_LABELS,
@@ -27,18 +24,6 @@ interface Props {
 
 function pct(v: number): string {
   return `${Math.round(v * 100)}%`
-}
-
-// ── 标签颜色映射 ────────────────────────────────────────────
-
-const TAG_COLORS: Record<string, string> = {
-  protein: '#E8734A',
-  staple: '#D4A44A',
-  vegetable: '#5B9E5B',
-  fruit: '#C7A04A',
-  caffeine: '#7B5B3A',
-  sugar: '#C97B7B',
-  alcohol: '#9B6B9B',
 }
 
 // ── 卡片组件 ────────────────────────────────────────────────
@@ -89,16 +74,6 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
     )
   }
 
-  // 标签频率排序（取 top 5）
-  const sortedTags = (Object.entries(stats.tagFrequency) as [MealTag, number][])
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-
-  const maxTagCount = sortedTags[0]?.[1] ?? 1
-
-  // 外卖趋势最大次数（用于柱状图比例）
-  const maxTakeout = Math.max(...stats.weeklyTakeoutCounts.map((w) => w.count), 1)
-
   return (
     <div className="space-y-6 max-w-3xl">
       {/* 概览行 */}
@@ -131,155 +106,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
         </div>
       </div>
 
-      {/* ① 主食构成 */}
-      <StatCard title={'食物标签构成'}>
-        <div className="space-y-2.5">
-          {sortedTags.map(([tag, count]) => {
-            const ratio = count / maxTagCount
-            return (
-              <div key={tag}>
-                <div className="flex items-center justify-between text-xs font-sans mb-1">
-                  <span className="text-text-primary">
-                    {t(MEAL_TAG_LABELS[tag], MEAL_TAG_LABELS_EN[tag])}
-                  </span>
-                  <span className="font-mono text-text-secondary tabular-nums">{count}</span>
-                </div>
-                <div className="w-full h-2 bg-surface-sunken rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${ratio * 100}%`,
-                      backgroundColor: TAG_COLORS[tag] ?? 'var(--accent)',
-                    }}
-                  />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        <div className="mt-3 text-[11px] font-sans text-text-tertiary">
-          {t(
-            `近 90 天共记录 ${stats.totalMeals} 餐`,
-            `${stats.totalMeals} meals recorded in the last 90 days.`,
-          )}
-        </div>
-      </StatCard>
-
-      {/* ② 达标率 */}
-      <StatCard title={'饮食达标率'}>
-        <div className="grid grid-cols-2 gap-4">
-          {([
-            ['protein', '#5B9E5B'],
-            ['caffeine', '#7B5B3A'],
-            ['sugar', '#C97B7B'],
-            ['alcohol', '#9B6B9B'],
-          ] as [MealTag, string][]).map(([tag, color]) => {
-            const rate =
-              tag === 'protein'
-                ? stats.proteinRate
-                : tag === 'caffeine'
-                  ? stats.caffeineRate
-                  : tag === 'sugar'
-                    ? stats.sugarRate
-                    : stats.alcoholRate
-            return (
-              <div key={tag}>
-                <div className="flex items-center justify-between text-xs font-sans mb-1">
-                  <span className="text-text-primary">
-                    {t(MEAL_TAG_LABELS[tag], MEAL_TAG_LABELS_EN[tag])}
-                  </span>
-                  <span
-                    className="font-mono font-medium tabular-nums"
-                    style={{ color }}
-                  >
-                    {pct(rate)}
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-surface-sunken rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${rate * 100}%`, backgroundColor: color }}
-                  />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        <Divider />
-        <div className="text-[11px] font-sans text-text-tertiary space-y-1">
-          <p>
-            {t(
-              `蛋白质达标率 ${pct(stats.proteinRate)}——${stats.proteinRate >= 0.7 ? '不错，继续保持' : stats.proteinRate >= 0.4 ? '有提升空间' : '建议增加蛋白质摄入'}`,
-              `Protein rate ${pct(stats.proteinRate)}${stats.proteinRate >= 0.7 ? ' — good, keep it up' : stats.proteinRate >= 0.4 ? ' — room for improvement' : ' — consider adding more protein'}`,
-            )}
-          </p>
-          {stats.topCaffeineMealOrder && (
-            <p>
-              {t(
-                `咖啡因最常见于 ${MEAL_ORDER_LABELS[stats.topCaffeineMealOrder]}`,
-                `Caffeine most common at ${MEAL_ORDER_LABELS_EN[stats.topCaffeineMealOrder]}`,
-              )}
-            </p>
-          )}
-        </div>
-      </StatCard>
-
-      {/* ③ 外卖频率趋势 */}
-      <StatCard title={'外卖频率趋势'}>
-        {stats.weeklyTakeoutCounts.length === 0 ? (
-          <p className="font-sans text-xs text-text-tertiary italic">
-            {'近 90 天无外卖记录'}
-          </p>
-        ) : (
-          <div className="space-y-1">
-            {/* 柱状图 */}
-            <div className="flex items-end gap-1.5 h-24">
-              {stats.weeklyTakeoutCounts.map((w) => {
-                const height = (w.count / maxTakeout) * 100
-                return (
-                  <div
-                    key={w.weekLabel}
-                    className="flex-1 flex flex-col items-center gap-1"
-                  >
-                    <span className="font-mono text-[10px] text-text-tertiary tabular-nums">
-                      {w.count}
-                    </span>
-                    <div
-                      className="w-full rounded-t"
-                      style={{
-                        height: `${Math.max(height, 2)}%`,
-                        backgroundColor: 'var(--accent)',
-                        opacity: 0.5 + 0.3 * (w.count / maxTakeout),
-                      }}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-            {/* X 轴标签 */}
-            <div className="flex gap-1.5">
-              {stats.weeklyTakeoutCounts.map((w, i) => (
-                <div
-                  key={w.weekLabel}
-                  className="flex-1 text-center font-sans text-[9px] text-text-tertiary truncate"
-                >
-                  {i % 2 === 0 ? w.weekLabel : ''}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {stats.topTakeoutMealOrder && (
-          <div className="mt-3 text-[11px] font-sans text-text-tertiary">
-            {t(
-              `外卖最多的是 ${MEAL_ORDER_LABELS[stats.topTakeoutMealOrder]}`,
-              `Most takeout at ${MEAL_ORDER_LABELS_EN[stats.topTakeoutMealOrder]}`,
-            )}
-          </div>
-        )}
-      </StatCard>
-
-      {/* ④ 餐次分布 */}
+      {/* 餐次分布 */}
       <StatCard title={'餐次分布'}>
         <div className="space-y-2.5">
           {(

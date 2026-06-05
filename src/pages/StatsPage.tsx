@@ -28,7 +28,9 @@ import { DietScatterChart } from '@/components/stats/DietScatterChart'
 import { DietTagTrendChart } from '@/components/stats/DietTagTrendChart'
 import { RecipeSummary } from '@/components/stats/RecipeSummary'
 import { OutfitCard } from '@/components/stats/OutfitCard'
-import { HygieneCard } from '@/components/stats/HygieneCard'
+import { HygieneCalendarCard } from '@/components/stats/HygieneCalendarCard'
+import { HygieneScoreChart } from '@/components/stats/HygieneScoreChart'
+import { HygieneStatsCard } from '@/components/stats/HygieneStatsCard'
 
 import {
   EasternStatsShell,
@@ -106,16 +108,15 @@ export function StatsPage() {
 
 
 
-  // Lifestyle data (load when tab is lifestyle)
+  // Lifestyle data (always load on mount, wider range for hygiene continuity)
   useEffect(() => {
-    if (tab !== 'lifestyle') return
     const now = new Date()
     const end = formatISODate(now)
-    const start = formatISODate(addDays(now, -60))
+    const start = formatISODate(addDays(now, -90))
     fireAndForget(loadOutfits(start, end), 'load outfits')
     fireAndForget(loadHygiene(start, end), 'load hygiene')
-    fireAndForget(loadRecentHygiene(30), 'load recent hygiene')
-  }, [tab, loadOutfits, loadHygiene, loadRecentHygiene])
+    fireAndForget(loadRecentHygiene(90), 'load recent hygiene')
+  }, [loadOutfits, loadHygiene, loadRecentHygiene])
 
   // ── Tab title ────────────────────────────────────────────
 
@@ -317,9 +318,20 @@ export function StatsPage() {
               />
             )}
             {lifestyleView === 'hygiene' && (
-              <HygieneCard
-                records={hygieneRecords}
-              />
+              <div className="diet-stack">
+                <HygieneCalendarCard
+                  records={hygieneRecords}
+                  rangeEvents={rangeEvents}
+                  language={language}
+                />
+                <HygieneScoreChart
+                  rangeEvents={rangeEvents}
+                />
+                <HygieneStatsCard
+                  rangeEvents={rangeEvents}
+                  language={language}
+                />
+              </div>
             )}
 
           </div>
