@@ -14,7 +14,7 @@ import { useCategoryColors } from '@/constants/categoryColors'
 
 interface OrphanTodoListProps {
   todos: Todo[]
-  onCardClick: (todoId: string) => void
+  onCardClick: (todoId: string, e: React.MouseEvent) => void
   onComplete: (todoId: string) => void
 }
 
@@ -70,7 +70,7 @@ export function OrphanTodoList({ todos, onCardClick, onComplete }: OrphanTodoLis
           return (
             <button
               key={todo.id}
-              onClick={() => onCardClick(todo.id)}
+              onClick={(e) => onCardClick(todo.id, e)}
               className={`w-full flex items-center gap-3 pl-2 pr-3 py-2.5 rounded-lg text-left cursor-pointer border-none bg-surface-raised hover:bg-surface-raised transition-all duration-150 group hover:translate-y-[-1px] hover:shadow-sm ${
                 isCompleting ? 'animate-todo-complete' : ''
               }`}

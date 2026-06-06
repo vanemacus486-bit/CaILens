@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { addDays } from 'date-fns'
 import { X } from 'lucide-react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
@@ -9,7 +8,7 @@ import { getEventRepo } from '@/data/getRepositories'
 import { classifyEvent } from '@/domain/icsImport'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
-import { SleepPanel, ChoresPanel } from './SubPanels'
+import { SleepPanel } from './SubPanels'
 
 // ── Types ───────────────────────────────────────────────
 
@@ -71,13 +70,9 @@ function tsToStr(ts: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-function strToTs(date: Date, s: string): number {
-  const [h, m] = s.split(':').map(Number)
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m).getTime()
-}
-
-function isNextDayEnd(startStr: string, endStr: string): boolean {
-  return startStr.length > 0 && endStr.length > 0 && endStr <= startStr
+function dateLabel(ts: number): string {
+  const d = new Date(ts)
+  return `${d.getMonth() + 1}月${d.getDate()}日`
 }
 
 // ── Aggregate recent items ──────────────────────────────
@@ -99,7 +94,6 @@ export function FloatingEventCard({
 }: FloatingEventCardProps) {
   const categories   = useCategoryStore((s) => s.categories)
   const isEditing    = !!editingEvent
-  const localDate = new Date(defaultTimes.start)
 
   // ── Core state ──────────────────────────────────────
 
@@ -128,6 +122,21 @@ export function FloatingEventCard({
   const [endStr, setEndStr] = useState(tsToStr(defaultTimes.end))
   const [showTimeEdit, setShowTimeEdit] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Toggle cross-day flag
+  const [crossDay, setCrossDay] = useState(() => {
+    const endD = new Date(defaultTimes.end)
+    const startD = new Date(defaultTimes.start)
+    return endD.toDateString() !== startD.toDateString()
+  })
+
+  // Display end timestamp (adjusted for cross-day)
+  const effectiveEndTs = (() => {
+    const [eh, em] = endStr.split(':').map(Number)
+    const base = new Date(defaultTimes.start)
+    const ts = new Date(base.getFullYear(), base.getMonth(), base.getDate(), eh, em).getTime()
+    return crossDay ? ts + 24 * 60 * 60 * 1000 : ts
+  })()
 
   // Inline autocomplete suggestion
   const [inlineSuggestion, setInlineSuggestion] = useState<string | null>(null)
@@ -256,11 +265,18 @@ export function FloatingEventCard({
   function getTimeError(): string | null {
     if (!startStr) return '请设置开始时间'
     if (!endStr) return '请设置结束时间'
-    const s = strToTs(localDate, startStr)
-    const endDate = isNextDayEnd(startStr, endStr) ? addDays(localDate, 1) : localDate
-    const e = strToTs(endDate, endStr)
-    if (isNaN(s) || isNaN(e)) return '无效时间'
-    if (e <= s) return '结束时间必须在开始时间之后'
+    const [sh, sm] = startStr.split(':').map(Number)
+    const [eh, em] = endStr.split(':').map(Number)
+    const startD = new Date(defaultTimes.start)
+    let endD = new Date(startD)
+    endD.setHours(eh, em, 0, 0)
+    const startTs = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate(), sh, sm).getTime()
+    let endTs = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate(), eh, em).getTime()
+    if (crossDay) {
+      endTs += 24 * 60 * 60 * 1000
+    }
+    if (isNaN(startTs) || isNaN(endTs)) return '无效时间'
+    if (endTs <= startTs) return '结束时间必须在开始时间之后'
     return null
   }
 
@@ -278,9 +294,16 @@ export function FloatingEventCard({
     const timeErr = getTimeError()
     if (timeErr) { setError(timeErr); return }
 
-    const endDate = isNextDayEnd(startStr, endStr) ? addDays(localDate, 1) : localDate
-    const startTime = strToTs(localDate, startStr)
-    const endTime = strToTs(endDate, endStr)
+    const [sh, sm] = startStr.split(':').map(Number)
+    const [eh, em] = endStr.split(':').map(Number)
+    const startD = new Date(defaultTimes.start)
+    let endD = new Date(startD)
+    endD.setHours(eh, em, 0, 0)
+    const startTime = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate(), sh, sm).getTime()
+    let endTime = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate(), eh, em).getTime()
+    if (crossDay) {
+      endTime += 24 * 60 * 60 * 1000
+    }
 
     // Build typedData based on mode
     let typedData: TypedEventData | undefined
@@ -424,7 +447,7 @@ export function FloatingEventCard({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: catColor }} />
             <span className="font-mono text-xs text-text-secondary cursor-pointer hover:text-text-primary transition-colors" onClick={() => setShowTimeEdit(!showTimeEdit)}>
-              {startStr} – {endStr}
+              {dateLabel(defaultTimes.start)} {startStr} – {crossDay ? dateLabel(effectiveEndTs + 24*60*60*1000) : dateLabel(effectiveEndTs)} {endStr}
             </span>
             {mode === 'meal-food' && (
               <span className="text-xs text-text-tertiary font-sans ml-1">🍚 吃饭</span>
@@ -440,23 +463,26 @@ export function FloatingEventCard({
 
         {/* Collapsible time editor */}
         {showTimeEdit && (
-          <div className="flex gap-2 mb-2 animate-slide-down">
+          <div className="flex items-center gap-2 mb-2 animate-slide-down">
             <input type="time" value={startStr} onChange={(e) => { setStartStr(e.target.value); setError(null) }}
               className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded-md px-2 py-1.5 focus:border-border-default focus-visible:outline-none" />
+            <button
+              onClick={() => { setCrossDay(!crossDay); setError(null) }}
+              className={`px-2 py-1.5 rounded-md text-xs font-sans border transition-colors cursor-pointer flex-shrink-0 ${
+                crossDay
+                  ? 'bg-accent/10 border-accent/40 text-accent'
+                  : 'bg-surface-sunken border-border-subtle text-text-tertiary hover:bg-surface-base'
+              }`}
+              title="次日"
+            >
+              次日
+            </button>
             <input type="time" value={endStr} onChange={(e) => { setEndStr(e.target.value); setError(null) }}
               className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded-md px-2 py-1.5 focus:border-border-default focus-visible:outline-none" />
           </div>
         )}
 
-        {/* 庶务快速按钮 — 仅在 chores 模式显示 */}
-        {mode === 'chores' && (
-          <ChoresPanel
-            onSelectMeal={() => { setMode('meal-food'); setTitle(''); setInlineSuggestion(null) }}
-            onSelectWash={() => { setTitle('洗漱'); handleSaveRef.current() }}
-            onSelectShower={() => { setTitle('洗澡'); handleSaveRef.current() }}
-            onSelectClean={() => { setTitle('打扫'); handleSaveRef.current() }}
-          />
-        )}
+        {/* 庶务快速按钮 — 已移除 */}
 
         {/* Main input with inline suggestion + category tint */}
         <div

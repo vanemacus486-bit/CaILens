@@ -25,15 +25,13 @@ function fmtTime(ts: number): string {
 export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: EventDetailCardProps) {
   const [showConfirm, setShowConfirm] = useState(false)
 
-  // Stable ref pointing to the anchor element — Radix reads this for positioning.
   const virtualRef = useRef<HTMLElement>(null!)
   virtualRef.current = anchorEl
 
   const isEmpty = !event.title.trim()
 
-  const d = new Date(event.startTime)
-  const dateStr = `${d.getMonth() + 1}月${d.getDate()}日`
-  const weekdayStr = d.toLocaleDateString('zh-CN', { weekday: 'long' })
+  const start = new Date(event.startTime)
+  const end = new Date(event.endTime)
 
   return (
     <>
@@ -48,42 +46,29 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <div className="flex">
-            {/* Colored accent strip — matches event category color */}
             <div
               className="w-1 flex-shrink-0"
               style={{ backgroundColor: `var(--event-${event.color}-fill)` }}
             />
 
             <div className="flex-1 p-4 flex flex-col gap-3">
-              {/* Title */}
               <p className={`text-[16px] font-serif leading-snug ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary font-medium'}`}>
                 {isEmpty ? '(无标题)' : event.title}
               </p>
 
-              {/* Date + Weekday — e.g. "3月15日 星期六" */}
-              <p className="text-[13px] text-text-secondary font-sans leading-none">
-                {dateStr} {weekdayStr}
+              {/* Date + time on one line — always show both dates */}
+              <p className="text-[12px] text-text-secondary font-sans leading-none">
+                {`${start.getMonth() + 1}月${start.getDate()}日 ${fmtTime(event.startTime)}`}
+                {' – '}
+                {`${end.getMonth() + 1}月${end.getDate()}日 ${fmtTime(event.endTime)}`}
               </p>
 
-              {/* Time range — start | end in mono */}
-              <div className="flex items-baseline gap-1.5">
-                <span className="font-mono text-sm font-semibold text-accent tabular-nums tracking-tight">
-                  {fmtTime(event.startTime)}
-                </span>
-                <span className="text-text-tertiary text-xs">–</span>
-                <span className="font-mono text-sm text-text-secondary tabular-nums tracking-tight">
-                  {fmtTime(event.endTime)}
-                </span>
-              </div>
-
-              {/* Description */}
               {event.description && (
                 <p className="text-sm text-text-secondary line-clamp-3 font-sans leading-relaxed">
                   {event.description}
                 </p>
               )}
 
-              {/* Location */}
               {event.location && (
                 <div className="flex items-start gap-1.5 text-xs text-text-secondary">
                   <MapPin className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-text-tertiary" />
@@ -91,7 +76,6 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
                 </div>
               )}
 
-              {/* Actions */}
               <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
                 <Button
                   variant="ghost" size="sm"
@@ -112,7 +96,6 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
         </PopoverContent>
       </Popover>
 
-      {/* Delete confirmation — rendered outside Popover to avoid z-index issues */}
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>

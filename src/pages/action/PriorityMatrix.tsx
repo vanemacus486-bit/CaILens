@@ -34,7 +34,7 @@ interface PriorityMatrixProps {
   /** { categoryId: { high: [...], medium: [...], low: [...] } } */
   grouped: Record<string, Record<string, Todo[]>>
   selectedId: string | null
-  onCardClick: (todoId: string) => void
+  onCardClick: (todoId: string, e: React.MouseEvent) => void
   /** 拖拽重排回调（同格内） */
   onReorder: (sourceId: string, targetId: string, position: 'before' | 'after') => void
   /** 跨格移动回调（改分类/优先级） */
@@ -156,7 +156,7 @@ interface CellProps {
   categoryFill: string
   isSelected: boolean
   selectedId: string | null
-  onCardClick: (id: string) => void
+  onCardClick: (id: string, e: React.MouseEvent) => void
   onReorder: (sourceId: string, targetId: string, position: 'before' | 'after') => void
   onMoveToCell: (sourceId: string, catId: string, priId: string) => void
   onComplete?: (todoId: string) => void
@@ -373,7 +373,7 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
               <button
                 key={todo.id}
                 draggable={!isCompleting}
-                onClick={() => onCardClick(todo.id)}
+                onClick={(e) => onCardClick(todo.id, e)}
                 onDragStart={(e) => handleDragStart(e, todo.id)}
                 onDragEnd={handleDragEnd}
                 onDragOver={(e) => handleCardDragOver(e, todo.id)}

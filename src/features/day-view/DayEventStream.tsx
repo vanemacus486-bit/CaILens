@@ -16,6 +16,11 @@ function fmtTime(ts: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+function formatDateWithWeekday(date: Date): string {
+  const wd = ['日', '一', '二', '三', '四', '五', '六']
+  return `${date.getMonth() + 1}月${date.getDate()}日（周${wd[date.getDay()]}）`
+}
+
 function fmtDuration(ms: number, language: 'zh' | 'en'): string {
   const hours = ms / 3_600_000
   if (hours >= 1) return hours.toFixed(1) + (language === 'zh' ? 'h' : 'h')
@@ -328,7 +333,9 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
                     {fmtTime(displayStart)}
                   </div>
                   <div className="font-mono text-[10px] text-text-tertiary leading-none mt-1">
-                    {fmtTime(displayEnd)}
+                    {new Date(displayStart).toDateString() !== new Date(displayEnd).toDateString()
+                      ? formatDateWithWeekday(new Date(displayEnd)) + ' ' + fmtTime(displayEnd)
+                      : fmtTime(displayEnd)}
                   </div>
                 </div>
 

@@ -24,7 +24,7 @@ import { computeWeekTimeline } from '@/domain/log'
 import { DayTimelineCard } from '@/features/week-view/DayTimelineCard'
 import { WeekNavigation } from './WeekNavigation'
 import { PriorityMatrix } from './PriorityMatrix'
-import { TodoDotDialog } from './TodoDotDialog'
+import { TodoDetailCard } from './TodoDetailCard'
 import { QuickCreateCard } from './QuickCreateCard'
 import { ProjectChipList } from './ProjectChipList'
 import { OrphanTodoList } from './OrphanTodoList'
@@ -153,6 +153,7 @@ export function ActionPage() {
 
   // ── 本地状态 ──
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null)
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
 
   // 连续聚焦天数
   const streakDays = useMemo(() => calcCompletionStreak(todos), [todos])
@@ -205,8 +206,9 @@ export function ActionPage() {
   }, [])
 
   // ── 卡片点击 ──
-  const handleCardClick = useCallback((id: string) => {
+  const handleCardClick = useCallback((id: string, e: React.MouseEvent) => {
     setSelectedTodoId(id)
+    setAnchorEl(e.currentTarget as HTMLElement)
   }, [])
 
   // ── 拖拽重排（矩阵） ──
@@ -264,11 +266,7 @@ export function ActionPage() {
   const doneCount = todos.filter((t) => t.status === 'done').length
   const activeCount = todos.length - doneCount
 
-  // ── 项目列表 ──
-  const activeProjects = projects
-    .filter((p) => p.status === 'active')
-    .map((p) => ({ id: p.id, name: p.name, categoryId: p.categoryId }))
-
+  // ── 项目统计 ──
   const activeProjectCount = projects.filter((p) => p.status === 'active').length
 
   // 独立待办（无项目归属 + 未完成）
@@ -504,12 +502,12 @@ export function ActionPage() {
         )}
       </div>
 
-      {/* ── 待办编辑弹框 ── */}
-      {selectedTodoId && (
-        <TodoDotDialog
+      {/* ── 待办编辑浮卡 ── */}
+      {selectedTodoId && anchorEl && (
+        <TodoDetailCard
           todoId={selectedTodoId}
-          projects={activeProjects}
-          onClose={() => setSelectedTodoId(null)}
+          anchorEl={anchorEl}
+          onClose={() => { setSelectedTodoId(null); setAnchorEl(null) }}
         />
       )}
 

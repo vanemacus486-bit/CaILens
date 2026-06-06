@@ -42,6 +42,11 @@ function fmtHM(ts: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+function formatDateWithWeekday(date: Date): string {
+  const wd = ['日', '一', '二', '三', '四', '五', '六']
+  return `${date.getMonth() + 1}月${date.getDate()}日（周${wd[date.getDay()]}）`
+}
+
 const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六']
 
 const MEAL_ORDER_SHORT: Record<string, string> = {
@@ -210,9 +215,16 @@ export function DayTimelineCard({ day, categories, isToday: isTodayProp }: DayTi
                   >
                     {/* Time */}
                     <div className="text-right pt-0.5">
-                      <span className="font-mono text-[11px] text-text-secondary leading-none">
-                        {startStr}
-                      </span>
+                      <div className="flex flex-col items-end">
+                        <span className="font-mono text-[11px] text-text-secondary leading-none">
+                          {startStr}
+                        </span>
+                        {dur > 12 * 60 * 60_000 && (
+                          <span className="font-mono text-[9px] text-text-tertiary leading-none mt-0.5">
+                            {formatDateWithWeekday(new Date(event.endTime))} {fmtHM(event.endTime)}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Color bar */}

@@ -74,6 +74,12 @@ export function formatMonthDay(date: Date): string {
   return dfnFormat(date, 'MMM d')
 }
 
+const WEEKDAY_NAMES_ZH = ['日', '一', '二', '三', '四', '五', '六']
+
+export function formatDateWithWeekday(date: Date): string {
+  return `${date.getMonth() + 1}月${date.getDate()}日（周${WEEKDAY_NAMES_ZH[date.getDay()]}）`
+}
+
 // ── Range / overlap ──────────────────────────────────────
 
 export function isRangeOverlapping(
