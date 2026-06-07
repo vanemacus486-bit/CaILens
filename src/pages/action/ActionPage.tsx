@@ -73,6 +73,7 @@ export function ActionPage() {
     toggleComplete,
     reorderTodo,
     updateTodo,
+    deleteTodo,
   } = useTodoStore()
 
   const {
@@ -393,6 +394,7 @@ export function ActionPage() {
                       onCellContextMenu={handleCellContextMenu}
                       focusIds={focusIds}
                       onToggleFocus={handleToggleFocus}
+                      onDeleteTodo={deleteTodo}
                     />
                   )}
 

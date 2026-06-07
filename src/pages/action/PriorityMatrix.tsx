@@ -10,6 +10,12 @@ import { useState, useCallback, useRef, type DragEvent } from 'react'
 import { type Todo, type TodoPriority } from '@/domain/todo'
 import { useCategoryColors } from '@/constants/categoryColors'
 
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+
 // ── 常量 ──────────────────────────────────────────────────
 
 const CATEGORY_IDS = ['accent', 'sage', 'sand', 'sky', 'rose'] as const
@@ -47,11 +53,13 @@ interface PriorityMatrixProps {
   focusIds: Set<string>
   /** 切换聚焦状态：todoId, 是否聚焦 */
   onToggleFocus: (todoId: string, isFocus: boolean) => void
+  /** 删除待办回调 */
+  onDeleteTodo?: (todoId: string) => void
 }
 
 // ── 组件 ──────────────────────────────────────────────────
 
-export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onCellContextMenu, focusIds, onToggleFocus }: PriorityMatrixProps) {
+export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onCellContextMenu, focusIds, onToggleFocus, onDeleteTodo }: PriorityMatrixProps) {
   const colorMap = useCategoryColors()
 
   // 统计总数
@@ -126,6 +134,7 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, on
                     onContextMenu={onCellContextMenu}
                     focusIds={focusIds}
                     onToggleFocus={onToggleFocus}
+                    onDeleteTodo={onDeleteTodo}
                   />
                 )
               })}
@@ -163,9 +172,10 @@ interface CellProps {
   onContextMenu?: (e: React.MouseEvent, catId: string, priId: string) => void
   focusIds: Set<string>
   onToggleFocus: (todoId: string, isFocus: boolean) => void
+  onDeleteTodo?: (todoId: string) => void
 }
 
-function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onContextMenu, focusIds, onToggleFocus }: CellProps) {
+function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onContextMenu, focusIds, onToggleFocus, onDeleteTodo }: CellProps) {
   const count = todos.length
 
   // ── 拖拽状态 ──
@@ -176,6 +186,9 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
 
   // ── 完成动画状态 ──
   const [completingId, setCompletingId] = useState<string | null>(null)
+
+  // ── 删除确认状态 ──
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const handleQuickComplete = useCallback((e: React.MouseEvent, todoId: string) => {
     e.stopPropagation()
@@ -370,35 +383,36 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
             const hasNoDueDate = todo.dueDate === null
             const isDoneFocus = isFocus && todo.status === 'done'
             return (
-              <button
-                key={todo.id}
-                draggable={!isCompleting}
-                onClick={(e) => onCardClick(todo.id, e)}
-                onDragStart={(e) => handleDragStart(e, todo.id)}
-                onDragEnd={handleDragEnd}
-                onDragOver={(e) => handleCardDragOver(e, todo.id)}
-                onDragLeave={handleCardDragLeave}
-                onDrop={(e) => handleCardDrop(e, todo.id)}
-                className={`w-full text-left rounded-md border cursor-grab active:cursor-grabbing transition-all duration-150 group overflow-hidden default-border ${
-                  isCompleting
-                    ? 'animate-todo-complete'
-                    : isDoneFocus
-                      ? 'border-accent/20 bg-accent/[0.02] opacity-60'
-                      : isFocus
-                        ? 'border-accent/60 bg-accent/[0.06] shadow-sm ring-1 ring-accent/20'
-                        : cardSelected
-                          ? 'border-accent/40 bg-accent/5 shadow-xs'
-                          : hasNoDueDate
-                            ? 'border-border-subtle bg-surface-raised hover:border-border-default hover:shadow-xs opacity-65'
-                            : 'border-border-subtle bg-surface-raised hover:border-border-default hover:shadow-xs'
-                }`}
-                style={{
-                  borderLeftWidth: 3,
-                  borderLeftColor: categoryFill,
-                  ...(isDropTarget && dropPos === 'before' ? { borderTop: '2px solid var(--accent)' } : {}),
-                  ...(isDropTarget && dropPos === 'after' ? { borderBottom: '2px solid var(--accent)' } : {}),
-                }}
-              >
+              <div key={todo.id}>
+                  <button
+                    draggable={!isCompleting}
+                    onClick={(e) => onCardClick(todo.id, e)}
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteConfirmId(todo.id) }}
+                    onDragStart={(e) => handleDragStart(e, todo.id)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => handleCardDragOver(e, todo.id)}
+                    onDragLeave={handleCardDragLeave}
+                    onDrop={(e) => handleCardDrop(e, todo.id)}
+                    className={`w-full text-left rounded-md border cursor-grab active:cursor-grabbing transition-all duration-150 group overflow-hidden default-border ${
+                      isCompleting
+                        ? 'animate-todo-complete'
+                        : isDoneFocus
+                          ? 'border-accent/20 bg-accent/[0.02] opacity-60'
+                          : isFocus
+                            ? 'border-accent/60 bg-accent/[0.06] shadow-sm ring-1 ring-accent/20'
+                            : cardSelected
+                              ? 'border-accent/40 bg-accent/5 shadow-xs'
+                              : hasNoDueDate
+                                ? 'border-border-subtle bg-surface-raised hover:border-border-default hover:shadow-xs opacity-65'
+                                : 'border-border-subtle bg-surface-raised hover:border-border-default hover:shadow-xs'
+                    }`}
+                    style={{
+                      borderLeftWidth: 3,
+                      borderLeftColor: categoryFill,
+                      ...(isDropTarget && dropPos === 'before' ? { borderTop: '2px solid var(--accent)' } : {}),
+                      ...(isDropTarget && dropPos === 'after' ? { borderBottom: '2px solid var(--accent)' } : {}),
+                    }}
+                  >
                 <div className="px-2.5 py-2 relative">
                   {/* 标题 + 今日标签 */}
                   <div className="font-sans text-[12px] leading-tight truncate pr-7 flex items-center gap-1.5">
@@ -443,7 +457,28 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
                     </div>
                   )}
                 </div>
-              </button>
+                  </button>
+
+                <AlertDialog open={deleteConfirmId === todo.id} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null) }}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>删除待办？</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        "{todo.title}" 将被永久删除。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>取消</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => { onDeleteTodo?.(todo.id); setDeleteConfirmId(null) }}
+                        className="bg-color-text-danger text-white"
+                      >
+                        删除
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             )
           })}
         </div>
