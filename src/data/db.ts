@@ -9,7 +9,7 @@ import type { InspirationLog } from '@/domain/inspiration'
 import type { Profile } from '@/domain/profile'
 import type { Todo } from '@/domain/todo'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
-import { upgradeV3, upgradeV4, upgradeV5, upgradeV16, upgradeV21 } from './migrations/upgrades'
+import { upgradeV3, upgradeV4, upgradeV5, upgradeV16, upgradeV21, upgradeV24 } from './migrations/upgrades'
 
 // ── Database ──────────────────────────────────────────────
 
@@ -152,6 +152,25 @@ export class CailensDB extends Dexie {
       hygieneLogs: 'id, date',
       todos: 'id, status, dueDate, sortOrder, projectId, categoryId',
     })
+
+    // v23：todos 新增 repeatPattern 字段（每日重复待办）
+    this.version(23).stores({
+      todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern',
+    })
+
+    // v24：projects 新增 dailyRepeat 字段（项目级每日重复）
+    this.version(24).stores({
+      events: 'id, startTime, endTime, projectId',
+      categories: 'id', settings: 'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+      projects: 'id, categoryId, name, status, sortOrder, useCount, lastUsedAt, dailyRepeat',
+      inspirations: 'id, projectId, eventId',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+      profiles: 'id',
+      outfitLogs: 'id, date',
+      hygieneLogs: 'id, date',
+      todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern',
+    }).upgrade(upgradeV24)
 
     // 全新 DB 首次创建时触发（version 0 → any）
     this.on('populate', () =>

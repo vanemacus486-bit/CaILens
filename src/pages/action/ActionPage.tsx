@@ -180,14 +180,12 @@ export function ActionPage() {
   const focusStats = getTodayFocusStats(todos)
   const focusIds = new Set(focusStats.focused.map((t) => t.id))
 
-  // ── 右键菜单处理器 ──
-  const handleCellContextMenu = useCallback((
+  // ── 格子点击处理器 ──
+  const handleCellClick = useCallback((
     e: React.MouseEvent,
     catId: string,
     priId: string,
   ) => {
-    e.preventDefault()
-    e.stopPropagation()
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -391,7 +389,7 @@ export function ActionPage() {
                       onReorder={handleReorder}
                       onMoveToCell={handleMoveToCell}
                       onComplete={toggleComplete}
-                      onCellContextMenu={handleCellContextMenu}
+                      onCellClick={handleCellClick}
                       focusIds={focusIds}
                       onToggleFocus={handleToggleFocus}
                       onDeleteTodo={deleteTodo}

@@ -31,11 +31,14 @@ export interface Project {
   createdAt: number
   updatedAt: number
   archivedAt?: number
+  /** 项目级每日重复开关：开启后该项目下所有 done 的 todo 在过零点自动重置为 todo */
+  dailyRepeat: boolean
 }
 
 export type CreateProjectInput = Pick<Project, 'name' | 'categoryId'> & {
   description?: string
   sortOrder?: number
+  dailyRepeat?: boolean
 }
 
 export type UpdateProjectInput = Pick<Project, 'id'> &

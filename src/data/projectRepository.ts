@@ -65,6 +65,7 @@ export class ProjectRepository {
       sortOrder: input.sortOrder ?? maxOrder + 1,
       createdAt: now,
       updatedAt: now,
+      dailyRepeat: input.dailyRepeat ?? false,
     }
     await this.adapter.projects.put(project)
     return project
@@ -151,5 +152,20 @@ export class ProjectRepository {
         updatedAt: this.clock.now(),
       })
     }
+  }
+
+  /** 切换项目每日重复开关 */
+  async toggleDailyRepeat(id: string): Promise<Project> {
+    const existing = await this.adapter.projects.get(id)
+    if (existing === undefined) {
+      throw new Error(`Project not found: ${id}`)
+    }
+    const updated: Project = {
+      ...existing,
+      dailyRepeat: !existing.dailyRepeat,
+      updatedAt: this.clock.now(),
+    }
+    await this.adapter.projects.put(updated)
+    return updated
   }
 }

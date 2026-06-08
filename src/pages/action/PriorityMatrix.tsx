@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback, useRef, type DragEvent } from 'react'
-import { type Todo, type TodoPriority } from '@/domain/todo'
+import { type Todo, type TodoPriority, getTodayStart } from '@/domain/todo'
 import { useCategoryColors } from '@/constants/categoryColors'
 
 import {
@@ -47,8 +47,8 @@ interface PriorityMatrixProps {
   onMoveToCell: (sourceId: string, catId: string, priId: string) => void
   /** 快速完成回调（带退出动画） */
   onComplete?: (todoId: string) => void
-  /** 格子右键回调，传递该格的分类+优先级 */
-  onCellContextMenu?: (e: React.MouseEvent, catId: string, priId: string) => void
+  /** 格子左键回调，传递该格的分类+优先级 */
+  onCellClick?: (e: React.MouseEvent, catId: string, priId: string) => void
   /** 今日聚焦 ID 集合 */
   focusIds: Set<string>
   /** 切换聚焦状态：todoId, 是否聚焦 */
@@ -59,7 +59,7 @@ interface PriorityMatrixProps {
 
 // ── 组件 ──────────────────────────────────────────────────
 
-export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onCellContextMenu, focusIds, onToggleFocus, onDeleteTodo }: PriorityMatrixProps) {
+export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onCellClick, focusIds, onToggleFocus, onDeleteTodo }: PriorityMatrixProps) {
   const colorMap = useCategoryColors()
 
   // 统计总数
@@ -131,7 +131,7 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, on
                     onReorder={onReorder}
                     onMoveToCell={onMoveToCell}
                     onComplete={onComplete}
-                    onContextMenu={onCellContextMenu}
+                    onClick={onCellClick}
                     focusIds={focusIds}
                     onToggleFocus={onToggleFocus}
                     onDeleteTodo={onDeleteTodo}
@@ -169,13 +169,13 @@ interface CellProps {
   onReorder: (sourceId: string, targetId: string, position: 'before' | 'after') => void
   onMoveToCell: (sourceId: string, catId: string, priId: string) => void
   onComplete?: (todoId: string) => void
-  onContextMenu?: (e: React.MouseEvent, catId: string, priId: string) => void
+  onClick?: (e: React.MouseEvent, catId: string, priId: string) => void
   focusIds: Set<string>
   onToggleFocus: (todoId: string, isFocus: boolean) => void
   onDeleteTodo?: (todoId: string) => void
 }
 
-function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onContextMenu, focusIds, onToggleFocus, onDeleteTodo }: CellProps) {
+function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onClick, focusIds, onToggleFocus, onDeleteTodo }: CellProps) {
   const count = todos.length
 
   // ── 拖拽状态 ──
@@ -340,7 +340,8 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
       onDragLeave={handleCellDragLeave}
       onDragOver={handleCellDragOver}
       onDrop={handleCellDrop}
-      onContextMenu={(e) => onContextMenu?.(e, catId, priId)}
+      onClick={(e) => onClick?.(e, catId, priId)}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation() }}
     >
       {/* ── 计数徽标 ── */}
       {count > 0 && (
@@ -382,11 +383,25 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
             const isFocus = focusIds.has(todo.id)
             const hasNoDueDate = todo.dueDate === null
             const isDoneFocus = isFocus && todo.status === 'done'
+
+            // 计算逾期天数：high 优先级 + 未完成 + dueDate 已过期
+            const todayStart = getTodayStart()
+            let overdueDays = 0
+            if (
+              todo.priority === 'high'
+              && todo.status !== 'done'
+              && todo.dueDate !== null
+              && todo.dueDate < todayStart
+            ) {
+              const diff = todayStart - todo.dueDate
+              overdueDays = Math.floor(diff / 86400000)
+            }
+
             return (
               <div key={todo.id}>
                   <button
                     draggable={!isCompleting}
-                    onClick={(e) => onCardClick(todo.id, e)}
+                    onClick={(e) => { e.stopPropagation(); onCardClick(todo.id, e) }}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteConfirmId(todo.id) }}
                     onDragStart={(e) => handleDragStart(e, todo.id)}
                     onDragEnd={handleDragEnd}
@@ -425,6 +440,11 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
                     <span className={isDoneFocus ? 'line-through text-text-tertiary truncate' : 'text-text-primary truncate'}>
                       {todo.title}
                     </span>
+                    {overdueDays > 0 && !isDoneFocus && (
+                      <span className="inline-flex items-center px-1.5 py-[1px] rounded-full text-[8px] font-medium leading-none flex-shrink-0 bg-[#B53535]/15 text-[#B53535]">
+                        {'逾期' + overdueDays + '天'}
+                      </span>
+                    )}
                   </div>
 
                   {/* hover 时出现的操作按钮 */}

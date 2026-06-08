@@ -12,6 +12,7 @@ import {
   Pencil,
 } from 'lucide-react'
 import type { Todo } from '@/domain/todo'
+import { getTodayStart } from '@/domain/todo'
 
 interface TodoItemProps {
   todo: Todo
@@ -101,15 +102,20 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
         )}
       </button>
 
-      {/* 标题 */}
-      <div className="flex-1 min-w-0 flex items-center">
+      {/* 标题 + 逾期标签 */}
+      <div className="flex-1 min-w-0 flex items-center gap-1.5">
         <span
-          className={`font-serif text-sm ${
+          className={`font-serif text-sm flex-1 truncate ${
             isDone ? 'line-through text-text-tertiary' : 'text-text-primary'
           }`}
         >
           {todo.title}
         </span>
+        {todo.priority === 'high' && !isDone && todo.dueDate !== null && getTodayStart() > todo.dueDate && (
+          <span className="inline-flex items-center px-1.5 py-[1px] rounded-full text-[8px] font-medium leading-none flex-shrink-0 bg-[#B53535]/15 text-[#B53535]">
+            {'逾期'}
+          </span>
+        )}
       </div>
 
       {/* 操作按钮 */}

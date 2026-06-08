@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { Project, CreateProjectInput, UpdateProjectInput } from '@/domain/project'
 import { sortProjects } from '@/domain/project'
 import type { Todo } from '@/domain/todo'
-import { calcProjectProgress } from '@/domain/todo'
+import { calcProjectProgress, isRepeatingTodo } from '@/domain/todo'
 import { getProjectRepo, getTodoRepo, getEventRepo, getInspirationRepo } from '@/data/getRepositories'
 
 interface ProjectState {
@@ -34,6 +34,10 @@ interface ProjectState {
   reorderTodo: (id: string, direction: 'up' | 'down') => Promise<void>
   reorderTodoArbitrary: (id: string, targetId: string, position: 'before' | 'after') => Promise<void>
   updateTodoInProject: (id: string, updates: { title?: string }) => Promise<Todo>
+
+  // Project-level daily repeat
+  toggleDailyRepeat: (id: string) => Promise<void>
+  resetDailyRepeatTodos: (todos: Todo[], projects: Project[]) => Promise<void>
 }
 
 export const useProjectStore = create<ProjectState>()((set, get) => ({
@@ -60,6 +64,8 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       for (const key of Object.keys(todosByProject)) {
         todosByProject[key].sort((a, b) => a.sortOrder - b.sortOrder)
       }
+      // 过零点重置 dailyRepeat 项目的 done → todo
+      await get().resetDailyRepeatTodos(allTodos, projects)
       set({ projects, todosByProject, isLoaded: true, isLoading: false })
     } catch (e) {
       set({ error: (e as Error).message, isLoading: false })
@@ -240,9 +246,16 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
   toggleTodoDone: async (id) => {
     const todoRepo = getTodoRepo()
+    const existing = await todoRepo.getById(id)
     const updated = await todoRepo.toggleComplete(id)
+    const pid = updated.projectId
+
+    // 如果原来是重复待办 → 克隆到明天
+    if (existing && isRepeatingTodo(existing)) {
+      await todoRepo.spawnRepeat(existing)
+    }
+
     set((state) => {
-      const pid = updated.projectId
       if (!pid) return state
       const items = (state.todosByProject[pid] ?? []).map((t) =>
         t.id === updated.id ? updated : t,
@@ -251,6 +264,14 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         todosByProject: { ...state.todosByProject, [pid]: items },
       }
     })
+
+    // 重新加载以确保 spawn 的新 todo 进入状态
+    if (pid) {
+      const fresh = await todoRepo.getByProject(pid)
+      set((state) => ({
+        todosByProject: { ...state.todosByProject, [pid]: fresh },
+      }))
+    }
   },
 
   reorderTodo: async (id, direction) => {
@@ -311,5 +332,49 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         }))
       })
     })
+  },
+
+  // ── Project-level daily repeat ──
+
+  toggleDailyRepeat: async (id) => {
+    const updated = await getProjectRepo().toggleDailyRepeat(id)
+    set((state) => ({
+      projects: state.projects.map((p) => (p.id === id ? updated : p)),
+    }))
+  },
+
+  // ── Midnight reset: done → todo for daily-repeat projects ──
+
+  resetDailyRepeatTodos: async (todos: Todo[], projects: Project[]) => {
+    const todayKey = new Date().toISOString().slice(0, 10)
+    const lastDate = localStorage.getItem('cailens_last_load_date')
+
+    if (lastDate === todayKey) return
+
+    const dailyRepeatProjectIds = new Set(
+      projects.filter((p) => p.dailyRepeat).map((p) => p.id),
+    )
+
+    if (dailyRepeatProjectIds.size === 0) {
+      localStorage.setItem('cailens_last_load_date', todayKey)
+      return
+    }
+
+    const changedIds = new Set<string>()
+
+    for (const todo of todos) {
+      if (todo.projectId && dailyRepeatProjectIds.has(todo.projectId) && todo.status === 'done') {
+        changedIds.add(todo.id)
+      }
+    }
+
+    if (changedIds.size > 0) {
+      const todoRepo = getTodoRepo()
+      for (const id of changedIds) {
+        await todoRepo.update({ id, status: 'todo' as const })
+      }
+    }
+
+    localStorage.setItem('cailens_last_load_date', todayKey)
   },
 }))

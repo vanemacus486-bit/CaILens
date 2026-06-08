@@ -61,6 +61,7 @@ export class TodoRepository {
       createdAt: now,
       updatedAt: now,
       completedAt: null,
+      repeatPattern: input.repeatPattern ?? null,
     }
     await this.adapter.todos.put(todo)
     return todo
@@ -120,5 +121,13 @@ export class TodoRepository {
 
   async bulkPut(todos: Todo[]): Promise<void> {
     await this.adapter.todos.bulkPut(todos)
+  }
+
+  /** 为重复待办生成下一个实例（完成当前后自动调用） */
+  async spawnRepeat(todo: Todo): Promise<Todo> {
+    const { spawnNextRepeat } = await import('@/domain/todo')
+    const cloned = spawnNextRepeat(todo)
+    await this.adapter.todos.put(cloned)
+    return cloned
   }
 }

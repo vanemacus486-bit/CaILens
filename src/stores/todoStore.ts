@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Todo, CreateTodoInput, UpdateTodoInput } from '@/domain/todo'
-import { sortTodos } from '@/domain/todo'
+import { sortTodos, isRepeatingTodo } from '@/domain/todo'
 import { getTodoRepo } from '@/data/getRepositories'
 
 interface TodoState {
@@ -14,6 +14,7 @@ interface TodoState {
   updateTodo: (input: UpdateTodoInput) => Promise<Todo>
   deleteTodo: (id: string) => Promise<void>
   toggleComplete: (id: string) => Promise<Todo>
+  clearRepeatPattern: (id: string) => Promise<void>
   reorderTodo: (id: string, targetId: string, position: 'before' | 'after') => Promise<void>
 }
 
@@ -71,7 +72,17 @@ export const useTodoStore = create<TodoState>()((set, get) => ({
 
   toggleComplete: async (id) => {
     try {
+      const existing = get().todos.find((t) => t.id === id)
+      if (!existing) throw new Error('Todo not found')
+
+      const isDone = existing.status !== 'done'
       const todo = await getTodoRepo().toggleComplete(id)
+
+      // 如果标记为完成且是重复待办 → 克隆到明天
+      if (isDone && isRepeatingTodo(existing)) {
+        await getTodoRepo().spawnRepeat(existing)
+      }
+
       const all = sortTodos(await getTodoRepo().getAll())
       set({ todos: all })
       return todo
@@ -79,6 +90,12 @@ export const useTodoStore = create<TodoState>()((set, get) => ({
       set({ error: (e as Error).message })
       throw e
     }
+  },
+
+  clearRepeatPattern: async (id) => {
+    await getTodoRepo().update({ id, repeatPattern: null })
+    const all = sortTodos(await getTodoRepo().getAll())
+    set({ todos: all })
   },
 
   reorderTodo: async (id, targetId, position) => {

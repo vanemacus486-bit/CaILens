@@ -23,6 +23,8 @@ export const TODO_STATUS_LABELS_EN: Record<TodoStatus, string> = {
   done:        'Done',
 }
 
+export type RepeatPattern = 'daily'
+
 // ── 优先级枚举 ──────────────────────────────────────────────
 
 export type TodoPriority = 'high' | 'medium' | 'low'
@@ -68,6 +70,8 @@ export interface Todo {
   updatedAt: number
   /** 完成时间戳，仅 status === 'done' 时有值 */
   completedAt: number | null
+  /** 重复模式。null = 普通待办。'daily' = 完成后自动克隆到明天 */
+  repeatPattern: RepeatPattern | null
 }
 
 // ── 输入类型 ────────────────────────────────────────────────
@@ -79,6 +83,7 @@ export interface CreateTodoInput {
   dueDate?: number | null
   projectId?: string | null
   categoryId?: string | null
+  repeatPattern?: RepeatPattern | null
 }
 
 export interface UpdateTodoInput {
@@ -91,6 +96,7 @@ export interface UpdateTodoInput {
   sortOrder?: number
   projectId?: string | null
   categoryId?: string | null
+  repeatPattern?: RepeatPattern | null
 }
 
 // ── 纯函数工具 ──────────────────────────────────────────────
@@ -445,6 +451,33 @@ export function groupTodosByPriorityWithDoneFocus(
 /** 获取今天 0 点的时间戳 */
 export function getTodayStart(now: number = Date.now()): number {
   return new Date(now).setHours(0, 0, 0, 0)
+}
+
+/** 判断待办是否为重复待办 */
+export function isRepeatingTodo(todo: Todo): boolean {
+  return todo.repeatPattern === 'daily'
+}
+
+/**
+ * 克隆一个重复待办作为新实例。
+ * 用于完成旧实例后自动生成下一个。
+ */
+export function spawnNextRepeat(todo: Todo, now: number = Date.now()): Todo {
+  return {
+    id: crypto.randomUUID(),
+    title: todo.title,
+    description: todo.description,
+    status: 'todo',
+    priority: todo.priority,
+    dueDate: null,
+    sortOrder: todo.sortOrder,
+    projectId: todo.projectId,
+    categoryId: todo.categoryId,
+    repeatPattern: 'daily',
+    createdAt: now,
+    updatedAt: now,
+    completedAt: null,
+  }
 }
 
 

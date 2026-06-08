@@ -139,6 +139,17 @@ export async function upgradeV21(tx: Transaction): Promise<void> {
   }
 }
 
+// ── v24: projects 新增 dailyRepeat 字段 ─────────────────
+
+export async function upgradeV24(tx: Transaction): Promise<void> {
+  const projects = await tx.table('projects').toArray()
+  for (const p of projects as any[]) {
+    if (p.dailyRepeat === undefined) {
+      await tx.table('projects').update(p.id, { dailyRepeat: false })
+    }
+  }
+}
+
 export async function upgradeV16(tx: Transaction): Promise<void> {
   const oldProjects = await tx.table('projects').toArray()
   for (const p of oldProjects as any[]) {

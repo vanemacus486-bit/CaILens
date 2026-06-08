@@ -7,6 +7,8 @@ import {
   nextSortOrder,
   calcProjectProgress,
   TODO_PRIORITY_ORDER,
+  isRepeatingTodo,
+  spawnNextRepeat,
 } from '../todo'
 import type { Todo } from '../todo'
 
@@ -27,6 +29,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     createdAt: now,
     updatedAt: now,
     completedAt: null,
+    repeatPattern: null,
     ...overrides,
   }
 }
@@ -416,5 +419,60 @@ describe('TODO_PRIORITY_ORDER', () => {
   it('has high > medium > low', () => {
     expect(TODO_PRIORITY_ORDER.high).toBeGreaterThan(TODO_PRIORITY_ORDER.medium)
     expect(TODO_PRIORITY_ORDER.medium).toBeGreaterThan(TODO_PRIORITY_ORDER.low)
+  })
+})
+
+// ── RepeatPattern ──────────────────────────────────────────
+
+describe('isRepeatingTodo', () => {
+  it('returns true for daily repeat todo', () => {
+    const todo = makeTodo({ repeatPattern: 'daily' })
+    expect(isRepeatingTodo(todo)).toBe(true)
+  })
+
+  it('returns false for null repeat pattern', () => {
+    const todo = makeTodo({ repeatPattern: null })
+    expect(isRepeatingTodo(todo)).toBe(false)
+  })
+})
+
+describe('spawnNextRepeat', () => {
+  it('creates a clone with status todo and same title', () => {
+    const todo = makeTodo({ repeatPattern: 'daily', sortOrder: 5 })
+    const now = Date.now()
+    const spawned = spawnNextRepeat(todo, now)
+    expect(spawned.status).toBe('todo')
+    expect(spawned.title).toBe(todo.title)
+    expect(spawned.repeatPattern).toBe('daily')
+    expect(spawned.sortOrder).toBe(5)
+    expect(spawned.id).not.toBe(todo.id)
+    expect(spawned.completedAt).toBe(null)
+    expect(spawned.dueDate).toBe(null)
+  })
+
+  it('preserves projectId and categoryId', () => {
+    const todo = makeTodo({
+      repeatPattern: 'daily',
+      projectId: 'proj-1',
+      categoryId: 'accent',
+    })
+    const spawned = spawnNextRepeat(todo)
+    expect(spawned.projectId).toBe('proj-1')
+    expect(spawned.categoryId).toBe('accent')
+  })
+
+  it('does not mutate original todo', () => {
+    const todo = makeTodo({ repeatPattern: 'daily' })
+    spawnNextRepeat(todo)
+    expect(todo.status).toBe('todo')
+  })
+})
+
+describe('sortTodos with repeating todos', () => {
+  it('sorts repeating todos alongside normal todos by sortOrder', () => {
+    const normal = makeTodo({ id: '1', sortOrder: 1 })
+    const repeating = makeTodo({ id: '2', repeatPattern: 'daily', sortOrder: 2 })
+    const sorted = sortTodos([repeating, normal])
+    expect(sorted.map(t => t.id)).toEqual(['1', '2'])
   })
 })

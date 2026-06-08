@@ -33,6 +33,7 @@ function makeTodo(overrides: Partial<Todo> & { id: string }): Todo {
     createdAt: 0,
     updatedAt: 0,
     completedAt: null,
+    repeatPattern: null,
     ...overrides,
   }
 }

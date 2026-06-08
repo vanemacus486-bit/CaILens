@@ -7,7 +7,7 @@
  */
 
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { Pencil, Trash2, CheckCircle2 } from 'lucide-react'
+import { Pencil, Trash2, CheckCircle2, Repeat2 } from 'lucide-react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -120,6 +120,12 @@ export function TodoDetailCard({ todoId, anchorEl, onClose }: TodoDetailCardProp
     onClose()
   }, [todo.id, deleteTodo, onClose])
 
+  const handleToggleRepeat = useCallback(() => {
+    const newValue = todo.repeatPattern ? null : 'daily'
+    updateTodo({ id: todo.id, repeatPattern: newValue })
+    onClose()
+  }, [todo.id, todo.repeatPattern, updateTodo, onClose])
+
   const isDone = todo.status === 'done'
 
   return (
@@ -155,6 +161,16 @@ export function TodoDetailCard({ todoId, anchorEl, onClose }: TodoDetailCardProp
                 placeholder="待办标题"
                 className="w-full bg-transparent border border-border-subtle rounded-lg px-3 py-2 text-sm font-sans text-text-primary placeholder:text-text-quaternary outline-none focus:border-accent/50 focus:shadow-sm transition-shadow"
               />
+
+              {/* 重复标签 */}
+              {todo.repeatPattern && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium leading-none bg-accent/10 text-accent">
+                    <Repeat2 size={8} strokeWidth={2} />
+                    每日重复
+                  </span>
+                </div>
+              )}
 
               {/* 分类 + 优先级 */}
               <div className="flex items-center justify-between">
@@ -207,28 +223,40 @@ export function TodoDetailCard({ todoId, anchorEl, onClose }: TodoDetailCardProp
 
               {/* 操作按钮 */}
               <div className="flex items-center justify-between pt-1">
+                {/* 重复切换 */}
                 <Button
                   variant="ghost" size="sm"
-                  onClick={handleToggleComplete}
-                  className={`gap-1.5 px-2 h-8 text-xs ${isDone ? 'text-text-secondary' : 'text-accent'}`}
+                  onClick={handleToggleRepeat}
+                  className={`gap-1.5 px-2 h-8 text-xs ${todo.repeatPattern ? 'text-accent' : 'text-text-tertiary'}`}
                 >
-                  <CheckCircle2 size={13} strokeWidth={1.75} />
-                  {isDone ? '标记未完成' : '标记完成'}
+                  <Repeat2 size={13} strokeWidth={1.75} />
+                  {todo.repeatPattern ? '取消重复' : '设为重复'}
                 </Button>
 
-                <Button
-                  variant="ghost" size="sm"
-                  onClick={() => setShowConfirm(true)}
-                  className="text-color-text-danger hover:bg-surface-sunken gap-1.5 px-2 h-8"
-                >
-                  <Trash2 size={13} strokeWidth={1.75} />
-                  删除
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="ghost" size="sm"
+                    onClick={handleToggleComplete}
+                    className={`gap-1.5 px-2 h-8 text-xs ${isDone ? 'text-text-secondary' : 'text-accent'}`}
+                  >
+                    <CheckCircle2 size={13} strokeWidth={1.75} />
+                    {isDone ? '标记未完成' : '标记完成'}
+                  </Button>
 
-                <Button variant="default" size="sm" onClick={handleSave} className="h-8 gap-1.5">
-                  <Pencil size={13} strokeWidth={1.75} />
-                  保存
-                </Button>
+                  <Button
+                    variant="ghost" size="sm"
+                    onClick={() => setShowConfirm(true)}
+                    className="text-color-text-danger hover:bg-surface-sunken gap-1.5 px-2 h-8"
+                  >
+                    <Trash2 size={13} strokeWidth={1.75} />
+                    删除
+                  </Button>
+
+                  <Button variant="default" size="sm" onClick={handleSave} className="h-8 gap-1.5">
+                    <Pencil size={13} strokeWidth={1.75} />
+                    保存
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
