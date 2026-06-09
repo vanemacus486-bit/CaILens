@@ -13,6 +13,7 @@ import { useSearchParams } from 'react-router-dom'
 import { ListTodo } from 'lucide-react'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { usePageScrollRestore } from '@/hooks/usePageScrollRestore'
+import { TabBar } from '@/components/nav/TabBar'
 import { useTabTransition } from '@/hooks/useTabTransition'
 import { useTodoStore } from '@/stores/todoStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -119,8 +120,8 @@ export function ActionPage() {
   const handleGoToday = useCallback(() => setWeekOffset(0), [])
 
   // ── Tab 切换动画 ──
-  const tabKey = `${tab}-${weekOffset}`
-  const { visible: tabContentVisible, className: tabContentClass } = useTabTransition(tabKey)
+  // key 仅含 tab 标识，weekOffset 变化不触发动画
+  const { visible: tabContentVisible, className: tabContentClass } = useTabTransition(tab)
 
   // ── 加载日志 Tab 所需的事件 ──
   useEffect(() => {
@@ -285,46 +286,32 @@ export function ActionPage() {
 
   return (
     <div className="flex-1 h-full overflow-hidden flex flex-col">
-      {/* ── 头部 ── */}
+      {/* ── Tab 栏 ── */}
       <div className="border-b border-border-subtle/50 flex-shrink-0">
-        <div className="flex items-center justify-between px-6 pt-3 pb-2">
-          <div className="flex items-center gap-3 font-sans text-xs text-text-tertiary">
-            <span>
-              <span className="text-text-secondary font-medium">{activeCount}</span>
-              {' '}{'待处理'}
-            </span>
-            <span className="w-0.5 h-0.5 rounded-full bg-text-tertiary/40" />
-            <span>
-              <span className="text-text-secondary font-medium">{doneCount}</span>
-              {' '}{'已完成'}
-            </span>
-            {activeProjectCount > 0 && (
-              <>
-                <span className="w-0.5 h-0.5 rounded-full bg-text-tertiary/40" />
-                <span>
-                  <span className="text-text-secondary font-medium">{activeProjectCount}</span>
-                  {' '}{'项目'}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
+        <TabBar tabs={TABS} activeId={tab} onTabChange={setTab} />
+      </div>
 
-        {/* ── Tab 栏 ── */}
-        <div className="flex gap-0 px-6">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-6 py-2.5 font-serif text-sm tracking-wide cursor-pointer border-none bg-transparent transition-all duration-200 border-b-2 ${
-                tab === t.id
-                  ? 'text-text-primary font-medium border-accent'
-                  : 'text-text-tertiary border-transparent hover:text-text-secondary'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+      {/* ── 统计条 ── */}
+      <div className="flex-shrink-0 px-6 pt-3 pb-2">
+        <div className="flex items-center gap-3 font-sans text-xs text-text-tertiary">
+          <span>
+            <span className="text-text-secondary font-medium">{activeCount}</span>
+            {' '}待处理
+          </span>
+          <span className="w-0.5 h-0.5 rounded-full bg-text-tertiary/40" />
+          <span>
+            <span className="text-text-secondary font-medium">{doneCount}</span>
+            {' '}已完成
+          </span>
+          {activeProjectCount > 0 && (
+            <>
+              <span className="w-0.5 h-0.5 rounded-full bg-text-tertiary/40" />
+              <span>
+                <span className="text-text-secondary font-medium">{activeProjectCount}</span>
+                {' '}项目
+              </span>
+            </>
+          )}
         </div>
       </div>
 

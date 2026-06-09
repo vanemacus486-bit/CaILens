@@ -247,38 +247,38 @@ export function StatsPage() {
 
             {/* 内容 */}
             <div className={routineAnim.className}>
-            {routineAnim.visible && (
-            <>
-            {routineView === 'trend' && (
-              <CategoryTrendChart
-                history={history}
-                categories={categories}
-                periodType={period}
-                maturity={maturity}
-                onNavigate={navigateRoutine}
-                onPeriodChange={setPeriod}
-                allEvents={rangeEvents}
-                eventTitle={eventTitle}
-                eventHistory={eventHistory}
-                onEventTitleChange={setEventTitle}
-              />
-            )}
-            {routineView === 'heatmap' && (
-              <YearHeatmap
-                rangeEvents={rangeEvents}
-                categories={categories}
-                language={language}
-                eventTitle={eventTitle}
-                onEventTitleChange={setEventTitle}
-              />
-            )}
-            {routineView === 'sleep' && (
-              <SleepScatterChart
-                rangeEvents={rangeEvents}
-              />
-            )}
-            </>
-            )}
+              {routineAnim.visible && (
+                <>
+                  {routineView === 'trend' && (
+                    <CategoryTrendChart
+                      history={history}
+                      categories={categories}
+                      periodType={period}
+                      maturity={maturity}
+                      onNavigate={navigateRoutine}
+                      onPeriodChange={setPeriod}
+                      allEvents={rangeEvents}
+                      eventTitle={eventTitle}
+                      eventHistory={eventHistory}
+                      onEventTitleChange={setEventTitle}
+                    />
+                  )}
+                  {routineView === 'heatmap' && (
+                    <YearHeatmap
+                      rangeEvents={rangeEvents}
+                      categories={categories}
+                      language={language}
+                      eventTitle={eventTitle}
+                      onEventTitleChange={setEventTitle}
+                    />
+                  )}
+                  {routineView === 'sleep' && (
+                    <SleepScatterChart
+                      rangeEvents={rangeEvents}
+                    />
+                  )}
+                </>
+              )}
             </div>
 
           </div>
@@ -314,41 +314,41 @@ export function StatsPage() {
 
             {/* 内容 — 饮食：四段堆叠 */}
             <div className={lifestyleAnim.className}>
-            {lifestyleAnim.visible && (
-            <>
-            {lifestyleView === 'diet' && (
-              <div className="diet-stack">
-                <DietCalendarCard rangeEvents={rangeEvents} />
-                <DietFrequencyPanel rangeEvents={rangeEvents} />
-                <DietScatterChart rangeEvents={rangeEvents} />
-                <RecipeSummary rangeEvents={rangeEvents} language={language} />
-                <DietTagTrendChart rangeEvents={rangeEvents} />
-              </div>
-            )}
-            {lifestyleView === 'outfit' && (
-              <OutfitCard
-                outfits={outfits}
-                language={language}
-              />
-            )}
-            {lifestyleView === 'hygiene' && (
-              <div className="diet-stack">
-                <HygieneCalendarCard
-                  records={hygieneRecords}
-                  rangeEvents={rangeEvents}
-                  language={language}
-                />
-                <HygieneScoreChart
-                  rangeEvents={rangeEvents}
-                />
-                <HygieneStatsCard
-                  rangeEvents={rangeEvents}
-                  language={language}
-                />
-              </div>
-            )}
-            </>
-            )}
+              {lifestyleAnim.visible && (
+                <>
+                  {lifestyleView === 'diet' && (
+                    <div className="diet-stack">
+                      <DietCalendarCard rangeEvents={rangeEvents} />
+                      <DietFrequencyPanel rangeEvents={rangeEvents} />
+                      <DietScatterChart rangeEvents={rangeEvents} />
+                      <RecipeSummary rangeEvents={rangeEvents} language={language} />
+                      <DietTagTrendChart rangeEvents={rangeEvents} />
+                    </div>
+                  )}
+                  {lifestyleView === 'outfit' && (
+                    <OutfitCard
+                      outfits={outfits}
+                      language={language}
+                    />
+                  )}
+                  {lifestyleView === 'hygiene' && (
+                    <div className="diet-stack">
+                      <HygieneCalendarCard
+                        records={hygieneRecords}
+                        rangeEvents={rangeEvents}
+                        language={language}
+                      />
+                      <HygieneScoreChart
+                        rangeEvents={rangeEvents}
+                      />
+                      <HygieneStatsCard
+                        rangeEvents={rangeEvents}
+                        language={language}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
           </div>
