@@ -412,6 +412,23 @@ body.resizing-event .overflow-y-auto {
   }
 }
 
+/* ── Tab transition (fade + slide) ──────────────────────── */
+.tab-transition {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  opacity: 1;
+  transform: translateY(0);
+}
+.tab-transition-exit {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  opacity: 0;
+  transform: translateY(6px);
+}
+.tab-transition-enter {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  opacity: 0;
+  transform: translateY(6px);
+}
+
 /* ── Page transition ────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0 }

@@ -19,6 +19,7 @@ import { useAppSettingsStore } from '@/stores/settingsStore'
 import { getDataMaturity } from '@/domain/maturity'
 import type { Granularity } from '@/hooks/useStatsAggregation'
 import { useStatsAggregation, useTitleStatsAggregation } from '@/hooks/useStatsAggregation'
+import { useTabTransition } from '@/hooks/useTabTransition'
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
@@ -180,6 +181,10 @@ export function StatsPage() {
     updateParams({ date: formatISODate(shiftAnchor(anchor, period, dir)) })
   }
 
+  // ── Tab 切换动画 ──
+  const routineAnim = useTabTransition(`routine-${routineView}`)
+  const lifestyleAnim = useTabTransition(`lifestyle-${lifestyleView}`)
+
   // ── Render ───────────────────────────────────────────────
 
   const renderContent = () => {
@@ -241,6 +246,9 @@ export function StatsPage() {
             </div>
 
             {/* 内容 */}
+            <div className={routineAnim.className}>
+            {routineAnim.visible && (
+            <>
             {routineView === 'trend' && (
               <CategoryTrendChart
                 history={history}
@@ -269,6 +277,9 @@ export function StatsPage() {
                 rangeEvents={rangeEvents}
               />
             )}
+            </>
+            )}
+            </div>
 
           </div>
         )
@@ -302,6 +313,9 @@ export function StatsPage() {
             </div>
 
             {/* 内容 — 饮食：四段堆叠 */}
+            <div className={lifestyleAnim.className}>
+            {lifestyleAnim.visible && (
+            <>
             {lifestyleView === 'diet' && (
               <div className="diet-stack">
                 <DietCalendarCard rangeEvents={rangeEvents} />
@@ -333,6 +347,9 @@ export function StatsPage() {
                 />
               </div>
             )}
+            </>
+            )}
+            </div>
 
           </div>
         )

@@ -13,6 +13,7 @@ import { useSearchParams } from 'react-router-dom'
 import { ListTodo } from 'lucide-react'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { usePageScrollRestore } from '@/hooks/usePageScrollRestore'
+import { useTabTransition } from '@/hooks/useTabTransition'
 import { useTodoStore } from '@/stores/todoStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useEventStore } from '@/stores/eventStore'
@@ -116,6 +117,10 @@ export function ActionPage() {
   const handlePrevWeek = useCallback(() => setWeekOffset((p) => p - 1), [])
   const handleNextWeek = useCallback(() => setWeekOffset((p) => p + 1), [])
   const handleGoToday = useCallback(() => setWeekOffset(0), [])
+
+  // ── Tab 切换动画 ──
+  const tabKey = `${tab}-${weekOffset}`
+  const { visible: tabContentVisible, className: tabContentClass } = useTabTransition(tabKey)
 
   // ── 加载日志 Tab 所需的事件 ──
   useEffect(() => {
@@ -282,11 +287,7 @@ export function ActionPage() {
     <div className="flex-1 h-full overflow-hidden flex flex-col">
       {/* ── 头部 ── */}
       <div className="border-b border-border-subtle/50 flex-shrink-0">
-        <div className="flex items-center justify-between px-6 pt-4 pb-2">
-          <h1 className="font-serif text-lg font-medium text-text-primary flex items-center gap-2">
-            <ListTodo size={20} strokeWidth={1.5} className="text-accent" />
-            {'规划'}
-          </h1>
+        <div className="flex items-center justify-between px-6 pt-3 pb-2">
           <div className="flex items-center gap-3 font-sans text-xs text-text-tertiary">
             <span>
               <span className="text-text-secondary font-medium">{activeCount}</span>
@@ -341,6 +342,12 @@ export function ActionPage() {
           </div>
         ) : (
           <>
+            {/* ════════════════════════════════════════════
+                Tab 内容区（动画切换）
+                ════════════════════════════════════════════ */}
+            <div className={`flex-1 flex flex-col min-h-0 ${tabContentClass}`}>
+            {tabContentVisible && (
+            <>
             {/* ════════════════════════════════════════════
                 Tab: 矩阵
                 ════════════════════════════════════════════ */}
@@ -498,6 +505,9 @@ export function ActionPage() {
                 )}
               </div>
             )}
+            </>
+            )}
+            </div>
           </>
         )}
       </div>

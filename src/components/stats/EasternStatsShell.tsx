@@ -2,11 +2,11 @@
  * # EasternStatsShell — 复盘页面 Shell
  *
  * 顶级 Tab 容器 + 子视图容器。
- * Tab 为一级导航（作息/日常/身体/关联），
+ * Tab 为一级导航（作息/日常），带 200ms fade + slide 过渡。
  * 各 Tab 内部的子视图由各自的子组件管理。
  */
 
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 
 /** 一级 Tab */
@@ -37,7 +37,31 @@ interface Props {
   children: ReactNode
 }
 
+const DURATION = 200
+
 export function EasternStatsShell({ currentTab, onTabChange, children }: Props) {
+  const prevTabRef = useRef(currentTab)
+  const [phase, setPhase] = useState<'idle' | 'exit' | 'enter'>('idle')
+
+  useEffect(() => {
+    const prev = prevTabRef.current
+    if (prev !== currentTab) {
+      prevTabRef.current = currentTab
+      setPhase('exit')
+      const t1 = setTimeout(() => {
+        setPhase('enter')
+        const t2 = setTimeout(() => setPhase('idle'), DURATION)
+        return t2
+      }, DURATION)
+      return () => clearTimeout(t1)
+    }
+  }, [currentTab])
+
+  const contentClass = phase === 'exit'
+    ? 'shell-tab-exit'
+    : phase === 'enter'
+      ? 'shell-tab-enter'
+      : 'shell-tab-visible'
 
   return (
     <div className="eastern-shell-root">
@@ -57,8 +81,8 @@ export function EasternStatsShell({ currentTab, onTabChange, children }: Props) 
       </div>
 
       {/* ── 当前 Tab 内容 ──────────────────────────── */}
-      <div className="shell-content" key={currentTab}>
-        {children}
+      <div className={`shell-content ${contentClass}`}>
+        {phase !== 'exit' && children}
       </div>
     </div>
   )
@@ -112,6 +136,24 @@ const SHELL_CSS = `
   flex: 1;
   overflow-y: auto;
   padding: 24px 16px;
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  opacity: 1;
+  transform: translateY(0);
+}
+.shell-tab-enter {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  opacity: 0;
+  transform: translateY(6px);
+}
+.shell-tab-exit {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  opacity: 0;
+  transform: translateY(6px);
+}
+.shell-tab-visible {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 @media (max-width: 719px) {
