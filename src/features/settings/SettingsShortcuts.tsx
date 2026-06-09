@@ -10,6 +10,7 @@ import {
   findConflicts,
 } from '@/domain/shortcuts'
 import type { ShortcutAction } from '@/domain/shortcuts'
+import { Keyboard, AlertTriangle, RotateCcw } from 'lucide-react'
 
 export function SettingsShortcuts() {
     const shortcuts = useAppSettingsStore((s) => s.settings.shortcuts)
@@ -23,13 +24,11 @@ export function SettingsShortcuts() {
   const resolved = useMemo(() => resolveBindings(shortcuts ?? {}), [shortcuts])
   const conflicts = useMemo(() => findConflicts(resolved), [resolved])
 
-  // Recording keydown listener
   useEffect(() => {
     if (!recording) return
     recordingRef.current = recording
 
     const onKeyDown = (e: KeyboardEvent) => {
-      // Ignore standalone modifier keys
       if (e.key === 'Control' || e.key === 'Shift' || e.key === 'Alt' || e.key === 'Meta') return
 
       e.preventDefault()
@@ -76,53 +75,65 @@ export function SettingsShortcuts() {
   }, [conflicts])
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-[22px] font-medium text-text-primary">
-          {'快捷键'}
-        </h1>
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Keyboard size={16} strokeWidth={1.75} className="text-text-tertiary" />
+            <h1 className="font-serif text-[22px] font-medium text-text-primary tracking-tight">
+              快捷键
+            </h1>
+          </div>
+          <p className="text-sm text-text-tertiary font-sans">
+            自定义键盘操作，提升效率
+          </p>
+        </div>
         {confirmReset ? (
           <div className="flex items-center gap-2">
             <span className="text-xs text-text-secondary font-sans">
-              {'确认重置所有快捷键？'}
+              确认重置所有？
             </span>
             <button
               onClick={handleResetAll}
-              className="px-2 py-1 rounded-md text-xs font-sans font-medium bg-event-rose-bg text-color-text-danger transition-colors duration-200 cursor-pointer border-none"
+              className="px-2.5 py-1 rounded-md text-xs font-sans font-medium bg-event-rose-bg text-color-text-danger hover:bg-event-rose-text transition-colors duration-150 cursor-pointer border-none"
             >
-              {'确认'}
+              确认
             </button>
             <button
               onClick={() => setConfirmReset(false)}
-              className="px-2 py-1 rounded-md text-xs font-sans font-medium text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer border-none"
+              className="px-2.5 py-1 rounded-md text-xs font-sans font-medium text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-150 cursor-pointer border-none"
             >
-              {'取消'}
+              取消
             </button>
           </div>
         ) : (
           <button
             onClick={() => setConfirmReset(true)}
-            className="px-3 py-1.5 rounded-md text-xs font-sans font-medium text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-200 cursor-pointer border-none"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-sans font-medium text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-150 cursor-pointer border-none"
           >
-            {'重置全部'}
+            <RotateCcw size={12} strokeWidth={1.75} />
+            重置全部
           </button>
         )}
       </div>
 
       {/* Conflict warning */}
       {conflicts.length > 0 && (
-        <div className="bg-event-rose-bg border border-event-rose-fill rounded-lg px-3 py-2">
-          <p className="text-xs font-sans font-medium text-color-text-danger">
-            {'快捷键冲突'}
-          </p>
-          <ul className="mt-1 text-xs text-text-secondary font-sans">
+        <div className="rounded-lg bg-event-rose-bg/40 border border-event-rose-fill/30 px-4 py-3">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <AlertTriangle size={13} strokeWidth={1.75} className="text-color-text-danger" />
+            <p className="text-xs font-sans font-medium text-color-text-danger">
+              快捷键冲突
+            </p>
+          </div>
+          <ul className="flex flex-col gap-0.5">
             {conflicts.map((c) => {
               const a = SHORTCUT_REGISTRY[c.actionA]
               const b = SHORTCUT_REGISTRY[c.actionB]
               const binding = resolved[c.actionA]
               return (
-                <li key={`${c.actionA}-${c.actionB}`}>
+                <li key={`${c.actionA}-${c.actionB}`} className="text-xs text-text-secondary font-sans">
                   {`${a.label} 和 ${b.label} 都使用了 ${binding ? bindingToDisplayString(binding) : ''}`}
                 </li>
               )
@@ -131,60 +142,75 @@ export function SettingsShortcuts() {
         </div>
       )}
 
+      {/* Recording indicator */}
+      {recording && (
+        <div className="rounded-lg bg-accent/10 border border-accent/20 px-4 py-2.5 text-center">
+          <p className="text-xs font-sans font-medium text-accent animate-pulse">
+            按下组合键以绑定…
+          </p>
+          <p className="text-[10px] font-sans text-text-tertiary mt-0.5">
+            按 ESC 取消
+          </p>
+        </div>
+      )}
+
       {/* Shortcut list */}
-      <div className="flex flex-col">
-        {Object.values(SHORTCUT_REGISTRY).map((def) => {
-          const currentBinding = resolved[def.action]
-          const isRecording = recording === def.action
-          const hasOverride = shortcuts?.[def.action] !== undefined
-          const inConflict = isActionInConflict(def.action)
+      <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
+        <div className="divide-y divide-border-subtle">
+          {Object.values(SHORTCUT_REGISTRY).map((def) => {
+            const currentBinding = resolved[def.action]
+            const isRecording = recording === def.action
+            const hasOverride = shortcuts?.[def.action] !== undefined
+            const inConflict = isActionInConflict(def.action)
 
-          return (
-            <div
-              key={def.action}
-              className={cn(
-                'flex items-center justify-between py-2.5 px-1 border-b border-border-subtle last:border-b-0',
-                inConflict && 'bg-event-rose-bg/30',
-              )}
-            >
-              <span className="text-sm font-sans text-text-primary">
-                {def.label}
-              </span>
-
-              <div className="flex items-center gap-1.5">
-                {/* Binding pill */}
-                <button
-                  onClick={() => setRecording(isRecording ? null : def.action)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-md text-xs font-mono transition-colors duration-150 cursor-pointer border-none min-w-[80px] text-center',
-                    isRecording
-                      ? 'bg-accent text-white animate-pulse'
-                      : currentBinding
-                        ? 'bg-surface-sunken text-text-secondary hover:bg-border-subtle'
-                        : 'bg-surface-sunken text-text-tertiary italic hover:bg-border-subtle',
-                  )}
-                >
-                  {isRecording
-                    ? '按下按键...'
-                    : currentBinding
-                      ? bindingToDisplayString(currentBinding)
-                      : '无'}
-                </button>
-
-                {/* Reset icon — visible only when overridden */}
-                {hasOverride && (
-                  <button
-                    onClick={() => handleReset(def.action)}
-                    title={'重置为默认'}
-                    className="w-6 h-6 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-150 cursor-pointer border-none text-xs"
-                  >
-                    ↺
-                  </button>
+            return (
+              <div
+                key={def.action}
+                className={cn(
+                  'flex items-center justify-between py-3 px-4 transition-colors duration-150',
+                  inConflict && 'bg-event-rose-bg/20',
+                  !inConflict && 'hover:bg-surface-sunken/50',
                 )}
+              >
+                <span className="text-sm font-sans text-text-primary">
+                  {def.label}
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  {/* Binding pill */}
+                  <button
+                    onClick={() => setRecording(isRecording ? null : def.action)}
+                    className={cn(
+                      'px-3 py-1 rounded-md text-xs font-mono transition-all duration-150 cursor-pointer border-none min-w-[80px] text-center',
+                      isRecording
+                        ? 'bg-accent text-white shadow-pill ring-2 ring-accent/30'
+                        : currentBinding
+                          ? 'bg-surface-sunken text-text-secondary hover:bg-surface-base hover:text-text-primary'
+                          : 'bg-surface-sunken text-text-tertiary italic hover:bg-surface-base',
+                    )}
+                  >
+                    {isRecording
+                      ? '监听中…'
+                      : currentBinding
+                        ? bindingToDisplayString(currentBinding)
+                        : '无'}
+                  </button>
+
+                  {/* Reset icon */}
+                  {hasOverride && (
+                    <button
+                      onClick={() => handleReset(def.action)}
+                      title="重置为默认"
+                      className="w-6 h-6 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-150 cursor-pointer border-none"
+                    >
+                      <RotateCcw size={12} strokeWidth={1.75} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
     </div>
   )

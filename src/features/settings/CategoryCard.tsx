@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import type { CategoryId } from '@/domain/category'
 import { flattenFolderKeywords } from '@/domain/category'
 import { CategoryNameEditor } from './CategoryNameEditor'
@@ -25,12 +25,14 @@ export function CategoryCard({
   const [budgetValue, setBudgetValue] = useState(String(category.weeklyBudget))
   const [addingKeyword, setAddingKeyword] = useState(false)
   const [newKeyword, setNewKeyword] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const allKeywords = flattenFolderKeywords(category.folders ?? [])
 
   const handleBudgetClick = () => {
     setEditingBudget(true)
     setBudgetValue(String(category.weeklyBudget))
+    inputRef.current?.focus()
   }
 
   const commitBudget = () => {
@@ -52,29 +54,29 @@ export function CategoryCard({
     setAddingKeyword(false)
   }
 
-  return (
-    <div
-      className="rounded-lg border bg-surface-raised px-3.5 py-3 flex flex-col gap-2"
-      style={{ borderColor: 'rgba(128,128,128,0.12)' }}
-    >
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-2.5">
-          <span
-            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-            style={{ backgroundColor: `var(--event-${category.id}-text)` }}
-          />
-          <div className="flex-1 min-w-0">
-            <CategoryNameEditor
-              id={category.id}
-              name={category.name}
-              onCommit={onNameCommit}
-            />
-          </div>
-        </div>
+  const removeKeyword = (kw: string) => () => {
+    onRemoveKeyword(category.id, kw)
+  }
 
-        <div className="ml-5">
+  return (
+    <div className="rounded-xl bg-surface-raised border border-border-subtle px-4 py-3.5 flex flex-col gap-3 hover:border-border-default transition-colors duration-200">
+      {/* Header row: color dot + name + budget */}
+      <div className="flex items-center gap-2.5">
+        <span
+          className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-border-subtle"
+          style={{ backgroundColor: `var(--event-${category.id}-text)` }}
+        />
+        <div className="flex-1 min-w-0">
+          <CategoryNameEditor
+            id={category.id}
+            name={category.name}
+            onCommit={onNameCommit}
+          />
+        </div>
+        <div className="flex-shrink-0">
           {editingBudget ? (
             <input
+              ref={inputRef}
               type="number"
               min={1}
               max={168}
@@ -88,13 +90,13 @@ export function CategoryCard({
                   setBudgetValue(String(category.weeklyBudget))
                 }
               }}
-              className="w-16 px-1.5 py-1 text-xs font-mono text-text-primary bg-surface-sunken border border-border-subtle rounded text-center focus:border-border-default focus-visible:outline-none"
+              className="w-16 px-2 py-1 text-xs font-mono text-text-primary bg-surface-sunken border border-border-default rounded-lg text-center focus:ring-2 focus:ring-accent/30 focus:outline-none transition-shadow duration-150"
               autoFocus
             />
           ) : (
             <button
               onClick={handleBudgetClick}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono bg-surface-sunken text-text-secondary hover:text-text-primary cursor-pointer transition-colors duration-150 border-none"
+              className="inline-flex items-center gap-0.5 px-2 py-1 rounded-lg text-xs font-mono text-text-secondary hover:text-text-primary bg-surface-sunken hover:bg-surface-base transition-colors duration-150 cursor-pointer border-none"
             >
               <span className="font-medium text-text-primary">{category.weeklyBudget}</span>
               <span className="text-[10px] text-text-tertiary">h</span>
@@ -103,17 +105,19 @@ export function CategoryCard({
         </div>
       </div>
 
+      {/* Keywords section */}
       <div className="flex flex-wrap items-center gap-1.5 pl-5">
         {allKeywords.map((kw) => (
           <span
             key={kw}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-sans text-text-secondary bg-surface-sunken"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-sans text-text-secondary bg-surface-sunken group/kw"
           >
             {kw}
             <button
-              onClick={() => onRemoveKeyword(category.id, kw)}
-              className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full opacity-50 hover:opacity-100 transition-opacity cursor-pointer border-none bg-transparent text-text-tertiary hover:text-color-text-danger"
-              style={{ fontSize: 10, lineHeight: 1 }}
+              onClick={removeKeyword(kw)}
+              className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-text-tertiary hover:text-color-text-danger transition-colors duration-150 cursor-pointer border-none bg-transparent"
+              style={{ fontSize: 12, lineHeight: 1 }}
+              aria-label={`Remove ${kw}`}
             >
               ×
             </button>
@@ -134,16 +138,16 @@ export function CategoryCard({
               }
             }}
             placeholder={language === 'zh' ? '关键词...' : 'keyword...'}
-            className="px-2 py-0.5 text-xs font-sans bg-transparent border-b border-border-default text-text-primary placeholder-text-tertiary focus-visible:outline-none focus-visible:border-accent"
+            className="px-1 py-0.5 text-xs font-sans bg-transparent border-b border-border-default text-text-primary placeholder-text-tertiary focus-visible:outline-none focus-visible:border-accent transition-colors duration-150"
             autoFocus
             style={{ minWidth: 80 }}
           />
         ) : (
           <button
             onClick={() => setAddingKeyword(true)}
-            className="px-2 py-0.5 text-xs font-sans text-text-tertiary hover:text-text-primary transition-colors duration-150 cursor-pointer border-none bg-transparent"
+            className="px-2 py-0.5 text-xs font-sans text-text-tertiary hover:text-text-secondary transition-colors duration-150 cursor-pointer border-none bg-transparent"
           >
-            {language === 'zh' ? '+ 添加' : '+ Add'}
+            {language === 'zh' ? '+ 添加关键词' : '+ Add keyword'}
           </button>
         )}
       </div>

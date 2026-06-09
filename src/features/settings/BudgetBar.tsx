@@ -17,55 +17,58 @@ export function BudgetBar({ categories }: BudgetBarProps) {
   const overBudget = remaining < 0
 
   return (
-    <div className="rounded-lg px-3.5 py-3 bg-surface-sunken">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-text-secondary font-sans">
+    <div className="px-5 py-4">
+      {/* Stats row */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-sans font-medium text-text-tertiary uppercase tracking-wider">
           {'已分配预算'}
         </span>
-        <span className="text-xs font-mono text-text-secondary">
+        <div className="flex items-center gap-1.5 text-xs font-mono">
           <span className="text-text-primary font-medium">{totalBudgeted}</span>
-          {' / '}{WEEK_TOTAL}h{' · '}
+          <span className="text-text-tertiary">/ {WEEK_TOTAL}h</span>
           {overBudget ? (
-            <span className="text-color-text-danger font-medium">
+            <span className="text-color-text-danger font-medium ml-1">
               {`超出 ${Math.abs(remaining)}h`}
             </span>
           ) : (
-            <span>
+            <span className="text-text-secondary ml-1">
               {`剩余 ${remaining}h`}
             </span>
           )}
-        </span>
+        </div>
       </div>
 
-      <div className="w-full h-2 rounded-full overflow-hidden flex mb-2.5 bg-surface-base">
+      {/* Progress bar */}
+      <div className="w-full h-1.5 rounded-full overflow-hidden flex mb-4 bg-surface-sunken">
         {categories.map((cat) => {
-          const pct = (cat.weeklyBudget / WEEK_TOTAL) * 100
-          if (pct <= 0) return null
+          const catPct = (cat.weeklyBudget / WEEK_TOTAL) * 100
+          if (catPct <= 0) return null
           return (
             <div
               key={cat.id}
-              className="flex-shrink-0 h-full transition-all duration-300"
+              className="h-full transition-all duration-300"
               style={{
-                width: `${Math.min(pct, 100)}%`,
-                backgroundColor: `var(--event-${cat.id}-fill)`,
+                width: `${Math.min(catPct, 100)}%`,
+                backgroundColor: `var(--event-${cat.id}-text)`,
               }}
             />
           )
         })}
         {totalBudgeted < WEEK_TOTAL && (
-          <div className="flex-1 h-full bg-surface-base" />
+          <div className="flex-1 h-full" />
         )}
       </div>
 
-      <div className="flex flex-wrap gap-x-3.5 gap-y-1">
+      {/* Legend */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
         {categories.map((cat) => (
-          <span key={cat.id} className="inline-flex items-center gap-1 text-xs text-text-secondary">
+          <span key={cat.id} className="inline-flex items-center gap-1.5 text-xs">
             <span
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ backgroundColor: `var(--event-${cat.id}-text)` }}
             />
-            <span className="font-sans">{cat.name}</span>
-            <span className="font-mono text-text-tertiary">{cat.weeklyBudget}</span>
+            <span className="text-text-secondary font-sans">{cat.name}</span>
+            <span className="text-text-tertiary font-mono">{cat.weeklyBudget}h</span>
           </span>
         ))}
       </div>

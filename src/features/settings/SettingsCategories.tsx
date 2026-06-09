@@ -50,32 +50,40 @@ export function SettingsCategories() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="font-serif text-[22px] font-medium text-text-primary">
-            {'分类'}
-          </h1>
-          <p className="text-[13px] text-text-tertiary mt-1 font-sans">
-            {'每周 168 小时如何分配'}
-          </p>
-        </div>
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div>
+        <h1 className="font-serif text-[22px] font-medium text-text-primary tracking-tight">
+          {'分类'}
+        </h1>
+        <p className="text-sm text-text-tertiary mt-1 font-sans">
+          {'每周 168 小时如何分配'}
+        </p>
       </div>
 
-      <BudgetBar categories={categories} />
+      {/* Budget allocation */}
+      <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
+        <BudgetBar categories={categories} />
+      </div>
 
-      <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-3">
-        {categories.map((cat) => (
-          <CategoryCard
-            key={cat.id}
-            category={cat}
-            language={language}
-            onNameCommit={handleNameCommit}
-            onBudgetChange={handleBudgetChange}
-            onAddKeyword={handleAddKeyword}
-            onRemoveKeyword={handleRemoveKeyword}
-          />
-        ))}
+      {/* Category cards */}
+      <div>
+        <h2 className="text-xs font-sans font-medium text-text-tertiary uppercase tracking-wider mb-3">
+          {'分类详情'}
+        </h2>
+        <div className="grid grid-cols-2 max-lg:grid-cols-1 gap-3">
+          {categories.map((cat) => (
+            <CategoryCard
+              key={cat.id}
+              category={cat}
+              language={language}
+              onNameCommit={handleNameCommit}
+              onBudgetChange={handleBudgetChange}
+              onAddKeyword={handleAddKeyword}
+              onRemoveKeyword={handleRemoveKeyword}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )

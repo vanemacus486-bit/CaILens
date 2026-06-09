@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils'
 import { SettingsCategories } from './SettingsCategories'
 import { SettingsAppearance } from './SettingsAppearance'
 import { SettingsData } from './SettingsData'
-import { SettingsStorage } from './SettingsStorage'
+import { SettingsStorage } from './SettingsStoragePage'
+import { SettingsShortcuts } from './SettingsShortcuts'
 import { SettingsAbout } from './SettingsAbout'
 
 const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
@@ -14,6 +15,7 @@ const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
   { key: 'appearance', label: 'Appearance', labelZh: '外观' },
   { key: 'data',       label: 'Data',       labelZh: '数据' },
   { key: 'storage',    label: 'Storage',    labelZh: '存储' },
+  { key: 'shortcuts',  label: 'Shortcuts',  labelZh: '快捷键' },
   { key: 'about',      label: 'About',      labelZh: '关于' },
 ]
 
@@ -22,6 +24,7 @@ const MOBILE_TAB_CONTENT: Record<string, React.FC> = {
   appearance: SettingsAppearance,
   data:       SettingsData,
   storage:    SettingsStorage,
+  shortcuts:  SettingsShortcuts,
   about:      SettingsAbout,
 }
 
@@ -53,7 +56,7 @@ export function MobileSettingsPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-0.5 px-4 pt-3 pb-2 overflow-x-auto flex-shrink-0">
+      <div className="flex gap-0.5 px-4 pt-3 pb-2 overflow-x-auto flex-shrink-0 -mx-4 px-4 scrollbar-hide">
         {MOBILE_TABS.map((tab) => {
           const active = activeSettingsTab === tab.key
           return (
@@ -61,7 +64,7 @@ export function MobileSettingsPage() {
               key={tab.key}
               onClick={() => setActiveSettingsTab(tab.key)}
               className={cn(
-                'px-3 py-1.5 rounded-md text-sm font-sans font-medium transition-colors duration-200 whitespace-nowrap',
+                'px-3 py-1.5 rounded-md text-sm font-sans font-medium transition-colors duration-200 whitespace-nowrap flex-shrink-0',
                 active
                   ? 'bg-surface-sunken text-text-primary shadow-pill'
                   : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised',
@@ -76,8 +79,10 @@ export function MobileSettingsPage() {
       <div className="h-px bg-border-subtle flex-shrink-0" />
 
       {/* Content */}
-      <div className="px-4 py-4 flex-1 overflow-y-auto">
-        <ActiveTab />
+      <div className="h-full px-4 py-4 flex-1 overflow-y-auto">
+        <div key={activeSettingsTab} className="animate-settings-fade-in">
+          <ActiveTab />
+        </div>
       </div>
     </div>
   )

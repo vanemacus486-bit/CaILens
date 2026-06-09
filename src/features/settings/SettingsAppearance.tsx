@@ -11,56 +11,63 @@ export function SettingsAppearance() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-serif text-[22px] font-medium text-text-primary">
-        外观
-      </h1>
+      <div>
+        <h1 className="font-serif text-[22px] font-medium text-text-primary tracking-tight">
+          外观
+        </h1>
+        <p className="text-sm text-text-tertiary mt-1 font-sans">
+          自定义界面视觉风格
+        </p>
+      </div>
 
-      <div className="flex flex-col gap-5">
-        {/* Theme */}
-        <fieldset className="flex flex-col gap-1.5 border-none p-0">
-          <label className="text-xs text-text-tertiary font-sans">
+      {/* Theme section */}
+      <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
+        <div className="px-5 py-3.5">
+          <h2 className="text-xs font-sans font-medium text-text-tertiary uppercase tracking-wider mb-3">
             主题
-          </label>
+          </h2>
           <div className="flex gap-0.5 bg-surface-sunken rounded-lg p-0.5 w-fit">
             {(['light', 'dark'] as const).map((theme) => (
               <button
                 key={theme}
                 onClick={() => fireAndForget(setTheme(theme), 'set theme')}
                 className={cn(
-                  'px-4 py-1.5 rounded-md text-sm font-sans font-medium transition-colors duration-200 cursor-pointer border-none',
+                  'px-5 py-1.5 rounded-md text-sm font-sans font-medium transition-all duration-200 cursor-pointer border-none',
                   settings.theme === theme
-                    ? 'bg-surface-base text-text-primary shadow-pill'
-                    : 'text-text-secondary hover:text-text-primary bg-transparent',
+                    ? 'bg-surface-raised text-text-primary shadow-pill'
+                    : 'text-text-secondary hover:text-text-primary',
                 )}
               >
                 {theme === 'light' ? '浅色' : '深色'}
               </button>
             ))}
           </div>
-        </fieldset>
+        </div>
+      </div>
 
-        {/* Font */}
-        <fieldset className="flex flex-col gap-1.5 border-none p-0">
-          <label className="text-xs text-text-tertiary font-sans">
+      {/* Font section */}
+      <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
+        <div className="px-5 py-3.5">
+          <h2 className="text-xs font-sans font-medium text-text-tertiary uppercase tracking-wider mb-3">
             字体
-          </label>
+          </h2>
           <div className="flex gap-0.5 bg-surface-sunken rounded-lg p-0.5 w-fit">
             {FONT_OPTIONS.map((font) => (
               <button
                 key={font}
                 onClick={() => fireAndForget(setUiFont(font), 'set font')}
                 className={cn(
-                  'px-4 py-1.5 rounded-md text-sm font-sans font-medium transition-colors duration-200 cursor-pointer border-none',
+                  'px-5 py-1.5 rounded-md text-sm font-sans font-medium transition-all duration-200 cursor-pointer border-none',
                   (settings.uiFont ?? 'default') === font
-                    ? 'bg-surface-base text-text-primary shadow-pill'
-                    : 'text-text-secondary hover:text-text-primary bg-transparent',
+                    ? 'bg-surface-raised text-text-primary shadow-pill'
+                    : 'text-text-secondary hover:text-text-primary',
                 )}
               >
-                {font === 'default' ? '默认' : '霞鹜文楷'}
+                {font === 'default' ? '默认 (Inter)' : '霞鹜文楷'}
               </button>
             ))}
           </div>
-        </fieldset>
+        </div>
       </div>
     </div>
   )

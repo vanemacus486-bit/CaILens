@@ -7,17 +7,17 @@ import { MobileSettingsPage } from './MobileSettingsPage'
 import { SettingsCategories } from './SettingsCategories'
 import { SettingsAppearance } from './SettingsAppearance'
 import { SettingsData } from './SettingsData'
-import { SettingsStorage } from './SettingsStorage'
+import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsShortcuts } from './SettingsShortcuts'
 import { SettingsAbout } from './SettingsAbout'
 
-const TABS: { key: SettingsTab; labelZh: string; labelEn: string }[] = [
-  { key: 'categories', labelZh: '分类',   labelEn: 'Categories' },
-  { key: 'appearance', labelZh: '外观',   labelEn: 'Appearance' },
-  { key: 'data',       labelZh: '数据',   labelEn: 'Data'       },
-  { key: 'storage',    labelZh: '存储',   labelEn: 'Storage'    },
-  { key: 'shortcuts',  labelZh: '快捷键', labelEn: 'Shortcuts'  },
-  { key: 'about',      labelZh: '关于',   labelEn: 'About'      },
+const TABS: { key: SettingsTab; labelZh: string; labelEn: string; descZh: string; descEn: string }[] = [
+  { key: 'categories', labelZh: '分类',   labelEn: 'Categories',   descZh: '分配每周 168 小时',   descEn: 'Allocate 168 hours' },
+  { key: 'appearance', labelZh: '外观',   labelEn: 'Appearance',   descZh: '主题与字体',         descEn: 'Theme & font' },
+  { key: 'data',       labelZh: '数据',   labelEn: 'Data',         descZh: '导入与导出',         descEn: 'Import & export' },
+  { key: 'storage',    labelZh: '存储',   labelEn: 'Storage',      descZh: '文件存储路径',       descEn: 'File storage path' },
+  { key: 'shortcuts',  labelZh: '快捷键', labelEn: 'Shortcuts',    descZh: '键盘操作',           descEn: 'Keyboard actions' },
+  { key: 'about',      labelZh: '关于',   labelEn: 'About',        descZh: '版本与技术栈',       descEn: 'Version & stack' },
 ]
 
 const TAB_CONTENT: Record<SettingsTab, React.FC> = {
@@ -64,18 +64,18 @@ export function SettingsPage() {
     <div className="flex h-full bg-surface-base">
       {/* ── Sidebar navigation ── */}
       <nav
-        className="w-[220px] flex-shrink-0 border-r border-border-subtle bg-surface-base overflow-y-auto"
+        className="w-[240px] flex-shrink-0 border-r border-border-subtle bg-surface-base overflow-y-auto group/nav"
         onKeyDown={handleKeyDown}
         role="tablist"
         aria-orientation="vertical"
         aria-label={t('设置导航', 'Settings navigation')}
       >
-        <div className="px-4 pt-6 pb-3">
-          <h1 className="font-serif text-lg font-medium text-text-primary">
+        <div className="px-5 pt-7 pb-4">
+          <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
             {t('设置', 'Settings')}
           </h1>
         </div>
-        <div className="flex flex-col gap-0.5 px-2 pb-4">
+        <div className="flex flex-col gap-0.5 px-2.5 pb-6">
           {TABS.map((tab) => {
             const active = activeSettingsTab === tab.key
             return (
@@ -86,13 +86,29 @@ export function SettingsPage() {
                 aria-selected={active}
                 onClick={() => setActiveSettingsTab(tab.key)}
                 className={cn(
-                  'w-full text-left px-3 py-2 rounded-lg text-sm font-sans font-medium transition-colors duration-200 cursor-pointer border-none',
+                  'w-full text-left px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer border-none text-left',
+                  'flex flex-col items-start gap-0.5',
                   active
-                    ? 'bg-surface-sunken text-text-primary shadow-pill'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised',
+                    ? 'bg-surface-sunken shadow-pill'
+                    : 'hover:bg-surface-raised',
                 )}
               >
-                {t(tab.labelZh, tab.labelEn)}
+                <span
+                  className={cn(
+                    'text-sm font-sans font-medium transition-colors duration-200',
+                    active ? 'text-text-primary' : 'text-text-secondary',
+                  )}
+                >
+                  {t(tab.labelZh, tab.labelEn)}
+                </span>
+                <span
+                  className={cn(
+                    'text-[11px] font-sans transition-colors duration-200',
+                    active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
+                  )}
+                >
+                  {t(tab.descZh, tab.descEn)}
+                </span>
               </button>
             )
           })}
@@ -104,7 +120,7 @@ export function SettingsPage() {
 
       {/* ── Content panel ── */}
       <main className="flex-1 overflow-y-auto min-w-0">
-        <div className="max-w-2xl mx-auto px-8 py-8">
+        <div className="max-w-2xl mx-auto px-8 md:px-10 py-8">
           <div key={activeSettingsTab} className="animate-settings-fade-in">
             <ActiveTab />
           </div>
