@@ -54,6 +54,7 @@ export class TodoRepository {
       description: input.description ?? '',
       status: 'todo',
       priority: input.priority ?? 'medium',
+      domain: input.domain ?? null,
       dueDate: input.dueDate ?? null,
       sortOrder: maxOrder + 1,
       projectId: input.projectId ?? null,

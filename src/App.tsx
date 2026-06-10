@@ -8,7 +8,9 @@ import { ProjectDetailPage } from '@/pages/project/ProjectDetailPage'
 
 import { ActionPage } from '@/pages/action/ActionPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { QuickCaptureWindow } from '@/features/quick-capture/QuickCaptureWindow'
 import { TopNavBar } from '@/components/nav/TopNavBar'
+import { QuickCaptureInbox } from '@/features/action/QuickCaptureInbox'
 import { useUIStore } from '@/stores/uiStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
@@ -24,6 +26,7 @@ import type { ShortcutAction } from '@/domain/shortcuts'
 
 function Layout() {
   const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen)
+  const quickCaptureInboxOpen = useUIStore((s) => s.quickCaptureInboxOpen)
   const theme = useAppSettingsStore((s) => s.settings.theme)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
   const navigate = useNavigate()
@@ -125,6 +128,7 @@ function Layout() {
       if (!eventId) return
       fireAndForget(useEventStore.getState().duplicateEvent(eventId), 'duplicate event')
     },
+    quickCaptureTodo: () => useUIStore.getState().setQuickCaptureInboxOpen(true),
   }), [navigate, searchParams, setTheme, theme])
 
   useShortcutManager(shortcutHandlers)
@@ -139,6 +143,7 @@ function Layout() {
       </main>
 
       {commandPaletteOpen && <CommandPalette />}
+      {quickCaptureInboxOpen && <QuickCaptureInbox />}
       <SnackbarHost />
     </div>
   )
@@ -163,6 +168,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/quick-capture" element={<QuickCaptureWindow />} />
         </Route>
       </Routes>
     </HashRouter>

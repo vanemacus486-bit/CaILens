@@ -204,8 +204,8 @@ describe('eventMatchesBinding', () => {
 // ── Registry completeness ──────────────────────────────
 
 describe('SHORTCUT_REGISTRY', () => {
-  it('has exactly 14 actions', () => {
-    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(14)
+  it('has exactly 15 actions', () => {
+    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(15)
   })
 
   it('all entries have a label string', () => {

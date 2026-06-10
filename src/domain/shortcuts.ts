@@ -15,6 +15,7 @@ export type ShortcutAction =
   | 'goToNextDay'
   | 'deleteFocusedEvent'
   | 'duplicateFocusedEvent'
+  | 'quickCaptureTodo'
 
 export interface KeyBinding {
   key: string
@@ -50,6 +51,7 @@ export const SHORTCUT_REGISTRY: Record<ShortcutAction, ShortcutDefinition> = {
   goToNextDay:        { action: 'goToNextDay',         label: '下一天',      defaultBinding: { key: 'ArrowRight', ctrl: true, alt: false, shift: true } },
   deleteFocusedEvent: { action: 'deleteFocusedEvent',  label: '删除事件',    defaultBinding: null },
   duplicateFocusedEvent: { action: 'duplicateFocusedEvent', label: '复制并创建事件', defaultBinding: null },
+  quickCaptureTodo:     { action: 'quickCaptureTodo',      label: '快速录入待办', defaultBinding: { key: 'n', ctrl: true, alt: true, shift: false } },
 }
 
 // ── Pure functions ─────────────────────────────────────

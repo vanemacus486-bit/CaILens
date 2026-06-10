@@ -223,6 +223,18 @@
   animation: slide-down 180ms ease-out;
 }
 
+/* ── Shake (invalid input feedback) ─────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-3px); }
+  40%      { transform: translateX(3px); }
+  60%      { transform: translateX(-2px); }
+  80%      { transform: translateX(2px); }
+}
+.animate-shake {
+  animation: shake 400ms ease-out;
+}
+
 /* ── Todo complete (fade + slide left) ──────────────────── */
 @keyframes todo-complete {
   from { opacity: 1; transform: translateX(0); }
@@ -539,6 +551,19 @@ body {
   button:not(.touch-small):not([class*="w-10"]):not([class*="w-9"]):not([class*="w-11"]) {
     min-height: 44px;
   }
+}
+
+/* ── Event card shared styles ─────────────────────────────── */
+.event-card-accent { border-left-color: var(--event-accent-fill); }
+.event-card-sage   { border-left-color: var(--event-sage-fill); }
+.event-card-sand   { border-left-color: var(--event-sand-fill); }
+.event-card-sky    { border-left-color: var(--event-sky-fill); }
+.event-card-rose   { border-left-color: var(--event-rose-fill); }
+.event-card-stone  { border-left-color: var(--event-stone-fill); }
+
+/* ── Diet stack visual rhythm ─────────────────────────────── */
+.diet-stack > :not(:last-child) {
+  margin-bottom: 40px;
 }
 
 /* ── Markdown prose styles ───────────────────────────────── */

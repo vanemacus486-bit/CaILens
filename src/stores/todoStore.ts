@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Todo, CreateTodoInput, UpdateTodoInput } from '@/domain/todo'
 import { sortTodos, isRepeatingTodo } from '@/domain/todo'
+import type { TodoPriority } from '@/domain/todo'
 import { getTodoRepo } from '@/data/getRepositories'
 
 interface TodoState {
@@ -16,6 +17,15 @@ interface TodoState {
   toggleComplete: (id: string) => Promise<Todo>
   clearRepeatPattern: (id: string) => Promise<void>
   reorderTodo: (id: string, targetId: string, position: 'before' | 'after') => Promise<void>
+  quickCapture: (title: string) => Promise<Todo>
+
+  // ── 收件箱任务 ────────────────────────────────────────────
+  /** 创建一条 priority=null、domain=null 的收件箱任务 */
+  addInboxTask: (title: string) => Promise<Todo>
+  /** 将任务分配优先级和领域（移出收件箱） */
+  assignTask: (id: string, priority: TodoPriority, domain: string) => Promise<Todo>
+  /** 所有 priority 和 domain 均为 null 的任务（收件箱任务列表） */
+  inboxTasks: () => Todo[]
 }
 
 export const useTodoStore = create<TodoState>()((set, get) => ({
@@ -135,4 +145,57 @@ export const useTodoStore = create<TodoState>()((set, get) => ({
       set({ todos: all, error: (e as Error).message })
     }
   },
+
+  quickCapture: async (title) => {
+    try {
+      const todo = await getTodoRepo().create({
+        title,
+        priority: 'medium',
+        categoryId: null,
+        projectId: null,
+        dueDate: null,
+      })
+      const all = sortTodos(await getTodoRepo().getAll())
+      set({ todos: all })
+      return todo
+    } catch (e) {
+      set({ error: (e as Error).message })
+      throw e
+    }
+  },
+
+  // ── 收件箱任务 ────────────────────────────────────────────
+
+  addInboxTask: async (title) => {
+    try {
+      const todo = await getTodoRepo().create({
+        title,
+        priority: null,
+        domain: null,
+        categoryId: null,
+        projectId: null,
+        dueDate: null,
+      })
+      const all = sortTodos(await getTodoRepo().getAll())
+      set({ todos: all })
+      return todo
+    } catch (e) {
+      set({ error: (e as Error).message })
+      throw e
+    }
+  },
+
+  assignTask: async (id, priority, domain) => {
+    try {
+      const todo = await getTodoRepo().update({ id, priority, domain })
+      const all = sortTodos(await getTodoRepo().getAll())
+      set({ todos: all })
+      return todo
+    } catch (e) {
+      set({ error: (e as Error).message })
+      throw e
+    }
+  },
+
+  inboxTasks: () => get().todos.filter((t) => t.priority === null && t.domain === null),
 }))

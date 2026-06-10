@@ -3,24 +3,22 @@ import { X } from 'lucide-react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useCategoryStore } from '@/stores/categoryStore'
-
 import { getEventRepo } from '@/data/getRepositories'
 import { classifyEvent } from '@/domain/icsImport'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
-import { SleepPanel } from './SubPanels'
 
 // ── Types ───────────────────────────────────────────────
 
 export type CardMode =
-  | 'input'          // 默认打字模式
-  | 'chores'         // 庶务 → 显示图标
-  | 'meal-food'      // 庶务→吃饭 → 输入食物
-  | 'growth'         // 个人提升 → 阅读/运动图标
-  | 'growth-read'    // 个人提升→阅读
-  | 'growth-sport'   // 个人提升→运动
-  | 'leisure'        // 娱乐放松
-  | 'sleep'          // 睡眠
+  | 'input'         // 默认打字模式
+  | 'chores'        // 庶务
+  | 'meal-food'     // 吃饭 → 输入食物
+  | 'growth'        // 个人提升 → 未指定
+  | 'growth-read'   // 个人提升 → 阅读
+  | 'growth-sport'  // 个人提升 → 运动
+  | 'leisure'       // 娱乐放松
+  | 'sleep'         // 睡眠
 
 interface FloatingEventCardProps {
   open: boolean
@@ -75,25 +73,28 @@ function dateLabel(ts: number): string {
   return `${d.getMonth() + 1}月${d.getDate()}日`
 }
 
-// ── Aggregate recent items ──────────────────────────────
-
-
 function isMealTitle(text: string): boolean {
   const mealKeywords = ['吃饭', '早餐', '午餐', '晚餐', '宵夜', '午饭', '晚饭']
   const t = text.trim()
   return mealKeywords.some(k => t === k || t.startsWith(k))
 }
 
-// ═══════════════════════════════════════════════════════════
-//  Component
-// ═══════════════════════════════════════════════════════════
+function inferMealOrder(timeMs: number): 'breakfast' | 'lunch' | 'dinner' | 'night_snack' {
+  const h = new Date(timeMs).getHours()
+  if (h < 10) return 'breakfast'
+  if (h < 16) return 'lunch'
+  if (h < 21) return 'dinner'
+  return 'night_snack'
+}
+
+// ── Component ───────────────────────────────────────────
 
 export function FloatingEventCard({
   open, anchorEl, defaultTimes, defaultColor,
   editingEvent, onClose, onSave, onUpdate, onDelete,
 }: FloatingEventCardProps) {
-  const categories   = useCategoryStore((s) => s.categories)
-  const isEditing    = !!editingEvent
+  const categories = useCategoryStore((s) => s.categories)
+  const isEditing = !!editingEvent
 
   // ── Core state ──────────────────────────────────────
 
@@ -123,14 +124,14 @@ export function FloatingEventCard({
   const [showTimeEdit, setShowTimeEdit] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Toggle cross-day flag
+  // Cross-day flag
   const [crossDay, setCrossDay] = useState(() => {
     const endD = new Date(defaultTimes.end)
     const startD = new Date(defaultTimes.start)
     return endD.toDateString() !== startD.toDateString()
   })
 
-  // Display end timestamp (adjusted for cross-day)
+  // Display end timestamp
   const effectiveEndTs = (() => {
     const [eh, em] = endStr.split(':').map(Number)
     const base = new Date(defaultTimes.start)
@@ -138,24 +139,18 @@ export function FloatingEventCard({
     return crossDay ? ts + 24 * 60 * 60 * 1000 : ts
   })()
 
-  // Inline autocomplete suggestion
-  const [inlineSuggestion, setInlineSuggestion] = useState<string | null>(null)
+  // Ghost suggestion below input
+  const [ghostSuggestion, setGhostSuggestion] = useState<string | null>(null)
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const virtualRef = useRef<HTMLElement>(null!)
-  virtualRef.current = anchorEl
   const handleSaveRef = useRef(handleSave)
   handleSaveRef.current = handleSave
 
   // ── Derived ─────────────────────────────────────────
 
-  const currentCategoryName = CATEGORY_NAMES[categoryId]
   const catColor = `var(--event-${categoryId}-fill)`
-
-  // ── Top 3 recent titles for current category ─────────
-  // (removed — no longer displayed)
 
   // ── Auto-classify when title changes ────────────────
 
@@ -165,6 +160,7 @@ export function FloatingEventCard({
     const matched = classifyEvent(title, categories)
     if (matched && matched !== categoryId) {
       setCategoryId(matched)
+      setUserChangedCategory(true)
       setMode(modeFromCategory(matched))
     }
   }, [title, categories, userChangedCategory, categoryId])
@@ -173,19 +169,16 @@ export function FloatingEventCard({
 
   useEffect(() => {
     if (!open) return
-
-    const timer = setTimeout(() => {
-      inputRef.current?.focus()
-    }, 50)
+    const timer = setTimeout(() => inputRef.current?.focus(), 50)
     return () => clearTimeout(timer)
   }, [open, mode])
 
-  // ── Inline suggestion (debounced) ─────────────────────
+  // ── Ghost suggestion (debounced) ────────────────────
 
   useEffect(() => {
     const q = title.trim().toLowerCase()
-    if (q.length < 1) {
-      setInlineSuggestion(null)
+    if (q.length < 2) {
+      setGhostSuggestion(null)
       return
     }
 
@@ -203,11 +196,11 @@ export function FloatingEventCard({
         const matches = Array.from(freq.entries())
           .sort((a, b) => b[1] - a[1])
           .filter(([t]) => t.toLowerCase().startsWith(q) && t.toLowerCase() !== q)
-        setInlineSuggestion(matches.length > 0 ? matches[0][0] : null)
+        setGhostSuggestion(matches.length > 0 ? matches[0][0] : null)
       } catch {
-        setInlineSuggestion(null)
+        setGhostSuggestion(null)
       }
-    }, 100)
+    }, 150)
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -217,12 +210,12 @@ export function FloatingEventCard({
   // ── Keyboard handler ────────────────────────────────
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Tab → accept inline suggestion
+    // Tab → accept ghost suggestion
     if (e.key === 'Tab' && !e.shiftKey) {
-      if (inlineSuggestion) {
+      if (ghostSuggestion) {
         e.preventDefault()
-        setTitle(inlineSuggestion)
-        setInlineSuggestion(null)
+        setTitle(ghostSuggestion)
+        setGhostSuggestion(null)
       }
       return
     }
@@ -235,7 +228,7 @@ export function FloatingEventCard({
       setUserChangedCategory(true)
       setMode(modeFromCategory(newCatId))
       setError(null)
-      setInlineSuggestion(null)
+      setGhostSuggestion(null)
       return
     }
 
@@ -246,19 +239,19 @@ export function FloatingEventCard({
       return
     }
 
-    // Escape → close card or go back to chores
+    // Escape → close or go back to chores
     if (e.key === 'Escape') {
       e.preventDefault()
       if (mode === 'meal-food') {
         setMode('chores')
         setTitle('')
-        setInlineSuggestion(null)
+        setGhostSuggestion(null)
       } else {
         onClose()
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inlineSuggestion, categoryId, mode])
+  }, [ghostSuggestion, categoryId, mode])
 
   // ── Save logic ──────────────────────────────────────
 
@@ -268,26 +261,22 @@ export function FloatingEventCard({
     const [sh, sm] = startStr.split(':').map(Number)
     const [eh, em] = endStr.split(':').map(Number)
     const startD = new Date(defaultTimes.start)
+    const startTs = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate(), sh, sm).getTime()
     let endD = new Date(startD)
     endD.setHours(eh, em, 0, 0)
-    const startTs = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate(), sh, sm).getTime()
     let endTs = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate(), eh, em).getTime()
-    if (crossDay) {
-      endTs += 24 * 60 * 60 * 1000
-    }
+    if (crossDay) endTs += 24 * 60 * 60 * 1000
     if (isNaN(startTs) || isNaN(endTs)) return '无效时间'
     if (endTs <= startTs) return '结束时间必须在开始时间之后'
     return null
   }
 
   async function handleSave(overrideTitle?: string) {
-    // If user typed a meal keyword (吃饭 etc.) in chores/input mode,
-    // switch to meal-food mode instead of saving
     const effectiveTitle = overrideTitle ?? title
     if (!overrideTitle && (mode === 'chores' || mode === 'input') && isMealTitle(effectiveTitle)) {
       setMode('meal-food')
       setTitle('')
-      setInlineSuggestion(null)
+      setGhostSuggestion(null)
       return
     }
 
@@ -297,19 +286,16 @@ export function FloatingEventCard({
     const [sh, sm] = startStr.split(':').map(Number)
     const [eh, em] = endStr.split(':').map(Number)
     const startD = new Date(defaultTimes.start)
+    const startTime = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate(), sh, sm).getTime()
     let endD = new Date(startD)
     endD.setHours(eh, em, 0, 0)
-    const startTime = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate(), sh, sm).getTime()
     let endTime = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate(), eh, em).getTime()
-    if (crossDay) {
-      endTime += 24 * 60 * 60 * 1000
-    }
+    if (crossDay) endTime += 24 * 60 * 60 * 1000
 
-    // Build typedData based on mode
     let typedData: TypedEventData | undefined
     let eventTitle = effectiveTitle
 
-    if (mode === 'sleep' || (editingEvent?.typedData?.type === 'sleep')) {
+    if (mode === 'sleep' || editingEvent?.typedData?.type === 'sleep') {
       typedData = {
         type: 'sleep',
         sleepType,
@@ -318,7 +304,7 @@ export function FloatingEventCard({
         wakeTime: endTime,
       } as TypedEventData
       eventTitle = sleepType === 'main' ? '睡觉' : sleepType === 'nap' ? '小睡' : '失眠'
-    } else if (mode === 'meal-food' || (editingEvent?.typedData?.type === 'meal')) {
+    } else if (mode === 'meal-food' || editingEvent?.typedData?.type === 'meal') {
       typedData = {
         type: 'meal',
         mealOrder: inferMealOrder(startTime),
@@ -328,16 +314,13 @@ export function FloatingEventCard({
       eventTitle = title || '吃饭'
     }
 
-    // Also set typedKey
-    const typedKey = typedData?.type ?? null
-
     const input = {
       title: eventTitle,
       startTime,
       endTime,
       color: categoryId as EventColor,
       categoryId,
-      typedKey,
+      typedKey: typedData?.type ?? null,
       typedData,
     }
 
@@ -353,37 +336,35 @@ export function FloatingEventCard({
     }
   }
 
-  // ── Delete handler ───────────────────────────────────
+  // ── Delete ───────────────────────────────────────────
 
   async function handleDelete() {
     if (!editingEvent) return
-    try {
-      await onDelete(editingEvent.id)
-      onClose()
-    } catch {
-      setError('删除失败')
-    }
+    try { await onDelete(editingEvent.id); onClose() }
+    catch { setError('删除失败') }
   }
-
-  // ── Switch category (from click or Alt+1~6) ────────
-
-  const switchCategory = useCallback((newCatId: CategoryId) => {
-    setCategoryId(newCatId)
-    setUserChangedCategory(true)
-    setMode(modeFromCategory(newCatId))
-    setError(null)
-  }, [])
 
   // ── Render helpers ──────────────────────────────────
 
-  const renderCategoryLine = () => (
-    <div className="flex items-center gap-1.5">
-      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: catColor }} />
-      <span className="text-xs text-text-tertiary font-sans">{currentCategoryName[0]}</span>
-    </div>
-  )
+  const headerTime = `${dateLabel(defaultTimes.start)} ${startStr} – ${
+    crossDay ? dateLabel(effectiveEndTs + 24*60*60*1000) : dateLabel(effectiveEndTs)
+  } ${endStr}`
 
-  // ── Render sleep mode ───────────────────────────────
+  const placeholderText = (() => {
+    switch (mode) {
+      case 'chores': return '做了哪些杂务？'
+      case 'meal-food': return '例如：牛肉面'
+      case 'growth': return '学了/练了什么？'
+      case 'leisure': return '怎么放松的？'
+      default: return '这段时间在做什么？'
+    }
+  })()
+
+  const timeRange = `${startStr} – ${
+    crossDay ? dateLabel(effectiveEndTs + 24*60*60*1000) + ' ' : ''
+  }${endStr}`
+
+  // ── Sleep mode ───────────────────────────────────────
 
   function renderSleepMode() {
     return (
@@ -391,29 +372,65 @@ export function FloatingEventCard({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: catColor }} />
-            <span className="font-mono text-xs text-text-secondary">{startStr} – {endStr}</span>
+            <span className="font-mono text-xs text-text-secondary">{timeRange}</span>
           </div>
-          <button onClick={onClose} className="text-text-tertiary hover:text-text-primary cursor-pointer p-1">
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-primary cursor-pointer p-1" aria-label="关闭">
             <X size={16} />
           </button>
         </div>
 
-        <SleepPanel
-          sleepType={sleepType}
-          quality={quality}
-          onChangeSleepType={setSleepType}
-          onChangeQuality={setQuality}
-        />
+        {/* Sleep type */}
+        <div className="flex gap-1 mb-4">
+          {([
+            { key: 'main' as const, label: '睡觉' },
+            { key: 'nap' as const, label: '小睡' },
+            { key: 'insomnia' as const, label: '失眠' },
+          ]).map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setSleepType(t.key)}
+              className={cn(
+                'flex-1 py-2 rounded-lg text-xs font-sans font-medium transition-all duration-200 cursor-pointer border',
+                sleepType === t.key
+                  ? 'border-border-default text-text-primary bg-surface-raised'
+                  : 'border-transparent text-text-tertiary hover:bg-surface-sunken bg-surface-sunken',
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-        {error && <p className="text-xs text-color-text-danger mt-2 font-sans">{error}</p>}
+        {/* Quality */}
+        <div className="mb-4">
+          <div className="text-xs text-text-tertiary mb-2 font-sans">睡眠质量</div>
+          <div className="flex justify-between gap-1">
+            {([1, 2, 3, 4, 5] as const).map((q) => (
+              <button
+                key={q}
+                onClick={() => setQuality(q)}
+                className={cn(
+                  'flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer',
+                  quality === q
+                    ? 'bg-surface-raised ring-1 ring-text-secondary scale-105'
+                    : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
+                )}
+              >
+                <span className="text-base leading-none">{q <= 2 ? '😩' : q <= 3 ? '🙂' : '😌'}</span>
+                <span className="text-[10px] leading-tight">
+                  {quality === q ? ['', '较差', '不好', '一般', '良好', '很好'][q] : ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-        {renderCategoryLine()}
+        {error && <p className="text-xs text-color-text-danger mt-1 font-sans">{error}</p>}
 
-        {/* Actions */}
-        <div className="flex justify-end gap-2 mt-4">
+        <div className="flex justify-end gap-2 mt-3">
           {isEditing && (
             <button onClick={handleDelete} className="font-sans text-xs text-color-text-danger bg-transparent border border-color-text-danger/30 rounded-md px-3 py-1.5 cursor-pointer hover:bg-color-text-danger/10 transition-colors">
-              {'删除'}
+              删除
             </button>
           )}
           <button
@@ -427,35 +444,32 @@ export function FloatingEventCard({
     )
   }
 
-  // ── Default render (input / chores / growth / leisure / growth sub-modes) ──
+  // ── Default mode ─────────────────────────────────────
 
   function renderDefaultMode() {
-    const placeholderText = (() => {
-      switch (mode) {
-        case 'chores': return '做了哪些杂务？'
-        case 'meal-food': return '例如：牛肉面'
-        case 'growth': return '学了/练了什么？'
-        case 'leisure': return '怎么放松的？'
-        default: return '这段时间在做什么？'
-      }
-    })()
-
     return (
       <>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: catColor }} />
-            <span className="font-mono text-xs text-text-secondary cursor-pointer hover:text-text-primary transition-colors" onClick={() => setShowTimeEdit(!showTimeEdit)}>
-              {dateLabel(defaultTimes.start)} {startStr} – {crossDay ? dateLabel(effectiveEndTs + 24*60*60*1000) : dateLabel(effectiveEndTs)} {endStr}
-            </span>
+            <button
+              onClick={() => setShowTimeEdit(!showTimeEdit)}
+              className="font-mono text-xs text-text-secondary cursor-pointer hover:text-text-primary transition-colors"
+            >
+              {headerTime}
+            </button>
             {mode === 'meal-food' && (
-              <span className="text-xs text-text-tertiary font-sans ml-1">🍚 吃饭</span>
+              <span className="text-xs text-text-tertiary font-sans">吃饭</span>
             )}
           </div>
           <button
-            onClick={mode === 'meal-food' ? () => { setMode('chores'); setTitle(''); setInlineSuggestion(null) } : onClose}
+            onClick={mode === 'meal-food'
+              ? () => { setMode('chores'); setTitle(''); setGhostSuggestion(null) }
+              : onClose
+            }
             className="text-text-tertiary hover:text-text-primary cursor-pointer p-1"
+            aria-label="关闭"
           >
             <X size={16} />
           </button>
@@ -463,95 +477,79 @@ export function FloatingEventCard({
 
         {/* Collapsible time editor */}
         {showTimeEdit && (
-          <div className="flex items-center gap-2 mb-2 animate-slide-down">
-            <input type="time" value={startStr} onChange={(e) => { setStartStr(e.target.value); setError(null) }}
-              className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded-md px-2 py-1.5 focus:border-border-default focus-visible:outline-none" />
+          <div className="flex items-center gap-1.5 mb-2 animate-slide-down">
+            <input
+              type="time"
+              value={startStr}
+              onChange={(e) => { setStartStr(e.target.value); setError(null) }}
+              className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded px-2 py-1.5 focus:border-border-default focus-visible:outline-none"
+            />
             <button
               onClick={() => { setCrossDay(!crossDay); setError(null) }}
-              className={`px-2 py-1.5 rounded-md text-xs font-sans border transition-colors cursor-pointer flex-shrink-0 ${
+              className={cn(
+                'px-2 py-1.5 rounded text-xs font-sans border transition-colors cursor-pointer flex-shrink-0',
                 crossDay
                   ? 'bg-accent/10 border-accent/40 text-accent'
-                  : 'bg-surface-sunken border-border-subtle text-text-tertiary hover:bg-surface-base'
-              }`}
+                  : 'bg-surface-sunken border-border-subtle text-text-tertiary hover:bg-surface-base',
+              )}
               title="次日"
             >
               次日
             </button>
-            <input type="time" value={endStr} onChange={(e) => { setEndStr(e.target.value); setError(null) }}
-              className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded-md px-2 py-1.5 focus:border-border-default focus-visible:outline-none" />
+            <input
+              type="time"
+              value={endStr}
+              onChange={(e) => { setEndStr(e.target.value); setError(null) }}
+              className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded px-2 py-1.5 focus:border-border-default focus-visible:outline-none"
+            />
           </div>
         )}
 
-        {/* 庶务快速按钮 — 已移除 */}
-
-        {/* Main input with inline suggestion + category tint */}
-        <div
-          className="relative border rounded-md transition-all duration-300"
-          style={{
-            borderColor: `var(--event-${categoryId}-fill)`,
-            borderWidth: '1.5px',
-            backgroundColor: `color-mix(in srgb, var(--surface-raised) 88%, transparent)`,
-          }}
-        >
-          {/* Inline suggestion text (behind input) */}
-          {inlineSuggestion && (
-            <div className="absolute inset-0 flex items-center px-3 py-2 pointer-events-none z-0">
-              <span className="text-sm font-sans whitespace-pre text-text-tertiary">
-                {inlineSuggestion}
-              </span>
-            </div>
-          )}
+        {/* Main input with ghost suggestion */}
+        <div className="relative mb-1">
           <input
             ref={inputRef}
             type="text"
             value={title}
-            onChange={(e) => { setTitle(e.target.value); setInlineSuggestion(null) }}
+            onChange={(e) => { setTitle(e.target.value); setGhostSuggestion(null) }}
             onKeyDown={handleKeyDown}
-            placeholder={title && inlineSuggestion ? '' : placeholderText}
+            placeholder={ghostSuggestion ? '' : placeholderText}
             className={cn(
-              'relative z-10 w-full font-sans text-sm text-text-primary',
-              'bg-transparent border-0 rounded-md',
-              'px-3 py-2 h-[36px]',
+              'w-full font-sans text-sm text-text-primary',
+              'bg-transparent border-0',
+              'pl-2 pr-2 py-2 h-[36px]',
               'focus:outline-none focus:ring-0',
               'placeholder:text-text-tertiary',
             )}
-            style={{ caretColor: 'var(--text-primary)' }}
+            style={{
+              borderLeft: `2px solid ${catColor}`,
+              caretColor: 'var(--text-primary)',
+            }}
           />
         </div>
 
-        {/* Capsules — category selector */}
-        <div className="flex items-center justify-center gap-2.5 mt-3 h-8">
-          {(['accent','sage','sand','sky','rose','stone'] as const).map((catId) => {
-            const isSel = catId === categoryId
-            const dist = Math.abs(
-              ['accent','sage','sand','sky','rose','stone'].indexOf(catId) -
-              ['accent','sage','sand','sky','rose','stone'].indexOf(categoryId)
-            )
-            return (
-              <button
-                key={catId}
-                onClick={() => switchCategory(catId)}
-                className="transition-all duration-300 ease-out cursor-pointer flex-shrink-0 rounded-full"
-                style={{
-                  width: isSel ? '32px' : dist <= 1 ? '22px' : '16px',
-                  height: isSel ? '8px' : '5px',
-                  transform: `translateY(${isSel ? -4 : 0}px)`,
-                  opacity: isSel ? 1 : dist <= 1 ? 0.5 : 0.25,
-                  backgroundColor: `var(--event-${catId}-fill)`,
-                }}
-              />
-            )
-          })}
-        </div>
+        {/* Ghost suggestion line */}
+        {ghostSuggestion && (
+          <div
+            className="flex items-center gap-1.5 px-2 py-0.5 text-xs font-sans text-text-tertiary cursor-pointer hover:text-text-secondary transition-colors"
+            onMouseDown={(e) => { e.preventDefault(); setTitle(ghostSuggestion) }}
+          >
+            <span>{ghostSuggestion}</span>
+            <span className="text-[10px] opacity-50">Tab</span>
+          </div>
+        )}
 
-
+        {/* Error */}
         {error && <p className="text-xs text-color-text-danger mt-1 font-sans">{error}</p>}
 
         {/* Actions */}
         <div className="flex justify-end gap-2 mt-3">
           {isEditing && (
-            <button onClick={handleDelete} className="font-sans text-xs text-color-text-danger bg-transparent border border-color-text-danger/30 rounded-md px-3 py-1.5 cursor-pointer hover:bg-color-text-danger/10 transition-colors">
-              {'删除'}
+            <button
+              onClick={handleDelete}
+              className="font-sans text-xs text-color-text-danger bg-transparent border border-color-text-danger/30 rounded-md px-3 py-1.5 cursor-pointer hover:bg-color-text-danger/10 transition-colors"
+            >
+              删除
             </button>
           )}
           <button
@@ -565,26 +563,21 @@ export function FloatingEventCard({
     )
   }
 
-  // ═══════════════════════════════════════════════════════
-  //  Main render
-  // ═══════════════════════════════════════════════════════
+  // ── Main render ──────────────────────────────────────
 
   if (!open) return null
 
-  const content = mode === 'sleep' ? renderSleepMode()
-    : renderDefaultMode()
+  const content = mode === 'sleep' ? renderSleepMode() : renderDefaultMode()
 
   return (
     <Popover open>
-      <PopoverAnchor virtualRef={virtualRef} />
+      <PopoverAnchor virtualRef={anchorEl} />
       <PopoverContent
         side="right"
         sideOffset={8}
         collisionPadding={16}
         className="w-72 p-4 rounded-xl border-border-default max-md:!w-[calc(100vw-1rem)] max-md:max-w-72"
-        style={{
-          backgroundColor: `var(--event-${categoryId}-bg)`,
-        }}
+        style={{ backgroundColor: `var(--event-${categoryId}-bg)` }}
         onPointerDownOutside={onClose}
         onEscapeKeyDown={onClose}
         onOpenAutoFocus={(e) => e.preventDefault()}
@@ -593,14 +586,4 @@ export function FloatingEventCard({
       </PopoverContent>
     </Popover>
   )
-}
-
-// ── Helper ─────────────────────────────────────────────
-
-function inferMealOrder(timeMs: number): 'breakfast' | 'lunch' | 'dinner' | 'night_snack' {
-  const h = new Date(timeMs).getHours()
-  if (h < 10) return 'breakfast'
-  if (h < 16) return 'lunch'
-  if (h < 21) return 'dinner'
-  return 'night_snack'
 }

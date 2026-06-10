@@ -95,52 +95,23 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, on
 
       {/* ── 矩阵行 ── */}
       <div className="space-y-1.5">
-        {CATEGORY_IDS.map((catId) => {
-          const cellColors = colorMap[catId]
-          const row = grouped[catId]
-          if (!row) return null
-
-          return (
-            <div
-              key={catId}
-              className="grid grid-cols-[64px_repeat(3,1fr)] gap-1.5 pl-2 rounded-l-lg"
-              style={{ borderLeft: `3px solid ${cellColors?.fill ?? '#888'}` }}
-            >
-              {/* ── 行头：分类名 ── */}
-              <div className="flex items-center justify-end gap-2 pr-2 min-h-[72px]">
-                <span className="font-serif text-xs text-text-secondary leading-tight text-right tracking-wide">
-                  {CATEGORY_NAMES[catId] ?? catId}
-                </span>
-              </div>
-
-              {/* ── 三列格子 ── */}
-              {PRIORITIES.map((pri) => {
-                const cellTodos = row[pri.id] ?? []
-                const isSelected = cellTodos.some((t) => t.id === selectedId)
-
-                return (
-                  <Cell
-                    key={pri.id}
-                    catId={catId}
-                    priId={pri.id}
-                    todos={cellTodos}
-                    categoryFill={cellColors?.fill ?? '#888'}
-                    isSelected={isSelected}
-                    selectedId={selectedId}
-                    onCardClick={onCardClick}
-                    onReorder={onReorder}
-                    onMoveToCell={onMoveToCell}
-                    onComplete={onComplete}
-                    onClick={onCellClick}
-                    focusIds={focusIds}
-                    onToggleFocus={onToggleFocus}
-                    onDeleteTodo={onDeleteTodo}
-                  />
-                )
-              })}
-            </div>
-          )
-        })}
+        {CATEGORY_IDS.map((catId) => (
+          <MatrixRow
+            key={catId}
+            catId={catId}
+            row={grouped[catId]}
+            cellColors={colorMap[catId]}
+            selectedId={selectedId}
+            onCardClick={onCardClick}
+            onReorder={onReorder}
+            onMoveToCell={onMoveToCell}
+            onComplete={onComplete}
+            onClick={onCellClick}
+            focusIds={focusIds}
+            onToggleFocus={onToggleFocus}
+            onDeleteTodo={onDeleteTodo}
+          />
+        ))}
       </div>
 
       {/* ── 底部统计 ── */}
@@ -152,6 +123,115 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, on
           }
         </span>
       </div>
+    </div>
+  )
+}
+
+// ── 矩阵行子组件 ────────────────────────────────────────────
+
+interface MatrixRowProps {
+  catId: string
+  row: Record<string, Todo[]> | undefined
+  cellColors: { bg: string; fill: string } | undefined
+  selectedId: string | null
+  onCardClick: (todoId: string, e: React.MouseEvent) => void
+  onReorder: (sourceId: string, targetId: string, position: 'before' | 'after') => void
+  onMoveToCell: (sourceId: string, catId: string, priId: string) => void
+  onComplete?: (todoId: string) => void
+  onClick?: (e: React.MouseEvent, catId: string, priId: string) => void
+  focusIds: Set<string>
+  onToggleFocus: (todoId: string, isFocus: boolean) => void
+  onDeleteTodo?: (todoId: string) => void
+}
+
+function MatrixRow({
+  catId, row, cellColors, selectedId,
+  onCardClick, onReorder, onMoveToCell, onComplete, onClick,
+  focusIds, onToggleFocus, onDeleteTodo,
+}: MatrixRowProps) {
+  // 空行默认折叠，有任务默认展开且不可折叠
+  const rowTotal = row ? PRIORITIES.reduce((s, p) => s + (row[p.id as string] ?? []).length, 0) : 0
+  const hasTodos = rowTotal > 0
+  const [collapsed, setCollapsed] = useState(!hasTodos)
+  const interactive = !hasTodos // 有任务时只读
+
+  if (!row) return null
+
+  const fill = cellColors?.fill ?? '#888'
+
+  return (
+    <div>
+      {collapsed
+        /* ── 折叠态：36px 横条 ── */
+        ? (
+          <button
+            className={`grid grid-cols-[64px_repeat(3,1fr)] gap-1.5 pl-2 rounded-l-lg h-9 w-full text-left transition-all duration-150 ${
+              interactive
+                ? 'cursor-pointer hover:bg-surface-raised'
+                : 'cursor-default'
+            }`}
+            style={{ borderLeft: `3px solid ${fill}` }}
+            onClick={interactive ? () => setCollapsed((v) => !v) : undefined}
+          >
+            {/* 行头：分类名 + 展开图标 */}
+            <div className="flex items-center justify-end gap-2 pr-2 h-full">
+              <span className="font-serif text-xs text-text-secondary leading-tight text-right tracking-wide">
+                {CATEGORY_NAMES[catId] ?? catId}
+              </span>
+              <span
+                className="text-text-tertiary transition-transform duration-150 flex-shrink-0"
+                style={{ transform: 'rotate(0deg)' }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </span>
+            </div>
+            {/* 右侧占位 */}
+            <div className="col-span-3" />
+          </button>
+        )
+        /* ── 展开态：三格 ── */
+        : (
+          <div
+            className="grid grid-cols-[64px_repeat(3,1fr)] gap-1.5 pl-2 rounded-l-lg"
+            style={{ borderLeft: `3px solid ${fill}` }}
+          >
+            {/* ── 行头：分类名 ── */}
+            <div className="flex items-center justify-end gap-2 pr-2 min-h-[72px]">
+              <span className="font-serif text-xs text-text-secondary leading-tight text-right tracking-wide">
+                {CATEGORY_NAMES[catId] ?? catId}
+              </span>
+            </div>
+
+            {/* ── 三列格子 ── */}
+            {PRIORITIES.map((pri) => {
+              const cellTodos = row[pri.id as string] ?? []
+              const isSelected = cellTodos.some((t: Todo) => t.id === selectedId)
+
+              return (
+                <Cell
+                  key={pri.id}
+                  catId={catId}
+                  priId={pri.id as string}
+                  todos={cellTodos}
+                  categoryFill={fill}
+                  isSelected={isSelected}
+                  selectedId={selectedId}
+                  onCardClick={onCardClick}
+                  onReorder={onReorder}
+                  onMoveToCell={onMoveToCell}
+                  onComplete={onComplete}
+                  onClick={onClick}
+                  focusIds={focusIds}
+                  onToggleFocus={onToggleFocus}
+                  onDeleteTodo={onDeleteTodo}
+                />
+              )
+            })}
+          </div>
+        )
+      }
     </div>
   )
 }
@@ -506,5 +586,3 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
     </div>
   )
 }
-
-

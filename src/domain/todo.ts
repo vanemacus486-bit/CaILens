@@ -27,27 +27,38 @@ export type RepeatPattern = 'daily'
 
 // ── 优先级枚举 ──────────────────────────────────────────────
 
-export type TodoPriority = 'high' | 'medium' | 'low'
+/** 优先级：'high' | 'medium' | 'low'；null 表示"收件箱"（未归类） */
+export type TodoPriority = TodoPriorityWithValue | null
 
-export const TODO_PRIORITIES: readonly TodoPriority[] = ['high', 'medium', 'low'] as const
+type TodoPriorityWithValue = 'high' | 'medium' | 'low'
 
-export const TODO_PRIORITY_LABELS: Record<TodoPriority, string> = {
+export const TODO_PRIORITIES: readonly TodoPriorityWithValue[] = ['high', 'medium', 'low'] as const
+
+export const TODO_PRIORITY_LABELS: Record<TodoPriorityWithValue, string> = {
   high:   '高',
   medium: '中',
   low:    '低',
 }
 
-export const TODO_PRIORITY_LABELS_EN: Record<TodoPriority, string> = {
+export const TODO_PRIORITY_LABELS_EN: Record<TodoPriorityWithValue, string> = {
   high:   'High',
   medium: 'Medium',
   low:    'Low',
 }
 
 /** 数值越大优先级越高，用于排序 */
-export const TODO_PRIORITY_ORDER: Record<TodoPriority, number> = {
+export const TODO_PRIORITY_ORDER: Record<TodoPriorityWithValue, number> = {
   high:   3,
   medium: 2,
   low:    1,
+}
+
+/** 优先级排序值：null（收件箱）最低，排在 'low' 之后 */
+export const TODO_PRIORITY_SORT_ORDER: Record<string, number> = {
+  null:  0,
+  low:   1,
+  medium: 2,
+  high:  3,
 }
 
 // ── 主类型 ──────────────────────────────────────────────────
@@ -58,6 +69,8 @@ export interface Todo {
   description: string
   status: TodoStatus
   priority: TodoPriority
+  /** 领域行的 id（来自 domain 分类），null 表示未归类（收件箱） */
+  domain: string | null
   /** 截止日期时间戳 (UTC ms)，可选 */
   dueDate: number | null
   /** 排序序号，越小越靠前 */
@@ -79,7 +92,8 @@ export interface Todo {
 export interface CreateTodoInput {
   title: string
   description?: string
-  priority?: TodoPriority
+  priority?: TodoPriority | null
+  domain?: string | null
   dueDate?: number | null
   projectId?: string | null
   categoryId?: string | null
@@ -91,7 +105,8 @@ export interface UpdateTodoInput {
   title?: string
   description?: string
   status?: TodoStatus
-  priority?: TodoPriority
+  priority?: TodoPriority | null
+  domain?: string | null
   dueDate?: number | null
   sortOrder?: number
   projectId?: string | null
@@ -112,8 +127,10 @@ export function sortTodos(todos: Todo[]): Todo[] {
     // 同状态按 sortOrder
     if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder
 
-    // 再按优先级
-    const pDiff = TODO_PRIORITY_ORDER[b.priority] - TODO_PRIORITY_ORDER[a.priority]
+    // 再按优先级（null 最低）
+    const pA = TODO_PRIORITY_SORT_ORDER[a.priority ?? 'null'] ?? 0
+    const pB = TODO_PRIORITY_SORT_ORDER[b.priority ?? 'null'] ?? 0
+    const pDiff = pB - pA
     if (pDiff !== 0) return pDiff
 
     // 最后按创建时间
@@ -217,37 +234,44 @@ export function nextSortOrder(todos: Todo[]): number {
 }
 
 /**
- * 按 (categoryId, priority) 将未完成待办分组，供优先级矩阵使用。
+ * 按 (domain, priority) 将未完成待办分组，供优先级矩阵使用。
  *
  * @param todos - 全部待办
- * @param projectCategoryMap - projectId → categoryId 映射（项目继承用）
- * @param categoryOrder - 分类 ID 顺序（决定行序）
- * @returns { categoryId: { high: [...], medium: [...], low: [...] } }
- *          每个格子都是数组，保证 categoryOrder 中所有分类都存在
+ * @param projectDomainMap - projectId → domain(categoryId) 映射（项目继承用）
+ * @param domainOrder - 领域 ID 顺序（决定行序）
+ * @returns { domainId: { high: [...], medium: [...], low: [...] } }
+ *          每个格子都是数组；priority=null 的"收件箱"任务归入 inbox 格子
+ *          保证 domainOrder 中所有领域都存在
  */
 export function groupTodosByPriority(
   todos: Todo[],
-  projectCategoryMap: Record<string, string>,
-  categoryOrder: string[],
+  projectDomainMap: Record<string, string>,
+  domainOrder: string[],
 ): Record<string, Record<string, Todo[]>> {
-  // 按分类初始化空结构
+  // 按领域初始化空结构
   const result: Record<string, Record<string, Todo[]>> = {}
-  for (const catId of categoryOrder) {
-    result[catId] = { high: [], medium: [], low: [] }
+  for (const domId of domainOrder) {
+    result[domId] = { high: [], medium: [], low: [] }
   }
 
   // 只处理未完成的待办
   const activeTodos = todos.filter((t) => t.status !== 'done')
 
   for (const todo of activeTodos) {
-    // 确定分类：优先用 todo.categoryId，否则从项目继承
-    let catId = todo.categoryId
-    if (!catId && todo.projectId) {
-      catId = projectCategoryMap[todo.projectId] ?? null
+    // 确定领域：优先用 todo.domain，否则从项目继承
+    let domId = todo.domain
+    if (!domId && todo.projectId) {
+      domId = projectDomainMap[todo.projectId] ?? null
     }
-    if (!catId || !result[catId]) continue // 跳过无分类或不在列表中的分类
+    if (!domId || !result[domId]) {
+      // 无领域 → 归入 inbox
+      if (!result['inbox']) result['inbox'] = { high: [], medium: [], low: [] }
+      domId = 'inbox'
+    }
 
-    result[catId][todo.priority].push(todo)
+    // priority 为 null 时归入 low 格子（收件箱任务不显示在矩阵格子中）
+    const p = todo.priority ?? 'low'
+    result[domId][p].push(todo)
   }
 
   return result
@@ -355,7 +379,9 @@ export function groupTodosByWeekDays(todos: Todo[], weekStart: number): WeekDayG
   // 排序
   for (const day of days) {
     day.activeTodos.sort((a, b) => {
-      const pDiff = TODO_PRIORITY_ORDER[b.priority] - TODO_PRIORITY_ORDER[a.priority]
+      const pA = TODO_PRIORITY_SORT_ORDER[a.priority ?? 'null'] ?? 0
+      const pB = TODO_PRIORITY_SORT_ORDER[b.priority ?? 'null'] ?? 0
+      const pDiff = pB - pA
       if (pDiff !== 0) return pDiff
       return a.sortOrder - b.sortOrder
     })
@@ -363,13 +389,17 @@ export function groupTodosByWeekDays(todos: Todo[], weekStart: number): WeekDayG
   }
 
   overdueTodos.sort((a, b) => {
-    const pDiff = TODO_PRIORITY_ORDER[b.priority] - TODO_PRIORITY_ORDER[a.priority]
+    const pA = TODO_PRIORITY_SORT_ORDER[a.priority ?? 'null'] ?? 0
+    const pB = TODO_PRIORITY_SORT_ORDER[b.priority ?? 'null'] ?? 0
+    const pDiff = pB - pA
     if (pDiff !== 0) return pDiff
     return a.sortOrder - b.sortOrder
   })
 
   unscheduledTodos.sort((a, b) => {
-    const pDiff = TODO_PRIORITY_ORDER[b.priority] - TODO_PRIORITY_ORDER[a.priority]
+    const pA = TODO_PRIORITY_SORT_ORDER[a.priority ?? 'null'] ?? 0
+    const pB = TODO_PRIORITY_SORT_ORDER[b.priority ?? 'null'] ?? 0
+    const pDiff = pB - pA
     if (pDiff !== 0) return pDiff
     return a.sortOrder - b.sortOrder
   })
@@ -419,30 +449,31 @@ export function getTodayFocusStats(todos: Todo[], now: number = Date.now()): Tod
 }
 
 /**
- * 按 (categoryId, priority) 分组，但已完成的今日聚焦项保留在格子中。
+ * 按 (domain, priority) 分组，但已完成的今日聚焦项保留在格子中。
  * 用于"完成即留存"——已完成的今日聚焦项仍显示在原位（划线+淡化）。
  */
 export function groupTodosByPriorityWithDoneFocus(
   todos: Todo[],
-  projectCategoryMap: Record<string, string>,
-  categoryOrder: string[],
+  projectDomainMap: Record<string, string>,
+  domainOrder: string[],
   now: number = Date.now(),
 ): Record<string, Record<string, Todo[]>> {
   // 先做标准分组（过滤掉所有已完成项）
-  const grouped = groupTodosByPriority(todos, projectCategoryMap, categoryOrder)
+  const grouped = groupTodosByPriority(todos, projectDomainMap, domainOrder)
 
   // 把已完成的今日聚焦项加回对应格子
   for (const todo of todos) {
     if (todo.status !== 'done') continue
     if (!isTodayFocus(todo, now)) continue
 
-    let catId = todo.categoryId
-    if (!catId && todo.projectId) {
-      catId = projectCategoryMap[todo.projectId] ?? null
+    let domId = todo.domain
+    if (!domId && todo.projectId) {
+      domId = projectDomainMap[todo.projectId] ?? null
     }
-    if (!catId || !grouped[catId]) continue
+    if (!domId || !grouped[domId]) continue
 
-    grouped[catId][todo.priority].push(todo)
+    const p = todo.priority ?? 'low'
+    grouped[domId][p].push(todo)
   }
 
   return grouped
@@ -469,6 +500,7 @@ export function spawnNextRepeat(todo: Todo, now: number = Date.now()): Todo {
     description: todo.description,
     status: 'todo',
     priority: todo.priority,
+    domain: todo.domain,
     dueDate: null,
     sortOrder: todo.sortOrder,
     projectId: todo.projectId,

@@ -49,12 +49,18 @@ export function BudgetBar({ categories }: BudgetBarProps) {
               className="h-full transition-all duration-300"
               style={{
                 width: `${Math.min(catPct, 100)}%`,
-                backgroundColor: `var(--event-${cat.id}-text)`,
+                backgroundColor: `var(--event-${cat.id}-fill)`,
               }}
             />
           )
         })}
-        {totalBudgeted < WEEK_TOTAL && (
+        {overBudget && (
+          <div
+            className="h-full transition-opacity duration-300"
+            style={{ backgroundColor: 'var(--color-text-danger)', opacity: 0.25, flex: 1 }}
+          />
+        )}
+        {totalBudgeted < WEEK_TOTAL && !overBudget && (
           <div className="flex-1 h-full" />
         )}
       </div>
@@ -65,7 +71,7 @@ export function BudgetBar({ categories }: BudgetBarProps) {
           <span key={cat.id} className="inline-flex items-center gap-1.5 text-xs">
             <span
               className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: `var(--event-${cat.id}-text)` }}
+              style={{ backgroundColor: `var(--event-${cat.id}-fill)` }}
             />
             <span className="text-text-secondary font-sans">{cat.name}</span>
             <span className="text-text-tertiary font-mono">{cat.weeklyBudget}h</span>

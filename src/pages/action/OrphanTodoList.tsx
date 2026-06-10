@@ -45,7 +45,7 @@ export function OrphanTodoList({ todos, onCardClick, onComplete }: OrphanTodoLis
           {'待办'}
         </h2>
         <p className="font-sans text-xs text-text-quaternary py-2">
-          暂无独立待办
+          暂无待办，可通过快捷键快速录入
         </p>
       </section>
     )

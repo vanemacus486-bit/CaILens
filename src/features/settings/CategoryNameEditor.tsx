@@ -34,23 +34,37 @@ export function CategoryNameEditor({ id, name, onCommit }: CategoryNameEditorPro
     if (e.key === 'Escape') { setValue(name); setEditing(false); inputRef.current?.blur() }
   }
 
+  const charCount = value.length
+
   return (
-    <input
-      ref={inputRef}
-      type="text"
-      value={editing ? value : name}
-      maxLength={CATEGORY_NAME_MAX_LENGTH}
-      onChange={(e) => setValue(e.target.value)}
-      onFocus={handleFocus}
-      onBlur={commit}
-      onKeyDown={handleKeyDown}
-      className={cn(
-        'flex-1 px-2 py-1 text-sm font-sans rounded-lg',
-        'bg-transparent border border-transparent',
-        'text-text-primary',
-        'hover:border-border-subtle focus:border-border-default',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
+    <div className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        value={editing ? value : name}
+        maxLength={CATEGORY_NAME_MAX_LENGTH}
+        onChange={(e) => setValue(e.target.value)}
+        onFocus={handleFocus}
+        onBlur={commit}
+        onKeyDown={handleKeyDown}
+        className={cn(
+          'flex-1 px-2 py-1 text-sm font-sans rounded-lg',
+          'bg-transparent border border-transparent',
+          'text-text-primary',
+          'hover:border-border-subtle focus:border-border-default',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-150',
+        )}
+      />
+      {editing && (
+        <span className={cn(
+          'absolute -bottom-4 right-0 text-[10px] font-mono pointer-events-none transition-colors duration-150',
+          charCount >= CATEGORY_NAME_MAX_LENGTH
+            ? 'text-color-text-danger'
+            : 'text-text-tertiary',
+        )}>
+          {charCount}/{CATEGORY_NAME_MAX_LENGTH}
+        </span>
       )}
-    />
+    </div>
   )
 }

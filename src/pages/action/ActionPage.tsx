@@ -30,6 +30,7 @@ import { TodoDetailCard } from './TodoDetailCard'
 import { QuickCreateCard } from './QuickCreateCard'
 import { ProjectChipList } from './ProjectChipList'
 import { OrphanTodoList } from './OrphanTodoList'
+import { InboxTaskList } from './InboxTaskList'
 
 // ── 常量 ──────────────────────────────────────────────────
 
@@ -77,6 +78,9 @@ export function ActionPage() {
     updateTodo,
     deleteTodo,
   } = useTodoStore()
+
+  // ── 收件箱任务 ──
+  const inboxTasks = useTodoStore((s) => s.inboxTasks())
 
   const {
     projects,
@@ -421,9 +425,21 @@ export function ActionPage() {
                   <div className="flex-1 min-h-4" />
                 </div>
 
-                {/* ── 右列：项目色标组 + 独立待办 ── */}
+                {/* ── 右列：项目色标组 + 收件箱 + 独立待办 ── */}
                 <div className="space-y-4 xl:min-h-0">
                   <ProjectChipList />
+                  <InboxTaskList
+                    tasks={inboxTasks}
+                    onAdd={async (title) => {
+                      await createTodo({ title, priority: null, domain: null, categoryId: null, projectId: null })
+                    }}
+                    onComplete={async (id) => {
+                      await toggleComplete(id)
+                    }}
+                    onDelete={async (id) => {
+                      await deleteTodo(id)
+                    }}
+                  />
                   <OrphanTodoList
                     todos={orphanTodos}
                     onCardClick={handleCardClick}

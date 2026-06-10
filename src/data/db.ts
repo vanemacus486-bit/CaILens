@@ -158,6 +158,14 @@ export class CailensDB extends Dexie {
       todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern',
     })
 
+    // v25：todos 新增 priority（可空）和 domain 字段（收件箱任务支持）
+    this.version(25).stores({
+      todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern, priority, domain',
+    }).upgrade((tx) => tx.table('todos').toCollection().modify((todo: any) => {
+      if (todo.priority === undefined) todo.priority = null
+      if (todo.domain === undefined) todo.domain = null
+    }))
+
     // v24：projects 新增 dailyRepeat 字段（项目级每日重复）
     this.version(24).stores({
       events: 'id, startTime, endTime, projectId',

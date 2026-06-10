@@ -5,34 +5,44 @@ import { useAppSettingsStore } from '@/stores/settingsStore'
 import { cn } from '@/lib/utils'
 import { SettingsCategories } from './SettingsCategories'
 import { SettingsAppearance } from './SettingsAppearance'
+import { SettingsLanguage } from './SettingsLanguage'
+import { SettingsRestrained } from './SettingsRestrained'
 import { SettingsData } from './SettingsData'
+import { SettingsProfile } from './SettingsProfile'
 import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsShortcuts } from './SettingsShortcuts'
 import { SettingsAbout } from './SettingsAbout'
+import { isTauri } from '@/data/tauriFs'
 
 const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
-  { key: 'categories', label: 'Categories', labelZh: '分类' },
-  { key: 'appearance', label: 'Appearance', labelZh: '外观' },
-  { key: 'data',       label: 'Data',       labelZh: '数据' },
-  { key: 'storage',    label: 'Storage',    labelZh: '存储' },
-  { key: 'shortcuts',  label: 'Shortcuts',  labelZh: '快捷键' },
-  { key: 'about',      label: 'About',      labelZh: '关于' },
+  { key: 'categories',   label: 'Categories',  labelZh: '分类' },
+  { key: 'appearance',   label: 'Appearance',  labelZh: '外观' },
+  { key: 'language',     label: 'Language',    labelZh: '语言' },
+  { key: 'restrained',   label: 'Restrained',  labelZh: '克制模式' },
+  { key: 'shortcuts',    label: 'Shortcuts',   labelZh: '快捷键' },
+  { key: 'data',         label: 'Data',        labelZh: '数据' },
+  { key: 'profile',      label: 'Profile',     labelZh: '档案' },
+  ...(isTauri() ? [{ key: 'storage' as SettingsTab, label: 'Storage', labelZh: '存储' }] : []),
+  { key: 'about',        label: 'About',       labelZh: '关于' },
 ]
 
-const MOBILE_TAB_CONTENT: Record<string, React.FC> = {
-  categories: SettingsCategories,
-  appearance: SettingsAppearance,
-  data:       SettingsData,
-  storage:    SettingsStorage,
-  shortcuts:  SettingsShortcuts,
-  about:      SettingsAbout,
+const MOBILE_TAB_CONTENT: Record<SettingsTab, React.FC> = {
+  categories:  SettingsCategories,
+  appearance:  SettingsAppearance,
+  language:    SettingsLanguage,
+  restrained:  SettingsRestrained,
+  data:        SettingsData,
+  profile:     SettingsProfile,
+  storage:     SettingsStorage,
+  shortcuts:   SettingsShortcuts,
+  about:       SettingsAbout,
 }
 
 export function MobileSettingsPage() {
   const navigate = useNavigate()
   const activeSettingsTab = useUIStore((s) => s.activeSettingsTab)
   const setActiveSettingsTab = useUIStore((s) => s.setActiveSettingsTab)
-    const language = useAppSettingsStore((s) => s.settings.language)
+  const language = useAppSettingsStore((s) => s.settings.language)
   const ActiveTab = MOBILE_TAB_CONTENT[activeSettingsTab] ?? SettingsCategories
 
   return (

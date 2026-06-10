@@ -1,21 +1,15 @@
 /**
- * # ProfilePage — 个人档案
+ * # ProfilePage — 个人档案（只读快速查看）
  *
- * 视觉上接近体检报告首页/身份证背面/护照资料页。
- * 整页当作"一张纸"来设计，不是 dashboard。
+ * 编辑功能已迁移至设置页（/settings → 档案 tab）。
+ * 此页面保留路由兼容性，降级为只读展示。
  */
 
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fireAndForget } from '@/lib/fireAndForget'
-import { useEventStore } from '@/stores/eventStore'
 import { useProfileStore } from '@/stores/profileStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-
-
-
-
-// ── 数据行类型 ──────────────────────────────────────
 
 interface ProfileRow {
   labelZh: string
@@ -24,23 +18,16 @@ interface ProfileRow {
   change?: string
 }
 
-// ── 主组件 ──────────────────────────────────────────
-
 export function ProfilePage() {
   const navigate = useNavigate()
-  const profile  = useProfileStore((s) => s.profile)
+  const profile = useProfileStore((s) => s.profile)
   const loadProfile = useProfileStore((s) => s.loadProfile)
-  const allEvents = useEventStore((s) => s.allEvents)
-  const loadAllEvents = useEventStore((s) => s.loadAllEvents)
   const language = useAppSettingsStore((s) => s.settings.language)
-      // Load data
+
+  // Load data
   useEffect(() => {
     fireAndForget(loadProfile(), 'load profile')
-    if (allEvents.length === 0) {
-      fireAndForget(loadAllEvents(), 'load all events for profile')
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [loadProfile])
 
   // Title
   useEffect(() => {
@@ -59,10 +46,7 @@ export function ProfilePage() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [navigate])
 
-  // ── 作息基线（从事件派生） ──
-  const routineRows: ProfileRow[] = []
-
-  // ── 身体数据（从 store 读取） ──
+  // 身体数据
   const body = profile.body
 
   const bodyRows: ProfileRow[] = [
@@ -73,12 +57,10 @@ export function ProfilePage() {
     {
       labelZh: '体重', labelEn: 'Weight',
       value: body.weight !== null ? `${body.weight} kg` : '—',
-      change: body.weight !== null ? `↘ ${'较上月 -0.8'}` : undefined,
     },
     {
       labelZh: '体脂率', labelEn: 'Body Fat',
       value: body.bodyFat !== null ? `${body.bodyFat} %` : '—',
-      change: body.bodyFat !== null ? `↗ ${'较上月 +0.5'}` : undefined,
     },
     {
       labelZh: '静息心率', labelEn: 'Resting HR',
@@ -95,7 +77,7 @@ export function ProfilePage() {
       value: body.visionLeft !== null && body.visionRight !== null
         ? `${body.visionLeft >= 0 ? '+' : ''}${body.visionLeft} / ${body.visionRight >= 0 ? '+' : ''}${body.visionRight}`
         : '—',
-      change: body.visionLastCheck ? `${'最近一次'}:${body.visionLastCheck}` : undefined,
+      change: body.visionLastCheck ? `最近: ${body.visionLastCheck}` : undefined,
     },
   ]
 
@@ -123,26 +105,16 @@ export function ProfilePage() {
           ))}
         </Section>
 
-        {/* 作息基线段 */}
-        <Section title={'作息基线'}>
-          {routineRows.map((row, i) => (
-            <DataRow key={i} row={row} />
-          ))}
-        </Section>
-
-        {/* 编辑档案入口 */}
+        {/* 编辑入口 — 指向设置页 */}
         <div className="flex justify-center" style={{ marginTop: 48 }}>
           <button
-            onClick={() => {
-              // 占位：编辑 modal 待实现
-              alert('编辑功能待实现')
-            }}
+            onClick={() => navigate('/settings')}
             className="font-sans cursor-pointer bg-transparent border-none transition-colors duration-150"
             style={{ fontSize: 12, color: '#8B6F47' }}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#5C4530'; e.currentTarget.style.textDecoration = 'underline' }}
             onMouseLeave={(e) => { e.currentTarget.style.color = '#8B6F47'; e.currentTarget.style.textDecoration = 'none' }}
           >
-            + {'编辑档案'}
+            {'去设置页编辑档案'}
           </button>
         </div>
       </div>
@@ -171,13 +143,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function DataRow({ row }: { row: ProfileRow }) {
   return (
     <div
-      className="flex items-center cursor-pointer transition-colors duration-100"
+      className="flex items-center transition-colors duration-100"
       style={{ height: 32 }}
-      onClick={() => {
-        // 占位：详情页待实现
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#FFFEF9' }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
     >
       {/* 左列：指标名 */}
       <span

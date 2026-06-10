@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { getSettingsRepo } from '@/data/getRepositories'
-import type { AppSettings, AppTheme, UiFont } from '@/domain/settings'
+import type { AppSettings, AppLanguage, AppTheme, UiFont } from '@/domain/settings'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
 
@@ -56,6 +56,7 @@ interface AppSettingsState {
   settings: AppSettings
   isLoaded: boolean
   loadSettings: () => Promise<void>
+  setLanguage: (lang: AppLanguage) => Promise<void>
   setTheme: (theme: AppTheme) => Promise<void>
   setShortcut: (action: ShortcutAction, binding: ShortcutString | null) => Promise<void>
   resetAllShortcuts: () => Promise<void>
@@ -94,6 +95,11 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     localStorage.setItem(FONT_KEY, font)
 
     set({ settings: { ...settings, theme, uiFont: font }, isLoaded: true })
+  },
+
+  setLanguage: async (lang) => {
+    const settings = await getSettingsRepo().update({ language: lang })
+    set({ settings })
   },
 
   setTheme: async (theme) => {
