@@ -56,7 +56,7 @@
         --splash-text:            #28241f;
         --splash-text-secondary:  #6b6460;
         --splash-text-tertiary:   #a09894;
-        --splash-accent:          #c96442;
+        --splash-accent:          #c47a5a;
         --splash-bar-bg:          #e2ddd5;
       }
       .dark {
@@ -64,7 +64,7 @@
         --splash-text:            #f0ede6;
         --splash-text-secondary:  #a8a49c;
         --splash-text-tertiary:   #6b6862;
-        --splash-accent:          #c96442;
+        --splash-accent:          #c48a78;
         --splash-bar-bg:          #44403b;
       }
 
@@ -93,12 +93,16 @@
         border-radius: 50%;
         background-color: var(--splash-accent);
         margin-bottom: 24px;
-        animation: splash-pulse 2s ease-in-out infinite;
       }
 
-      @keyframes splash-pulse {
-        0%, 100% { transform: scale(1);   opacity: 0.75; }
-        50%      { transform: scale(1.5); opacity: 1;    }
+      @media (prefers-reduced-motion: no-preference) {
+        .splash-mark {
+          animation: splash-pulse 2s ease-in-out infinite;
+        }
+        @keyframes splash-pulse {
+          0%, 100% { transform: scale(1);   opacity: 0.75; }
+          50%      { transform: scale(1.5); opacity: 1;    }
+        }
       }
 
       /* ── Typography ── */
@@ -144,13 +148,17 @@
       /* Indeterminate shimmer */
       .splash-bar-fill.indeterminate {
         width: 35%;
-        animation: splash-shimmer 1.8s ease-in-out infinite;
       }
 
-      @keyframes splash-shimmer {
-        0%   { transform: translateX(-60%);  }
-        50%  { transform: translateX(200%);  }
-        100% { transform: translateX(-60%);  }
+      @media (prefers-reduced-motion: no-preference) {
+        .splash-bar-fill.indeterminate {
+          animation: splash-shimmer 1.8s ease-in-out infinite;
+        }
+        @keyframes splash-shimmer {
+          0%   { transform: translateX(-60%);  }
+          50%  { transform: translateX(200%);  }
+          100% { transform: translateX(-60%);  }
+        }
       }
 
       /* ── Status label ── */

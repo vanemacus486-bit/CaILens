@@ -22,17 +22,17 @@ import type { CalendarEvent } from '@/domain/event'
 // ── Constants ──────────────────────────────────────────────
 
 function catFill(catId: CategoryId): string {
-  if (catId === 'stone') return '#7a9aaa'
+  if (catId === 'stone') return 'var(--cat-sleep)'
   return `var(--event-${catId}-fill)`
 }
 
 function catBg(catId: CategoryId): string {
-  if (catId === 'stone') return '#e2e8ed'
+  if (catId === 'stone') return 'var(--cat-sleep-bg)'
   return `var(--event-${catId}-bg)`
 }
 
 function catText(catId: CategoryId): string {
-  if (catId === 'stone') return '#5a7a8a'
+  if (catId === 'stone') return 'var(--cat-sleep)'
   return `var(--event-${catId}-text)`
 }
 

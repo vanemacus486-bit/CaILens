@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CaILens · 日视图</title>
+  <link rel="stylesheet" href="design-system.css" />
+  <style>
+    .day-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      margin-bottom: var(--space-5);
+    }
+    .day-label {
+      font-family: var(--font-serif);
+      font-size: var(--text-heading);
+      font-weight: 600;
+    }
+    .day-timeline {
+      display: flex;
+      gap: 0;
+    }
+    .day-time-col {
+      width: 56px;
+      flex-shrink: 0;
+    }
+    .day-time-marker {
+      height: 56px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 4px 8px 0 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--fg-tertiary);
+    }
+    .day-events-col {
+      flex: 1;
+      position: relative;
+      border-left: 1px solid var(--border-subtle);
+      padding-left: var(--space-3);
+    }
+    .day-hour-slot {
+      height: 56px;
+      border-bottom: 1px solid var(--border-subtle);
+      position: relative;
+    }
+    .day-event {
+      position: absolute;
+      left: 0; right: 0;
+      border-radius: var(--radius-md);
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: filter var(--dur-fast);
+      display: flex;
+      gap: var(--space-2);
+      align-items: flex-start;
+      overflow: hidden;
+      z-index: 2;
+    }
+    .day-event:hover { filter: brightness(0.94); }
+    .day-event-time {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: inherit;
+      opacity: 0.7;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .day-event-body { flex: 1; min-width: 0; }
+    .day-event-title {
+      font-size: var(--text-base-sm);
+      font-weight: 500;
+      line-height: 1.3;
+    }
+    .day-event-desc {
+      font-size: var(--text-xs);
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+    .day-event.ev-accent { background: var(--ev-accent-bg); color: var(--ev-accent); }
+    .day-event.ev-sage   { background: var(--ev-sage-bg);   color: var(--ev-sage); }
+    .day-event.ev-sand   { background: var(--ev-sand-bg);   color: var(--ev-sand); }
+    .day-event.ev-sky    { background: var(--ev-sky-bg);    color: var(--ev-sky); }
+    .day-event.ev-rose   { background: var(--ev-rose-bg);   color: var(--ev-rose); }
+    .day-event.ev-stone  { background: var(--ev-stone-bg);  color: var(--ev-stone); }
+    .day-now-line {
+      position: absolute;
+      left: -12px; right: 0;
+      height: 0;
+      border-top: 2px solid var(--accent);
+      z-index: 5;
+      pointer-events: none;
+    }
+    .day-now-line::before {
+      content: '';
+      position: absolute;
+      left: -6px; top: -5px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .day-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-3);
+      margin-top: var(--space-5);
+    }
+    .day-summary-card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      text-align: center;
+    }
+    .day-summary-num {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--fg-primary);
+    }
+    .day-summary-label {
+      font-size: var(--text-xs);
+      color: var(--fg-tertiary);
+      margin-top: var(--space-1);
+    }
+  </style>
+</head>
+<body>
+<div class="app-window">
+  <div class="titlebar">
+    <div class="titlebar-icon"></div>
+    <span class="titlebar-title">CaILens — 日视图</span>
+    <span class="titlebar-spacer"></span>
+    <div class="titlebar-actions">
+      <button class="titlebar-btn">─</button>
+      <button class="titlebar-btn">□</button>
+      <button class="titlebar-btn close">✕</button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <aside class="sidebar">
+      <div class="sidebar-nav">
+        <a href="week-view.html" class="sidebar-item active" title="周视图">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
+        </a>
+        <a href="plan-matrix.html" class="sidebar-item" title="规划">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+        </a>
+        <a href="stats.html" class="sidebar-item" title="复盘">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        </a>
+      </div>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-bottom">
+        <a href="settings.html" class="sidebar-item" title="设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="day-header">
+        <div class="flex-row gap-2">
+          <button class="btn btn-ghost btn-icon btn-sm">←</button>
+          <span class="day-label">2026年5月29日 周五</span>
+          <button class="btn btn-ghost btn-icon btn-sm">→</button>
+        </div>
+        <span style="flex:1"></span>
+        <div class="flex-row gap-2">
+          <a href="week-view.html" class="btn btn-secondary btn-sm">周视图</a>
+          <button class="btn btn-primary btn-sm">+ 记录</button>
+        </div>
+      </div>
+
+      <div class="day-timeline">
+        <div class="day-time-col">
+          <div class="day-time-marker">06:00</div>
+          <div class="day-time-marker">07:00</div>
+          <div class="day-time-marker">08:00</div>
+          <div class="day-time-marker">09:00</div>
+          <div class="day-time-marker">10:00</div>
+          <div class="day-time-marker">11:00</div>
+          <div class="day-time-marker">12:00</div>
+          <div class="day-time-marker">13:00</div>
+          <div class="day-time-marker">14:00</div>
+          <div class="day-time-marker">15:00</div>
+          <div class="day-time-marker">16:00</div>
+          <div class="day-time-marker">17:00</div>
+          <div class="day-time-marker">18:00</div>
+          <div class="day-time-marker">19:00</div>
+          <div class="day-time-marker">20:00</div>
+          <div class="day-time-marker">21:00</div>
+          <div class="day-time-marker">22:00</div>
+          <div class="day-time-marker">23:00</div>
+        </div>
+        <div class="day-events-col">
+          <div class="day-hour-slot"></div>
+          <div class="day-hour-slot">
+            <div class="day-event ev-sand" style="top:4px;height:46px;">
+              <span class="day-event-time">07:15</span>
+              <div class="day-event-body">
+                <div class="day-event-title">晨跑 · 3km 轻松跑</div>
+                <div class="day-event-desc">配速 5'40" · 公园路线</div>
+              </div>
+            </div>
+          </div>
+          <div class="day-hour-slot">
+            <div class="day-event ev-stone" style="top:4px;height:46px;">
+              <span class="day-event-time">08:30</span>
+              <div class="day-event-body">
+                <div class="day-event-title">洗漱 · 早餐</div>
+                <div class="day-event-desc">吐司 + 煎蛋 + 咖啡</div>
+              </div>
+            </div>
+          </div>
+          <div class="day-hour-slot">
+            <div class="day-event ev-accent" style="top:4px;height:94px;">
+              <span class="day-event-time">09:30</span>
+              <div class="day-event-body">
+                <div class="day-event-title">Sprint Review · 演示 + 回顾</div>
+                <div class="day-event-desc">演示本周完成的周视图重构功能 · 收集反馈</div>
+              </div>
+            </div>
+          </div>
+          <div class="day-hour-slot"></div>
+          <div class="day-hour-slot">
+            <div class="day-event ev-accent" style="top:4px;height:70px;">
+              <span class="day-event-time">11:00</span>
+              <div class="day-event-body">
+                <div class="day-event-title">写代码 · 修复拖拽 bug</div>
+                <div class="day-event-desc">事件拖拽时时间线不更新的问题</div>
+              </div>
+            </div>
+          </div>
+          <div class="day-hour-slot">
+            <div class="day-event ev-sage" style="top:4px;height:46px;">
+              <span class="day-event-time">12:15</span>
+              <div class="day-event-body">
+                <div class="day-event-title">午餐 · 便当</div>
+                <div class="day-event-desc">红烧肉 + 炒青菜 + 米饭</div>
+              </div>
+            </div>
+          </div>
+          <div class="day-hour-slot"></div>
+          <div class="day-hour-slot">
+            <div class="day-event ev-accent" style="top:4px;height:70px;">
+              <span class="day-event-time">14:00</span>
+              <div class="day-event-body">
+                <div class="day-event-title">技术分享 · Tauri v2 实践</div>
+                <div class="day-event-desc">分享 Tauri v2 在 CaILens 中的应用经验</div>
+              </div>
+            </div>
+          </div>
+          <div class="day-hour-slot"></div>
+          <div class="day-hour-slot"></div>
+          <div class="day-hour-slot">
+            <div class="day-event ev-sky" style="top:4px;height:46px;">
+              <span class="day-event-time">17:00</span>
+              <div class="day-event-body">
+                <div class="day-event-title">团队 Happy Hour</div>
+                <div class="day-event-desc">楼下咖啡馆 · 闲聊放松</div>
+              </div>
+            </div>
+          </div>
+          <div class="day-hour-slot"></div>
+          <div class="day-hour-slot">
+            <div class="day-event ev-sage" style="top:4px;height:46px;">
+              <span class="day-event-time">19:00</span>
+              <div class="day-event-body">
+                <div class="day-event-title">晚餐 · 日式拉面</div>
+                <div class="day-event-desc">豚骨拉面 + 煎饺</div>
+              </div>
+            </div>
+          </div>
+          <div class="day-hour-slot">
+            <!-- "Now" line at ~20:30 -->
+            <div class="day-now-line" style="top:28px;"></div>
+            <div class="day-event ev-rose" style="top:32px;height:70px;">
+              <span class="day-event-time">20:00</span>
+              <div class="day-event-body">
+                <div class="day-event-title">游戏之夜 · Switch</div>
+                <div class="day-event-desc">塞尔达 · 和室友一起</div>
+              </div>
+            </div>
+          </div>
+          <div class="day-hour-slot"></div>
+          <div class="day-hour-slot"></div>
+          <div class="day-hour-slot"></div>
+        </div>
+      </div>
+
+      <!-- Day summary -->
+      <div class="day-summary">
+        <div class="day-summary-card">
+          <div class="day-summary-num">7</div>
+          <div class="day-summary-label">条记录</div>
+        </div>
+        <div class="day-summary-card">
+          <div class="day-summary-num num">4h 20m</div>
+          <div class="day-summary-label">工作</div>
+        </div>
+        <div class="day-summary-card">
+          <div class="day-summary-num num">1h 10m</div>
+          <div class="day-summary-label">运动</div>
+        </div>
+        <div class="day-summary-card">
+          <div class="day-summary-num num">7h 45m</div>
+          <div class="day-summary-label">睡眠（昨晚）</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="statusbar">
+    <span class="statusbar-item"><span class="statusbar-dot"></span> 本地存储</span>
+    <span class="statusbar-item">今日 7 条记录</span>
+    <span class="statusbar-spacer"></span>
+    <span class="statusbar-item">← → 切换日期 · T 回到今天</span>
+  </footer>
+</div>
+</body>
+</html>

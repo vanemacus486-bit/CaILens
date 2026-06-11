@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
+﻿import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { format } from 'date-fns'
 import {
   ComposedChart,
@@ -399,7 +399,7 @@ export function CategoryTrendChart({
                 className={`trend-pill${active ? ' trend-pill-active' : ''}`}
                 style={
                   active
-                    ? { backgroundColor: `var(--event-${id}-fill)`, color: '#F1EADB' }
+                    ? { backgroundColor: `var(--event-${id}-fill)`, color: 'var(--surface)' }
                     : undefined
                 }
               >
@@ -414,7 +414,7 @@ export function CategoryTrendChart({
             className={`trend-pill${groupEnabled ? ' trend-pill-active' : ''}`}
             style={
               groupEnabled
-                ? { backgroundColor: `var(--accent)`, color: '#F1EADB' }
+                ? { backgroundColor: `var(--accent)`, color: 'var(--surface)' }
                 : undefined
             }
           >
@@ -446,7 +446,7 @@ export function CategoryTrendChart({
                 width: '100%',
                 padding: '5px 10px',
                 fontSize: 12,
-                fontFamily: "'Noto Sans SC', sans-serif",
+                fontFamily: "'Source Serif 4', 'Noto Serif SC', serif",
                 borderRadius: 6,
                 border: '1px solid var(--border-subtle)',
                 background: 'var(--surface-raised)',
@@ -483,7 +483,7 @@ export function CategoryTrendChart({
                     style={{
                       display: 'block', width: '100%', textAlign: 'left',
                       padding: '5px 10px', fontSize: 12,
-                      fontFamily: "'Noto Sans SC', sans-serif",
+                      fontFamily: "'Source Serif 4', 'Noto Serif SC', serif",
                       color: 'var(--text-primary)', background: 'transparent',
                       border: 'none', cursor: 'pointer',
                     }}
@@ -505,18 +505,18 @@ export function CategoryTrendChart({
           <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="var(--border-subtle)"
+              stroke="var(--line)"
               vertical={false}
             />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: "'JetBrains Mono', monospace" }}
+              tick={{ fontSize: 11, fill: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}
               tickLine={false}
-              axisLine={{ stroke: 'var(--border-subtle)' }}
+              axisLine={{ stroke: 'var(--line)' }}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: "'JetBrains Mono', monospace" }}
+              tick={{ fontSize: 11, fill: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v: number) => `${v.toFixed(1)}h`}
@@ -529,6 +529,7 @@ export function CategoryTrendChart({
             {groupEnabled && coreGroupCategories.length > 0 && coreGroupCategories.map((id) => (
               <Area
                 key={id}
+                type="monotone"
                 dataKey={id}
                 stackId="core-group"
                 fill={`var(--event-${id}-fill)`}
@@ -543,12 +544,27 @@ export function CategoryTrendChart({
             ))}
             {groupEnabled && coreGroupCategories.length > 0 && (
               <Line
+                type="monotone"
                 dataKey={groupDataKey}
                 name={CORE_GROUP.nameZh}
                 stroke="var(--accent)"
                 strokeWidth={2.5}
-                dot={false}
+                dot={{ r: 3, strokeWidth: 0 }}
                 activeDot={{ r: 3, strokeWidth: 0 }}
+                connectNulls={false}
+              />
+            )}
+
+            {/* Area fill for the first selected category (0.08 opacity) */}
+            {selected.length > 0 && (
+              <Area
+                type="monotone"
+                dataKey={selected[0]}
+                fill={`var(--event-${selected[0]}-fill)`}
+                fillOpacity={0.08}
+                stroke="none"
+                name={catMap.get(selected[0])?.name ?? selected[0]}
+                dot={false}
                 connectNulls={false}
               />
             )}
@@ -566,7 +582,7 @@ export function CategoryTrendChart({
                     name={cat?.name ?? id}
                     stroke={`var(--event-${id}-fill)`}
                     strokeWidth={1.5}
-                    dot={false}
+                    dot={{ r: 3, strokeWidth: 0 }}
                     activeDot={{ r: 3, strokeWidth: 0 }}
                     connectNulls={false}
                   />
@@ -592,54 +608,20 @@ export function CategoryTrendChart({
             {budgetLine > 0 && (
               <ReferenceLine
                 y={budgetLine}
-                stroke="var(--color-text-warning)"
+                stroke="var(--line-strong)"
                 strokeDasharray="4 4"
                 strokeWidth={1}
                 label={{
                   value: `${'预算'} ${budgetLine.toFixed(1)}h`,
                   position: 'insideTopRight',
-                  fill: 'var(--color-text-warning)',
+                  fill: 'var(--ink-2)',
                   fontSize: 10,
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: 'var(--font-mono)',
                 }}
               />
             )}
           </ComposedChart>
         </ResponsiveContainer>
-      </div>
-
-      {/* ── Legend ────────────────────────────────────────── */}
-      <div className="trend-legend">
-        {selected.map((id) => {
-          const cat = catMap.get(id)
-          return (
-            <span key={id} className="trend-legend-item">
-              <span className="trend-legend-dot" style={{ background: `var(--event-${id}-fill)` }} />
-              {cat?.name ?? id}
-            </span>
-          )
-        })}
-        {groupEnabled && coreGroupCategories.length > 0 && (
-          <span className="trend-legend-item">
-            <span className="trend-legend-line" style={{ borderColor: 'var(--accent)', borderTopWidth: 2.5 }} />
-            {CORE_GROUP.nameZh}
-          </span>
-        )}
-        {budgetLine > 0 && (
-          <span className="trend-legend-item">
-            <span className="trend-legend-dash" style={{ borderColor: 'var(--color-text-warning)' }} />
-            {'预算'}
-          </span>
-        )}
-        {eventTitle && (
-          <span className="trend-legend-item">
-            <span className="trend-legend-line" style={{ borderColor: 'var(--accent)', borderTopWidth: 3, borderTopStyle: 'dashed' }} />
-            {eventTitle.length > 14 ? eventTitle.slice(0, 14) + '…' : eventTitle}
-          </span>
-        )}
-        <span className="trend-legend-note">
-          {'每点 = 一个周期'}
-        </span>
       </div>
 
       {/* ── Maturity warning ────────────────────────────── */}
@@ -650,7 +632,7 @@ export function CategoryTrendChart({
             textAlign: 'center',
             marginTop: 16,
             fontSize: 11,
-            fontFamily: "'Noto Sans SC', sans-serif",
+            fontFamily: "'Source Serif 4', 'Noto Serif SC', serif",
             color: 'var(--heatmap-ink-3)',
           }}
         >
@@ -782,7 +764,7 @@ const TREND_CSS = `
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 
@@ -854,7 +836,7 @@ const TREND_CSS = `
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   font-weight: 500;
   color: var(--heatmap-ink-3);
@@ -882,7 +864,7 @@ const TREND_CSS = `
 .trend-pill {
   padding: 6px 16px;
   border-radius: 999px;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 13px;
   font-weight: 500;
   color: var(--heatmap-ink-2);
@@ -912,46 +894,6 @@ const TREND_CSS = `
 .trend-chart-container {
   margin-top: 28px;
   position: relative;
-}
-
-/* ── Legend ──────────────────────────────── */
-.trend-legend {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-top: 12px;
-  font-family: 'Noto Sans SC', sans-serif;
-  font-size: 12px;
-  color: var(--heatmap-ink-3);
-}
-.trend-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.trend-legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.trend-legend-line {
-  width: 20px;
-  height: 0;
-  border-top: 2px solid;
-  flex-shrink: 0;
-}
-.trend-legend-dash {
-  width: 20px;
-  height: 0;
-  border-top: 1.5px dashed;
-  flex-shrink: 0;
-}
-.trend-legend-note {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--heatmap-ink-3);
-  opacity: 0.65;
 }
 
 /* ── Stats bar ───────────────────────────── */
@@ -996,7 +938,7 @@ const TREND_CSS = `
   margin-left: 2px;
 }
 .trend-stat-detail {
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 11px;
   color: var(--heatmap-ink-3);
 }
@@ -1017,7 +959,7 @@ const TREND_CSS = `
   margin-top: 1px;
 }
 .trend-insight-text {
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   color: var(--color-text-info);
   margin: 0;

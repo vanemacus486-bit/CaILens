@@ -1,0 +1,59 @@
+/* ══════════════════════════════════════════════════════════════
+   CalLens Design Tokens — 唯一颜色/字体/圆角来源
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* 纸 */
+  --paper: #F2EEE3;
+  --surface: #FAF7EF;
+  --surface-raised: #FFFDF7;
+  /* 墨 */
+  --ink: #2B2620;
+  --ink-2: #6A6354;
+  --ink-3: #A39B87;
+  /* 线 */
+  --line: #E2DBC9;
+  --line-strong: #C8BFA8;
+  /* 强调 */
+  --accent: #BC4A26;
+  --accent-soft: #F2DDD2;
+  /* 分类色:strong 用于色条/描边,bg 用于底色 */
+  --cat-major: #BC4A26;   --cat-major-bg: #F4DCD1;
+  --cat-minor: #66793F;   --cat-minor-bg: #E3E8D3;
+  --cat-chore: #A87B23;   --cat-chore-bg: #F0E3C4;
+  --cat-growth: #4F6B80;  --cat-growth-bg: #DCE5EA;
+  --cat-leisure: #9A5468; --cat-leisure-bg: #ECDAE0;
+  --cat-sleep: #7E776A;   --cat-sleep-bg: #E7E2D7;
+  /* 字体 */
+  --font-display: "Noto Serif SC", "Source Han Serif SC", serif;
+  --font-ui: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+  /* 几何 */
+  --radius-s: 6px;
+  --radius-m: 10px;
+
+  /* ══ 饮食标签色 ══ */
+  --tag-diet-protein: #E8734A;
+  --tag-diet-staple: #D4A44A;
+  --tag-diet-vegetable: #5B9E5B;
+  --tag-diet-fruit: #C7A04A;
+  --tag-diet-caffeine: #7B5B3A;
+  --tag-diet-sugar: #C97B7B;
+  --tag-diet-alcohol: #9B6B9B;
+  --tag-diet-fried: #A08060;
+
+  /* ══ 卫生活动色 ══ */
+  --tag-hygiene-shower: #5B9EBD;
+  --tag-hygiene-brush-teeth: #7BC47F;
+  --tag-hygiene-skincare: #D4A4C4;
+  --tag-hygiene-shave: #C4A47B;
+  --tag-hygiene-hair-wash: #9B8BC4;
+  --tag-hygiene-nail-care: #C4A47B;
+
+  /* ══ 时段色 ══ */
+  --tag-period-morning: #7BC47F;
+  --tag-period-noon: #D4A44A;
+  --tag-period-afternoon: #E8734A;
+  --tag-period-evening: #5B9EBD;
+  --tag-period-night: #9B6B9B;
+}

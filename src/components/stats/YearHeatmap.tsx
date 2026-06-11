@@ -1,7 +1,8 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
+﻿import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 import type { CalendarEvent } from '@/domain/event'
 import type { Category, CategoryId } from '@/domain/category'
 import { computeDayStats } from '@/domain/stats'
+import { COLOR } from '@/styles/tokens'
 
 const DAY_MS = 24 * 60 * 60_000
 const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
@@ -126,14 +127,20 @@ export function buildHeatmapGrid(
     const thursday = new Date(firstMonday)
     thursday.setDate(firstMonday.getDate() + w * 7 + 3)
     const m = thursday.getMonth()
+    const y = thursday.getFullYear()
 
     if (w === 0) {
-      monthLabels.push({ nameZh: MONTH_NAMES_ZH[m], nameEn: MONTH_NAMES_EN[m], colIndex: w + 2 })
+      monthLabels.push({ nameZh: `${y}·${MONTH_NAMES_ZH[m]}`, nameEn: `${MONTH_NAMES_EN[m]} ${y}`, colIndex: w + 2 })
     } else {
       const prevThursday = new Date(firstMonday)
       prevThursday.setDate(firstMonday.getDate() + (w - 1) * 7 + 3)
-      if (prevThursday.getMonth() !== m) {
-        monthLabels.push({ nameZh: MONTH_NAMES_ZH[m], nameEn: MONTH_NAMES_EN[m], colIndex: w + 2 })
+      if (prevThursday.getMonth() !== m || prevThursday.getFullYear() !== y) {
+        const showYear = y !== prevThursday.getFullYear()
+        monthLabels.push({
+          nameZh: showYear ? `${y}·${MONTH_NAMES_ZH[m]}` : MONTH_NAMES_ZH[m],
+          nameEn: showYear ? `${MONTH_NAMES_EN[m]} ${y}` : MONTH_NAMES_EN[m],
+          colIndex: w + 2,
+        })
       }
     }
   }
@@ -195,7 +202,7 @@ export function buildRollingGrid(
     const y = thursday.getFullYear()
     if (w === 0) {
       monthLabels.push({
-        nameZh: `${y}年${['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][m]}`,
+        nameZh: `${y}·${['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][m]}`,
         nameEn: `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]} ${y}`,
         colIndex: w + 2,
       })
@@ -203,9 +210,10 @@ export function buildRollingGrid(
       const prevThursday = new Date(firstMonday)
       prevThursday.setDate(firstMonday.getDate() + (w - 1) * 7 + 3)
       if (prevThursday.getMonth() !== m || prevThursday.getFullYear() !== y) {
+        const showYear = y !== prevThursday.getFullYear()
         monthLabels.push({
-          nameZh: `${y}年${['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][m]}`,
-          nameEn: `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]} ${y}`,
+          nameZh: showYear ? `${y}·${['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][m]}` : ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][m],
+          nameEn: showYear ? `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]} ${y}` : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m],
           colIndex: w + 2,
         })
       }
@@ -586,7 +594,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
               <span
                 className="heatmap-cell-fill"
                 style={{
-                  opacity: [0, 0.22, 0.48, 0.75, 1][level],
+                  opacity: COLOR.heatmapOpacityRamp[level],
                   backgroundColor: fillColor ?? undefined,
                 }}
               />
@@ -704,7 +712,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
                   active
                     ? {
                         backgroundColor: `var(--event-${id}-fill)`,
-                        color: '#F1EADB',
+                        color: 'var(--surface)',
                       }
                     : undefined
                 }
@@ -735,7 +743,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
                 width: '100%',
                 padding: '5px 10px',
                 fontSize: 12,
-                fontFamily: "'Noto Sans SC', sans-serif",
+                fontFamily: "'Source Serif 4', 'Noto Serif SC', serif",
                 borderRadius: 6,
                 border: '1px solid var(--border-subtle)',
                 background: 'var(--surface-raised)',
@@ -772,7 +780,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
                     style={{
                       display: 'block', width: '100%', textAlign: 'left',
                       padding: '5px 10px', fontSize: 12,
-                      fontFamily: "'Noto Sans SC', sans-serif",
+                      fontFamily: "'Source Serif 4', 'Noto Serif SC', serif",
                       color: 'var(--text-primary)', background: 'transparent',
                       border: 'none', cursor: 'pointer',
                     }}
@@ -805,7 +813,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
       <div className="heatmap-legend">
         <span>{t('更少', 'Less')}</span>
         <div className="heatmap-legend-swatch" style={{ backgroundColor: 'var(--heatmap-bg-cell-empty)' }} />
-        {[0.22, 0.48, 0.75, 1].map((opacity) => (
+        {COLOR.heatmapOpacityRamp.slice(1).map((opacity) => (
           <div key={opacity} className="heatmap-legend-swatch" style={{ backgroundColor: 'var(--heatmap-bg-cell-empty)' }}>
             <span className="heatmap-cell-fill" style={{ opacity }} />
           </div>
@@ -955,7 +963,7 @@ const HEATMAP_CSS = `
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 
@@ -1021,7 +1029,7 @@ const HEATMAP_CSS = `
 .heatmap-pill {
   padding: 6px 16px;
   border-radius: 999px;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 13px;
   font-weight: 500;
   color: var(--heatmap-ink-2);
@@ -1052,7 +1060,7 @@ const HEATMAP_CSS = `
 
 /* ── Month labels ─────────────────────────── */
 .heatmap-month-label {
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 10px;
   color: var(--heatmap-ink-3);
   text-align: left;
@@ -1096,13 +1104,14 @@ const HEATMAP_CSS = `
 }
 
 .cell-today {
-  box-shadow: 0 0 0 1.5px #000;
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
   z-index: 1;
 }
 .cell-today:hover {
   outline: 2px solid var(--heatmap-ink-1);
   outline-offset: -1px;
-  box-shadow: 0 0 0 1.5px #000, 0 2px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
 .cell-future {
@@ -1189,7 +1198,7 @@ const HEATMAP_CSS = `
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   font-weight: 500;
   color: var(--heatmap-ink-3);
@@ -1247,7 +1256,7 @@ const HEATMAP_CSS = `
   margin-left: 2px;
 }
 .heatmap-stat-detail {
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 11px;
   color: var(--heatmap-ink-3);
 }
@@ -1266,7 +1275,7 @@ const HEATMAP_CSS = `
 }
 .heatmap-streak-extra {
   margin-left: 6px;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 11px;
   color: var(--heatmap-ink-2);
 }
@@ -1301,7 +1310,7 @@ const HEATMAP_CSS = `
   color: var(--heatmap-bg);
   padding: 8px 12px;
   border-radius: 4px;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   line-height: 1.5;
   white-space: nowrap;

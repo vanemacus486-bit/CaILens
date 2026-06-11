@@ -35,7 +35,7 @@ function fmtFullDate(date: Date, language: 'zh' | 'en'): string {
 
 function catFill(cat: Category | undefined): string {
   if (!cat) return 'var(--text-tertiary)'
-  if (cat.id === 'stone') return '#7a9aaa'
+  if (cat.id === 'stone') return 'var(--cat-sleep)'
   return `var(--event-${cat.id}-fill)`
 }
 

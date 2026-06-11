@@ -79,8 +79,11 @@ export function ActionPage() {
     deleteTodo,
   } = useTodoStore()
 
-  // ── 收件箱任务 ──
-  const inboxTasks = useTodoStore((s) => s.inboxTasks())
+  // ── 收件箱任务（从原始 todos 派生，避免 selector 内创建新引用） ──
+  const inboxTasks = useMemo(
+    () => todos.filter((t) => t.priority === null && t.domain === null),
+    [todos],
+  )
 
   const {
     projects,
@@ -322,7 +325,7 @@ export function ActionPage() {
       {/* ── 内容区 ── */}
       <div ref={usePageScrollRestore('/action')} className="flex-1 overflow-y-auto px-6 pb-8 pt-4 flex flex-col min-h-0">
         {todosError && (
-          <div className="mb-4 px-4 py-2 rounded-lg bg-[#B53535]/10 border border-[#B53535]/20 text-xs font-sans text-[#B53535]">
+          <div className="mb-4 px-4 py-2 rounded-lg bg-color-bg-danger border border-color-text-danger/20 text-xs font-sans text-color-text-danger">
             {todosError}
           </div>
         )}

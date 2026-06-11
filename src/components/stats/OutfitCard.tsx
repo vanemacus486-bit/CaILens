@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # OutfitCard — 穿搭卡片
  *
  * 展示每日穿搭记录。按周分组的卡片流，每格显示当日穿搭简述。
@@ -328,7 +328,7 @@ export function OutfitCard({ outfits, language }: Props) {
 const OUTFIT_CSS = `
 .outfit-root {
   width: 100%;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 
@@ -359,7 +359,7 @@ const OUTFIT_CSS = `
   background: transparent;
   color: var(--accent);
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   transition: all 0.15s ease;
 }
 .outfit-record-btn:hover {
@@ -414,7 +414,7 @@ const OUTFIT_CSS = `
   background: var(--heatmap-bg);
   color: var(--heatmap-ink-1);
   outline: none;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   cursor: pointer;
 }
 .outfit-category-select:focus {
@@ -429,7 +429,7 @@ const OUTFIT_CSS = `
   background: var(--heatmap-bg);
   color: var(--heatmap-ink-1);
   outline: none;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
 }
 .outfit-item-input:focus {
   border-color: var(--accent);
@@ -443,7 +443,7 @@ const OUTFIT_CSS = `
   background: var(--accent);
   color: white;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   transition: opacity 0.15s ease;
 }
 .outfit-add-btn:disabled {
@@ -498,7 +498,7 @@ const OUTFIT_CSS = `
   background: var(--heatmap-bg);
   color: var(--heatmap-ink-1);
   outline: none;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   box-sizing: border-box;
 }
 .outfit-note-input:focus {
@@ -516,7 +516,7 @@ const OUTFIT_CSS = `
   background: var(--accent);
   color: white;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   transition: opacity 0.15s ease;
 }
 .outfit-save-btn:disabled {
@@ -534,7 +534,7 @@ const OUTFIT_CSS = `
   background: transparent;
   color: var(--heatmap-ink-2);
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   transition: all 0.15s ease;
 }
 .outfit-cancel-btn:hover {

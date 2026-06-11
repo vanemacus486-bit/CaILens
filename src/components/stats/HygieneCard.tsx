@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # HygieneCard — 个人卫生卡片
  *
  * 连续卫生分数模型：
@@ -277,7 +277,7 @@ export function HygieneCard({ records }: Props) {
 const HYGIENE_CSS = `
 .hygiene-root {
   width: 100%;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 
@@ -315,7 +315,7 @@ const HYGIENE_CSS = `
   background: transparent;
   color: var(--accent);
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   transition: all 0.15s ease;
 }
 .hygiene-record-btn:hover {
@@ -441,7 +441,7 @@ const HYGIENE_CSS = `
   background: var(--accent);
   color: white;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   transition: opacity 0.15s ease;
 }
 .hygiene-save-btn:disabled {
@@ -459,7 +459,7 @@ const HYGIENE_CSS = `
   background: transparent;
   color: var(--heatmap-ink-2);
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   transition: all 0.15s ease;
 }
 .hygiene-cancel-btn:hover {

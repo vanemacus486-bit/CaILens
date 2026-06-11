@@ -171,7 +171,7 @@ export function DatePickerPopover({
           {allowClear && value !== null && (
             <button
               onClick={handleClear}
-              className="flex items-center gap-1 h-7 px-2 rounded-md text-[10px] font-sans text-text-tertiary hover:text-[#B53535] hover:bg-[#B53535]/10 transition-colors cursor-pointer border-none bg-transparent"
+              className="flex items-center gap-1 h-7 px-2 rounded-md text-[10px] font-sans text-text-tertiary hover:text-color-text-danger hover:bg-color-bg-danger transition-colors cursor-pointer border-none bg-transparent"
             >
               <X size={12} strokeWidth={1.75} />
               清除

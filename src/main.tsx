@@ -4,6 +4,7 @@ import { getAdapter } from '@/data/adapterFactory'
 import { initRepositories } from '@/data/getRepositories'
 import type { FileSystemAdapter } from '@/data/adapters/FileSystemAdapter'
 import './index.css'
+import './styles/tokens.css'
 import App from './App.tsx'
 
 function updateSplash(percent: number, label: string) {

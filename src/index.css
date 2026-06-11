@@ -7,10 +7,6 @@
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/noto-serif-sc/400.css';
 @import '@fontsource/noto-serif-sc/600.css';
-@import '@fontsource/noto-sans-sc/400.css';
-@import '@fontsource/noto-sans-sc/500.css';
-@import '@fontsource/lxgw-wenkai/500.css';
-@import '@fontsource/lxgw-wenkai/700.css';
 
 @import 'tailwindcss';
 @config '../tailwind.config.ts';
@@ -84,6 +80,7 @@
 
   --color-text-success:  #2D7D46;
   --color-text-danger:   #B53535;
+  --color-bg-danger:    #F8E8E8;
   --color-bg-info:       #E8F0F8;
   --color-text-info:     #3A5A80;
 
@@ -180,6 +177,7 @@
 
   --color-text-success:  #5eaa74;
   --color-text-danger:   #d06464;
+  --color-bg-danger:    #3A2020;
   --color-bg-info:       #2A3040;
   --color-text-info:     #90B8D8;
 
@@ -200,80 +198,122 @@
 }
 
 /* ── Current-time breathing animation ──────────────────── */
-@keyframes time-line-breathe {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.88; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes time-line-breathe {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.88; }
+  }
 }
 
 /* ── Settings tab fade-in ──────────────────────────────── */
-@keyframes settings-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes settings-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .animate-settings-fade-in {
+    animation: settings-fade-in 120ms ease-out;
+  }
 }
 .animate-settings-fade-in {
-  animation: settings-fade-in 120ms ease-out;
+  opacity: 1;
 }
 
 /* ── Slide-down (for sub-panel morphs) ─────────────────── */
-@keyframes slide-down {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes slide-down {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-down {
+    animation: slide-down 180ms ease-out;
+  }
 }
 .animate-slide-down {
-  animation: slide-down 180ms ease-out;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ── Shake (invalid input feedback) ─────────────────────── */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%      { transform: translateX(-3px); }
-  40%      { transform: translateX(3px); }
-  60%      { transform: translateX(-2px); }
-  80%      { transform: translateX(2px); }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%      { transform: translateX(-3px); }
+    40%      { transform: translateX(3px); }
+    60%      { transform: translateX(-2px); }
+    80%      { transform: translateX(2px); }
+  }
+  .animate-shake {
+    animation: shake 400ms ease-out;
+  }
 }
 .animate-shake {
-  animation: shake 400ms ease-out;
+  transform: translateX(0);
 }
 
 /* ── Todo complete (fade + slide left) ──────────────────── */
-@keyframes todo-complete {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(-6px); }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes todo-complete {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(-6px); }
+  }
+  .animate-todo-complete {
+    animation: todo-complete 280ms ease-out forwards;
+    pointer-events: none;
+  }
 }
 .animate-todo-complete {
-  animation: todo-complete 280ms ease-out forwards;
+  opacity: 1;
+  transform: translateX(0);
   pointer-events: none;
 }
 
 /* ── Quick-create menu entrance ────────────────────────── */
-@keyframes scale-up {
-  from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes scale-up {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .animate-scale-up {
+    animation: scale-up 180ms var(--ease-spring);
+  }
 }
 .animate-scale-up {
-  animation: scale-up 180ms var(--ease-spring);
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* ── Todo appear (new item slides in) ──────────────────── */
-@keyframes todo-appear {
-  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes todo-appear {
+    from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .animate-todo-appear {
+    animation: todo-appear 220ms var(--ease-spring);
+  }
 }
 .animate-todo-appear {
-  animation: todo-appear 220ms var(--ease-spring);
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 /* ── Search result highlight pulse ────────────────────── */
-@keyframes search-highlight-pulse {
-  0%, 100% {
-    box-shadow: inset 0 0 0 0px var(--accent);
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes search-highlight-pulse {
+    0%, 100% {
+      box-shadow: inset 0 0 0 0px var(--accent);
+    }
+    30% {
+      box-shadow: inset 0 0 0 3px var(--accent);
+    }
   }
-  30% {
-    box-shadow: inset 0 0 0 3px var(--accent);
+  .animate-search-highlight {
+    animation: search-highlight-pulse 0.8s ease-in-out 3;
   }
 }
 .animate-search-highlight {
-  animation: search-highlight-pulse 0.8s ease-in-out 3;
+  box-shadow: inset 0 0 0 0px var(--accent);
 }
 
 /* ── Unified focus ring ────────────────────────────────── */
@@ -438,12 +478,17 @@ body.resizing-event .overflow-y-auto {
 }
 
 /* ── Page transition ────────────────────────────────────── */
-@keyframes fadeIn {
-  from { opacity: 0 }
-  to   { opacity: 1 }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fadeIn {
+    from { opacity: 0 }
+    to   { opacity: 1 }
+  }
+  .animate-fadeIn {
+    animation: fadeIn 200ms ease-out;
+  }
 }
 .animate-fadeIn {
-  animation: fadeIn 200ms ease-out;
+  opacity: 1;
 }
 
 /* ── Tab bar (shared between StatsPage & ActionPage) ────── */
@@ -497,9 +542,9 @@ html, body, #root {
 }
 
 body {
-  background-color: var(--surface-base);
-  color: var(--text-primary);
-  font-family: Inter, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -513,9 +558,9 @@ body {
 /* ── Scrollbar theming ───────────────────────────────────── */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--surface-base); }
-::-webkit-scrollbar-thumb { background: #333333; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #4a4a4a; }
-* { scrollbar-width: thin; scrollbar-color: #333333 var(--surface-base); }
+::-webkit-scrollbar-thumb { background: var(--text-tertiary); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+* { scrollbar-width: thin; scrollbar-color: var(--text-tertiary) var(--surface-base); }
 
 /* ── Utilities ──────────────────────────────────────────── */
 @layer utilities {
@@ -562,8 +607,68 @@ body {
 .event-card-stone  { border-left-color: var(--event-stone-fill); }
 
 /* ── Diet stack visual rhythm ─────────────────────────────── */
-.diet-stack > :not(:last-child) {
-  margin-bottom: 40px;
+.diet-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+/* ── Stats: routine / lifestyle pill tabs ──────────────── */
+.routine-container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.lifestyle-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.routine-pills,
+.lifestyle-pills {
+  display: flex;
+  gap: 2px;
+  background: var(--heatmap-bg-card);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.routine-pill,
+.lifestyle-pill {
+  padding: 6px 18px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--heatmap-ink-3);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.routine-pill:hover,
+.lifestyle-pill:hover {
+  color: var(--heatmap-ink-1);
+}
+.routine-pill-active,
+.lifestyle-pill-active {
+  color: var(--heatmap-ink-1);
+  background: var(--heatmap-bg);
+  font-weight: 600;
+}
+
+@media (max-width: 719px) {
+  .routine-pills,
+  .lifestyle-pills {
+    width: 100%;
+    justify-content: center;
+  }
+  .routine-pill,
+  .lifestyle-pill {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
 }
 
 /* ── Markdown prose styles ───────────────────────────────── */
@@ -612,7 +717,7 @@ body {
   }
   th {
     font-family: Inter, sans-serif;
-    font-size: 0.6875rem;
+    font-size: var(--text-body-xs);
     font-weight: 500;
     text-align: left;
     color: var(--text-secondary);

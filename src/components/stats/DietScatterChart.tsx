@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # DietScatterChart — 饮食散点图
  *
  * 将每餐时间以散点形式展示在时间轴上，按月/季/年切换。
@@ -402,7 +402,7 @@ const DSC_CSS = `
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
   padding-top: 8px;
 }
@@ -467,7 +467,7 @@ const DSC_CSS = `
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   font-weight: 500;
   color: var(--heatmap-ink-3);
@@ -541,7 +541,7 @@ const DSC_CSS = `
 }
 .dsc-stat-unit { font-size: 14px; color: var(--heatmap-ink-2); margin-left: 2px; }
 .dsc-stat-detail {
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 11px;
   color: var(--heatmap-ink-3);
 }
@@ -552,7 +552,7 @@ const DSC_CSS = `
   color: var(--heatmap-bg);
   padding: 10px 14px;
   border-radius: 6px;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   line-height: 1.5;
   white-space: nowrap;

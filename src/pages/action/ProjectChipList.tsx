@@ -178,7 +178,7 @@ export function ProjectChipList() {
                         deleteProject(project.id)
                       }
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm font-sans text-[#B53535] hover:bg-surface-sunken cursor-pointer border-none bg-transparent text-left transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm font-sans text-color-text-danger hover:bg-surface-sunken cursor-pointer border-none bg-transparent text-left transition-colors"
                   >
                     <Trash2 size={14} strokeWidth={1.75} />
                     删除

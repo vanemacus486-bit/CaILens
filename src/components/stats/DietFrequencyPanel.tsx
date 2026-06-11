@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # DietFrequencyPanel — 饮食频次分析
  *
  * 按月/季/年/全部 维度展示餐次分布、食物标签频率、来源分布。
@@ -22,14 +22,14 @@ interface Props {
 // ── 颜色映射 ────────────────────────────────────────────────
 
 const TAG_COLORS: Record<MealTag, string> = {
-  protein: '#E8734A',
-  staple: '#D4A44A',
-  vegetable: '#5B9E5B',
-  fruit: '#C7A04A',
-  caffeine: '#7B5B3A',
-  sugar: '#C97B7B',
-  alcohol: '#9B6B9B',
-  fried: '#A08060',
+  protein: 'var(--tag-diet-protein)',
+  staple: 'var(--tag-diet-staple)',
+  vegetable: 'var(--tag-diet-vegetable)',
+  fruit: 'var(--tag-diet-fruit)',
+  caffeine: 'var(--tag-diet-caffeine)',
+  sugar: 'var(--tag-diet-sugar)',
+  alcohol: 'var(--tag-diet-alcohol)',
+  fried: 'var(--tag-diet-fried)',
 }
 
 const MEAL_ORDER_COLORS: Record<MealOrder, string> = {
@@ -245,7 +245,7 @@ export function DietFrequencyPanel({ rangeEvents }: Props) {
 const DFP_CSS = `
 .dfp-root {
   width: 100%;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 
@@ -265,7 +265,7 @@ const DFP_CSS = `
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   font-weight: 500;
   color: var(--heatmap-ink-3);

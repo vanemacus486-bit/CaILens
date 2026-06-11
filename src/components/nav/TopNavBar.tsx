@@ -12,7 +12,7 @@
 
 import { useCallback, useMemo } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { getISOWeek } from 'date-fns'
+import { getISOWeek, addDays } from 'date-fns'
 import { Settings, Search } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useUIStore } from '@/stores/uiStore'
@@ -123,7 +123,7 @@ export function TopNavBar() {
   )
 
   // 日期标签
-  const weekEnd = addWeeks(weekStart, 6)
+  const weekEnd = addDays(weekStart, 6)
   const rangeLabel = `${formatMonthDay(weekStart)} – ${formatMonthDay(weekEnd)}`
   const weekNum = getISOWeek(weekStart)
 

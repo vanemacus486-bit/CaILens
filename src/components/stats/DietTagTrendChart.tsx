@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # DietTagTrendChart — 食物标签趋势
  *
  * 堆叠面积图展示近 90 天每周各食物标签的出现次数。
@@ -23,14 +23,14 @@ import { dateRange } from '@/domain/dateRange'
 // ── 标签颜色 ────────────────────────────────────────────────
 
 const TAG_COLORS: Record<MealTag, string> = {
-  protein: '#E8734A',
-  staple: '#D4A44A',
-  vegetable: '#5B9E5B',
-  fruit: '#C7A04A',
-  caffeine: '#7B5B3A',
-  sugar: '#C97B7B',
-  alcohol: '#9B6B9B',
-  fried: '#A08060',
+  protein: 'var(--tag-diet-protein)',
+  staple: 'var(--tag-diet-staple)',
+  vegetable: 'var(--tag-diet-vegetable)',
+  fruit: 'var(--tag-diet-fruit)',
+  caffeine: 'var(--tag-diet-caffeine)',
+  sugar: 'var(--tag-diet-sugar)',
+  alcohol: 'var(--tag-diet-alcohol)',
+  fried: 'var(--tag-diet-fried)',
 }
 
 const TAG_ORDER: MealTag[] = [
@@ -78,7 +78,7 @@ export function DietTagTrendChart({ rangeEvents }: Props) {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
             <XAxis
               dataKey="name"
-              tick={{ fontSize: 10, fill: 'var(--text-tertiary)', fontFamily: "'Noto Sans SC', sans-serif" }}
+              tick={{ fontSize: 10, fill: 'var(--text-tertiary)', fontFamily: "'Source Serif 4', 'Noto Serif SC', serif" }}
               tickLine={false}
               axisLine={{ stroke: 'var(--border-subtle)' }}
               interval="preserveStartEnd"
@@ -152,7 +152,7 @@ export function DietTagTrendChart({ rangeEvents }: Props) {
 const DTTC_CSS = `
 .dttc-root {
   width: 100%;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 .dttc-title {
@@ -172,7 +172,7 @@ const DTTC_CSS = `
   color: var(--heatmap-bg);
   padding: 8px 12px;
   border-radius: 6px;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 11px;
   line-height: 1.5;
   white-space: nowrap;

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "prototype/day-view.html",
+  "entry": "prototype/day-view.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-06-04T12:47:23.413Z",
+  "updatedAt": "2026-06-04T12:47:23.413Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

@@ -80,7 +80,7 @@ export function OrphanTodoList({ todos, onCardClick, onComplete }: OrphanTodoLis
               <span
                 className="w-2.5 h-2.5 rounded-full flex-shrink-0 transition-colors duration-200"
                 style={{
-                  backgroundColor: isOverdue ? '#B53535' : catFill,
+                  backgroundColor: isOverdue ? 'var(--color-text-danger)' : catFill,
                 }}
               />
 

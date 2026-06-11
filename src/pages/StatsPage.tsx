@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # StatsPage — 复盘页面
  *
  * 一级架构：Tab 切换（作息/日常/身体/关联）。
@@ -202,7 +202,7 @@ export function StatsPage() {
           <AlertCircle className="h-10 w-10 text-color-text-danger" />
           <p
             className="text-sm max-w-md text-center text-text-secondary"
-            style={{ fontFamily: "'Noto Sans SC', sans-serif" }}
+            style={{ fontFamily: "'Source Serif 4', 'Noto Serif SC', serif" }}
           >
             {loadError}
           </p>
@@ -397,7 +397,7 @@ const STATS_PAGE_CSS = `
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 13px;
   font-weight: 500;
   color: var(--heatmap-ink-3);
@@ -433,7 +433,7 @@ const STATS_PAGE_CSS = `
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 13px;
   font-weight: 500;
   color: var(--heatmap-ink-3);

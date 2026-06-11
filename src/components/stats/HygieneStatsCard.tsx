@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # HygieneStatsCard — 卫生统计摘要
  *
  * 基于日历事件中的洗澡事件展示统计：
@@ -45,11 +45,11 @@ const PERIOD_LABELS: Record<string, [string, string]> = {
 }
 
 const PERIOD_COLORS: Record<string, string> = {
-  morning:  '#7BC47F',
-  noon:     '#D4A44A',
-  afternoon: '#E8734A',
-  evening:  '#5B9EBD',
-  night:    '#9B6B9B',
+  morning:  'var(--tag-period-morning)',
+  noon:     'var(--tag-period-noon)',
+  afternoon: 'var(--tag-period-afternoon)',
+  evening:  'var(--tag-period-evening)',
+  night:    'var(--tag-period-night)',
 }
 
 // ── 组件 ────────────────────────────────────────────────────
@@ -223,7 +223,7 @@ export function HygieneStatsCard({ rangeEvents, language }: Props) {
 const HSC_CSS = `
 .hsc-root {
   width: 100%;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 

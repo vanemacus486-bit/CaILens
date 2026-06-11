@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # EasternStatsShell — 复盘页面 Shell
  *
  * 顶级 Tab 容器 + 子视图容器。
@@ -75,7 +75,7 @@ const SHELL_CSS = `
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
 }
 
 /* ── Content ────────────────────────────── */

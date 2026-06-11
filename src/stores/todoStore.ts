@@ -24,8 +24,6 @@ interface TodoState {
   addInboxTask: (title: string) => Promise<Todo>
   /** 将任务分配优先级和领域（移出收件箱） */
   assignTask: (id: string, priority: TodoPriority, domain: string) => Promise<Todo>
-  /** 所有 priority 和 domain 均为 null 的任务（收件箱任务列表） */
-  inboxTasks: () => Todo[]
 }
 
 export const useTodoStore = create<TodoState>()((set, get) => ({
@@ -196,6 +194,4 @@ export const useTodoStore = create<TodoState>()((set, get) => ({
       throw e
     }
   },
-
-  inboxTasks: () => get().todos.filter((t) => t.priority === null && t.domain === null),
 }))

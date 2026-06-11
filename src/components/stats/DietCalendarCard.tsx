@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # DietCalendarCard — 饮食日历
  *
  * 以周视图或月视图展示每日饮食记录。
@@ -344,7 +344,7 @@ export function DietCalendarCard({ rangeEvents }: Props) {
 const DCC_CSS = `
 .dcc-root {
   width: 100%;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 
@@ -391,7 +391,7 @@ const DCC_CSS = `
   border: 1px solid var(--heatmap-rule);
   background: var(--heatmap-bg-card);
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   color: var(--heatmap-ink-2);
   transition: color 0.2s ease;
@@ -413,7 +413,7 @@ const DCC_CSS = `
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   font-weight: 500;
   color: var(--heatmap-ink-3);
@@ -452,7 +452,7 @@ const DCC_CSS = `
   border-bottom: 1px solid var(--heatmap-rule);
 }
 .dcc-day-label {
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 13px;
   font-weight: 600;
   color: var(--heatmap-ink-1);
@@ -542,7 +542,7 @@ const DCC_CSS = `
 }
 .dcc-month-weekday {
   text-align: center;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 11px;
   font-weight: 600;
   color: var(--heatmap-ink-3);

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # HygieneCalendarCard — 卫生日历
  *
  * 以周视图或月视图展示每日卫生活动记录。
@@ -39,12 +39,12 @@ interface Props {
 // ── 活动颜色 ────────────────────────────────────────────────
 
 const ACTIVITY_COLORS: Record<HygieneActivity, string> = {
-  shower:      '#5B9EBD',
-  brush_teeth: '#7BC47F',
-  skincare:    '#D4A4C4',
-  shave:       '#C4A47B',
-  hair_wash:   '#9B8BC4',
-  nail_care:   '#C4A47B',
+  shower:      'var(--tag-hygiene-shower)',
+  brush_teeth: 'var(--tag-hygiene-brush-teeth)',
+  skincare:    'var(--tag-hygiene-skincare)',
+  shave:       'var(--tag-hygiene-shave)',
+  hair_wash:   'var(--tag-hygiene-hair-wash)',
+  nail_care:   'var(--tag-hygiene-nail-care)',
 }
 
 const ACTIVITY_ICONS: Record<HygieneActivity, string> = {
@@ -353,7 +353,7 @@ export function HygieneCalendarCard({ records, rangeEvents, language }: Props) {
                       <div key={sev.id} className="hcc-activity-row">
                         <span
                           className="hcc-activity-dot"
-                          style={{ background: '#5B9EBD' }}
+                          style={{ background: 'var(--tag-hygiene-shower)' }}
                         />
                         <span className="hcc-activity-icon">🚿</span>
                         <span className="hcc-activity-time">{fmtTime(sev.startTime)}</span>
@@ -472,7 +472,7 @@ export function HygieneCalendarCard({ records, rangeEvents, language }: Props) {
 const HCC_CSS = `
 .hcc-root {
   width: 100%;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 
@@ -519,7 +519,7 @@ const HCC_CSS = `
   border: 1px solid var(--heatmap-rule);
   background: var(--heatmap-bg-card);
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   color: var(--heatmap-ink-2);
   transition: color 0.2s ease;
@@ -533,7 +533,7 @@ const HCC_CSS = `
   border: 1px solid var(--accent);
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   color: var(--accent);
   transition: all 0.15s ease;
@@ -556,7 +556,7 @@ const HCC_CSS = `
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 12px;
   font-weight: 500;
   color: var(--heatmap-ink-3);
@@ -660,7 +660,7 @@ const HCC_CSS = `
   background: var(--accent);
   color: white;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   transition: opacity 0.15s ease;
 }
 .hcc-save-btn:disabled {
@@ -678,7 +678,7 @@ const HCC_CSS = `
   background: transparent;
   color: var(--heatmap-ink-2);
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   transition: all 0.15s ease;
 }
 .hcc-cancel-btn:hover {
@@ -710,7 +710,7 @@ const HCC_CSS = `
   border-bottom: 1px solid var(--heatmap-rule);
 }
 .hcc-day-label {
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 13px;
   font-weight: 600;
   color: var(--heatmap-ink-1);
@@ -778,7 +778,7 @@ const HCC_CSS = `
 }
 .hcc-month-weekday {
   text-align: center;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 11px;
   font-weight: 600;
   color: var(--heatmap-ink-3);

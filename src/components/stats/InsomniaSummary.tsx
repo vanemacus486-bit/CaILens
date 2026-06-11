@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { CalendarEvent } from '@/domain/event'
@@ -126,7 +126,7 @@ export function InsomniaSummary({ rangeEvents }: InsomniaSummaryProps) {
                   tick={{
                     fontSize: 10,
                     fill: 'var(--text-tertiary)',
-                    fontFamily: "'Noto Sans SC', sans-serif",
+                    fontFamily: "'Source Serif 4', 'Noto Serif SC', serif",
                   }}
                   tickLine={false}
                   axisLine={{ stroke: 'var(--border-subtle)' }}
@@ -268,7 +268,7 @@ const INSOMNIA_CSS = `
   margin-top: 24px;
   border-top: 1px solid var(--border-subtle);
   padding-top: 16px;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 
@@ -282,7 +282,7 @@ const INSOMNIA_CSS = `
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 14px;
   color: var(--heatmap-ink-1);
   transition: color 0.2s ease;
@@ -418,7 +418,7 @@ const INSOMNIA_CSS = `
   border: 1px solid var(--border-subtle);
   background: transparent;
   cursor: pointer;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 11px;
   color: var(--heatmap-ink-3);
   transition: all 0.15s ease;

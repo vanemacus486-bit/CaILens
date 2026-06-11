@@ -1,4 +1,4 @@
-/**
+﻿/**
  * # HygieneScoreChart — 卫生分数折线图
  *
  * 基于日历事件中的洗澡事件计算连续卫生分数：
@@ -229,7 +229,7 @@ export function HygieneScoreChart({ rangeEvents }: Props) {
 const HSC_CSS = `
 .hsc-root {
   width: 100%;
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
 

@@ -6,8 +6,8 @@ import { EventBlock } from './EventBlock'
 import { CurrentTimeLine } from './CurrentTimeLine'
 import { MAX_OVERLAP_COLUMNS, TOTAL_SLOTS } from '@/features/week-view/constants'
 
-const SLOT_STYLE_HOUR  = 'border-t border-grid-line cursor-pointer hover:bg-surface-sunken/20'
-const SLOT_STYLE_HALF  = 'cursor-pointer hover:bg-surface-sunken/20'
+const SLOT_STYLE_HOUR = 'cursor-pointer hover:bg-surface-sunken/20'
+const SLOT_STYLE_HALF = 'cursor-pointer hover:bg-surface-sunken/20'
 
 const SLOT_INDICES = Array.from({ length: TOTAL_SLOTS }, (_, i) => i)
 
@@ -56,7 +56,15 @@ function DayColumnInner({
   )
 
   return (
-    <div className="h-full border-r border-grid-line relative">
+    <div
+      className="h-full border-r relative"
+      style={{
+        borderRightColor: 'var(--line)',
+        borderRightStyle: 'solid',
+        borderRightWidth: 1,
+        backgroundColor: today ? 'var(--surface-raised)' : undefined,
+      }}
+    >
       {today && <CurrentTimeLine />}
 
       <div className="absolute inset-0 grid" style={GRID_STYLE}>
@@ -71,7 +79,11 @@ function DayColumnInner({
               tabIndex={0}
               aria-label={label}
               className={i % 2 === 0 ? SLOT_STYLE_HOUR : SLOT_STYLE_HALF}
-              style={{ gridColumn: `1 / ${MAX_OVERLAP_COLUMNS + 1}`, gridRow: i + 1 }}
+              style={{
+                gridColumn: `1 / ${MAX_OVERLAP_COLUMNS + 1}`,
+                gridRow: i + 1,
+                ...(i % 2 === 0 ? { borderTop: '1px solid var(--line)' } : undefined),
+              }}
               onClick={(e) => onSlotClick(ts, e.currentTarget as HTMLElement)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {

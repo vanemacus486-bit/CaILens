@@ -112,7 +112,7 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
           {todo.title}
         </span>
         {todo.priority === 'high' && !isDone && todo.dueDate !== null && getTodayStart() > todo.dueDate && (
-          <span className="inline-flex items-center px-1.5 py-[1px] rounded-full text-[8px] font-medium leading-none flex-shrink-0 bg-[#B53535]/15 text-[#B53535]">
+          <span className="inline-flex items-center px-1.5 py-[1px] rounded-full text-[8px] font-medium leading-none flex-shrink-0 bg-color-bg-danger text-color-text-danger">
             {'逾期'}
           </span>
         )}
@@ -132,7 +132,7 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) 
         </button>
         <button
           onClick={() => onDelete(todo.id)}
-          className="w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-[#B53535] hover:bg-surface-raised transition-colors cursor-pointer border-none bg-transparent"
+          className="w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-color-text-danger hover:bg-surface-raised transition-colors cursor-pointer border-none bg-transparent"
           aria-label={'删除'}
         >
           <Trash2 size={13} strokeWidth={1.75} />

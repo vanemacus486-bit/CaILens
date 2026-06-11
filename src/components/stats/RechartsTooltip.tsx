@@ -21,20 +21,47 @@ export function RechartsTooltip({
   if (!active || !payload?.length) return null
 
   return (
-    <div className="bg-surface-sunken border border-border-default px-3.5 py-2.5 shadow-tooltip">
+    <div
+      style={{
+        background: 'var(--surface-raised)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--radius-s)',
+        padding: '8px 12px',
+        boxShadow: 'var(--shadow-tooltip)',
+      }}
+    >
       {label !== undefined && (
-        <div className="text-body-xs text-text-tertiary italic mb-1.5">
+        <div
+          style={{
+            fontSize: 11,
+            color: 'var(--ink-3)',
+            fontFamily: 'var(--font-mono)',
+            marginBottom: 6,
+          }}
+        >
           {labelFormatter ? labelFormatter(label) : label}
         </div>
       )}
       {payload.map((p, i) => (
-        <div key={i} className="flex items-center gap-2 mb-0.5">
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: i < payload.length - 1 ? 2 : 0 }}>
           <span
-            className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ background: p.color || p.fill }}
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              flexShrink: 0,
+              background: p.color || p.fill,
+            }}
           />
-          <span className="text-xs text-text-secondary font-sans">{p.name}</span>
-          <span className="text-body-sm text-text-primary font-mono font-semibold ml-auto pl-4">
+          <span style={{ fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-ui)' }}>{p.name}</span>
+          <span style={{
+            fontSize: 13,
+            color: 'var(--ink)',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 500,
+            marginLeft: 'auto',
+            paddingLeft: 16,
+          }}>
             {typeof p.value === 'number' ? p.value.toFixed(decimals) : p.value}h
           </span>
         </div>

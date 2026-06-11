@@ -29,9 +29,9 @@ const CATEGORY_NAMES: Record<string, string> = {
 }
 
 const PRIORITIES: { id: TodoPriority; label: string; color: string }[] = [
-  { id: 'high',   label: '高优先', color: '#B53535' },
-  { id: 'medium', label: '中优先', color: '#B58A35' },
-  { id: 'low',    label: '低优先', color: '#2D7D46' },
+  { id: 'high',   label: '高优先', color: 'var(--color-text-danger)' },
+  { id: 'medium', label: '中优先', color: 'var(--color-text-warning)' },
+  { id: 'low',    label: '低优先', color: 'var(--color-text-success)' },
 ]
 
 // ── Props ──────────────────────────────────────────────────
@@ -61,6 +61,7 @@ interface PriorityMatrixProps {
 
 export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onCellClick, focusIds, onToggleFocus, onDeleteTodo }: PriorityMatrixProps) {
   const colorMap = useCategoryColors()
+  const [isDragging, setIsDragging] = useState(false)
 
   // 统计总数
   const totalCount = Object.values(grouped).reduce(
@@ -110,6 +111,8 @@ export function PriorityMatrix({ grouped, selectedId, onCardClick, onReorder, on
             focusIds={focusIds}
             onToggleFocus={onToggleFocus}
             onDeleteTodo={onDeleteTodo}
+            isDragging={isDragging}
+            onDragActiveChange={setIsDragging}
           />
         ))}
       </div>
@@ -142,12 +145,15 @@ interface MatrixRowProps {
   focusIds: Set<string>
   onToggleFocus: (todoId: string, isFocus: boolean) => void
   onDeleteTodo?: (todoId: string) => void
+  isDragging: boolean
+  onDragActiveChange: (active: boolean) => void
 }
 
 function MatrixRow({
   catId, row, cellColors, selectedId,
   onCardClick, onReorder, onMoveToCell, onComplete, onClick,
   focusIds, onToggleFocus, onDeleteTodo,
+  isDragging, onDragActiveChange,
 }: MatrixRowProps) {
   // 空行默认折叠，有任务默认展开且不可折叠
   const rowTotal = row ? PRIORITIES.reduce((s, p) => s + (row[p.id as string] ?? []).length, 0) : 0
@@ -226,6 +232,8 @@ function MatrixRow({
                   focusIds={focusIds}
                   onToggleFocus={onToggleFocus}
                   onDeleteTodo={onDeleteTodo}
+                  isDragging={isDragging}
+                  onDragActiveChange={onDragActiveChange}
                 />
               )
             })}
@@ -253,9 +261,11 @@ interface CellProps {
   focusIds: Set<string>
   onToggleFocus: (todoId: string, isFocus: boolean) => void
   onDeleteTodo?: (todoId: string) => void
+  isDragging: boolean
+  onDragActiveChange: (active: boolean) => void
 }
 
-function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onClick, focusIds, onToggleFocus, onDeleteTodo }: CellProps) {
+function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCardClick, onReorder, onMoveToCell, onComplete, onClick, focusIds, onToggleFocus, onDeleteTodo, isDragging, onDragActiveChange }: CellProps) {
   const count = todos.length
 
   // ── 拖拽状态 ──
@@ -298,7 +308,8 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
     e.dataTransfer.effectAllowed = 'move'
     const el = e.currentTarget as HTMLElement
     el.style.opacity = '0.4'
-  }, [catId, priId])
+    onDragActiveChange(true)
+  }, [catId, priId, onDragActiveChange])
 
   const handleDragEnd = useCallback((e: DragEvent) => {
     const el = e.currentTarget as HTMLElement
@@ -307,7 +318,8 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
     setDropPos(null)
     setIsCellHover(false)
     dragEnterCount.current = 0
-  }, [])
+    onDragActiveChange(false)
+  }, [onDragActiveChange])
 
   // ── 格级拖拽（用于跨格视觉反馈 + 空白区落点） ──
   const handleCellDragEnter = useCallback((_e: DragEvent) => {
@@ -409,13 +421,22 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
 
   return (
     <div
-      className={`relative rounded-lg border min-h-[72px] p-2 transition-all duration-200 ${
-        isCellHover
-          ? 'border-accent/60 bg-accent/[0.04] shadow-sm ring-1 ring-accent/20'
-          : isSelected
-            ? 'border-accent/50 bg-surface-raised shadow-sm'
-            : 'border-border-subtle/60 bg-surface-sunken/40'
-      }`}
+      className="relative rounded-lg min-h-[72px] p-2 transition-all duration-200"
+      style={(() => {
+        if (isDragging) {
+          if (isCellHover) {
+            return { border: '1.5px solid var(--accent)', backgroundColor: 'var(--surface-raised)' }
+          }
+          return { border: '1.5px dashed var(--line-strong)' }
+        }
+        if (count === 0) {
+          return { border: 'none', backgroundColor: 'var(--surface)' }
+        }
+        if (isSelected) {
+          return { border: '1px solid var(--accent)', backgroundColor: 'var(--surface-raised)', boxShadow: 'var(--shadow-pill)' }
+        }
+        return { border: '1px solid var(--border-subtle)', backgroundColor: 'var(--surface-sunken)' }
+      })()}
       onDragEnter={handleCellDragEnter}
       onDragLeave={handleCellDragLeave}
       onDragOver={handleCellDragOver}
@@ -436,16 +457,29 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
         </span>
       )}
 
-      {/* ── 空态 — 虚线暗示可拖入 ── */}
+      {/* ── 空态 — "+" 号暗示可拖入 ── */}
       {count === 0 && (
         <div
-          className="flex items-center justify-center h-full min-h-[56px] rounded-md border border-dashed transition-colors duration-200"
-          style={{ borderColor: `${categoryFill}20` }}
+          className="flex items-center justify-center h-full min-h-[56px] rounded-md transition-colors duration-200 cursor-default group/empty"
+          onMouseEnter={(e) => {
+            if (!isDragging) {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-raised)'
+              const plus = e.currentTarget.querySelector('.empty-plus') as HTMLElement | null
+              if (plus) plus.style.color = 'var(--ink-2)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isDragging) {
+              (e.currentTarget as HTMLElement).style.backgroundColor = ''
+              const plus = e.currentTarget.querySelector('.empty-plus') as HTMLElement | null
+              if (plus) plus.style.color = 'var(--ink-3)'
+            }
+          }}
         >
           <span
-            className="w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: `${categoryFill}30` }}
-          />
+            className="empty-plus select-none leading-none"
+            style={{ fontSize: 16, color: 'var(--ink-3)', transition: 'color 200ms' }}
+          >+</span>
         </div>
       )}
 
@@ -521,7 +555,7 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
                       {todo.title}
                     </span>
                     {overdueDays > 0 && !isDoneFocus && (
-                      <span className="inline-flex items-center px-1.5 py-[1px] rounded-full text-[8px] font-medium leading-none flex-shrink-0 bg-[#B53535]/15 text-[#B53535]">
+                      <span className="inline-flex items-center px-1.5 py-[1px] rounded-full text-[8px] font-medium leading-none flex-shrink-0 bg-color-bg-danger text-color-text-danger">
                         {'逾期' + overdueDays + '天'}
                       </span>
                     )}

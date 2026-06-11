@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CaILens · 规划矩阵</title>
+  <link rel="stylesheet" href="design-system.css" />
+  <style>
+    .plan-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: var(--space-5);
+    }
+    .plan-tab {
+      padding: var(--space-2) var(--space-5);
+      font-size: var(--text-base-sm);
+      font-weight: 500;
+      color: var(--fg-tertiary);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      margin-bottom: -1px;
+      transition: all var(--dur-fast);
+    }
+    .plan-tab:hover { color: var(--fg-secondary); }
+    .plan-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="app-window">
+  <div class="titlebar">
+    <div class="titlebar-icon"></div>
+    <span class="titlebar-title">CaILens — 规划 · 矩阵</span>
+    <span class="titlebar-spacer"></span>
+    <div class="titlebar-actions">
+      <button class="titlebar-btn">─</button>
+      <button class="titlebar-btn">□</button>
+      <button class="titlebar-btn close">✕</button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <aside class="sidebar">
+      <div class="sidebar-nav">
+        <a href="week-view.html" class="sidebar-item" title="周视图">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
+        </a>
+        <a href="plan-matrix.html" class="sidebar-item active" title="规划">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+        </a>
+        <a href="stats.html" class="sidebar-item" title="复盘">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        </a>
+      </div>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-bottom">
+        <a href="settings.html" class="sidebar-item" title="设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="flex-between" style="margin-bottom:var(--space-4);">
+        <div>
+          <p class="eyebrow">规划</p>
+          <h1 class="page-title">优先级矩阵</h1>
+        </div>
+        <div class="flex-row gap-2">
+          <a href="plan-log.html" class="btn btn-secondary btn-sm">列表视图</a>
+          <button class="btn btn-primary btn-sm">+ 新建待办</button>
+        </div>
+      </div>
+
+      <!-- Sub-tabs -->
+      <div class="plan-tabs">
+        <button class="plan-tab active">矩阵</button>
+        <a href="plan-log.html" class="plan-tab">日志</a>
+        <button class="plan-tab">项目</button>
+      </div>
+
+      <!-- Axis labels -->
+      <div style="display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-3);">
+        <span style="font-size:var(--text-xs);color:var(--fg-tertiary);writing-mode:vertical-lr;text-orientation:mixed;letter-spacing:0.04em;">重 要 ↑</span>
+        <div style="flex:1;text-align:center;font-size:var(--text-xs);color:var(--fg-tertiary);letter-spacing:0.04em;">紧 急 →</div>
+      </div>
+
+      <!-- Matrix -->
+      <div class="matrix-grid">
+        <!-- Q1: Important + Urgent -->
+        <div class="matrix-cell" style="border-top:3px solid var(--danger);">
+          <div class="matrix-cell-header">
+            <span class="matrix-cell-title">紧急 · 重要</span>
+            <span class="matrix-cell-count">3</span>
+            <span style="font-size:10px;color:var(--fg-tertiary);">立即处理</span>
+          </div>
+          <div class="matrix-cell-items">
+            <div class="matrix-item">
+              <span class="matrix-item-dot" style="background:var(--danger);"></span>
+              <span class="matrix-item-text">修复周视图拖拽事件时间错误</span>
+              <span class="matrix-item-project">CalLens</span>
+            </div>
+            <div class="matrix-item">
+              <span class="matrix-item-dot" style="background:var(--danger);"></span>
+              <span class="matrix-item-text">回复客户紧急邮件</span>
+              <span class="matrix-item-project">客户支持</span>
+            </div>
+            <div class="matrix-item">
+              <span class="matrix-item-dot" style="background:var(--danger);"></span>
+              <span class="matrix-item-text">修复 IndexedDB 迁移脚本</span>
+              <span class="matrix-item-project">CalLens</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q2: Important + Not Urgent -->
+        <div class="matrix-cell" style="border-top:3px solid var(--accent);">
+          <div class="matrix-cell-header">
+            <span class="matrix-cell-title">不紧急 · 重要</span>
+            <span class="matrix-cell-count">5</span>
+            <span style="font-size:10px;color:var(--fg-tertiary);">计划推进</span>
+          </div>
+          <div class="matrix-cell-items">
+            <div class="matrix-item">
+              <span class="matrix-item-dot" style="background:var(--accent);"></span>
+              <span class="matrix-item-text">重设计统计仪表盘</span>
+              <span class="matrix-item-project">CalLens</span>
+            </div>
+            <div class="matrix-item">
+              <span class="matrix-item-dot" style="background:var(--accent);"></span>
+              <span class="matrix-item-text">写项目文档 + API 说明</span>
+              <span class="matrix-item-project">CalLens</span>
+            </div>
+            <div class="matrix-item">
+              <span class="matrix-item-dot" style="background:var(--accent);"></span>
+              <span class="matrix-item-text">学习 Rust 基础（Tauri 后端）</span>
+              <span class="matrix-item-project">学习</span>
+            </div>
+            <div class="matrix-item">
+              <span class="matrix-item-dot" style="background:var(--accent);"></span>
+              <span class="matrix-item-text">重构 settingsRepository 测试</span>
+              <span class="matrix-item-project">CalLens</span>
+            </div>
+            <div class="matrix-item">
+              <span class="matrix-item-dot" style="background:var(--accent);"></span>
+              <span class="matrix-item-text">每周健身 4 次</span>
+              <span class="matrix-item-project">健康</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q3: Not Important + Urgent -->
+        <div class="matrix-cell" style="border-top:3px solid var(--warning);">
+          <div class="matrix-cell-header">
+            <span class="matrix-cell-title">紧急 · 不重要</span>
+            <span class="matrix-cell-count">2</span>
+            <span style="font-size:10px;color:var(--fg-tertiary);">委派或速战</span>
+          </div>
+          <div class="matrix-cell-items">
+            <div class="matrix-item">
+              <span class="matrix-item-dot" style="background:var(--warning);"></span>
+              <span class="matrix-item-text">更新依赖版本</span>
+              <span class="matrix-item-project">CalLens</span>
+            </div>
+            <div class="matrix-item">
+              <span class="matrix-item-dot" style="background:var(--warning);"></span>
+              <span class="matrix-item-text">回复非紧急群消息</span>
+              <span class="matrix-item-project">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q4: Not Important + Not Urgent -->
+        <div class="matrix-cell" style="border-top:3px solid var(--fg-quaternary);">
+          <div class="matrix-cell-header">
+            <span class="matrix-cell-title">不紧急 · 不重要</span>
+            <span class="matrix-cell-count">1</span>
+            <span style="font-size:10px;color:var(--fg-tertiary);">暂缓</span>
+          </div>
+          <div class="matrix-cell-items">
+            <div class="matrix-item" style="opacity:0.6;">
+              <span class="matrix-item-dot" style="background:var(--fg-quaternary);"></span>
+              <span class="matrix-item-text">整理旧照片</span>
+              <span class="matrix-item-project">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="statusbar">
+    <span class="statusbar-item"><span class="statusbar-dot"></span> 本地存储</span>
+    <span class="statusbar-item">11 个待办 · 3 个项目</span>
+    <span class="statusbar-spacer"></span>
+    <span class="statusbar-item">拖拽可移动待办到不同象限</span>
+  </footer>
+</div>
+</body>
+</html>

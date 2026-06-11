@@ -35,16 +35,7 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_dialog::init())
-        .plugin(
-            Builder::new()
-                .with_shortcut("Ctrl+Alt+Space")
-                .unwrap()
-                .with_handler(|app, _shortcut, _event| {
-                    let state = app.state::<QuickCaptureState>();
-                    toggle_quick_capture(app, &state);
-                })
-                .build(),
-        )
+        .plugin(Builder::new().build())
         .manage(QuickCaptureState::new())
         .invoke_handler(tauri::generate_handler![
             fs_commands::read_dir_recursive,
@@ -63,9 +54,15 @@ pub fn run() {
 
 fn register_global_shortcut(app: tauri::AppHandle) -> tauri::Result<()> {
     let global_shortcut = app.global_shortcut();
-    let _window_label = "quick-capture";
 
-    // Fallback: Ctrl+Shift+A (registered at runtime, not via Builder)
+    let _ = global_shortcut.on_shortcut(
+        "Ctrl+Alt+Space",
+        move |app: &tauri::AppHandle, _shortcut, _event| {
+            let state = app.state::<QuickCaptureState>();
+            toggle_quick_capture(app, &state);
+        },
+    );
+
     let _ = global_shortcut.on_shortcut(
         "Ctrl+Shift+A",
         move |app: &tauri::AppHandle, _shortcut, _event| {

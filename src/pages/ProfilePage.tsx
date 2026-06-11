@@ -82,21 +82,21 @@ export function ProfilePage() {
   ]
 
   return (
-    <div className="flex-1 h-full overflow-y-auto" style={{ backgroundColor: '#F5EFE3' }}>
+    <div className="flex-1 h-full overflow-y-auto" style={{ backgroundColor: 'var(--paper)' }}>
       <div className="mx-auto" style={{ maxWidth: 640, paddingTop: 64, paddingLeft: 24, paddingRight: 24, paddingBottom: 64 }}>
         {/* 标题区 */}
         <h1
           className="font-serif font-medium leading-tight"
-          style={{ fontSize: 24, fontWeight: 500, color: '#3D2E1F' }}
+          style={{ fontSize: 24, fontWeight: 500, color: 'var(--ink)' }}
         >
           {'我的档案'}
         </h1>
-        <p className="font-sans mt-1 mb-6" style={{ fontSize: 12, color: '#A89580' }}>
+        <p className="font-sans mt-1 mb-6" style={{ fontSize: 12, color: 'var(--ink-3)' }}>
           {'最后更新:'} {profile.updatedAt ?? '—'}
         </p>
 
         {/* 分隔线 */}
-        <div className="mb-8" style={{ height: '0.5px', backgroundColor: '#E0D2B5', width: '100%' }} />
+        <div className="mb-8" style={{ height: '0.5px', backgroundColor: 'var(--line)', width: '100%' }} />
 
         {/* 身体段 */}
         <Section title={'身体'}>
@@ -110,9 +110,9 @@ export function ProfilePage() {
           <button
             onClick={() => navigate('/settings')}
             className="font-sans cursor-pointer bg-transparent border-none transition-colors duration-150"
-            style={{ fontSize: 12, color: '#8B6F47' }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#5C4530'; e.currentTarget.style.textDecoration = 'underline' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#8B6F47'; e.currentTarget.style.textDecoration = 'none' }}
+            style={{ fontSize: 12, color: 'var(--ink-2)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.textDecoration = 'underline' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ink-2)'; e.currentTarget.style.textDecoration = 'none' }}
           >
             {'去设置页编辑档案'}
           </button>
@@ -129,7 +129,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <div className="mb-8">
       <h2
         className="font-sans font-medium mb-3"
-        style={{ fontSize: 14, fontWeight: 500, color: '#3D2E1F' }}
+        style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}
       >
         {title}
       </h2>
@@ -149,7 +149,7 @@ function DataRow({ row }: { row: ProfileRow }) {
       {/* 左列：指标名 */}
       <span
         className="flex-shrink-0 font-sans"
-        style={{ width: 120, fontSize: 13, color: '#8B6F47' }}
+        style={{ width: 120, fontSize: 13, color: 'var(--ink-2)' }}
       >
         {row.labelZh}
       </span>
@@ -157,7 +157,7 @@ function DataRow({ row }: { row: ProfileRow }) {
       {/* 中列：数值 */}
       <span
         className="flex-1 font-sans font-medium"
-        style={{ fontSize: 14, fontWeight: 500, color: '#3D2E1F' }}
+        style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}
       >
         {row.value}
       </span>
@@ -166,7 +166,7 @@ function DataRow({ row }: { row: ProfileRow }) {
       {row.change && (
         <span
           className="flex-shrink-0 font-sans"
-          style={{ fontSize: 11, color: '#A89580', textAlign: 'right' }}
+          style={{ fontSize: 11, color: 'var(--ink-3)', textAlign: 'right' }}
         >
           {row.change}
         </span>

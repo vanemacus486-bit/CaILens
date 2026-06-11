@@ -20,8 +20,11 @@ export function TimeGrid({
 
   return (
     <div
-      className="h-full grid bg-surface-sunken/50 border-l border-grid-line"
-      style={{ gridTemplateRows: `repeat(${hourEnd - hourStart}, 1fr)` }}
+      className="h-full grid bg-surface-sunken/50"
+      style={{
+        gridTemplateRows: `repeat(${hourEnd - hourStart}, 1fr)`,
+        borderLeft: '1px solid var(--line)',
+      }}
     >
       {hours.map((h) => {
         const isAnchor  = ANCHOR_HOURS.has(h)
@@ -29,11 +32,14 @@ export function TimeGrid({
 
         return (
           <div key={h} className="relative">
-            {/* Hour line — extends from label area toward grid, NOT full-width */}
+            {/* Hour line — extends from label area toward grid */}
             {showLabel && (
-              <div className="absolute top-0 right-0 border-t border-grid-line" style={{ left: '38px' }} />
+              <div
+                className="absolute top-0 right-0"
+                style={{ left: '38px', borderTop: '1px solid var(--line)' }}
+              />
             )}
-            {/* Compact time label — sits just below the line, not straddling it */}
+            {/* Compact time label */}
             {showLabel && (
               <span
                 className={cn(
