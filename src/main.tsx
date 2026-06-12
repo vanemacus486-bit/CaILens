@@ -25,6 +25,12 @@ async function bootstrap() {
   updateSplash(55, 'Initializing database...')
   initRepositories(adapter)
 
+  // 开发服务器：事件表为空时播种 28 天模板数据（生产构建里被 DEV 守卫消除）
+  if (import.meta.env.DEV) {
+    const { seedDemoData } = await import('@/data/seedDemoData')
+    await seedDemoData()
+  }
+
   // 文件系统变更监听：外部修改 todos.json / events.json 后自动刷新 stores
   if (adapter.storagePath) {
     const { startFsWatcher } = await import('./stores/watchdog')
