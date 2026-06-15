@@ -208,7 +208,7 @@ export function CommandPalette() {
             aria-label="搜索事件或输入命令"
             placeholder="搜索事件... (输入 / 查看命令)"
             className={cn(
-              'flex-1 bg-transparent border-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm',
+              'flex-1 bg-transparent border-none focus-visible:outline-none rounded-sm',
               'text-sm font-sans text-text-primary placeholder:text-text-tertiary',
             )}
           />
