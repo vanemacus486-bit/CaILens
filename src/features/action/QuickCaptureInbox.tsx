@@ -96,7 +96,7 @@ export function QuickCaptureInbox() {
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="待办…"
-          className="w-full bg-transparent border-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 rounded-sm text-lg font-sans text-text-primary placeholder:text-text-tertiary"
+          className="w-full bg-transparent border-none focus-visible:outline-none rounded-sm text-lg font-sans text-text-primary placeholder:text-text-tertiary"
         />
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-subtle/50">
           <span className="text-[10px] font-sans text-text-quaternary">

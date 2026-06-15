@@ -78,7 +78,7 @@ export function SettingsProfile() {
                   value={body[field.key] ?? ''}
                   onChange={(e) => handleChange(field.key, e.target.value)}
                   className={
-                    'w-28 px-2 py-1 text-sm font-mono text-text-primary bg-surface-sunken border border-border-subtle rounded-lg text-right focus:ring-2 focus:ring-accent/30 focus:outline-none transition-shadow duration-150'
+                    'w-28 px-2 py-1 text-sm font-mono text-text-primary bg-surface-sunken border border-border-subtle rounded-lg text-right focus:outline-none transition-shadow duration-150'
                     + (field.type === 'text' ? ' font-sans' : '')
                   }
                 />

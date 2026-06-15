@@ -120,7 +120,7 @@ export function CategoryCard({
                 }
               }}
               className={cn(
-                'w-16 px-2 py-1 text-xs font-mono text-text-primary bg-surface-sunken border rounded-lg text-center focus:ring-2 focus:ring-accent/30 focus:outline-none transition-shadow duration-150',
+                'w-16 px-2 py-1 text-xs font-mono text-text-primary bg-surface-sunken border rounded-lg text-center focus:outline-none transition-shadow duration-150',
                 budgetError
                   ? 'border-color-text-danger animate-shake'
                   : 'border-border-default',
