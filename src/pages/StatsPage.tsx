@@ -19,19 +19,12 @@ import { useAppSettingsStore } from '@/stores/settingsStore'
 import { getDataMaturity } from '@/domain/maturity'
 import type { Granularity } from '@/hooks/useStatsAggregation'
 import { useStatsAggregation, useTitleStatsAggregation } from '@/hooks/useStatsAggregation'
-import { useTabTransition } from '@/hooks/useTabTransition'
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
 import { DietCalendarCard } from '@/components/stats/DietCalendarCard'
-import { DietFrequencyPanel } from '@/components/stats/DietFrequencyPanel'
-import { DietScatterChart } from '@/components/stats/DietScatterChart'
-import { DietTagTrendChart } from '@/components/stats/DietTagTrendChart'
-import { RecipeSummary } from '@/components/stats/RecipeSummary'
 import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneCalendarCard } from '@/components/stats/HygieneCalendarCard'
-import { HygieneScoreChart } from '@/components/stats/HygieneScoreChart'
-import { HygieneStatsCard } from '@/components/stats/HygieneStatsCard'
 import { SlidingPills } from '@/components/stats/SlidingPills'
 
 import {
@@ -182,10 +175,6 @@ export function StatsPage() {
     updateParams({ date: formatISODate(shiftAnchor(anchor, period, dir)) })
   }
 
-  // ── Tab 切换动画 ──
-  const routineAnim = useTabTransition(`routine-${routineView}`)
-  const lifestyleAnim = useTabTransition(`lifestyle-${lifestyleView}`)
-
   // ── Render ───────────────────────────────────────────────
 
   const renderContent = () => {
@@ -237,10 +226,8 @@ export function StatsPage() {
             <SlidingPills items={pills} value={routineView} onChange={setRoutineView} />
 
             {/* 内容 */}
-            <div className={routineAnim.className}>
-              {routineAnim.visible && (
-                <>
-                  {routineView === 'trend' && (
+            <div>
+              {routineView === 'trend' && (
                     <CategoryTrendChart
                       history={history}
                       categories={categories}
@@ -268,8 +255,6 @@ export function StatsPage() {
                       rangeEvents={rangeEvents}
                     />
                   )}
-                </>
-              )}
             </div>
 
           </div>
@@ -294,17 +279,9 @@ export function StatsPage() {
             <SlidingPills items={pills} value={lifestyleView} onChange={setLifestyleView} />
 
             {/* 内容 — 饮食：四段堆叠 */}
-            <div className={lifestyleAnim.className}>
-              {lifestyleAnim.visible && (
-                <>
-                  {lifestyleView === 'diet' && (
-                    <div className="diet-stack">
-                      <DietCalendarCard rangeEvents={rangeEvents} />
-                      <DietFrequencyPanel rangeEvents={rangeEvents} />
-                      <DietScatterChart rangeEvents={rangeEvents} />
-                      <RecipeSummary rangeEvents={rangeEvents} language={language} />
-                      <DietTagTrendChart rangeEvents={rangeEvents} />
-                    </div>
+            <div>
+              {lifestyleView === 'diet' && (
+                    <DietCalendarCard rangeEvents={rangeEvents} />
                   )}
                   {lifestyleView === 'outfit' && (
                     <OutfitCard
@@ -313,23 +290,12 @@ export function StatsPage() {
                     />
                   )}
                   {lifestyleView === 'hygiene' && (
-                    <div className="diet-stack">
-                      <HygieneCalendarCard
-                        records={hygieneRecords}
-                        rangeEvents={rangeEvents}
-                        language={language}
-                      />
-                      <HygieneScoreChart
-                        rangeEvents={rangeEvents}
-                      />
-                      <HygieneStatsCard
-                        rangeEvents={rangeEvents}
-                        language={language}
-                      />
-                    </div>
+                    <HygieneCalendarCard
+                      records={hygieneRecords}
+                      rangeEvents={rangeEvents}
+                      language={language}
+                    />
                   )}
-                </>
-              )}
             </div>
 
           </div>
@@ -369,12 +335,5 @@ const STATS_PAGE_CSS = `
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-}
-
-/* ── Diet stack ────────────────────────── */
-.diet-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
 }
 `

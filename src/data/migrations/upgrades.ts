@@ -28,6 +28,7 @@ import { DEFAULT_SETTINGS } from '@/domain/settings'
 
 export async function upgradeV3(tx: Transaction): Promise<void> {
   // 1. 给 v1 遗留 events 补 categoryId
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await tx.table('events').toCollection().modify((e: any) => {
     if (e.categoryId === undefined) {
       const migrated = migrateEventV1ToV2(e)
@@ -39,6 +40,7 @@ export async function upgradeV3(tx: Transaction): Promise<void> {
   // 2. 迁移 v2 dev 数据库的 categories.name string → {zh, en}
   const existing = await tx.table('categories').toArray()
   if (existing.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await tx.table('categories').toCollection().modify((cat: any) => {
       if (typeof cat.name === 'string') {
         cat.name = V3_NAME_MAP[cat.name] ?? cat.name
@@ -54,6 +56,7 @@ export async function upgradeV3(tx: Transaction): Promise<void> {
 
 export async function upgradeV4(tx: Transaction): Promise<void> {
   const cats = await tx.table('categories').toArray()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const cat of cats as any[]) {
     if (cat.keywords !== undefined || !cat.folders) {
       const oldKeywords: string[] = cat.keywords ?? []
@@ -72,6 +75,7 @@ export async function upgradeV5(tx: Transaction): Promise<void> {
     accent: 20, sage: 10, sand: 5, sky: 5, rose: 5, stone: 3,
   }
   const cats = await tx.table('categories').toArray()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const cat of cats as any[]) {
     if (cat.weeklyBudget === undefined) {
       await tx.table('categories').update(cat.id, {
@@ -85,9 +89,12 @@ export async function upgradeV5(tx: Transaction): Promise<void> {
 
 export async function upgradeV21(tx: Transaction): Promise<void> {
   // 1. 将 taskGroups 迁移为 projects
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const oldTaskGroups: any[] = await tx.table('taskGroups').toArray()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const existingProjects: any[] = await tx.table('projects').toArray()
-  const existingProjectIds = new Set(existingProjects.map((p: any) => p.id))
+  const existingProjectIds = new Set(existingProjects.map((// eslint-disable-next-line @typescript-eslint/no-explicit-any
+p: any) => p.id))
 
   for (const tg of oldTaskGroups) {
     if (!existingProjectIds.has(tg.id)) {
@@ -109,6 +116,7 @@ export async function upgradeV21(tx: Transaction): Promise<void> {
   }
 
   // 2. 将 taskGroupItems 迁移为 todos
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const oldItems: any[] = await tx.table('taskGroupItems').toArray()
   for (const item of oldItems) {
     await tx.table('todos').put({
@@ -127,7 +135,8 @@ export async function upgradeV21(tx: Transaction): Promise<void> {
   }
 
   // 3. 为缺少 sortOrder/description 的现有 projects 补默认值
-  const maxTgOrder = Math.max(0, ...oldTaskGroups.map((g: any) => g.sortOrder ?? 0))
+  const maxTgOrder = Math.max(0, ...oldTaskGroups.map((// eslint-disable-next-line @typescript-eslint/no-explicit-any
+g: any) => g.sortOrder ?? 0))
   let cursor = maxTgOrder + 1
   for (const p of existingProjects) {
     const patches: Record<string, unknown> = {}
@@ -143,6 +152,7 @@ export async function upgradeV21(tx: Transaction): Promise<void> {
 
 export async function upgradeV24(tx: Transaction): Promise<void> {
   const projects = await tx.table('projects').toArray()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const p of projects as any[]) {
     if (p.dailyRepeat === undefined) {
       await tx.table('projects').update(p.id, { dailyRepeat: false })
@@ -152,6 +162,7 @@ export async function upgradeV24(tx: Transaction): Promise<void> {
 
 export async function upgradeV16(tx: Transaction): Promise<void> {
   const oldProjects = await tx.table('projects').toArray()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const p of oldProjects as any[]) {
     if (p.useCount === undefined || p.lastUsedAt === undefined) {
       await tx.table('projects').update(p.id, {

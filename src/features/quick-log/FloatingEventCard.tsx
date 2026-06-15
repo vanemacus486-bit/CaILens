@@ -257,7 +257,7 @@ export function FloatingEventCard({
     const [eh, em] = endStr.split(':').map(Number)
     const startD = new Date(defaultTimes.start)
     const startTs = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate(), sh, sm).getTime()
-    let endD = new Date(startD)
+    const endD = new Date(startD)
     endD.setHours(eh, em, 0, 0)
     let endTs = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate(), eh, em).getTime()
     if (crossDay) endTs += 24 * 60 * 60 * 1000
@@ -282,7 +282,7 @@ export function FloatingEventCard({
     const [eh, em] = endStr.split(':').map(Number)
     const startD = new Date(defaultTimes.start)
     const startTime = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate(), sh, sm).getTime()
-    let endD = new Date(startD)
+    const endD = new Date(startD)
     endD.setHours(eh, em, 0, 0)
     let endTime = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate(), eh, em).getTime()
     if (crossDay) endTime += 24 * 60 * 60 * 1000

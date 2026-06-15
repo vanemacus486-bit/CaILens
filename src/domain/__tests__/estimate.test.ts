@@ -6,6 +6,7 @@ function est(categoryId: string, hours: number): WeeklyEstimate {
   return {
     id: crypto.randomUUID(),
     weekStart: 0,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     categoryId: categoryId as any,
     estimatedHours: hours,
     createdAt: 0,

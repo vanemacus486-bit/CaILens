@@ -286,7 +286,7 @@ export function DietScatterChart({ rangeEvents }: Props) {
                     return tick ? tick.label : ''
                   }}
                   ticks={xTicks.map((t) => t.value)}
-                  tick={{ fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: "'JetBrains Mono', monospace" }}
+                  tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}
                   tickLine={false}
                   axisLine={{ stroke: 'var(--border-subtle)' }}
                   interval={0}
@@ -297,7 +297,7 @@ export function DietScatterChart({ rangeEvents }: Props) {
                   domain={[0, 24]}
                   reversed={true}
                   tickFormatter={(v: number) => fmtHour(v)}
-                  tick={{ fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: "'JetBrains Mono', monospace" }}
+                  tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}
                   tickLine={false}
                   axisLine={false}
                   width={44}

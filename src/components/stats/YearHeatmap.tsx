@@ -184,14 +184,19 @@ export function buildRollingGrid(
   now: number,
 ): { grid: (HeatmapCell | null)[][]; monthLabels: MonthLabel[]; numWeeks: number } {
   const rangeStart = endDate.getTime() - 365 * DAY_MS
-  // Go back to the Monday of the week containing rangeStart
   const startDate = new Date(rangeStart)
-  const startDow = startDate.getDay()
-  const offset = startDow === 0 ? -6 : 1 - startDow
-  const firstMonday = new Date(startDate)
-  firstMonday.setDate(startDate.getDate() + offset)
 
   const numWeeks = 53 // Always fill 53 weeks for a rolling year
+
+  // Anchor the last column to the week containing endDate so today is always
+  // visible. Anchoring to rangeStart instead can push today one column past the
+  // 53-week window when rangeStart lands late in its week (e.g. a Sunday).
+  const endDow = endDate.getDay() // 0=Sun
+  const endOffset = endDow === 0 ? -6 : 1 - endDow
+  const lastMonday = new Date(endDate)
+  lastMonday.setDate(endDate.getDate() + endOffset)
+  const firstMonday = new Date(lastMonday)
+  firstMonday.setDate(lastMonday.getDate() - (numWeeks - 1) * 7)
 
   // Month labels
   const monthLabels: MonthLabel[] = []

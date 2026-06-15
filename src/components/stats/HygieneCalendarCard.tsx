@@ -25,6 +25,7 @@ import { HYGIENE_ACTIVITY_LABELS } from '@/domain/dailyContext'
 import { useDailyContextStore } from '@/stores/dailyContextStore'
 import type { AppLanguage } from '@/domain/settings'
 import { formatISODate } from '@/domain/time'
+import { WeekTimeAxis, type AxisDay } from './WeekTimeAxis'
 
 // ── 类型 ────────────────────────────────────────────────────
 
@@ -62,14 +63,14 @@ const ALL_ACTIVITIES: HygieneActivity[] = [
 
 // ── 辅助 ────────────────────────────────────────────────────
 
-function fmtDateLabel(ts: number): string {
-  const d = new Date(ts)
-  return `${d.getMonth() + 1}月${d.getDate()}日`
-}
-
 function fmtTime(ts: number): string {
   const d = new Date(ts)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function hourOfDay(ts: number): number {
+  const d = new Date(ts)
+  return d.getHours() + d.getMinutes() / 60
 }
 
 /** 判断标题是否匹配洗澡 */
@@ -205,6 +206,41 @@ export function HygieneCalendarCard({ records, rangeEvents, language }: Props) {
     })
   }, [viewMode, viewRange, hygieneByDate, showerEventsByDate])
 
+  // ── 周视图时刻轴数据 ──────────────────
+
+  const hygieneDays: AxisDay[] = useMemo(
+    () =>
+      weekDays.map(({ date, day, record, showers }) => {
+        const idx = day.getDay() === 0 ? 6 : day.getDay() - 1
+        const wd =
+          language === 'zh'
+            ? ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][idx]
+            : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx]
+        const dayLabel = `${wd} ${day.getMonth() + 1}/${day.getDate()}`
+
+        const timed = showers.map((sev) => ({
+          id: sev.id,
+          hour: hourOfDay(sev.startTime),
+          timeLabel: fmtTime(sev.startTime),
+          color: 'var(--tag-hygiene-shower)',
+          label: sev.title || (language === 'zh' ? '洗澡' : 'Shower'),
+        }))
+
+        // 去重：当天有洗澡事件块时，丢掉记录里的 shower 勾选（避免重复）
+        const acts = (record?.activities ?? []).filter(
+          (a) => !(a === 'shower' && showers.length > 0),
+        )
+        const allDay = acts.map((a) => ({
+          id: a,
+          color: ACTIVITY_COLORS[a],
+          label: language === 'zh' ? HYGIENE_ACTIVITY_LABELS[a].zh : HYGIENE_ACTIVITY_LABELS[a].en,
+        }))
+
+        return { date, dayLabel, isToday: isSameDay(day, today), timed, allDay }
+      }),
+    [weekDays, language, today],
+  )
+
   // ── 保存与取消 ────────────────────────────
 
   const handleSave = useCallback(async () => {
@@ -326,67 +362,10 @@ export function HygieneCalendarCard({ records, rangeEvents, language }: Props) {
 
       {/* ── 周视图 ──────────────────────────────────── */}
       {viewMode === 'week' && (
-        <div className="hcc-week-view">
-          {weekDays.map(({ date: dateKey, day, record, showers }) => {
-            const isToday = isSameDay(day, today)
-            const dayLabel = language === 'zh'
-              ? `${['周一', '周二', '周三', '周四', '周五', '周六', '周日'][day.getDay() === 0 ? 6 : day.getDay() - 1]} ${fmtDateLabel(day.getTime())}`
-              : `${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day.getDay() === 0 ? 6 : day.getDay() - 1]} ${format(day, 'MM/dd')}`
-
-            const hasAny = (record && record.activities.length > 0) || showers.length > 0
-
-            return (
-              <div
-                key={dateKey}
-                className={`hcc-day-card${isToday ? ' hcc-day-today' : ''}`}
-              >
-                <div className="hcc-day-header">
-                  <span className="hcc-day-label">{dayLabel}</span>
-                  {isToday && <span className="hcc-today-badge">今天</span>}
-                  {!hasAny && <span className="hcc-no-record">—</span>}
-                </div>
-
-                {hasAny && (
-                  <div className="hcc-activity-list">
-                    {/* 洗澡事件块（从日历事件匹配） */}
-                    {showers.map((sev) => (
-                      <div key={sev.id} className="hcc-activity-row">
-                        <span
-                          className="hcc-activity-dot"
-                          style={{ background: 'var(--tag-hygiene-shower)' }}
-                        />
-                        <span className="hcc-activity-icon">🚿</span>
-                        <span className="hcc-activity-time">{fmtTime(sev.startTime)}</span>
-                        <span className="hcc-activity-label">{sev.title}</span>
-                      </div>
-                    ))}
-                    {/* 卫生记录活动 */}
-                    {record && record.activities.length > 0 && (
-                      <>
-                        {record.activities.map((act) => (
-                          <div key={act} className="hcc-activity-row">
-                            <span
-                              className="hcc-activity-dot"
-                              style={{ background: ACTIVITY_COLORS[act] }}
-                            />
-                            <span className="hcc-activity-icon">
-                              {ACTIVITY_ICONS[act]}
-                            </span>
-                            <span className="hcc-activity-label">
-                              {language === 'zh'
-                                ? HYGIENE_ACTIVITY_LABELS[act].zh
-                                : HYGIENE_ACTIVITY_LABELS[act].en}
-                            </span>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+        <WeekTimeAxis
+          days={hygieneDays}
+          allDayLabel={language === 'zh' ? '全天' : 'All day'}
+        />
       )}
 
       {/* ── 月视图 ──────────────────────────────────── */}
@@ -684,84 +663,6 @@ const HCC_CSS = `
 .hcc-cancel-btn:hover {
   border-color: var(--heatmap-ink-3);
   color: var(--heatmap-ink-1);
-}
-
-/* ── Week view: day cards ────────────────────── */
-.hcc-week-view {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.hcc-day-card {
-  background: var(--heatmap-bg-card);
-  border-radius: 8px;
-  border: 1px solid var(--heatmap-rule);
-  overflow: hidden;
-}
-.hcc-day-today {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-.hcc-day-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--heatmap-rule);
-}
-.hcc-day-label {
-  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--heatmap-ink-1);
-}
-.hcc-today-badge {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--accent);
-  background: rgba(201, 100, 66, 0.1);
-  padding: 1px 6px;
-  border-radius: 4px;
-}
-.hcc-no-record {
-  margin-left: auto;
-  font-size: 14px;
-  color: var(--heatmap-ink-3);
-  opacity: 0.3;
-  font-family: 'JetBrains Mono', monospace;
-}
-.hcc-activity-list {
-  padding: 4px 12px 8px;
-}
-.hcc-activity-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 0;
-  font-size: 12px;
-}
-.hcc-activity-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.hcc-activity-icon {
-  font-size: 13px;
-  width: 20px;
-  text-align: center;
-  flex-shrink: 0;
-}
-.hcc-activity-label {
-  font-size: 13px;
-  color: var(--heatmap-ink-1);
-}
-.hcc-activity-time {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--heatmap-ink-3);
-  width: 36px;
-  flex-shrink: 0;
 }
 
 /* ── Month view ─────────────────────────────── */

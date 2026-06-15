@@ -7,7 +7,7 @@
  */
 
 import { type ReactNode } from 'react'
-import { useTabTransition } from '@/hooks/useTabTransition'
+
 
 
 /** 一级 Tab */
@@ -39,8 +39,6 @@ interface Props {
 }
 
 export function EasternStatsShell({ currentTab, onTabChange, children }: Props) {
-  const { visible, className } = useTabTransition(currentTab)
-
   return (
     <div className="eastern-shell-root">
       <style>{SHELL_CSS}</style>
@@ -59,8 +57,8 @@ export function EasternStatsShell({ currentTab, onTabChange, children }: Props) 
       </div>
 
       {/* ── 当前 Tab 内容 ──────────────────────────── */}
-      <div className={`shell-content ${className}`}>
-        {visible && children}
+      <div className="shell-content">
+        {children}
       </div>
     </div>
   )

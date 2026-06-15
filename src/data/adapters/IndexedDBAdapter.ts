@@ -12,8 +12,10 @@ import type { StorageAdapter, StorageTable, QueryOptions } from './StorageAdapte
 import { CailensDB, db as dexieDb } from '../db'
 
 class IndexedDBTable<T extends { id: string }> implements StorageTable<T> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private table: Dexie.Table<T, any>
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(table: Dexie.Table<T, any>) {
     this.table = table
   }
@@ -31,6 +33,7 @@ class IndexedDBTable<T extends { id: string }> implements StorageTable<T> {
   }
 
   async update(id: string, changes: Partial<T>): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (this.table as Dexie.Table<T, string>).update(id, changes as any)
   }
 

@@ -322,11 +322,13 @@ function Cell({ catId, priId, todos, categoryFill, isSelected, selectedId, onCar
   }, [onDragActiveChange])
 
   // ── 格级拖拽（用于跨格视觉反馈 + 空白区落点） ──
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleCellDragEnter = useCallback((_e: DragEvent) => {
     dragEnterCount.current += 1
     setIsCellHover(true)
   }, [])
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleCellDragLeave = useCallback((_e: DragEvent) => {
     dragEnterCount.current -= 1
     if (dragEnterCount.current <= 0) {

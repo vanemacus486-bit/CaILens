@@ -23,7 +23,7 @@ const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
   { key: 'data',         label: 'Data',        labelZh: '数据' },
   { key: 'profile',      label: 'Profile',     labelZh: '档案' },
   ...(isTauri() ? [{ key: 'storage' as SettingsTab, label: 'Storage', labelZh: '存储' }] : []),
-  { key: 'about',        label: 'About',       labelZh: '关于' },
+  { key: 'about' as SettingsTab, label: 'About', labelZh: '关于' },
 ]
 
 const MOBILE_TAB_CONTENT: Record<SettingsTab, React.FC> = {

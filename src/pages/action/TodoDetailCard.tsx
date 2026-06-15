@@ -78,18 +78,7 @@ export function TodoDetailCard({ todoId, anchorEl, onClose }: TodoDetailCardProp
     }
   }, [todos, todoId, onClose])
 
-  if (!todo) return null
-
-  const effectiveCatId = (categoryId as CategoryId) || (() => {
-    if (projectId) {
-      const proj = allProjects.find((p) => p.id === projectId)
-      return proj?.categoryId ?? ''
-    }
-    return ''
-  })()
-  const catColor = effectiveCatId ? `var(--event-${effectiveCatId}-fill)` : 'var(--text-quaternary)'
-  const catBg = effectiveCatId ? `var(--event-${effectiveCatId}-bg)` : 'var(--surface-sunken)'
-
+  // ── Refs & callbacks (unconditional — must be before early return) ──
   const virtualRef = useRef<HTMLElement>(null!)
   virtualRef.current = anchorEl
 
@@ -101,30 +90,41 @@ export function TodoDetailCard({ todoId, anchorEl, onClose }: TodoDetailCardProp
     const trimmed = title.trim()
     if (!trimmed) return
     updateTodo({
-      id: todo.id,
+      id: todoId,
       title: trimmed,
       categoryId: (categoryId as CategoryId) || null,
       priority,
       projectId: projectId || null,
     })
     onClose()
-  }, [title, categoryId, priority, projectId, todo.id, updateTodo, onClose])
+  }, [title, categoryId, priority, projectId, updateTodo, onClose])
 
   const handleToggleComplete = useCallback(() => {
-    toggleComplete(todo.id)
+    toggleComplete(todoId)
     onClose()
-  }, [todo.id, toggleComplete, onClose])
+  }, [toggleComplete, onClose])
 
   const handleDelete = useCallback(() => {
-    deleteTodo(todo.id)
+    deleteTodo(todoId)
     onClose()
-  }, [todo.id, deleteTodo, onClose])
+  }, [deleteTodo, onClose])
 
   const handleToggleRepeat = useCallback(() => {
-    const newValue = todo.repeatPattern ? null : 'daily'
-    updateTodo({ id: todo.id, repeatPattern: newValue })
+    updateTodo({ id: todoId, repeatPattern: todo?.repeatPattern ? null : 'daily' })
     onClose()
-  }, [todo.id, todo.repeatPattern, updateTodo, onClose])
+  }, [updateTodo, onClose])
+
+  if (!todo) return null
+
+  const effectiveCatId = (categoryId as CategoryId) || (() => {
+    if (projectId) {
+      const proj = allProjects.find((p) => p.id === projectId)
+      return proj?.categoryId ?? ''
+    }
+    return ''
+  })()
+  const catColor = effectiveCatId ? `var(--event-${effectiveCatId}-fill)` : 'var(--text-quaternary)'
+  const catBg = effectiveCatId ? `var(--event-${effectiveCatId}-bg)` : 'var(--surface-sunken)'
 
   const isDone = todo.status === 'done'
 

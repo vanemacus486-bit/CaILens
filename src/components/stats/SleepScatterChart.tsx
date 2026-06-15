@@ -311,8 +311,8 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
   const desc = viewDesc(viewMode)
 
   const xTickFont = viewMode === 'month'
-    ? { fontSize: 11, fill: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }
-    : { fontSize: 11, fill: 'var(--ink-3)', fontFamily: 'var(--font-ui)' }
+    ? { fontSize: 11, fontFamily: 'var(--font-mono)' }
+    : { fontSize: 11, fontFamily: 'var(--font-ui)' }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renderCustomSvg = (props: any) => {
@@ -370,6 +370,11 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
   return (
     <div className="sleep-root">
       <style>{SLEEP_CSS}</style>
+      <style>{`
+        .sleep-chart-container .recharts-cartesian-axis-tick text {
+          fill: var(--ink-3) !important;
+        }
+      `}</style>
 
       {/* ── Title area ──────────────────────────────── */}
       <div className={`sleep-title-area${isCompact ? ' sleep-title-compact' : ''}`}>
@@ -425,7 +430,7 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
                   domain={[1080, 2280]}
                   reversed={true}
                   tickFormatter={tickLabel}
-                  tick={{ fontSize: 11, fill: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}
+                  tick={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}
                   tickLine={false}
                   axisLine={false}
                   width={44}

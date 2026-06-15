@@ -161,7 +161,9 @@ export class CailensDB extends Dexie {
     // v25：todos 新增 priority（可空）和 domain 字段（收件箱任务支持）
     this.version(25).stores({
       todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern, priority, domain',
-    }).upgrade((tx) => tx.table('todos').toCollection().modify((todo: any) => {
+    }).upgrade((tx) => tx.table('todos').toCollection().modify(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (todo: any) => {
       if (todo.priority === undefined) todo.priority = null
       if (todo.domain === undefined) todo.domain = null
     }))

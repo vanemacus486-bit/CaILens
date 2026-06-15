@@ -128,6 +128,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     await getProjectRepo().delete(id)
 
     set((state) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { [id]: _removed, ...rest } = state.todosByProject
       return {
         projects: state.projects.filter((p) => p.id !== id),

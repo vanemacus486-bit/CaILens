@@ -152,7 +152,7 @@ class EventsFsTable implements StorageTable<CalendarEvent> {
   }
 
   async query(opts: QueryOptions<CalendarEvent>): Promise<CalendarEvent[]> {
-    let results: CalendarEvent[] = []
+    let results: CalendarEvent[]
 
     if (opts.where?.key === 'startTime' && opts.where.op === 'below') {
       const threshold = opts.where.value as number
@@ -253,6 +253,7 @@ class CategoriesFsTable implements StorageTable<Category> {
     await this.flush()
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async delete(_id: string): Promise<void> {
     // Categories cannot be deleted (fixed set of 6)
   }
@@ -320,6 +321,7 @@ class SettingsFsTable implements StorageTable<AppSettings> {
     this.filePath = joinPath(rootPath, 'settings.json')
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async get(_id: string): Promise<AppSettings | undefined> {
     if (!this.loaded) return undefined
     return this.index.settings ?? undefined
@@ -343,6 +345,7 @@ class SettingsFsTable implements StorageTable<AppSettings> {
     await this.put(updated)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async delete(_id: string): Promise<void> {
     // Settings cannot be deleted
   }
@@ -356,6 +359,7 @@ class SettingsFsTable implements StorageTable<AppSettings> {
     for (const item of items) await this.put(item)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async query(_opts: QueryOptions<AppSettings>): Promise<AppSettings[]> {
     return this.getAll()
   }
@@ -673,6 +677,7 @@ class TodosFsTable implements StorageTable<Todo> {
 class GenericFsTable<T extends { id: string }> implements StorageTable<T> {
   private map: Map<string, T>
   constructor(index: MemoryIndex, key: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.map = (index as any)[key] as Map<string, T>
   }
   async get(id: string) { return this.map.get(id) }
@@ -705,6 +710,7 @@ class ProfileFsTable implements StorageTable<Profile> {
     this.filePath = joinPath(rootPath, 'profile.json')
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async get(_id: string): Promise<Profile | undefined> {
     return this.index.profile ?? undefined
   }
@@ -726,6 +732,7 @@ class ProfileFsTable implements StorageTable<Profile> {
     await this.put(updated)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async delete(_id: string): Promise<void> {
     // Profile cannot be deleted
   }
@@ -739,6 +746,7 @@ class ProfileFsTable implements StorageTable<Profile> {
     for (const item of items) await this.put(item)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async query(_opts: QueryOptions<Profile>): Promise<Profile[]> {
     return this.getAll()
   }

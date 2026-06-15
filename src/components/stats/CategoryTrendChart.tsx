@@ -510,19 +510,24 @@ export function CategoryTrendChart({
             />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 11, fill: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}
+              tick={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}
               tickLine={false}
               axisLine={{ stroke: 'var(--line)' }}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fill: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}
+              tick={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v: number) => `${v.toFixed(1)}h`}
               width={48}
               domain={[0, dynamicMax]}
             />
+      <style>{`
+        .trend-chart-container .recharts-cartesian-axis-tick text {
+          fill: var(--ink-3) !important;
+        }
+      `}</style>
             <Tooltip content={<RechartsTooltip decimals={1} />} />
 
             {/* Stacked area + total line for core focus group */}

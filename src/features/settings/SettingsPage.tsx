@@ -59,10 +59,10 @@ const TAB_GROUPS: {
     tabs: isTauri()
       ? [
           { key: 'storage', labelZh: '存储',   labelEn: 'Storage',     descZh: '文件存储路径',     descEn: 'File storage path' },
-          { key: 'about',   labelZh: '关于',   labelEn: 'About',       descZh: '版本与技术栈',     descEn: 'Version & stack' },
+          { key: 'about',   labelZh: '关于',   labelEn: 'About',       descZh: '版本与变更记录',   descEn: 'Version & changelog' },
         ]
       : [
-          { key: 'about',   labelZh: '关于',   labelEn: 'About',       descZh: '版本与技术栈',     descEn: 'Version & stack' },
+          { key: 'about',   labelZh: '关于',   labelEn: 'About',       descZh: '版本与变更记录',   descEn: 'Version & changelog' },
         ],
   },
 ]
@@ -131,7 +131,7 @@ export function SettingsPage() {
         </div>
 
         <div className="flex flex-col gap-1 px-2.5 pb-6">
-          {TAB_GROUPS.map((group) => (
+          {TAB_GROUPS.filter((group) => group.tabs.length > 0).map((group) => (
             <div key={group.labelZh} className="mb-3 last:mb-0">
               {/* Group header */}
               <div className="px-3 py-1.5 text-[10px] font-sans font-medium text-text-tertiary uppercase tracking-wider opacity-60">
