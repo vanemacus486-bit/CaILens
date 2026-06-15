@@ -26,6 +26,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     sortOrder: 0,
     projectId: null,
     categoryId: null,
+    domain: null,
     createdAt: now,
     updatedAt: now,
     completedAt: null,

@@ -32,6 +32,7 @@ import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneCalendarCard } from '@/components/stats/HygieneCalendarCard'
 import { HygieneScoreChart } from '@/components/stats/HygieneScoreChart'
 import { HygieneStatsCard } from '@/components/stats/HygieneStatsCard'
+import { SlidingPills } from '@/components/stats/SlidingPills'
 
 import {
   EasternStatsShell,
@@ -233,17 +234,7 @@ export function StatsPage() {
         return (
           <div className="routine-container">
             {/* 二级 pills */}
-            <div className="routine-pills">
-              {pills.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setRoutineView(p.id)}
-                  className={`routine-pill${routineView === p.id ? ' routine-pill-active' : ''}`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+            <SlidingPills items={pills} value={routineView} onChange={setRoutineView} />
 
             {/* 内容 */}
             <div className={routineAnim.className}>
@@ -300,17 +291,7 @@ export function StatsPage() {
         return (
           <div className="lifestyle-container">
             {/* 二级 pills */}
-            <div className="lifestyle-pills">
-              {pills.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setLifestyleView(p.id)}
-                  className={`lifestyle-pill${lifestyleView === p.id ? ' lifestyle-pill-active' : ''}`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+            <SlidingPills items={pills} value={lifestyleView} onChange={setLifestyleView} />
 
             {/* 内容 — 饮食：四段堆叠 */}
             <div className={lifestyleAnim.className}>
@@ -376,76 +357,18 @@ export function StatsPage() {
 // ── Scoped CSS ────────────────────────────────────────────────
 
 const STATS_PAGE_CSS = `
-/* ── Routine tab pills ──────────────────── */
+/* ── Routine tab container ──────────────────── */
 .routine-container {
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
 }
-.routine-pills {
-  display: flex;
-  gap: 2px;
-  background: var(--heatmap-bg-card);
-  border-radius: 8px;
-  padding: 3px;
-  margin-bottom: 20px;
-  width: fit-content;
-}
-.routine-pill {
-  padding: 6px 18px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--heatmap-ink-3);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-.routine-pill:hover {
-  color: var(--heatmap-ink-1);
-}
-.routine-pill-active {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg);
-  font-weight: 600;
-}
 
-/* ── Lifestyle tab pills ──────────────────── */
+/* ── Lifestyle tab container ──────────────────── */
 .lifestyle-container {
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-}
-.lifestyle-pills {
-  display: flex;
-  gap: 2px;
-  background: var(--heatmap-bg-card);
-  border-radius: 8px;
-  padding: 3px;
-  margin-bottom: 20px;
-  width: fit-content;
-}
-.lifestyle-pill {
-  padding: 6px 18px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--heatmap-ink-3);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-.lifestyle-pill:hover {
-  color: var(--heatmap-ink-1);
-}
-.lifestyle-pill-active {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg);
-  font-weight: 600;
 }
 
 /* ── Diet stack ────────────────────────── */
@@ -453,19 +376,5 @@ const STATS_PAGE_CSS = `
   display: flex;
   flex-direction: column;
   gap: 40px;
-}
-
-/* ── Misc ──────────────────────────────── */
-@media (max-width: 719px) {
-  .routine-pills,
-  .lifestyle-pills {
-    width: 100%;
-    justify-content: center;
-  }
-  .routine-pill,
-  .lifestyle-pill {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
 }
 `

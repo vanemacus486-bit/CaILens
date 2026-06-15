@@ -1,9 +1,28 @@
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { Heart } from 'lucide-react'
 
+// ── 更新记录 ────────────────────────────────────────────────
+// 每次发布新 exe 时在顶部追加一条（最新在前）。
+// 打开「关于」即可核对最新条目的日期/功能，确认运行的是新构建。
+interface ChangelogEntry {
+  date: string
+  zh: string
+  en: string
+}
+
+const CHANGELOG: readonly ChangelogEntry[] = [
+  {
+    date: '2026-06-15',
+    zh: '复盘页二级标签（趋势/热力/睡眠、饮食/穿搭/卫生）改为滑块滑动切换',
+    en: 'Stats sub-tabs now glide with a sliding indicator instead of cross-fading',
+  },
+]
+
 export function SettingsAbout() {
   const language = useAppSettingsStore((s) => s.settings.language)
     const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+
+  const latest = CHANGELOG[0]
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,6 +52,31 @@ export function SettingsAbout() {
             'A local-first time management tool inspired by Lyubishchev\'s time accounting method. Observe instead of planning, understand instead of managing.',
           )}
         </p>
+        {/* 最新构建戳：核对此处日期即可确认运行的是新构建的 exe */}
+        <p className="mt-3 text-xs font-mono text-text-tertiary">
+          {t('最近更新', 'Updated')} · {latest.date}
+        </p>
+      </div>
+
+      {/* 更新记录 */}
+      <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
+        <div className="px-5 py-4">
+          <h3 className="text-xs font-sans font-medium text-text-tertiary uppercase tracking-wider mb-3">
+            {t('更新记录', 'Changelog')}
+          </h3>
+          <ul className="flex flex-col gap-2.5">
+            {CHANGELOG.map((entry) => (
+              <li key={entry.date} className="flex gap-3 text-sm leading-relaxed">
+                <span className="font-mono text-xs text-text-tertiary shrink-0 pt-0.5">
+                  {entry.date}
+                </span>
+                <span className="text-text-secondary font-sans">
+                  {t(entry.zh, entry.en)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       {/* Philosophy */}

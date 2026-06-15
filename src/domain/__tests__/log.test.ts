@@ -30,6 +30,7 @@ function makeTodo(overrides: Partial<Todo> & { id: string }): Todo {
     dueDate: null,
     projectId: null,
     categoryId: null,
+    domain: null,
     createdAt: 0,
     updatedAt: 0,
     completedAt: null,

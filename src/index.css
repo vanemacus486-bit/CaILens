@@ -528,6 +528,62 @@ body.resizing-event .overflow-y-auto {
   }
 }
 
+/* ── Sliding pills (二级标签滑块，StatsPage 作息/日常 子视图) ────── */
+.sliding-pills {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  background: var(--heatmap-bg-card);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.sliding-pills-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  border-radius: 6px;
+  background: var(--heatmap-bg);
+  pointer-events: none;
+  z-index: 0;
+}
+.sliding-pills-indicator[data-animated="true"] {
+  transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1),
+              width 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.sliding-pills-btn {
+  position: relative;
+  z-index: 1;
+  padding: 6px 18px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--heatmap-ink-3);
+  transition: color 0.2s ease;
+}
+.sliding-pills-btn:hover {
+  color: var(--heatmap-ink-1);
+}
+.sliding-pills-btn.is-active {
+  color: var(--heatmap-ink-1);
+  font-weight: 600;
+}
+@media (max-width: 719px) {
+  .sliding-pills {
+    width: 100%;
+    justify-content: center;
+  }
+  .sliding-pills-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
 /* ── Base ───────────────────────────────────────────────── */
 /* Focus ring is handled by the unified non-layered block below.
    Keep only box-sizing reset here. */
@@ -613,7 +669,7 @@ body {
   gap: 48px;
 }
 
-/* ── Stats: routine / lifestyle pill tabs ──────────────── */
+/* ── Stats: routine / lifestyle containers ──────────────── */
 .routine-container {
   width: 100%;
   max-width: 1100px;
@@ -623,52 +679,6 @@ body {
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-}
-.routine-pills,
-.lifestyle-pills {
-  display: flex;
-  gap: 2px;
-  background: var(--heatmap-bg-card);
-  border-radius: 8px;
-  padding: 3px;
-  margin-bottom: 20px;
-  width: fit-content;
-}
-.routine-pill,
-.lifestyle-pill {
-  padding: 6px 18px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--heatmap-ink-3);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-.routine-pill:hover,
-.lifestyle-pill:hover {
-  color: var(--heatmap-ink-1);
-}
-.routine-pill-active,
-.lifestyle-pill-active {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg);
-  font-weight: 600;
-}
-
-@media (max-width: 719px) {
-  .routine-pills,
-  .lifestyle-pills {
-    width: 100%;
-    justify-content: center;
-  }
-  .routine-pill,
-  .lifestyle-pill {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
 }
 
 /* ── Markdown prose styles ───────────────────────────────── */

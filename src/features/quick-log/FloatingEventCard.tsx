@@ -34,15 +34,6 @@ interface FloatingEventCardProps {
 
 // ── Helpers ─────────────────────────────────────────────
 
-const CATEGORY_NAMES: Record<CategoryId, [string, string]> = {
-  accent: ['主要矛盾', 'Core Focus'],
-  sage:   ['次要矛盾', 'Support'],
-  sand:   ['庶务时间', 'Chores'],
-  sky:    ['个人提升', 'Growth'],
-  rose:   ['娱乐放松', 'Leisure'],
-  stone:  ['睡眠时间', 'Sleep'],
-}
-
 const CATEGORY_BY_ALT_KEY: Record<string, CategoryId> = {
   '1': 'accent',
   '2': 'sage',
@@ -147,6 +138,10 @@ export function FloatingEventCard({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const handleSaveRef = useRef(handleSave)
   handleSaveRef.current = handleSave
+
+  // Popover 锚点：包成 virtualRef 以匹配 Radix Measurable 接口
+  const virtualRef = useRef<HTMLElement>(null!)
+  virtualRef.current = anchorEl
 
   // ── Derived ─────────────────────────────────────────
 
@@ -571,7 +566,7 @@ export function FloatingEventCard({
 
   return (
     <Popover open>
-      <PopoverAnchor virtualRef={anchorEl} />
+      <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
         side="right"
         sideOffset={8}

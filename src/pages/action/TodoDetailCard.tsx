@@ -33,7 +33,7 @@ const CATEGORY_NAMES: Record<CategoryId, string> = {
   stone: '睡眠时长',
 }
 
-const PRIORITY_LABELS: Record<TodoPriority, string> = {
+const PRIORITY_LABELS: Record<Exclude<TodoPriority, null>, string> = {
   high: '高优先',
   medium: '中优先',
   low: '低优先',
@@ -205,7 +205,7 @@ export function TodoDetailCard({ todoId, anchorEl, onClose }: TodoDetailCardProp
                     color: catColor,
                   }}
                 >
-                  {PRIORITY_LABELS[priority]}
+                  {priority ? PRIORITY_LABELS[priority] : '收件箱'}
                 </span>
               </div>
 
