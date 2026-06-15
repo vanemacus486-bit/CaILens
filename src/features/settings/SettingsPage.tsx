@@ -6,12 +6,9 @@ import { cn } from '@/lib/utils'
 import { MobileSettingsPage } from './MobileSettingsPage'
 import { SettingsCategories } from './SettingsCategories'
 import { SettingsAppearance } from './SettingsAppearance'
-import { SettingsLanguage } from './SettingsLanguage'
-import { SettingsRestrained } from './SettingsRestrained'
-import { SettingsData } from './SettingsData'
-import { SettingsProfile } from './SettingsProfile'
-import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsShortcuts } from './SettingsShortcuts'
+import { SettingsData } from './SettingsData'
+import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsAbout } from './SettingsAbout'
 import { isTauri } from '@/data/tauriFs'
 
@@ -32,25 +29,22 @@ const TAB_GROUPS: {
     labelZh: '偏好',
     labelEn: 'Preferences',
     tabs: [
-      { key: 'categories',  labelZh: '分类',   labelEn: 'Categories',   descZh: '分配每周168小时',  descEn: 'Allocate 168 hours' },
-      { key: 'appearance',  labelZh: '外观',   labelEn: 'Appearance',   descZh: '主题与字体',       descEn: 'Theme & font' },
-      { key: 'language',    labelZh: '语言',   labelEn: 'Language',     descZh: '界面语言',         descEn: 'Interface language' },
+      { key: 'categories', labelZh: '分类', labelEn: 'Categories', descZh: '分配每周168小时', descEn: 'Allocate 168h/week' },
+      { key: 'appearance', labelZh: '外观', labelEn: 'Appearance', descZh: '主题、字体与界面语言', descEn: 'Theme, font & language' },
     ],
   },
   {
     labelZh: '高级',
     labelEn: 'Advanced',
     tabs: [
-      { key: 'restrained',  labelZh: '克制模式', labelEn: 'Restrained Mode', descZh: '减少视觉刺激', descEn: 'Reduce visual noise' },
-      { key: 'shortcuts',   labelZh: '快捷键',   labelEn: 'Shortcuts',     descZh: '键盘操作',       descEn: 'Keyboard actions' },
+      { key: 'shortcuts', labelZh: '快捷', labelEn: 'Shortcuts', descZh: '键盘操作绑定', descEn: 'Keyboard bindings' },
     ],
   },
   {
     labelZh: '数据',
     labelEn: 'Data',
     tabs: [
-      { key: 'data',    labelZh: '数据',   labelEn: 'Data',        descZh: '导入与导出',       descEn: 'Import & export' },
-      { key: 'profile',   labelZh: '档案',   labelEn: 'Profile',     descZh: '身体数据',         descEn: 'Body metrics' },
+      { key: 'data', labelZh: '数据', labelEn: 'Data', descZh: '导入导出与身体数据', descEn: 'Import, export & body metrics' },
     ],
   },
   {
@@ -58,11 +52,11 @@ const TAB_GROUPS: {
     labelEn: 'Other',
     tabs: isTauri()
       ? [
-          { key: 'storage', labelZh: '存储',   labelEn: 'Storage',     descZh: '文件存储路径',     descEn: 'File storage path' },
-          { key: 'about',   labelZh: '关于',   labelEn: 'About',       descZh: '版本与变更记录',   descEn: 'Version & changelog' },
+          { key: 'storage', labelZh: '存储', labelEn: 'Storage', descZh: '文件存储路径', descEn: 'File storage path' },
+          { key: 'about', labelZh: '关于', labelEn: 'About', descZh: '版本与变更记录', descEn: 'Version & changelog' },
         ]
       : [
-          { key: 'about',   labelZh: '关于',   labelEn: 'About',       descZh: '版本与变更记录',   descEn: 'Version & changelog' },
+          { key: 'about', labelZh: '关于', labelEn: 'About', descZh: '版本与变更记录', descEn: 'Version & changelog' },
         ],
   },
 ]
@@ -70,14 +64,11 @@ const TAB_GROUPS: {
 /* ── Tab → 组件映射 ── */
 
 const TAB_CONTENT: Record<SettingsTab, React.FC> = {
-  categories:  SettingsCategories,
-  appearance:  SettingsAppearance,
-  language:    SettingsLanguage,
-  restrained:  SettingsRestrained,
+  categories: SettingsCategories,
+  appearance: SettingsAppearance,
+  shortcuts: SettingsShortcuts,
   data:        SettingsData,
-  profile:     SettingsProfile,
   storage:     SettingsStorage,
-  shortcuts:   SettingsShortcuts,
   about:       SettingsAbout,
 }
 
@@ -130,65 +121,50 @@ export function SettingsPage() {
           </h1>
         </div>
 
-        <div className="flex flex-col gap-1 px-2.5 pb-6">
-          {TAB_GROUPS.filter((group) => group.tabs.length > 0).map((group) => (
-            <div key={group.labelZh} className="mb-3 last:mb-0">
-              {/* Group header */}
-              <div className="px-3 py-1.5 text-[10px] font-sans font-medium text-text-tertiary uppercase tracking-wider opacity-60">
-                {t(group.labelZh, group.labelEn)}
-              </div>
-
-              {/* Group tabs */}
-              <div className="flex flex-col gap-0.5">
-                {group.tabs.map((tab) => {
-                  const active = activeSettingsTab === tab.key
-                  return (
-                    <button
-                      key={tab.key}
-                      id={`settings-tab-${tab.key}`}
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => setActiveSettingsTab(tab.key)}
-                      className={cn(
-                        'w-full text-left rounded-lg transition-colors duration-200 cursor-pointer border-none',
-                        'flex flex-col items-start gap-0.5',
-                        'pl-3 pr-2 py-1.5',
-                        active
-                          ? 'bg-surface-sunken shadow-pill'
-                          : 'hover:bg-surface-raised',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'text-sm font-sans font-medium transition-colors duration-200',
-                          active ? 'text-text-primary' : 'text-text-secondary',
-                        )}
-                      >
-                        {t(tab.labelZh, tab.labelEn)}
-                      </span>
-                      <span
-                        className={cn(
-                          'text-[11px] font-sans transition-colors duration-200',
-                          active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
-                        )}
-                      >
-                        {t(tab.descZh, tab.descEn)}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
+        <div className="flex flex-col gap-0.5 px-2.5 pb-6">
+          {TAB_GROUPS.flatMap((group) => group.tabs).map((tab) => {
+            const active = activeSettingsTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                id={`settings-tab-${tab.key}`}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveSettingsTab(tab.key)}
+                className={cn(
+                  'w-full text-left rounded-lg transition-colors duration-200 cursor-pointer border-none',
+                  'flex flex-col items-start gap-0.5',
+                  'pl-3 pr-2 py-1.5',
+                  active
+                    ? 'bg-surface-sunken shadow-pill'
+                    : 'hover:bg-surface-raised',
+                )}
+              >
+                <span
+                  className={cn(
+                    'text-sm font-sans font-medium transition-colors duration-200',
+                    active ? 'text-text-primary' : 'text-text-secondary',
+                  )}
+                >
+                  {t(tab.labelZh, tab.labelEn)}
+                </span>
+                <span
+                  className={cn(
+                    'text-[11px] font-sans transition-colors duration-200',
+                    active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
+                  )}
+                >
+                  {t(tab.descZh, tab.descEn)}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </nav>
 
-      {/* ── Divider ── */}
-      <div className="w-px bg-border-subtle flex-shrink-0" />
-
       {/* ── Content panel ── */}
-      <main className="flex-1 overflow-y-auto min-w-0">
-        <div className="max-w-2xl mx-auto px-8 md:px-10 py-8">
+      <main className="flex-1 overflow-y-auto min-w-0 bg-surface-base/50">
+        <div className="max-w-xl mx-auto px-10 py-10">
           <div key={activeSettingsTab} className="animate-settings-fade-in">
             <ActiveTab />
           </div>

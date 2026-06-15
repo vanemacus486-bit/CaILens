@@ -10,7 +10,7 @@ export function WeekDateHeader({ days, onDayClick }: WeekDateHeaderProps) {
   return (
     <div className="grid flex-shrink-0 min-w-[540px]" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)' }}>
       {/* Spacer — aligns with TimeGrid's 80px label column */}
-      <div className="bg-surface-sunken/50 border-l border-grid-line" />
+      <div className="bg-surface-sunken border-l border-grid-line" />
 
       {days.map((day) => {
         const today = isToday(day.getTime())
@@ -18,7 +18,7 @@ export function WeekDateHeader({ days, onDayClick }: WeekDateHeaderProps) {
           <div
             key={day.getTime()}
             className={cn(
-              'flex flex-col items-center justify-center py-2.5 select-none cursor-pointer hover:bg-surface-sunken/50 transition-colors duration-150 border-b border-grid-line-date-sep relative',
+              'flex flex-col items-center justify-center py-2.5 select-none cursor-pointer bg-surface-sunken hover:bg-surface-sunken/70 transition-colors duration-150 border-b border-grid-line-date-sep relative',
               today && 'border-t-2 border-t-accent bg-accent-light/40',
             )}
             onClick={() => onDayClick?.(day)}

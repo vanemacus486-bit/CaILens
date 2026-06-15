@@ -274,13 +274,6 @@ export function ActionPage() {
     }
   }, [todos, updateTodo])
 
-  // ── 统计 ──
-  const doneCount = todos.filter((t) => t.status === 'done').length
-  const activeCount = todos.length - doneCount
-
-  // ── 项目统计 ──
-  const activeProjectCount = projects.filter((p) => p.status === 'active').length
-
   // 独立待办（无项目归属 + 未完成）
   const orphanTodos = todos.filter((t) => !t.projectId && t.status !== 'done')
 
@@ -296,30 +289,6 @@ export function ActionPage() {
       {/* ── Tab 栏 ── */}
       <div className="border-b border-border-subtle/50 flex-shrink-0">
         <TabBar tabs={TABS} activeId={tab} onTabChange={setTab} />
-      </div>
-
-      {/* ── 统计条 ── */}
-      <div className="flex-shrink-0 px-6 pt-3 pb-2">
-        <div className="flex items-center gap-3 font-sans text-xs text-text-tertiary">
-          <span>
-            <span className="text-text-secondary font-medium">{activeCount}</span>
-            {' '}待处理
-          </span>
-          <span className="w-0.5 h-0.5 rounded-full bg-text-tertiary/40" />
-          <span>
-            <span className="text-text-secondary font-medium">{doneCount}</span>
-            {' '}已完成
-          </span>
-          {activeProjectCount > 0 && (
-            <>
-              <span className="w-0.5 h-0.5 rounded-full bg-text-tertiary/40" />
-              <span>
-                <span className="text-text-secondary font-medium">{activeProjectCount}</span>
-                {' '}项目
-              </span>
-            </>
-          )}
-        </div>
       </div>
 
       {/* ── 内容区 ── */}

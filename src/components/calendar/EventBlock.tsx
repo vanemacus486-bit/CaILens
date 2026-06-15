@@ -110,7 +110,10 @@ export const EventBlock = React.memo(function EventBlock({
   const dayEndMs = dayStartMs + 24 * 60 * 60 * 1000
   const segStart = Math.max(event.startTime, dayStartMs)
   const segEnd = Math.min(event.endTime, dayEndMs)
-  const isShort = (segEnd - segStart) / 60_000 < 45
+  const segMinutes = (segEnd - segStart) / 60_000
+  const isShort = segMinutes < 45
+  const segTooSmall = segMinutes < 20
+  const showTime = (event.endTime - event.startTime) > 60 * 60_000
 
   const roundedClass = !startsBeforeDay && !endsAfterDay ? ''
     : !startsBeforeDay ? 'rounded-t-md'
@@ -177,16 +180,8 @@ export const EventBlock = React.memo(function EventBlock({
             onClick(event, e.currentTarget as HTMLElement)
           }}
         >
-          {/* Continue-from-above indicator */}
-          {startsBeforeDay && (
-            <div className="flex items-center gap-0.5 opacity-60" style={{ marginBottom: 2 }}>
-              <span className="text-[10px] leading-none" style={{ color: catFill }}>▲</span>
-              <span className="text-[10px] leading-none opacity-70" style={{ fontFamily: 'var(--font-mono)', color: 'var(--ink-2)' }}>{fmtHM(event.startTime).split(':')[0]}h</span>
-            </div>
-          )}
-
           {/* Event content */}
-          {isShort ? (
+          {segTooSmall ? null : isShort ? (
             /* ── Short event (<45 min): single row, title left + time right ── */
             <div className="flex items-center gap-1 min-w-0">
               {event.typedData?.type === 'meal' && (
@@ -213,16 +208,12 @@ export const EventBlock = React.memo(function EventBlock({
               >
                 {event.title || <span className="opacity-50 italic">Untitled</span>}
               </p>
-              {!(startsBeforeDay && endsAfterDay) && (
+              {showTime && !startsBeforeDay && !endsAfterDay && (
                 <span
                   className="flex-shrink-0 leading-tight whitespace-nowrap"
                   style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)' }}
                 >
-                  {startsBeforeDay
-                    ? `– ${fmtHM(segEnd)}`
-                    : endsAfterDay
-                      ? `${fmtHM(segStart)} –`
-                      : `${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
+                  {`${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
                 </span>
               )}
             </div>
@@ -257,16 +248,12 @@ export const EventBlock = React.memo(function EventBlock({
               </div>
 
               {/* ── Time row ── */}
-              {!(startsBeforeDay && endsAfterDay) && (
+              {showTime && !startsBeforeDay && !endsAfterDay && (
                 <p
                   className="leading-tight"
                   style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', marginTop: 2 }}
                 >
-                  {startsBeforeDay
-                    ? `– ${fmtHM(segEnd)}`
-                    : endsAfterDay
-                      ? `${fmtHM(segStart)} –`
-                      : `${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
+                  {`${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
                 </p>
               )}
 
@@ -280,14 +267,6 @@ export const EventBlock = React.memo(function EventBlock({
                 </div>
               )}
             </>
-          )}
-
-          {/* Continue-to-below indicator */}
-          {endsAfterDay && (
-            <div className="flex items-center gap-0.5 opacity-60" style={{ marginTop: 2 }}>
-              <span className="text-[10px] leading-none" style={{ color: catFill }}>▼</span>
-              <span className="text-[10px] leading-none opacity-70" style={{ fontFamily: 'var(--font-mono)', color: 'var(--ink-2)' }}>{fmtHM(event.endTime).split(':')[0]}h</span>
-            </div>
           )}
 
           {/* Bottom resize handle */}
