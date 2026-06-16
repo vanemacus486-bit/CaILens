@@ -57,3 +57,190 @@
   --tag-period-evening: #5B9EBD;
   --tag-period-night: #9B6B9B;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   深色模式 — 与 src/index.css 的 .dark（中性灰）保持一致
+   ────────────────────────────────────────────────────────────
+   tokens.css 在 index.css 之后加载，因此这里的 .dark 必须显式
+   覆盖所有颜色变量；否则 :root 的浅色值会在深色模式下「漏出」
+   （白色卡片、浅色事件块、深墨文字看不见）。
+   分类色 cat-* 与 index.css 的 event-* 是同一套 6 类的两种命名，
+   深色取值逐一对齐，保证两套消费者渲染一致。
+   ══════════════════════════════════════════════════════════════ */
+.dark {
+  /* 纸 — 对齐 index.css --surface-base / raised */
+  --paper: #1a1a1a;
+  --surface: #1f1f1f;
+  --surface-raised: #222222;
+  /* 墨 — 对齐 --text-primary / secondary / tertiary */
+  --ink: #ededed;
+  --ink-2: #8a8a8a;
+  --ink-3: #5a5a5a;
+  /* 线 — 对齐 --border-subtle / default */
+  --line: #262626;
+  --line-strong: #333333;
+  /* 强调 — 对齐 --accent（深色提亮款） */
+  --accent: #c48a78;
+  --accent-soft: #2a1e1a;
+  /* 分类色:strong 提亮识别 / bg 深色微染（逐一对齐 index.css event-*） */
+  --cat-major: #c48a78;   --cat-major-bg: #3a2824;   /* ≙ event-accent */
+  --cat-minor: #8aaa86;   --cat-minor-bg: #263026;   /* ≙ event-sage */
+  --cat-chore: #b8a87a;   --cat-chore-bg: #2e2820;   /* ≙ event-sand */
+  --cat-growth: #9aa2a6;  --cat-growth-bg: #262a2e;  /* ≙ event-sky */
+  --cat-leisure: #b88a90; --cat-leisure-bg: #30262a; /* ≙ event-rose */
+  --cat-sleep: #969696;   --cat-sleep-bg: #242424;   /* ≙ event-stone */
+
+  /* ══ 饮食标签色（深色微提亮，保持识别度） ══ */
+  --tag-diet-protein: #ef8259;
+  --tag-diet-staple: #dcad58;
+  --tag-diet-vegetable: #6cab6c;
+  --tag-diet-fruit: #d0aa58;
+  --tag-diet-caffeine: #a8855a;
+  --tag-diet-sugar: #d28a8a;
+  --tag-diet-alcohol: #ad7cad;
+  --tag-diet-fried: #b29371;
+
+  /* ══ 卫生活动色（深色） ══ */
+  --tag-hygiene-shower: #6cabca;
+  --tag-hygiene-brush-teeth: #8cd090;
+  --tag-hygiene-skincare: #dcaccc;
+  --tag-hygiene-shave: #ccac88;
+  --tag-hygiene-hair-wash: #a896ca;
+  --tag-hygiene-nail-care: #ccac88;
+
+  /* ══ 时段色（深色） ══ */
+  --tag-period-morning: #8cd090;
+  --tag-period-noon: #dcad58;
+  --tag-period-afternoon: #ef8259;
+  --tag-period-evening: #6cabca;
+  --tag-period-night: #ad7cad;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   视觉风格 — [data-style] 覆盖块
+   必须放在 tokens.css 末尾，以赢过上方 :root / .dark 同级层叠。
+   每块同时覆盖 index.css 体系（--surface-* / --accent*）
+   与 tokens.css 体系（--paper / --ink* / --line*），保证两套
+   消费者（Tailwind 类 + body/shell CSS）同步换肤。
+   事件分类色 --event-* / --cat-* 语义色不动。
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Graphite 石墨（= 项目默认暖色，老用户零感知切换） ── */
+[data-style="graphite"] {
+  --surface-base: #F1EBE0; --surface-raised: #FBFAF6; --surface-sunken: #F4F1E9;
+  --border-subtle: #e2ddd5; --border-default: #ccc7be;
+  --grid-line: rgba(0,0,0,0.15); --grid-line-date-sep: rgba(0,0,0,0.22);
+  --accent: #c47a5a; --accent-hover: #b16e50; --accent-light: #eee0d6; --time-line: #c47a5a;
+  --paper: #F2EEE3; --surface: #FAF7EF;
+  --ink: #2B2620; --ink-2: #6A6354; --ink-3: #A39B87;
+  --line: #E2DBC9; --line-strong: #C8BFA8; --accent-soft: #F2DDD2;
+}
+.dark[data-style="graphite"] {
+  --surface-base: #1a1a1a; --surface-raised: #222222; --surface-sunken: #141414;
+  --border-subtle: #262626; --border-default: #333333;
+  --grid-line: rgba(255,255,255,0.12); --grid-line-date-sep: rgba(255,255,255,0.18);
+  --accent: #c48a78; --accent-hover: #b07a68; --accent-light: #2a1e1a; --time-line: #c48a78;
+  --paper: #1a1a1a; --surface: #1f1f1f;
+  --ink: #ededed; --ink-2: #8a8a8a; --ink-3: #5a5a5a;
+  --line: #262626; --line-strong: #333333; --accent-soft: #2a1e1a;
+}
+
+/* ── Slate 精炼（冷灰 + 品牌蓝） ── */
+[data-style="slate"] {
+  --surface-base: #ECEEF1; --surface-raised: #FBFCFD; --surface-sunken: #EEF0F3;
+  --border-subtle: #E0E3E8; --border-default: #C9CDD4;
+  --grid-line: rgba(0,0,0,0.12); --grid-line-date-sep: rgba(0,0,0,0.18);
+  --accent: #3B6EF5; --accent-hover: #2F5ED6; --accent-light: #E6EDFE; --time-line: #3B6EF5;
+  --paper: #ECEEF1; --surface: #FBFCFD;
+  --ink: #1E2530; --ink-2: #5A6472; --ink-3: #9AA2AE;
+  --line: #E0E3E8; --line-strong: #C9CDD4; --accent-soft: #E6EDFE;
+}
+.dark[data-style="slate"] {
+  --surface-base: #1a1a1a; --surface-raised: #222222; --surface-sunken: #141414;
+  --border-subtle: #262626; --border-default: #333333;
+  --grid-line: rgba(255,255,255,0.12); --grid-line-date-sep: rgba(255,255,255,0.18);
+  --accent: #6B92F0; --accent-hover: #7AA0F5; --accent-light: #1A2230; --time-line: #6B92F0;
+  --paper: #1a1a1a; --surface: #1f1f1f;
+  --ink: #ededed; --ink-2: #8a8a8a; --ink-3: #5a5a5a;
+  --line: #262626; --line-strong: #333333; --accent-soft: #1A2230;
+}
+
+/* ── Aurora 柔雾极光（柔紫 + 蓝紫） ── */
+[data-style="aurora"] {
+  --surface-base: #EFEDF7; --surface-raised: #FBFAFE; --surface-sunken: #F1EFFA;
+  --border-subtle: #E2DFF0; --border-default: #CCCADF;
+  --grid-line: rgba(0,0,0,0.10); --grid-line-date-sep: rgba(0,0,0,0.16);
+  --accent: #7C6FE0; --accent-hover: #6A5ED4; --accent-light: #EDEAF9; --time-line: #7C6FE0;
+  --paper: #EFEDF7; --surface: #FBFAFE;
+  --ink: #28243C; --ink-2: #635E80; --ink-3: #9E9AB5;
+  --line: #E2DFF0; --line-strong: #CCCADF; --accent-soft: #EDEAF9;
+}
+.dark[data-style="aurora"] {
+  --surface-base: #1a1a1a; --surface-raised: #222222; --surface-sunken: #141414;
+  --border-subtle: #262626; --border-default: #333333;
+  --grid-line: rgba(255,255,255,0.12); --grid-line-date-sep: rgba(255,255,255,0.18);
+  --accent: #9A8FEA; --accent-hover: #ACA2F0; --accent-light: #221E38; --time-line: #9A8FEA;
+  --paper: #1a1a1a; --surface: #1f1f1f;
+  --ink: #ededed; --ink-2: #8a8a8a; --ink-3: #5a5a5a;
+  --line: #262626; --line-strong: #333333; --accent-soft: #221E38;
+}
+
+/* ── Carbon 深邃（暖炭 + 青绿） ── */
+[data-style="carbon"] {
+  --surface-base: #ECEAE4; --surface-raised: #F8F7F4; --surface-sunken: #EEECE7;
+  --border-subtle: #E0DDD6; --border-default: #C8C5BE;
+  --grid-line: rgba(0,0,0,0.12); --grid-line-date-sep: rgba(0,0,0,0.18);
+  --accent: #1F9E8E; --accent-hover: #198075; --accent-light: #E4F4F2; --time-line: #1F9E8E;
+  --paper: #ECEAE4; --surface: #F8F7F4;
+  --ink: #24201A; --ink-2: #5E5A52; --ink-3: #9C9890;
+  --line: #E0DDD6; --line-strong: #C8C5BE; --accent-soft: #E4F4F2;
+}
+.dark[data-style="carbon"] {
+  --surface-base: #1a1a1a; --surface-raised: #222222; --surface-sunken: #141414;
+  --border-subtle: #262626; --border-default: #333333;
+  --grid-line: rgba(255,255,255,0.12); --grid-line-date-sep: rgba(255,255,255,0.18);
+  --accent: #3FB9A8; --accent-hover: #52C8B8; --accent-light: #162826; --time-line: #3FB9A8;
+  --paper: #1a1a1a; --surface: #1f1f1f;
+  --ink: #ededed; --ink-2: #8a8a8a; --ink-3: #5a5a5a;
+  --line: #262626; --line-strong: #333333; --accent-soft: #162826;
+}
+
+/* ── Nocturne 柔和（柔紫夜 + 靛蓝） ── */
+[data-style="nocturne"] {
+  --surface-base: #EFEEF6; --surface-raised: #FCFBFE; --surface-sunken: #F2F1F8;
+  --border-subtle: #E4E2EE; --border-default: #CECCE0;
+  --grid-line: rgba(0,0,0,0.10); --grid-line-date-sep: rgba(0,0,0,0.16);
+  --accent: #6B6FE8; --accent-hover: #595ED6; --accent-light: #EDEDFA; --time-line: #6B6FE8;
+  --paper: #EFEEF6; --surface: #FCFBFE;
+  --ink: #26244A; --ink-2: #625E80; --ink-3: #9E9AB6;
+  --line: #E4E2EE; --line-strong: #CECCE0; --accent-soft: #EDEDFA;
+}
+.dark[data-style="nocturne"] {
+  --surface-base: #1a1a1a; --surface-raised: #222222; --surface-sunken: #141414;
+  --border-subtle: #262626; --border-default: #333333;
+  --grid-line: rgba(255,255,255,0.12); --grid-line-date-sep: rgba(255,255,255,0.18);
+  --accent: #8A8DF0; --accent-hover: #9A9EF5; --accent-light: #1E1E3A; --time-line: #8A8DF0;
+  --paper: #1a1a1a; --surface: #1f1f1f;
+  --ink: #ededed; --ink-2: #8a8a8a; --ink-3: #5a5a5a;
+  --line: #262626; --line-strong: #333333; --accent-soft: #1E1E3A;
+}
+
+/* ── Amber 琥珀（暖奶 + 橙金） ── */
+[data-style="amber"] {
+  --surface-base: #F3ECE0; --surface-raised: #FCF9F3; --surface-sunken: #F5EEE4;
+  --border-subtle: #E6DDD0; --border-default: #D0C4B4;
+  --grid-line: rgba(0,0,0,0.13); --grid-line-date-sep: rgba(0,0,0,0.20);
+  --accent: #E0892F; --accent-hover: #C87820; --accent-light: #FBF0E0; --time-line: #E0892F;
+  --paper: #F3ECE0; --surface: #FCF9F3;
+  --ink: #2C2018; --ink-2: #6C5A48; --ink-3: #A89880;
+  --line: #E6DDD0; --line-strong: #D0C4B4; --accent-soft: #FBF0E0;
+}
+.dark[data-style="amber"] {
+  --surface-base: #1a1a1a; --surface-raised: #222222; --surface-sunken: #141414;
+  --border-subtle: #262626; --border-default: #333333;
+  --grid-line: rgba(255,255,255,0.12); --grid-line-date-sep: rgba(255,255,255,0.18);
+  --accent: #E8A158; --accent-hover: #F0B46A; --accent-light: #2C1E0E; --time-line: #E8A158;
+  --paper: #1a1a1a; --surface: #1f1f1f;
+  --ink: #ededed; --ink-2: #8a8a8a; --ink-3: #5a5a5a;
+  --line: #262626; --line-strong: #333333; --accent-soft: #2C1E0E;
+}

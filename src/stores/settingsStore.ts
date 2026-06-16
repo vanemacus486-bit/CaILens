@@ -1,38 +1,40 @@
 import { create } from 'zustand'
 import { getSettingsRepo } from '@/data/getRepositories'
-import type { AppSettings, AppLanguage, AppTheme, UiFont } from '@/domain/settings'
-import { DEFAULT_SETTINGS } from '@/domain/settings'
+import type { AppSettings, AppLanguage, AppTheme, UiFont, VisualStyle, FontScale } from '@/domain/settings'
+import { DEFAULT_SETTINGS, resolveTheme } from '@/domain/settings'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
 
 const THEME_KEY  = 'cailens-theme'
 const FONT_KEY   = 'cailens-font'
+const STYLE_KEY  = 'cailens-style'
+const SCALE_KEY  = 'cailens-scale'
 
 function applyTheme(theme: AppTheme) {
-  if (theme === 'dark') {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
+  const dark = resolveTheme(theme, window.matchMedia('(prefers-color-scheme: dark)').matches)
+  document.documentElement.classList.toggle('dark', dark === 'dark')
 }
 
 function applyFont(font: UiFont) {
   document.documentElement.setAttribute('data-font', font)
 }
 
+function applyVisualStyle(style: VisualStyle) {
+  document.documentElement.setAttribute('data-style', style)
+}
+
+function applyFontScale(scale: FontScale) {
+  document.documentElement.setAttribute('data-scale', scale)
+}
+
 // ── 通用 localStorage ↔ DB 协调 ────────────────────────────
 
 interface SettingSlot<T> {
   storageKey: string
-  dbField: 'theme' | 'uiFont'
+  dbField: 'theme' | 'uiFont' | 'visualStyle' | 'fontScale'
   fallback: T
   apply: (value: T) => void
 }
 
-/**
- * 协调 localStorage 与 DB 的单一设置维度。
- * 若 DB 缺失该字段，或 localStorage 与 DB 不一致，以 localStorage（或 fallback）为准写入 DB。
- * 始终将最终值回写 localStorage 并调用 apply。
- */
 async function reconcileSlot<T>(
   settings: AppSettings,
   slot: SettingSlot<T>,
@@ -50,6 +52,10 @@ async function reconcileSlot<T>(
   return { settings, value: dbValue as T }
 }
 
+// ── 系统颜色主题监听（auto 模式下跟随系统） ────────────────
+let latestTheme: AppTheme = 'light'
+let mqlListenerRegistered = false
+
 // ── Store ───────────────────────────────────────────────────
 
 interface AppSettingsState {
@@ -58,10 +64,11 @@ interface AppSettingsState {
   loadSettings: () => Promise<void>
   setLanguage: (lang: AppLanguage) => Promise<void>
   setTheme: (theme: AppTheme) => Promise<void>
+  setVisualStyle: (style: VisualStyle) => Promise<void>
+  setFontScale: (scale: FontScale) => Promise<void>
   setShortcut: (action: ShortcutAction, binding: ShortcutString | null) => Promise<void>
   resetAllShortcuts: () => Promise<void>
   setUiFont: (font: UiFont) => Promise<void>
-  setRestrainedMode: (enabled: boolean) => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
@@ -71,7 +78,6 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
   loadSettings: async () => {
     let settings = await getSettingsRepo().get()
 
-    // Reconcile theme, accent, font — each follows the same localStorage ↔ DB pattern
     const themeResult = await reconcileSlot(settings, {
       storageKey: THEME_KEY,
       dbField: 'theme',
@@ -88,13 +94,42 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     })
     settings = fontResult.settings
 
-    // Flush final values to localStorage (ensures consistency)
+    const styleResult = await reconcileSlot(settings, {
+      storageKey: STYLE_KEY,
+      dbField: 'visualStyle',
+      fallback: 'graphite' as VisualStyle,
+      apply: applyVisualStyle,
+    })
+    settings = styleResult.settings
+
+    const scaleResult = await reconcileSlot(settings, {
+      storageKey: SCALE_KEY,
+      dbField: 'fontScale',
+      fallback: 'default' as FontScale,
+      apply: applyFontScale,
+    })
+    settings = scaleResult.settings
+
     const theme = themeResult.value
     const font = fontResult.value
+    const style = styleResult.value
+    const scale = scaleResult.value
+
     localStorage.setItem(THEME_KEY, theme)
     localStorage.setItem(FONT_KEY, font)
+    localStorage.setItem(STYLE_KEY, style)
+    localStorage.setItem(SCALE_KEY, scale)
 
-    set({ settings: { ...settings, theme, uiFont: font }, isLoaded: true })
+    latestTheme = theme
+
+    if (!mqlListenerRegistered) {
+      mqlListenerRegistered = true
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (latestTheme === 'auto') applyTheme('auto')
+      })
+    }
+
+    set({ settings: { ...settings, theme, uiFont: font, visualStyle: style, fontScale: scale }, isLoaded: true })
   },
 
   setLanguage: async (lang) => {
@@ -103,9 +138,24 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
   },
 
   setTheme: async (theme) => {
+    latestTheme = theme
     const settings = await getSettingsRepo().update({ theme })
     localStorage.setItem(THEME_KEY, theme)
     applyTheme(theme)
+    set({ settings })
+  },
+
+  setVisualStyle: async (style) => {
+    const settings = await getSettingsRepo().update({ visualStyle: style })
+    localStorage.setItem(STYLE_KEY, style)
+    applyVisualStyle(style)
+    set({ settings })
+  },
+
+  setFontScale: async (scale) => {
+    const settings = await getSettingsRepo().update({ fontScale: scale })
+    localStorage.setItem(SCALE_KEY, scale)
+    applyFontScale(scale)
     set({ settings })
   },
 
@@ -132,11 +182,6 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const settings = await getSettingsRepo().update({ uiFont: font })
     localStorage.setItem(FONT_KEY, font)
     applyFont(font)
-    set({ settings })
-  },
-
-  setRestrainedMode: async (enabled) => {
-    const settings = await getSettingsRepo().update({ restrainedMode: enabled || undefined })
     set({ settings })
   },
 }))

@@ -3,21 +3,13 @@
   <head>
     <script>
       (function() {
+        var mqlDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         var theme = localStorage.getItem('cailens-theme');
-        if (!theme) {
-          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-        if (theme === 'dark') {
-          document.documentElement.classList.add('dark');
-        }
-        var accent = localStorage.getItem('cailens-accent');
-        if (accent) {
-          document.documentElement.setAttribute('data-accent', accent);
-        }
-        var font = localStorage.getItem('cailens-font');
-        if (font) {
-          document.documentElement.setAttribute('data-font', font);
-        }
+        var dark = theme === 'dark' || ((theme === 'auto' || !theme) && mqlDark);
+        if (dark) document.documentElement.classList.add('dark');
+        var font  = localStorage.getItem('cailens-font');  if (font)  document.documentElement.setAttribute('data-font', font);
+        var style = localStorage.getItem('cailens-style'); if (style) document.documentElement.setAttribute('data-style', style);
+        var scale = localStorage.getItem('cailens-scale'); if (scale) document.documentElement.setAttribute('data-scale', scale);
       })();
     </script>
     <meta charset="UTF-8" />
@@ -50,22 +42,22 @@
       })();
     </script>
     <style>
-      /* ── Critical splash tokens (mirrors src/index.css) ── */
+      /* ── Critical splash tokens (mirrors src/styles/tokens.css 实际生效值) ── */
       :root {
-        --splash-bg:              #f0ece4;
-        --splash-text:            #28241f;
-        --splash-text-secondary:  #6b6460;
-        --splash-text-tertiary:   #a09894;
-        --splash-accent:          #c47a5a;
-        --splash-bar-bg:          #e2ddd5;
+        --splash-bg:              #F2EEE3;
+        --splash-text:            #2B2620;
+        --splash-text-secondary:  #6A6354;
+        --splash-text-tertiary:   #A39B87;
+        --splash-accent:          #BC4A26;
+        --splash-bar-bg:          #E2DBC9;
       }
       .dark {
-        --splash-bg:              #2a2824;
-        --splash-text:            #f0ede6;
-        --splash-text-secondary:  #a8a49c;
-        --splash-text-tertiary:   #6b6862;
+        --splash-bg:              #1a1a1a;
+        --splash-text:            #ededed;
+        --splash-text-secondary:  #8a8a8a;
+        --splash-text-tertiary:   #5a5a5a;
         --splash-accent:          #c48a78;
-        --splash-bar-bg:          #44403b;
+        --splash-bar-bg:          #262626;
       }
 
       /* ── Splash layout ── */

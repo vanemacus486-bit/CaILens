@@ -30,7 +30,7 @@ const TAB_GROUPS: {
     labelEn: 'Preferences',
     tabs: [
       { key: 'categories', labelZh: '分类', labelEn: 'Categories', descZh: '分配每周168小时', descEn: 'Allocate 168h/week' },
-      { key: 'appearance', labelZh: '外观', labelEn: 'Appearance', descZh: '主题、字体与界面语言', descEn: 'Theme, font & language' },
+      { key: 'appearance', labelZh: '外观', labelEn: 'Appearance', descZh: '主题、风格与字体', descEn: 'Theme, style & fonts' },
     ],
   },
   {
@@ -164,7 +164,7 @@ export function SettingsPage() {
 
       {/* ── Content panel ── */}
       <main className="flex-1 overflow-y-auto min-w-0 bg-surface-base/50">
-        <div className="max-w-xl mx-auto px-10 py-10">
+        <div className={cn('mx-auto px-10 py-10', activeSettingsTab === 'appearance' ? 'max-w-3xl' : 'max-w-xl')}>
           <div key={activeSettingsTab} className="animate-settings-fade-in">
             <ActiveTab />
           </div>
