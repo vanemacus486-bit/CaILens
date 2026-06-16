@@ -1,11 +1,3 @@
-﻿/**
- * # StatsPage — 复盘页面
- *
- * 一级架构：Tab 切换（作息/日常/身体/关联）。
- * 作息 Tab 沿用现有四视图（趋势/热力/睡眠/稳态），
- * 日常/身体/关联 Tab 加载对应数据并渲染新组件。
- */
-
 import { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2, AlertCircle } from 'lucide-react'
@@ -26,84 +18,75 @@ import { DietCalendarCard } from '@/components/stats/DietCalendarCard'
 import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneCalendarCard } from '@/components/stats/HygieneCalendarCard'
 import { SlidingPills } from '@/components/stats/SlidingPills'
-
-import {
-  EasternStatsShell,
-  STATS_TABS,
-  type StatsTab,
-  type RoutineViewMode,
-  type LifestyleViewMode,
-} from '@/components/stats/EasternStatsShell'
+import { EasternStatsShell, type RoutineViewMode } from '@/components/stats/EasternStatsShell'
 
 // ── 辅助函数（日期导航） ──────────────────────────────────
 
 function getAnchor(period: Granularity, date: Date): Date {
   switch (period) {
-    case 'day':     return startOfDay(date)
-    case 'week':    return startOfWeek(date, { weekStartsOn: 1 })
-    case 'month':   return startOfMonth(date)
+    case 'day':   return startOfDay(date)
+    case 'week':  return startOfWeek(date, { weekStartsOn: 1 })
+    case 'month': return startOfMonth(date)
   }
 }
 
 function shiftAnchor(anchor: Date, period: Granularity, dir: -1 | 1): Date {
   switch (period) {
-    case 'day':     return addDays(anchor, dir)
-    case 'week':    return addDays(anchor, dir * 7)
-    case 'month':   return addMonths(anchor, dir)
+    case 'day':   return addDays(anchor, dir)
+    case 'week':  return addDays(anchor, dir * 7)
+    case 'month': return addMonths(anchor, dir)
   }
 }
 
 // ── 常量 ──────────────────────────────────────────────────
 
-const ROUTINE_VIEWS: RoutineViewMode[] = ['trend', 'heatmap', 'sleep']
-const LIFESTYLE_VIEWS: LifestyleViewMode[] = ['diet', 'outfit', 'hygiene']
+const ROUTINE_VIEWS: RoutineViewMode[] = ['trend', 'heatmap', 'sleep', 'diet', 'hygiene', 'outfit']
+
+const PILLS = ROUTINE_VIEWS.map((v) => ({
+  id: v,
+  label: v === 'trend'   ? '趋势'
+       : v === 'heatmap' ? '热力'
+       : v === 'sleep'   ? '睡眠'
+       : v === 'diet'    ? '饮食'
+       : v === 'hygiene' ? '卫生'
+       :                   '穿搭',
+}))
 
 // ── 主组件 ────────────────────────────────────────────────
 
 export function StatsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const loadRange              = useEventStore((s) => s.loadRange)
-  const rangeEvents            = useEventStore((s) => s.rangeEvents)
-  const isLoading              = useEventStore((s) => s.isLoading)
-  const loadError              = useEventStore((s) => s.loadError)
-  const categories             = useCategoryStore((s) => s.categories)
-  const language               = useAppSettingsStore((s) => s.settings.language)
+  const loadRange       = useEventStore((s) => s.loadRange)
+  const rangeEvents     = useEventStore((s) => s.rangeEvents)
+  const isLoading       = useEventStore((s) => s.isLoading)
+  const loadError       = useEventStore((s) => s.loadError)
+  const categories      = useCategoryStore((s) => s.categories)
+  const language        = useAppSettingsStore((s) => s.settings.language)
 
-  // Lifestyle data
-  const outfits       = useDailyContextStore((s) => s.outfits)
-  const hygieneRecords = useDailyContextStore((s) => s.hygieneRecords)
-  const loadOutfits   = useDailyContextStore((s) => s.loadOutfits)
-  const loadHygiene   = useDailyContextStore((s) => s.loadHygiene)
+  const outfits         = useDailyContextStore((s) => s.outfits)
+  const hygieneRecords  = useDailyContextStore((s) => s.hygieneRecords)
+  const loadOutfits     = useDailyContextStore((s) => s.loadOutfits)
+  const loadHygiene     = useDailyContextStore((s) => s.loadHygiene)
   const loadRecentHygiene = useDailyContextStore((s) => s.loadRecentHygiene)
 
-  // ── Tab & view state ─────────────────────────────────────
+  // ── URL state ────────────────────────────────────────────
 
-  const tab = (searchParams.get('tab') as StatsTab | null) ?? 'routine'
   const routineView = (searchParams.get('view') as RoutineViewMode | null) ?? 'trend'
-  const lifestyleView = (searchParams.get('lifestyle') as LifestyleViewMode | null) ?? 'diet'
-  const period = (searchParams.get('period') as Granularity | null) ?? 'week'
-  const dateStr = searchParams.get('date') ?? formatISODate(new Date())
-  const eventTitle = searchParams.get('eventTitle') ?? ''
+  const period      = (searchParams.get('period') as Granularity | null) ?? 'week'
+  const dateStr     = searchParams.get('date') ?? formatISODate(new Date())
+  const eventTitle  = searchParams.get('eventTitle') ?? ''
 
-  const date = useMemo(() => {
-    const d = parseISODate(dateStr)
-    return isNaN(d.getTime()) ? new Date() : d
-  }, [dateStr])
-
+  const date   = useMemo(() => { const d = parseISODate(dateStr); return isNaN(d.getTime()) ? new Date() : d }, [dateStr])
   const anchor = useMemo(() => getAnchor(period, date), [period, date])
 
   // ── Data loading ─────────────────────────────────────────
 
-  // Events: broad range for all views
   useEffect(() => {
     const now = Date.now()
     fireAndForget(loadRange(now - 3 * 365 * 24 * 60 * 60_000, now), 'load stats range')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-
-
-  // Lifestyle data (always load on mount, wider range for hygiene continuity)
   useEffect(() => {
     const now = new Date()
     const end = formatISODate(now)
@@ -113,34 +96,18 @@ export function StatsPage() {
     fireAndForget(loadRecentHygiene(90), 'load recent hygiene')
   }, [loadOutfits, loadHygiene, loadRecentHygiene])
 
-  // ── Tab title ────────────────────────────────────────────
+  useEffect(() => { document.title = 'CaILens · 复盘' }, [])
 
-  useEffect(() => {
-    const currentTab = STATS_TABS.find((t) => t.id === tab)
-    const tabLabel = currentTab?.label ?? ''
-    document.title = `CaILens · ${tabLabel}`
-  }, [tab])
-
-  // ── Routine tab data ─────────────────────────────────────
+  // ── Aggregation ───────────────────────────────────────────
 
   const lookback = period === 'day' ? 14 : period === 'week' ? 8 : 12
-  const { history } = useStatsAggregation({
-    granularity: period,
-    anchorDate: anchor,
-    lookbackBuckets: lookback,
-  })
-
+  const { history } = useStatsAggregation({ granularity: period, anchorDate: anchor, lookbackBuckets: lookback })
   const maturity = useMemo(() => getDataMaturity(rangeEvents), [rangeEvents])
-
-  // ── Event title stats aggregation ─────────────────────────
   const { history: eventHistory } = useTitleStatsAggregation({
-    granularity: period,
-    anchorDate: anchor,
-    lookbackBuckets: lookback,
-    titleFilter: eventTitle,
+    granularity: period, anchorDate: anchor, lookbackBuckets: lookback, titleFilter: eventTitle,
   })
 
-  // ── URL helpers ──────────────────────────────────────────
+  // ── URL helpers ───────────────────────────────────────────
 
   const updateParams = (upd: Record<string, string | undefined>) => {
     const next = new URLSearchParams(searchParams)
@@ -151,49 +118,27 @@ export function StatsPage() {
     setSearchParams(next, { replace: true })
   }
 
-  const setTab = (newTab: StatsTab) => {
-    updateParams({ tab: newTab === 'routine' ? undefined : newTab })
-  }
+  const setRoutineView  = (v: RoutineViewMode) => updateParams({ view: v === 'trend' ? undefined : v })
+  const setPeriod       = (p: Granularity)      => updateParams({ period: p === 'week' ? undefined : p })
+  const setEventTitle   = (title: string)        => updateParams({ eventTitle: title || undefined })
+  const navigateRoutine = (dir: -1 | 1)          => updateParams({ date: formatISODate(shiftAnchor(anchor, period, dir)) })
 
-  const setRoutineView = (v: RoutineViewMode) => {
-    updateParams({ view: v === 'trend' ? undefined : v })
-  }
+  // ── Render ────────────────────────────────────────────────
 
-  const setLifestyleView = (v: LifestyleViewMode) => {
-    updateParams({ lifestyle: v === 'diet' ? undefined : v })
-  }
+  return (
+    <EasternStatsShell>
+      <style>{STATS_PAGE_CSS}</style>
 
-  const setPeriod = (p: Granularity) => {
-    updateParams({ period: p === 'week' ? undefined : p })
-  }
-
-  const setEventTitle = (title: string) => {
-    updateParams({ eventTitle: title || undefined })
-  }
-
-  const navigateRoutine = (dir: -1 | 1) => {
-    updateParams({ date: formatISODate(shiftAnchor(anchor, period, dir)) })
-  }
-
-  // ── Render ───────────────────────────────────────────────
-
-  const renderContent = () => {
-    if (isLoading && rangeEvents.length === 0 && tab === 'routine') {
-      return (
+      {isLoading && rangeEvents.length === 0 && (
         <div className="flex items-center justify-center min-h-[400px] flex-1">
           <Loader2 className="h-8 w-8 animate-spin text-text-tertiary" />
         </div>
-      )
-    }
+      )}
 
-    if (loadError && tab === 'routine') {
-      return (
+      {loadError && (
         <div className="flex flex-col items-center justify-center gap-4 min-h-[400px] flex-1">
           <AlertCircle className="h-10 w-10 text-color-text-danger" />
-          <p
-            className="text-sm max-w-md text-center text-text-secondary"
-            style={{ fontFamily: "'Source Serif 4', 'Noto Serif SC', serif" }}
-          >
+          <p className="text-sm max-w-md text-center text-text-secondary" style={{ fontFamily: "'Source Serif 4', 'Noto Serif SC', serif" }}>
             {loadError}
           </p>
           <button
@@ -203,137 +148,61 @@ export function StatsPage() {
             {'重试'}
           </button>
         </div>
-      )
-    }
+      )}
 
-    switch (tab) {
-      /* ════════════════════════════════════════════
-         作息 Tab
-         ════════════════════════════════════════════ */
-      case 'routine': {
-        // 子视图 pills
-        const pills = ROUTINE_VIEWS.map((v) => ({
-          id: v,
-          label: v === 'trend'   ? '趋势'
-               : v === 'heatmap' ? '热力'
-               : v === 'sleep'   ? '睡眠'
-               :                   '稳态',
-        }))
+      {!isLoading && !loadError && (
+        <div className="routine-container">
+          <SlidingPills items={PILLS} value={routineView} onChange={setRoutineView} dividerAfter={2} />
 
-        return (
-          <div className="routine-container">
-            {/* 二级 pills */}
-            <SlidingPills items={pills} value={routineView} onChange={setRoutineView} />
-
-            {/* 内容 */}
-            <div>
-              {routineView === 'trend' && (
-                    <CategoryTrendChart
-                      history={history}
-                      categories={categories}
-                      periodType={period}
-                      maturity={maturity}
-                      onNavigate={navigateRoutine}
-                      onPeriodChange={setPeriod}
-                      allEvents={rangeEvents}
-                      eventTitle={eventTitle}
-                      eventHistory={eventHistory}
-                      onEventTitleChange={setEventTitle}
-                    />
-                  )}
-                  {routineView === 'heatmap' && (
-                    <YearHeatmap
-                      rangeEvents={rangeEvents}
-                      categories={categories}
-                      language={language}
-                      eventTitle={eventTitle}
-                      onEventTitleChange={setEventTitle}
-                    />
-                  )}
-                  {routineView === 'sleep' && (
-                    <SleepScatterChart
-                      rangeEvents={rangeEvents}
-                    />
-                  )}
-            </div>
-
+          <div>
+            {routineView === 'trend' && (
+              <CategoryTrendChart
+                history={history}
+                categories={categories}
+                periodType={period}
+                maturity={maturity}
+                onNavigate={navigateRoutine}
+                onPeriodChange={setPeriod}
+                allEvents={rangeEvents}
+                eventTitle={eventTitle}
+                eventHistory={eventHistory}
+                onEventTitleChange={setEventTitle}
+              />
+            )}
+            {routineView === 'heatmap' && (
+              <YearHeatmap
+                rangeEvents={rangeEvents}
+                categories={categories}
+                language={language}
+                eventTitle={eventTitle}
+                onEventTitleChange={setEventTitle}
+              />
+            )}
+            {routineView === 'sleep' && (
+              <SleepScatterChart rangeEvents={rangeEvents} />
+            )}
+            {routineView === 'diet' && (
+              <DietCalendarCard rangeEvents={rangeEvents} />
+            )}
+            {routineView === 'hygiene' && (
+              <HygieneCalendarCard records={hygieneRecords} rangeEvents={rangeEvents} language={language} />
+            )}
+            {routineView === 'outfit' && (
+              <OutfitCard outfits={outfits} language={language} />
+            )}
           </div>
-        )
-      }
-
-      /* ════════════════════════════════════════════
-         日常 Tab
-         ════════════════════════════════════════════ */
-      case 'lifestyle': {
-        // 子视图 pills
-        const pills = LIFESTYLE_VIEWS.map((v) => ({
-          id: v,
-          label: v === 'diet'    ? '饮食'
-               : v === 'outfit'  ? '穿搭'
-               :                   '卫生',
-        }))
-
-        return (
-          <div className="lifestyle-container">
-            {/* 二级 pills */}
-            <SlidingPills items={pills} value={lifestyleView} onChange={setLifestyleView} />
-
-            {/* 内容 — 饮食：四段堆叠 */}
-            <div>
-              {lifestyleView === 'diet' && (
-                    <DietCalendarCard rangeEvents={rangeEvents} />
-                  )}
-                  {lifestyleView === 'outfit' && (
-                    <OutfitCard
-                      outfits={outfits}
-                      language={language}
-                    />
-                  )}
-                  {lifestyleView === 'hygiene' && (
-                    <HygieneCalendarCard
-                      records={hygieneRecords}
-                      rangeEvents={rangeEvents}
-                      language={language}
-                    />
-                  )}
-            </div>
-
-          </div>
-        )
-      }
-
-
-
-      default:
-        return null
-    }
-  }
-
-  return (
-    <EasternStatsShell
-      currentTab={tab}
-      onTabChange={setTab}
-    >
-      <style>{STATS_PAGE_CSS}</style>
-      {renderContent()}
+        </div>
+      )}
     </EasternStatsShell>
   )
 }
 
-// ── Scoped CSS ────────────────────────────────────────────────
+// ── Scoped CSS ─────────────────────────────────────────────
 
 const STATS_PAGE_CSS = `
-/* ── Routine tab container ──────────────────── */
 .routine-container {
   width: 100%;
   max-width: 1100px;
-  margin: 0 auto;
-}
-
-/* ── Lifestyle tab container ──────────────────── */
-.lifestyle-container {
-  width: 100%;
-  max-width: 900px;
   margin: 0 auto;
 }
 `

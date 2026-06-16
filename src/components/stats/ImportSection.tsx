@@ -102,7 +102,7 @@ export function ImportSection({ language }: ImportSectionProps) {
       {/* Status banner */}
       {status === 'done' && result && (
         <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
           <span className="text-xs text-green-700 dark:text-green-300">
             {'tables' in result ? (
               t('已恢复 ' + Object.values(result.tables).reduce((a, b) => a + b, 0) + ' 条记录', `Restored ${Object.values(result.tables).reduce((a, b) => a + b, 0)} records`)
@@ -115,7 +115,7 @@ export function ImportSection({ language }: ImportSectionProps) {
 
       {status === 'error' && (
         <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-          <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+          <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
           <span className="text-xs text-red-700 dark:text-red-300">{error}</span>
         </div>
       )}

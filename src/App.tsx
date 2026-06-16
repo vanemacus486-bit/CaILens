@@ -4,10 +4,12 @@ import { WeekView } from '@/features/week-view/WeekView'
 import { StatsPage } from '@/pages/StatsPage'
 import { CommandPalette } from '@/features/search/CommandPalette'
 import { SettingsPage } from '@/features/settings/SettingsPage'
+import { SettingsModal } from '@/features/settings/SettingsModal'
 import { ProjectDetailPage } from '@/pages/project/ProjectDetailPage'
 
 import { ActionPage } from '@/pages/action/ActionPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { ReviewLayout } from '@/components/nav/ReviewLayout'
 import { QuickCaptureWindow } from '@/features/quick-capture/QuickCaptureWindow'
 import { TopNavBar } from '@/components/nav/TopNavBar'
 import { QuickCaptureInbox } from '@/features/action/QuickCaptureInbox'
@@ -21,6 +23,7 @@ import { SnackbarHost } from '@/components/ui/snackbar'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { addWeeks, getWeekStart, formatISODate } from '@/domain/time'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import { subDays, addDays, parseISO } from 'date-fns'
 import type { ShortcutAction } from '@/domain/shortcuts'
 
@@ -30,6 +33,8 @@ function Layout() {
   const theme = useAppSettingsStore((s) => s.settings.theme)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
   const navigate = useNavigate()
+  const location = useLocation()
+  const isMobile = useIsMobile()
   const [searchParams] = useSearchParams()
 
   // Hoisted: load categories + settings + profile once at the layout level
@@ -42,7 +47,7 @@ function Layout() {
     fireAndForget(loadProfile(), 'load profile')
   }, [])
 
-  // 全局快捷键: 1=日历 2=规划 3=复盘 Esc=回日历
+  // 全局快捷键: 1=日历 2=复盘 Esc=回日历
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const t = e.target
@@ -50,7 +55,6 @@ function Layout() {
       switch (e.key) {
         case '1': navigate('/week'); e.preventDefault(); break
         case '2': navigate('/action'); e.preventDefault(); break
-        case '3': navigate('/stats'); e.preventDefault(); break
 
         case 'Escape':
           if (window.location.hash.startsWith('#/profile')) {
@@ -93,7 +97,7 @@ function Layout() {
     goToThisWeek: () => navigate('/week'),
     goToDayView: () => navigate(`/week?view=day&date=${formatISODate(new Date())}`),
     goToStats: () => navigate('/stats'),
-    openSettings: () => navigate('/settings'),
+    openSettings: () => useUIStore.getState().setSettingsModalOpen(true),
     toggleTheme: () => fireAndForget(
       setTheme(theme === 'dark' ? 'light' : 'dark'),
       'toggle theme',
@@ -135,7 +139,7 @@ function Layout() {
 
   return (
     <div className="h-screen flex flex-col bg-surface-base text-text-primary overflow-hidden">
-      <TopNavBar />
+      {(!location.pathname.startsWith('/week') || isMobile) && <TopNavBar />}
       <main className="flex-1 h-full overflow-hidden flex flex-col min-w-0">
         <ErrorBoundary>
           <Outlet />
@@ -143,6 +147,7 @@ function Layout() {
       </main>
 
       {commandPaletteOpen && <CommandPalette />}
+      <SettingsModal />
       {quickCaptureInboxOpen && <QuickCaptureInbox />}
       <SnackbarHost />
     </div>
@@ -162,9 +167,10 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<RedirectToWeek />} />
           <Route path="/week" element={<WeekView />} />
-          <Route path="/action" element={<ActionPage />} />
-
-          <Route path="/stats" element={<StatsPage />} />
+          <Route element={<ReviewLayout />}>
+            <Route path="/action" element={<ActionPage />} />
+            <Route path="/stats"  element={<StatsPage />} />
+          </Route>
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />

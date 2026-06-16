@@ -13,7 +13,6 @@ import { useSearchParams } from 'react-router-dom'
 import { ListTodo } from 'lucide-react'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { usePageScrollRestore } from '@/hooks/usePageScrollRestore'
-import { TabBar } from '@/components/nav/TabBar'
 import { useTabTransition } from '@/hooks/useTabTransition'
 import { useTodoStore } from '@/stores/todoStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -38,11 +37,6 @@ const CATEGORY_ORDER: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose']
 
 type ActionTab = 'matrix' | 'log'
 
-const TABS: { id: ActionTab; label: string }[] = [
-  { id: 'matrix', label: '矩阵' },
-  { id: 'log', label: '日志' },
-]
-
 /** 获取本周一 0 点（基于当前日期） */
 function getWeekStart(date: Date = new Date()): number {
   const d = new Date(date)
@@ -63,7 +57,7 @@ function isToday(ts: number): boolean {
 // ── 组件 ──────────────────────────────────────────────────
 
 export function ActionPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
 
   // ── Stores ──
   const {
@@ -104,13 +98,6 @@ export function ActionPage() {
 
   // ── Tab 状态 ──
   const tab = (searchParams.get('tab') as ActionTab | null) ?? 'matrix'
-
-  const setTab = useCallback((newTab: ActionTab) => {
-    const next = new URLSearchParams(searchParams)
-    if (newTab === 'matrix') next.delete('tab')
-    else next.set('tab', newTab)
-    setSearchParams(next, { replace: true })
-  }, [searchParams, setSearchParams])
 
   // ── 周导航（日志 Tab 用） ──
   const [weekOffset, setWeekOffset] = useState(0)
@@ -286,11 +273,6 @@ export function ActionPage() {
 
   return (
     <div className="flex-1 h-full overflow-hidden flex flex-col">
-      {/* ── Tab 栏 ── */}
-      <div className="border-b border-border-subtle/50 flex-shrink-0">
-        <TabBar tabs={TABS} activeId={tab} onTabChange={setTab} />
-      </div>
-
       {/* ── 内容区 ── */}
       <div ref={usePageScrollRestore('/action')} className="flex-1 overflow-y-auto px-6 pb-8 pt-4 flex flex-col min-h-0">
         {todosError && (

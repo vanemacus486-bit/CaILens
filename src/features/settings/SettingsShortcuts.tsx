@@ -75,13 +75,13 @@ export function SettingsShortcuts() {
   }, [conflicts])
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Keyboard size={16} strokeWidth={1.75} className="text-text-tertiary" />
-            <h1 className="font-serif text-[22px] font-medium text-text-primary tracking-tight">
+            <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
               快捷键
             </h1>
           </div>

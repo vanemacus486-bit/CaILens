@@ -44,9 +44,11 @@ function catFill(cat: Category | undefined): string {
 interface DayEventStreamProps {
   dayStart: Date
   onDayChange: (day: Date) => void
+  /** Hide the built-in header (desktop uses the shared CalendarHeader instead). */
+  hideHeader?: boolean
 }
 
-export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
+export function DayEventStream({ dayStart, onDayChange, hideHeader = false }: DayEventStreamProps) {
   const rangeEvents = useEventStore((s) => s.rangeEvents)
   const loadRange = useEventStore((s) => s.loadRange)
   const events = useEventStore((s) => s.events) // week events for weekly avg
@@ -115,7 +117,8 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
 
   return (
     <div className="h-full overflow-y-auto py-6 px-3 md:px-7">
-      {/* ── HEADER ─────────────────────────────────────── */}
+      {/* ── HEADER（桌面端由共享 CalendarHeader 接管，此处隐藏）── */}
+      {!hideHeader && (
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="font-serif text-[26px] font-semibold text-text-primary tracking-[-0.02em] leading-tight">
@@ -155,6 +158,7 @@ export function DayEventStream({ dayStart, onDayChange }: DayEventStreamProps) {
           </button>
         </div>
       </div>
+      )}
 
       {/* ── DAY OVERVIEW ───────────────────────────────── */}
       {dayStats && dayEvents.length > 0 && (

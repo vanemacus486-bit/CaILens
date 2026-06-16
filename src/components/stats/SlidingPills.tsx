@@ -4,9 +4,13 @@
  * 单个滑块在标签间 translateX 滑动，替代各 pill 自持背景的交叉淡变。
  * 静止态外观与原 .routine-pill 一致，仅切换由"直切"变为"滑动"。
  * 复用 --heatmap-* token，样式集中在 index.css 的 .sliding-pills* 块。
+ *
+ * dividerAfter: 在第 N 项（0-indexed）后插入一道竖线分隔符。
+ * 分隔符是普通 span，不影响 querySelectorAll('.sliding-pills-btn') 的索引，
+ * 但会推移后续按钮的 offsetLeft，滑块因此正确跟随到实际位置。
  */
 
-import { useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 
 interface Item<T extends string> {
   id: T
@@ -17,6 +21,7 @@ interface Props<T extends string> {
   items: readonly Item<T>[]
   value: T
   onChange: (id: T) => void
+  dividerAfter?: number
 }
 
 function prefersReducedMotion(): boolean {
@@ -24,15 +29,13 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-export function SlidingPills<T extends string>({ items, value, onChange }: Props<T>) {
+export function SlidingPills<T extends string>({ items, value, onChange, dividerAfter }: Props<T>) {
   const trackRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ left: number; width: number } | null>(null)
   const [animated, setAnimated] = useState(false)
 
-  // id 列表的稳定键：parent 每次 render 都新建 items 数组，用内容键避免无谓重测
   const itemsKey = items.map((it) => it.id).join('|')
 
-  // 测量激活按钮位置 → 定位滑块；ResizeObserver 处理断点/字体变化后的重对齐
   useLayoutEffect(() => {
     const track = trackRef.current
     if (!track) return
@@ -40,7 +43,10 @@ export function SlidingPills<T extends string>({ items, value, onChange }: Props
     const measure = () => {
       const idx = items.findIndex((it) => it.id === value)
       const btn = track.querySelectorAll<HTMLButtonElement>('.sliding-pills-btn')[idx]
-      if (!btn) return
+      if (!btn) {
+        setPos(null)
+        return
+      }
       setPos({ left: btn.offsetLeft, width: btn.offsetWidth })
     }
 
@@ -51,7 +57,6 @@ export function SlidingPills<T extends string>({ items, value, onChange }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, itemsKey])
 
-  // 首次定位完成后再开启过渡，避免开屏时从原点滑入
   useLayoutEffect(() => {
     if (pos && !animated && !prefersReducedMotion()) {
       setAnimated(true)
@@ -67,15 +72,31 @@ export function SlidingPills<T extends string>({ items, value, onChange }: Props
           style={{ transform: `translateX(${pos.left}px)`, width: pos.width }}
         />
       )}
-      {items.map((it) => (
-        <button
-          key={it.id}
-          type="button"
-          onClick={() => onChange(it.id)}
-          className={`sliding-pills-btn${it.id === value ? ' is-active' : ''}`}
-        >
-          {it.label}
-        </button>
+      {items.map((it, index) => (
+        <Fragment key={it.id}>
+          <button
+            type="button"
+            onClick={() => onChange(it.id)}
+            className={`sliding-pills-btn${it.id === value ? ' is-active' : ''}`}
+          >
+            {it.label}
+          </button>
+          {dividerAfter !== undefined && index === dividerAfter && (
+            <span
+              aria-hidden="true"
+              style={{
+                display: 'block',
+                width: 1,
+                height: 12,
+                flexShrink: 0,
+                margin: '0 2px',
+                alignSelf: 'center',
+                background: 'var(--color-border-subtle, rgba(0,0,0,0.15))',
+                opacity: 0.6,
+              }}
+            />
+          )}
+        </Fragment>
       ))}
     </div>
   )

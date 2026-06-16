@@ -39,9 +39,11 @@ interface MonthViewProps {
   onDayChange: (day: Date) => void
   /** Change the displayed month without switching view mode. */
   onMonthChange: (monthStart: Date) => void
+  /** Hide the built-in header (desktop uses the shared CalendarHeader instead). */
+  hideHeader?: boolean
 }
 
-export function MonthView({ monthStart, onDayChange, onMonthChange }: MonthViewProps) {
+export function MonthView({ monthStart, onDayChange, onMonthChange, hideHeader = false }: MonthViewProps) {
   const rangeEvents   = useEventStore((s) => s.rangeEvents)
   const loadRange     = useEventStore((s) => s.loadRange)
   const categories    = useCategoryStore((s) => s.categories)
@@ -137,8 +139,9 @@ export function MonthView({ monthStart, onDayChange, onMonthChange }: MonthViewP
   return (
     <div className="h-full overflow-y-auto py-6 px-3 md:px-7">
       {/* ═══════════════════════════════════════════════════
-          HEADER
+          HEADER（桌面端由共享 CalendarHeader 接管，此处隐藏）
           ═══════════════════════════════════════════════════ */}
+      {!hideHeader && (
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <button
@@ -176,6 +179,7 @@ export function MonthView({ monthStart, onDayChange, onMonthChange }: MonthViewP
           {'回到本月'}
         </button>
       </div>
+      )}
 
 
 

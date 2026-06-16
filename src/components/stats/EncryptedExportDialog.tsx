@@ -65,7 +65,7 @@ export function EncryptedExportDialog({ open, onOpenChange, language }: Props) {
 
         {status === 'done' ? (
           <div className="flex flex-col items-center gap-3 py-4">
-            <ShieldCheck className="h-10 w-10 text-green-600" />
+            <ShieldCheck className="h-10 w-10 text-green-600 dark:text-green-400" />
             <p className="text-sm text-text-secondary">
               {'导出成功！文件已下载。'}
             </p>

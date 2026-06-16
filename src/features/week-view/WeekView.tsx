@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
-import { addWeeks, getWeekDays, isEventOnDay, formatISODate, parseISODate } from '@/domain/time'
+import { addWeeks, getWeekDays, isEventOnDay, formatISODate, parseISODate, getWeekStart } from '@/domain/time'
 import type { CalendarEvent, EventColor, CreateEventInput, UpdateEventInput } from '@/domain/event'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { Loader2, AlertCircle } from 'lucide-react'
@@ -13,6 +13,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { useWeekFromURL } from './hooks/useWeekFromURL'
 import type { DragState } from './hooks/useEventDrag'
 import { WeekDateHeader } from './WeekDateHeader'
+import { CalendarHeader } from './CalendarHeader'
 import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
 import { WeekEmptyState } from './WeekEmptyState'
@@ -72,6 +73,51 @@ export function WeekView() {
     setSelectedDay(monthStart)
     setSearchParams({ view: 'month', date: formatISODate(monthStart) }, { replace: true })
   }, [setSearchParams])
+
+  const handleBackToWeek = useCallback(() => {
+    setSearchParams((p) => {
+      const n = new URLSearchParams(p)
+      n.delete('view')
+      n.delete('date')
+      return n
+    }, { replace: true })
+  }, [setSearchParams])
+
+  const handleSetMonth = useCallback(() => {
+    const base = viewMode === 'month' ? selectedDay : weekStart
+    handleMonthChange(new Date(base.getFullYear(), base.getMonth(), 1))
+  }, [viewMode, selectedDay, weekStart, handleMonthChange])
+
+  const handlePrevPeriod = useCallback(() => {
+    if (viewMode === 'month') {
+      handleMonthChange(new Date(selectedDay.getFullYear(), selectedDay.getMonth() - 1, 1))
+    } else if (viewMode === 'day') {
+      handleDayChange(new Date(selectedDay.getTime() - 86_400_000))
+    } else {
+      setWeekStart(addWeeks(weekStart, -1))
+    }
+  }, [viewMode, selectedDay, weekStart, handleMonthChange, handleDayChange, setWeekStart])
+
+  const handleNextPeriod = useCallback(() => {
+    if (viewMode === 'month') {
+      handleMonthChange(new Date(selectedDay.getFullYear(), selectedDay.getMonth() + 1, 1))
+    } else if (viewMode === 'day') {
+      handleDayChange(new Date(selectedDay.getTime() + 86_400_000))
+    } else {
+      setWeekStart(addWeeks(weekStart, 1))
+    }
+  }, [viewMode, selectedDay, weekStart, handleMonthChange, handleDayChange, setWeekStart])
+
+  const handleToday = useCallback(() => {
+    const now = new Date()
+    if (viewMode === 'month') {
+      handleMonthChange(new Date(now.getFullYear(), now.getMonth(), 1))
+    } else if (viewMode === 'day') {
+      handleDayChange(now)
+    } else {
+      setWeekStart(getWeekStart(now, 1))
+    }
+  }, [viewMode, handleMonthChange, handleDayChange, setWeekStart])
 
   const [cardState, setCardState] = useState<CardState>({ mode: 'none' })
   const [activeDragState, setActiveDragState] = useState<DragState>({ phase: 'idle', ghostStyle: null })
@@ -326,13 +372,29 @@ export function WeekView() {
           mobileViewMode={isMobile ? mobileViewMode : undefined}
           onMobileViewModeChange={isMobile ? setMobileViewMode : undefined}
         />
-        {(isMobile && mobileViewMode === 'day') ? null : <WeekDateHeader days={days} onDayClick={handleDayChange} />}
+        {!isMobile && (
+          <CalendarHeader
+            viewMode={viewMode}
+            weekStart={weekStart}
+            selectedDay={selectedDay}
+            language={language}
+            onPrev={handlePrevPeriod}
+            onNext={handleNextPeriod}
+            onToday={handleToday}
+            onSetWeek={handleBackToWeek}
+            onSetMonth={handleSetMonth}
+            onSearch={() => useUIStore.getState().setCommandPaletteOpen(true)}
+          />
+        )}
+        {viewMode === 'week' && !(isMobile && mobileViewMode === 'day') && (
+          <WeekDateHeader days={days} onDayClick={handleDayChange} />
+        )}
         </header>
 
         {viewMode === 'month' ? (
-          <MonthView monthStart={selectedDay} onDayChange={handleDayChange} onMonthChange={handleMonthChange} />
+          <MonthView monthStart={selectedDay} onDayChange={handleDayChange} onMonthChange={handleMonthChange} hideHeader={!isMobile} />
         ) : viewMode === 'day' ? (
-          <DayEventStream dayStart={selectedDay} onDayChange={handleDayChange} />
+          <DayEventStream dayStart={selectedDay} onDayChange={handleDayChange} hideHeader={!isMobile} />
         ) : isMobile && mobileViewMode === 'day' ? (
           <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
         ) : (

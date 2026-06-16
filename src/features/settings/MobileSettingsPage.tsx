@@ -5,37 +5,28 @@ import { useAppSettingsStore } from '@/stores/settingsStore'
 import { cn } from '@/lib/utils'
 import { SettingsCategories } from './SettingsCategories'
 import { SettingsAppearance } from './SettingsAppearance'
-import { SettingsLanguage } from './SettingsLanguage'
-import { SettingsRestrained } from './SettingsRestrained'
-import { SettingsData } from './SettingsData'
-import { SettingsProfile } from './SettingsProfile'
-import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsShortcuts } from './SettingsShortcuts'
+import { SettingsData } from './SettingsData'
+import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsAbout } from './SettingsAbout'
 import { isTauri } from '@/data/tauriFs'
 
 const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
-  { key: 'categories',   label: 'Categories',  labelZh: '分类' },
-  { key: 'appearance',   label: 'Appearance',  labelZh: '外观' },
-  { key: 'language',     label: 'Language',    labelZh: '语言' },
-  { key: 'restrained',   label: 'Restrained',  labelZh: '克制模式' },
-  { key: 'shortcuts',    label: 'Shortcuts',   labelZh: '快捷键' },
-  { key: 'data',         label: 'Data',        labelZh: '数据' },
-  { key: 'profile',      label: 'Profile',     labelZh: '档案' },
+  { key: 'categories', label: 'Categories', labelZh: '分类' },
+  { key: 'appearance', label: 'Appearance', labelZh: '外观与语言' },
+  { key: 'shortcuts',  label: 'Shortcuts', labelZh: '快捷键' },
+  { key: 'data',       label: 'Data & Profile', labelZh: '数据与档案' },
   ...(isTauri() ? [{ key: 'storage' as SettingsTab, label: 'Storage', labelZh: '存储' }] : []),
   { key: 'about' as SettingsTab, label: 'About', labelZh: '关于' },
 ]
 
 const MOBILE_TAB_CONTENT: Record<SettingsTab, React.FC> = {
-  categories:  SettingsCategories,
-  appearance:  SettingsAppearance,
-  language:    SettingsLanguage,
-  restrained:  SettingsRestrained,
-  data:        SettingsData,
-  profile:     SettingsProfile,
-  storage:     SettingsStorage,
-  shortcuts:   SettingsShortcuts,
-  about:       SettingsAbout,
+  categories: SettingsCategories,
+  appearance: SettingsAppearance,
+  shortcuts:  SettingsShortcuts,
+  data:       SettingsData,
+  storage:    SettingsStorage,
+  about:      SettingsAbout,
 }
 
 export function MobileSettingsPage() {
@@ -62,7 +53,7 @@ export function MobileSettingsPage() {
         <h1 className="flex-1 text-center font-serif text-lg font-medium text-text-primary">
           {language === 'zh' ? '设置' : 'Settings'}
         </h1>
-        <div className="w-10 flex-shrink-0" /> {/* spacer for centering */}
+        <div className="w-10 flex-shrink-0" />
       </div>
 
       {/* Tab bar */}

@@ -7,9 +7,9 @@ export function SettingsLanguage() {
   const setLanguage = useAppSettingsStore((s) => s.setLanguage)
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <div>
-        <h1 className="font-serif text-[22px] font-medium text-text-primary tracking-tight">
+        <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
           语言
         </h1>
         <p className="text-sm text-text-tertiary mt-1 font-sans">
@@ -18,8 +18,8 @@ export function SettingsLanguage() {
       </div>
 
       <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
-        <div className="px-5 py-3.5">
-          <h2 className="text-xs font-sans font-medium text-text-tertiary uppercase tracking-wider mb-3">
+        <div className="px-5 py-4">
+          <h2 className="text-xs font-sans font-medium text-text-secondary mb-3">
             界面语言
           </h2>
           <div className="flex gap-0.5 bg-surface-sunken rounded-lg p-0.5 w-fit">

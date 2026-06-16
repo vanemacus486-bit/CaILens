@@ -1,16 +1,29 @@
+import { useMemo } from 'react'
+import { startOfWeek, addDays } from 'date-fns'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useEventStore } from '@/stores/eventStore'
+import { computeBucket } from '@/hooks/useStatsAggregation'
 import type { CategoryId } from '@/domain/category'
 import { BudgetBar } from './BudgetBar'
-import { CategoryCard } from './CategoryCard'
+import { CategorySettingItem } from './CategorySettingItem'
 
 export function SettingsCategories() {
   const categories = useCategoryStore((s) => s.categories)
+  const rangeEvents = useEventStore((s) => s.rangeEvents)
   const language = useAppSettingsStore((s) => s.settings.language)
   const updateCategory = useCategoryStore((s) => s.updateCategory)
   const reclassifyAllEvents = useEventStore((s) => s.reclassifyAllEvents)
+
+  // Compute this week's per-category tracked hours
+  const trackedByCategory = useMemo(() => {
+    const now = new Date()
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
+    const weekEnd = addDays(weekStart, 7)
+    const bucket = computeBucket(rangeEvents, weekStart.getTime(), weekEnd.getTime())
+    return bucket.byCategory
+  }, [rangeEvents])
 
   const handleNameCommit = (id: CategoryId, newName: string) => {
     fireAndForget(updateCategory(id, { name: newName }), 'update category name')
@@ -50,40 +63,34 @@ export function SettingsCategories() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {/* Header */}
       <div>
-        <h1 className="font-serif text-[22px] font-medium text-text-primary tracking-tight">
-          {'分类'}
+        <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
+          分类
         </h1>
         <p className="text-sm text-text-tertiary mt-1 font-sans">
-          {'每周 168 小时如何分配'}
+          每周 168 小时如何分配 · 管理关键词自动分类
         </p>
       </div>
 
-      {/* Budget allocation */}
-      <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
-        <BudgetBar categories={categories} />
-      </div>
+      {/* Budget allocation summary */}
+      <BudgetBar categories={categories} />
 
-      {/* Category cards */}
-      <div>
-        <h2 className="text-xs font-sans font-medium text-text-tertiary uppercase tracking-wider mb-3">
-          {'分类详情'}
-        </h2>
-        <div className="grid grid-cols-2 max-lg:grid-cols-1 gap-3">
-          {categories.map((cat) => (
-            <CategoryCard
-              key={cat.id}
-              category={cat}
-              language={language}
-              onNameCommit={handleNameCommit}
-              onBudgetChange={handleBudgetChange}
-              onAddKeyword={handleAddKeyword}
-              onRemoveKeyword={handleRemoveKeyword}
-            />
-          ))}
-        </div>
+      {/* Category setting items — vertical list */}
+      <div className="flex flex-col gap-3">
+        {categories.map((cat) => (
+          <CategorySettingItem
+            key={cat.id}
+            category={cat}
+            language={language}
+            trackedHours={trackedByCategory[cat.id]}
+            onNameCommit={handleNameCommit}
+            onBudgetChange={handleBudgetChange}
+            onAddKeyword={handleAddKeyword}
+            onRemoveKeyword={handleRemoveKeyword}
+          />
+        ))}
       </div>
     </div>
   )
