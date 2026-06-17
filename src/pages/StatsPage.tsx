@@ -10,14 +10,13 @@ import { useDailyContextStore } from '@/stores/dailyContextStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { getDataMaturity } from '@/domain/maturity'
 import type { Granularity } from '@/hooks/useStatsAggregation'
-import { useStatsAggregation, useTitleStatsAggregation } from '@/hooks/useStatsAggregation'
+import { useStatsAggregation } from '@/hooks/useStatsAggregation'
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
 import { DietCalendarCard } from '@/components/stats/DietCalendarCard'
 import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneCalendarCard } from '@/components/stats/HygieneCalendarCard'
-import { SlidingPills } from '@/components/stats/SlidingPills'
 import { EasternStatsShell, type RoutineViewMode } from '@/components/stats/EasternStatsShell'
 
 // ── 辅助函数（日期导航） ──────────────────────────────────
@@ -39,18 +38,6 @@ function shiftAnchor(anchor: Date, period: Granularity, dir: -1 | 1): Date {
 }
 
 // ── 常量 ──────────────────────────────────────────────────
-
-const ROUTINE_VIEWS: RoutineViewMode[] = ['trend', 'heatmap', 'sleep', 'diet', 'hygiene', 'outfit']
-
-const PILLS = ROUTINE_VIEWS.map((v) => ({
-  id: v,
-  label: v === 'trend'   ? '趋势'
-       : v === 'heatmap' ? '热力'
-       : v === 'sleep'   ? '睡眠'
-       : v === 'diet'    ? '饮食'
-       : v === 'hygiene' ? '卫生'
-       :                   '穿搭',
-}))
 
 // ── 主组件 ────────────────────────────────────────────────
 
@@ -74,7 +61,6 @@ export function StatsPage() {
   const routineView = (searchParams.get('view') as RoutineViewMode | null) ?? 'trend'
   const period      = (searchParams.get('period') as Granularity | null) ?? 'week'
   const dateStr     = searchParams.get('date') ?? formatISODate(new Date())
-  const eventTitle  = searchParams.get('eventTitle') ?? ''
 
   const date   = useMemo(() => { const d = parseISODate(dateStr); return isNaN(d.getTime()) ? new Date() : d }, [dateStr])
   const anchor = useMemo(() => getAnchor(period, date), [period, date])
@@ -103,9 +89,6 @@ export function StatsPage() {
   const lookback = period === 'day' ? 14 : period === 'week' ? 8 : 12
   const { history } = useStatsAggregation({ granularity: period, anchorDate: anchor, lookbackBuckets: lookback })
   const maturity = useMemo(() => getDataMaturity(rangeEvents), [rangeEvents])
-  const { history: eventHistory } = useTitleStatsAggregation({
-    granularity: period, anchorDate: anchor, lookbackBuckets: lookback, titleFilter: eventTitle,
-  })
 
   // ── URL helpers ───────────────────────────────────────────
 
@@ -118,9 +101,7 @@ export function StatsPage() {
     setSearchParams(next, { replace: true })
   }
 
-  const setRoutineView  = (v: RoutineViewMode) => updateParams({ view: v === 'trend' ? undefined : v })
   const setPeriod       = (p: Granularity)      => updateParams({ period: p === 'week' ? undefined : p })
-  const setEventTitle   = (title: string)        => updateParams({ eventTitle: title || undefined })
   const navigateRoutine = (dir: -1 | 1)          => updateParams({ date: formatISODate(shiftAnchor(anchor, period, dir)) })
 
   // ── Render ────────────────────────────────────────────────
@@ -152,8 +133,6 @@ export function StatsPage() {
 
       {!isLoading && !loadError && (
         <div className="routine-container">
-          <SlidingPills items={PILLS} value={routineView} onChange={setRoutineView} dividerAfter={2} />
-
           <div>
             {routineView === 'trend' && (
               <CategoryTrendChart
@@ -163,10 +142,6 @@ export function StatsPage() {
                 maturity={maturity}
                 onNavigate={navigateRoutine}
                 onPeriodChange={setPeriod}
-                allEvents={rangeEvents}
-                eventTitle={eventTitle}
-                eventHistory={eventHistory}
-                onEventTitleChange={setEventTitle}
               />
             )}
             {routineView === 'heatmap' && (
@@ -174,8 +149,6 @@ export function StatsPage() {
                 rangeEvents={rangeEvents}
                 categories={categories}
                 language={language}
-                eventTitle={eventTitle}
-                onEventTitleChange={setEventTitle}
               />
             )}
             {routineView === 'sleep' && (

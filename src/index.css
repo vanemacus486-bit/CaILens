@@ -471,6 +471,27 @@ body.resizing-event .overflow-y-auto {
   transition: opacity 300ms ease-out;
 }
 
+/* ── Navigation bar — dark header ──────────────────────── */
+/* Local token overrides cascade into all children (SlideSegmented, icons…) */
+.nav-bar {
+  background: #2C2A28;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  --text-primary:    rgba(255,255,255,0.90);
+  --text-secondary:  rgba(255,255,255,0.60);
+  --text-tertiary:   rgba(255,255,255,0.38);
+  --text-quaternary: rgba(255,255,255,0.22);
+  --surface-sunken:  rgba(255,255,255,0.07);
+  --surface-raised:  rgba(255,255,255,0.13);
+  --border-subtle:   rgba(255,255,255,0.08);
+  --accent:          #d4926e;
+}
+.dark .nav-bar {
+  background: #201e1c;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  --surface-sunken:  rgba(255,255,255,0.06);
+  --surface-raised:  rgba(255,255,255,0.11);
+}
+
 /* ── Responsive time-column width ────────────────────────── */
 :root {
   --time-column-width: 80px;
@@ -548,14 +569,16 @@ body.resizing-event .overflow-y-auto {
 }
 
 /* ── Sliding pills (二级标签滑块，StatsPage 作息/日常 子视图) ────── */
+/* 与 SlideSegmented（规划/日常、域导航）共用一套语言：surface 升降面 + accent 激活色 + sans 字体，
+   令顶栏内两个分段控件观感一致（旧版用 --heatmap-* token，深色态会出现 thumb 比 track 更暗的倒置高低差，
+   且 4 套主题下 heatmap token 不随主题变化，与兄弟控件进一步分叉）。 */
 .sliding-pills {
   position: relative;
   display: flex;
   gap: 2px;
-  background: var(--heatmap-bg-card);
+  background: var(--surface-sunken);
   border-radius: 8px;
   padding: 3px;
-  margin-bottom: 20px;
   width: fit-content;
 }
 .sliding-pills-indicator {
@@ -564,7 +587,8 @@ body.resizing-event .overflow-y-auto {
   bottom: 3px;
   left: 0;
   border-radius: 6px;
-  background: var(--heatmap-bg);
+  background: var(--surface-raised);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   pointer-events: none;
   z-index: 0;
 }
@@ -575,22 +599,24 @@ body.resizing-event .overflow-y-auto {
 .sliding-pills-btn {
   position: relative;
   z-index: 1;
-  padding: 6px 18px;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
   border: none;
   background: transparent;
   cursor: pointer;
-  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 500;
-  color: var(--heatmap-ink-3);
+  color: var(--text-tertiary);
   transition: color 0.2s ease;
 }
 .sliding-pills-btn:hover {
-  color: var(--heatmap-ink-1);
+  color: var(--text-secondary);
 }
 .sliding-pills-btn.is-active {
-  color: var(--heatmap-ink-1);
-  font-weight: 600;
+  color: var(--accent);
 }
 @media (max-width: 719px) {
   .sliding-pills {
@@ -598,7 +624,8 @@ body.resizing-event .overflow-y-auto {
     justify-content: center;
   }
   .sliding-pills-btn {
-    padding: 6px 12px;
+    height: 30px;
+    padding: 0 10px;
     font-size: 12px;
   }
 }

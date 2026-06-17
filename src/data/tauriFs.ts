@@ -22,6 +22,30 @@ export interface FsChangeEvent {
 let _tauriInvoke: typeof import('@tauri-apps/api/core').invoke | null = null
 let _tauriListen: typeof import('@tauri-apps/api/event').listen | null = null
 
+// ── 自写抑制 ──────────────────────────────────────────────────
+// 应用自己写盘(todos.json / events 等)会被 OS 文件监听器当成变更,
+// 触发 fullScan + store 重载 → 回声风暴(卡顿)甚至已删条目复活。
+// 这里记录"最近一次自写",让 FileSystemAdapter 的监听器能跳过自身写入。
+const SELF_WRITE_SUPPRESS_MS = 1500
+let _lastSelfWriteAt = 0
+let _selfWriteSeq = 0
+
+/** 标记应用刚刚写盘(由 write/delete/createDir 包装器调用)。 */
+export function markSelfWrite(): void {
+  _lastSelfWriteAt = Date.now()
+  _selfWriteSeq++
+}
+
+/** `now` 是否落在最近一次自写后的抑制窗口内(用于廉价地跳过自写回声)。 */
+export function isWithinSelfWriteWindow(now: number = Date.now()): boolean {
+  return now - _lastSelfWriteAt < SELF_WRITE_SUPPRESS_MS
+}
+
+/** 单调递增的自写序号 — 让一次扫描能检测"读盘期间是否发生了自写"。 */
+export function getSelfWriteSeq(): number {
+  return _selfWriteSeq
+}
+
 async function ensureTauri() {
   if (_tauriInvoke) return
   const core = await import('@tauri-apps/api/core')
@@ -51,16 +75,19 @@ export async function readTextFile(path: string): Promise<string> {
 
 export async function writeTextFile(path: string, content: string): Promise<void> {
   await ensureTauri()
+  markSelfWrite()
   return _tauriInvoke!('write_text_file', { path, content })
 }
 
 export async function deleteFile(path: string): Promise<void> {
   await ensureTauri()
+  markSelfWrite()
   return _tauriInvoke!('delete_file', { path })
 }
 
 export async function createDirAll(path: string): Promise<void> {
   await ensureTauri()
+  markSelfWrite()
   return _tauriInvoke!('create_dir_all', { path })
 }
 

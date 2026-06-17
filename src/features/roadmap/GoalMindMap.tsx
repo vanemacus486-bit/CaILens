@@ -1,10 +1,10 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { Plus, X, Check, Pen } from 'lucide-react'
+import { Plus, X, Check, Pen, ChevronDown, ChevronRight } from 'lucide-react'
 import type { Goal } from '@/domain/goal'
 import { ALL_CATEGORY_IDS } from '@/domain/goal'
 import type { CategoryId } from '@/domain/category'
 import type { Todo } from '@/domain/todo'
-import { buildGoalTree, computeGoalProgress, type GoalNode, type GoalProgress } from '@/domain/goalTree'
+import { buildGoalTree, computeGoalProgress, type GoalNode } from '@/domain/goalTree'
 import {
   computeMindMapLayout,
   edgePath,
@@ -37,35 +37,6 @@ interface CtxMenu {
 
 function nodeColor(categoryId: string | null): string {
   return categoryId ? `var(--event-${categoryId}-fill)` : 'var(--accent)'
-}
-
-// ── mini progress ring ───────────────────────────────────────
-function MiniRing({ progress, color }: { progress: GoalProgress; color: string }) {
-  const size = 16
-  const stroke = 2.5
-  const r = (size - stroke) / 2
-  const c = 2 * Math.PI * r
-  const offset = progress.total > 0 ? c * (1 - progress.percent / 100) : c
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="mm-ring">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border-subtle)" strokeWidth={stroke} />
-      {progress.total > 0 && (
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth={stroke}
-          strokeDasharray={c}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: 'stroke-dashoffset 400ms ease-out' }}
-        />
-      )}
-    </svg>
-  )
 }
 
 // ── color swatch row ────────────────────────────────────────
@@ -112,8 +83,10 @@ export function GoalMindMap({
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null)
   const [dragNodeId, setDragNodeId] = useState<string | null>(null)
   const [dragOverNodeId, setDragOverNodeId] = useState<string | null>(null)
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
   const addRef = useRef<HTMLInputElement>(null)
   const editRef = useRef<HTMLInputElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const todosMap = useMemo(() => {
     const map = new Map<string, Todo[]>()
@@ -134,7 +107,20 @@ export function GoalMindMap({
     return map
   }, [tree])
 
-  const layout = useMemo(() => (tree ? computeMindMapLayout(tree) : null), [tree])
+  const layout = useMemo(() => (tree ? computeMindMapLayout(tree, collapsed) : null), [tree, collapsed])
+
+  // 从聚焦节点上溯到 root 的祖先路径（用于高亮该链上的连线）
+  const focusPath = useMemo(() => {
+    const set = new Set<string>()
+    if (!layout || !focusedGoalId) return set
+    const parentOf = new Map(layout.nodes.map((n) => [n.id, n.parentId]))
+    let cur: string | null = focusedGoalId
+    while (cur) {
+      set.add(cur)
+      cur = parentOf.get(cur) ?? null
+    }
+    return set
+  }, [layout, focusedGoalId])
 
   // close context menu on outside click
   useEffect(() => {
@@ -160,6 +146,15 @@ export function GoalMindMap({
     if (editingId) setTimeout(() => editRef.current?.focus(), 0)
   }, [editingId])
 
+  // 聚焦切换时把目标卡滚动入视（键盘导航 / 点击均适用）
+  useEffect(() => {
+    if (!focusedGoalId) return
+    const el = scrollRef.current?.querySelector(
+      `[data-node-id="${focusedGoalId}"]`,
+    ) as HTMLElement | null
+    el?.scrollIntoView?.({ inline: 'nearest', block: 'nearest', behavior: 'smooth' })
+  }, [focusedGoalId])
+
   const submitAdd = useCallback(async () => {
     const val = addValue.trim()
     const parent = addingFor
@@ -180,6 +175,37 @@ export function GoalMindMap({
       if (g && val !== g.title) await onRename(id, val)
     }
   }, [editValue, editingId, allGoals, onRename])
+
+  const toggleCollapse = useCallback((id: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  // 打开「加子目标」ghost 输入；若该节点处于折叠则展开，使 ghost 可见
+  const openAdd = useCallback((id: string) => {
+    setAddingFor(id)
+    setAddValue('')
+    setNewNodeColor(null)
+    setCollapsed((prev) => {
+      if (!prev.has(id)) return prev
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+  }, [])
+
+  // 同 parent 的活动兄弟，按 sortOrder（键盘上下导航用）
+  const childrenSorted = useCallback(
+    (parentId: string | null) =>
+      allGoals
+        .filter((g) => g.parentId === parentId && g.status !== 'archived')
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [allGoals],
+  )
 
   const handleNodeDrop = useCallback(
     (dropNodeId: string) => {
@@ -215,6 +241,78 @@ export function GoalMindMap({
     [layout, dragNodeId, allGoals, onReorder],
   )
 
+  // 键盘方向键导航（聚焦态复用 focusedGoalId）
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (editingId || addingFor) return
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (!layout || !focusedGoalId) return
+      const cur = layout.nodes.find((n) => n.id === focusedGoalId)
+      if (!cur) return
+
+      switch (e.key) {
+        case 'ArrowUp':
+        case 'ArrowDown': {
+          if (cur.parentId == null) break
+          const sibs = childrenSorted(cur.parentId)
+          const idx = sibs.findIndex((s) => s.id === cur.id)
+          const nextIdx = e.key === 'ArrowDown' ? idx + 1 : idx - 1
+          if (nextIdx >= 0 && nextIdx < sibs.length) {
+            e.preventDefault()
+            onFocus(sibs[nextIdx].id)
+          }
+          break
+        }
+        case 'ArrowRight': {
+          if (!cur.hasChildren) break
+          if (collapsed.has(cur.id)) {
+            e.preventDefault()
+            toggleCollapse(cur.id)
+            break
+          }
+          const kids = childrenSorted(cur.id)
+          if (kids.length) {
+            e.preventDefault()
+            onFocus(kids[0].id)
+          }
+          break
+        }
+        case 'ArrowLeft': {
+          if (cur.hasChildren && !collapsed.has(cur.id)) {
+            e.preventDefault()
+            toggleCollapse(cur.id)
+            break
+          }
+          if (cur.parentId) {
+            e.preventDefault()
+            onFocus(cur.parentId)
+          }
+          break
+        }
+        case 'Enter':
+        case 'F2': {
+          e.preventDefault()
+          const g = allGoals.find((x) => x.id === cur.id)
+          if (g) {
+            setEditingId(cur.id)
+            setEditValue(g.title)
+          }
+          break
+        }
+        case 'Delete':
+        case 'Backspace': {
+          if (cur.parentId != null) {
+            e.preventDefault()
+            onDelete(cur.id)
+          }
+          break
+        }
+      }
+    },
+    [editingId, addingFor, layout, focusedGoalId, collapsed, childrenSorted, onFocus, onDelete, toggleCollapse, allGoals],
+  )
+
   if (!layout || !tree) return null
 
   const ghostPos = addingFor
@@ -232,12 +330,16 @@ export function GoalMindMap({
 
   return (
     <>
-      <div className="mm-scroll">
+      <div className="mm-scroll" ref={scrollRef} tabIndex={0} onKeyDown={handleKeyDown}>
         <div className="mm-canvas" style={{ width: canvasW, height: layout.height }}>
           {/* 连线层 */}
           <svg className="mm-edges" width={canvasW} height={layout.height}>
             {layout.edges.map((e) => (
-              <path key={`${e.fromId}-${e.toId}`} d={edgePath(e)} className="mm-edge" />
+              <path
+                key={`${e.fromId}-${e.toId}`}
+                d={edgePath(e)}
+                className={`mm-edge ${focusPath.has(e.toId) ? 'mm-edge-focused' : ''}`}
+              />
             ))}
             {ghostPos && (
               <path
@@ -265,21 +367,15 @@ export function GoalMindMap({
             const progress = node
               ? computeGoalProgress(node, todosMap)
               : { done: 0, total: 0, percent: 0 }
-            const filled = isRoot || isFocused
+            const childCount = node ? node.children.length : 0
+            const isCollapsed = collapsed.has(n.id)
 
             return (
               <div
                 key={n.id}
+                data-node-id={n.id}
                 className={`mm-node ${isRoot ? 'mm-node-root' : ''} ${isFocused ? 'mm-node-focused' : ''} ${isDragging ? 'mm-node-dragging' : ''} ${isDragOver ? 'mm-node-dragover' : ''}`}
-                style={{
-                  left: n.x,
-                  top: n.y,
-                  width: MIND_NODE_W,
-                  height: MIND_NODE_H,
-                  ...(filled
-                    ? { background: color, borderColor: 'transparent' }
-                    : { borderColor: 'var(--border-default)' }),
-                }}
+                style={{ left: n.x, top: n.y, width: MIND_NODE_W, height: MIND_NODE_H }}
                 draggable={!isRoot}
                 onDragStart={(e) => {
                   if (isRoot) { e.preventDefault(); return }
@@ -310,68 +406,105 @@ export function GoalMindMap({
                   setCtxMenu({ goalId: n.id, x: e.clientX, y: e.clientY, isRoot })
                 }}
               >
-                {!isRoot && (
-                  <MiniRing
-                    progress={progress}
-                    color={filled ? 'rgba(255,255,255,0.9)' : color}
-                  />
-                )}
+                <div
+                  className="mm-node-card"
+                  style={{ background: `color-mix(in srgb, ${color} ${isRoot ? 12 : 8}%, var(--surface-raised))` }}
+                >
+                  <div className="mm-node-body">
+                    {editingId === n.id ? (
+                      <input
+                        ref={editRef}
+                        className="mm-node-input"
+                        value={editValue}
+                        onChange={(ev) => setEditValue(ev.target.value)}
+                        onKeyDown={(ev) => {
+                          if (ev.key === 'Enter') submitEdit()
+                          else if (ev.key === 'Escape') {
+                            setEditingId(null)
+                            setEditValue('')
+                          }
+                        }}
+                        onBlur={submitEdit}
+                        onClick={(ev) => ev.stopPropagation()}
+                      />
+                    ) : (
+                      <>
+                        <span className="mm-node-title">{n.title}</span>
+                        <span className="mm-node-meta">
+                          {progress.total > 0 ? `${progress.done}/${progress.total}` : '—'}
+                          {childCount > 0 && (
+                            <span className="mm-node-meta-sub">· {childCount} 子目标</span>
+                          )}
+                        </span>
+                      </>
+                    )}
+                  </div>
 
-                {editingId === n.id ? (
-                  <input
-                    ref={editRef}
-                    className="mm-node-input"
-                    value={editValue}
-                    onChange={(ev) => setEditValue(ev.target.value)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === 'Enter') submitEdit()
-                      else if (ev.key === 'Escape') {
-                        setEditingId(null)
-                        setEditValue('')
-                      }
-                    }}
-                    onBlur={submitEdit}
-                    onClick={(ev) => ev.stopPropagation()}
-                    style={filled ? { color: '#fff' } : undefined}
-                  />
-                ) : (
-                  <span
-                    className="mm-node-title"
-                    style={filled ? { color: '#fff' } : undefined}
-                  >
-                    {n.title}
+                  <span className="mm-node-progress">
+                    <span
+                      className="mm-node-progress-fill"
+                      style={{ width: `${progress.percent}%`, background: color }}
+                    />
                   </span>
-                )}
+                </div>
 
-                {/* 悬停操作 */}
+                {/* 悬停操作：加子目标 / 删除 */}
                 <div className="mm-node-actions">
                   <button
                     className="mm-node-btn"
                     title="加子目标"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setAddingFor(n.id)
-                      setAddValue('')
-                      setNewNodeColor(null)
+                      openAdd(n.id)
                     }}
-                    style={filled ? { color: 'rgba(255,255,255,0.85)' } : undefined}
                   >
                     <Plus size={13} strokeWidth={2} />
                   </button>
                   {!isRoot && (
                     <button
-                      className="mm-node-btn"
+                      className="mm-node-btn mm-node-btn-danger"
                       title="删除"
                       onClick={(e) => {
                         e.stopPropagation()
                         onDelete(n.id)
                       }}
-                      style={filled ? { color: 'rgba(255,255,255,0.85)' } : undefined}
                     >
                       <X size={13} strokeWidth={2} />
                     </button>
                   )}
                 </div>
+
+                {/* 右缘常驻按钮：有子节点 → 折叠/展开；叶子 → 加子目标 */}
+                {n.hasChildren ? (
+                  <button
+                    className="mm-node-edge-btn"
+                    title={isCollapsed ? '展开子树' : '折叠子树'}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleCollapse(n.id)
+                    }}
+                  >
+                    {isCollapsed ? (
+                      <>
+                        <ChevronRight size={12} strokeWidth={2.5} />
+                        {childCount}
+                      </>
+                    ) : (
+                      <ChevronDown size={12} strokeWidth={2.5} />
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    className="mm-node-edge-btn"
+                    title="加子目标"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openAdd(n.id)
+                    }}
+                  >
+                    <Plus size={12} strokeWidth={2.5} />
+                  </button>
+                )}
               </div>
             )
           })}
@@ -381,40 +514,36 @@ export function GoalMindMap({
             <>
               <div
                 className="mm-node mm-node-ghost"
-                style={{
-                  left: ghostPos.x,
-                  top: ghostPos.y,
-                  width: MIND_NODE_W,
-                  height: MIND_NODE_H,
-                  ...(newNodeColor
-                    ? { background: `var(--event-${newNodeColor}-fill)`, borderColor: 'transparent' }
-                    : {}),
-                }}
+                style={{ left: ghostPos.x, top: ghostPos.y, width: MIND_NODE_W, height: MIND_NODE_H }}
               >
-                <input
-                  ref={addRef}
-                  className="mm-node-input"
-                  placeholder="子目标名称…"
-                  value={addValue}
-                  onChange={(e) => setAddValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') submitAdd()
-                    else if (e.key === 'Escape') {
-                      setAddingFor(null)
-                      setAddValue('')
-                      setNewNodeColor(null)
-                    }
-                  }}
-                  onBlur={submitAdd}
-                  style={newNodeColor ? { color: '#fff' } : undefined}
-                />
-                <Check
-                  size={14}
-                  strokeWidth={2}
-                  className="mm-ghost-check"
-                  style={newNodeColor ? { color: 'rgba(255,255,255,0.85)' } : undefined}
-                  onClick={submitAdd}
-                />
+                <div
+                  className="mm-node-card"
+                  style={
+                    newNodeColor
+                      ? { background: `color-mix(in srgb, var(--event-${newNodeColor}-fill) 10%, var(--surface-raised))` }
+                      : undefined
+                  }
+                >
+                  <div className="mm-node-body">
+                    <input
+                      ref={addRef}
+                      className="mm-node-input"
+                      placeholder="子目标名称…"
+                      value={addValue}
+                      onChange={(e) => setAddValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') submitAdd()
+                        else if (e.key === 'Escape') {
+                          setAddingFor(null)
+                          setAddValue('')
+                          setNewNodeColor(null)
+                        }
+                      }}
+                      onBlur={submitAdd}
+                    />
+                    <Check size={14} strokeWidth={2} className="mm-ghost-check" onClick={submitAdd} />
+                  </div>
+                </div>
               </div>
               {/* 颜色选择行 */}
               <div

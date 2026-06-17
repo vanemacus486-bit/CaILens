@@ -11,6 +11,7 @@ import { clearEventCache } from './eventStore'
 import { useEventStore } from './eventStore'
 import { useTodoStore } from './todoStore'
 import { useProjectStore } from './projectStore'
+import { useGoalStore } from './goalStore'
 
 /**
  * 挂起文件系统监听，数据变更时自动刷新所有相关 store。
@@ -22,9 +23,10 @@ export async function startFsWatcher(adapter: FileSystemAdapter): Promise<void> 
     // 清空事件缓存，确保下次读取从磁盘重新加载
     clearEventCache()
 
-    // 并行刷新三个 store（各自从已更新的 MemoryIndex 读取）
+    // 并行刷新各 store（各自从已更新的 MemoryIndex 读取）
     await Promise.all([
       useTodoStore.getState().loadTodos().catch(() => {}),
+      useGoalStore.getState().loadAll().catch(() => {}),
       useProjectStore.getState().loadAll().catch(() => {}),
       useEventStore.getState().loadAllEvents().catch(() => {}),
     ])

@@ -46,7 +46,7 @@ export function TimeGrid({
                   'absolute left-2 top-0.5 text-[9px] font-mono leading-none select-none',
                   isAnchor
                     ? 'font-medium text-text-primary'
-                    : 'font-normal text-text-tertiary',
+                    : 'font-normal text-text-secondary',
                 )}
               >
                 {formatHour24(h)}

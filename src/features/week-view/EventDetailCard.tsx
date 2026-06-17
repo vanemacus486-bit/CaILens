@@ -6,7 +6,6 @@ import {
   AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
 import type { CalendarEvent } from '@/domain/event'
 
 interface EventDetailCardProps {
@@ -17,9 +16,22 @@ interface EventDetailCardProps {
   onClose:  () => void
 }
 
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+
 function fmtTime(ts: number): string {
   const d = new Date(ts)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function fmtDateLine(startTs: number, endTs: number): string {
+  const s = new Date(startTs)
+  const e = new Date(endTs)
+  const datePart = `${s.getMonth() + 1}月${s.getDate()}日 星期${WEEKDAYS[s.getDay()]}`
+  const sameDay = s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth() && s.getDate() === e.getDate()
+  if (sameDay) {
+    return `${datePart} · ${fmtTime(startTs)} – ${fmtTime(endTs)}`
+  }
+  return `${datePart} ${fmtTime(startTs)} – ${e.getMonth() + 1}月${e.getDate()}日 ${fmtTime(endTs)}`
 }
 
 export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: EventDetailCardProps) {
@@ -29,9 +41,6 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
   virtualRef.current = anchorEl
 
   const isEmpty = !event.title.trim()
-
-  const start = new Date(event.startTime)
-  const end = new Date(event.endTime)
 
   return (
     <>
@@ -45,53 +54,53 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
           onEscapeKeyDown={onClose}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <div className="flex">
-            <div
-              className="w-1 flex-shrink-0"
-              style={{ backgroundColor: `var(--event-${event.color}-fill)` }}
-            />
-
-            <div className="flex-1 p-4 flex flex-col gap-3">
-              <p className={`text-[16px] font-serif leading-snug ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary font-medium'}`}>
+          <div className="p-4 flex flex-col gap-2.5">
+            {/* Title row: color dot + title + icon actions */}
+            <div className="flex items-start gap-2.5">
+              <span
+                className="w-3 h-3 rounded-sm flex-shrink-0 mt-[3px]"
+                style={{ backgroundColor: `var(--event-${event.color}-fill)` }}
+              />
+              <p className={`flex-1 text-[16px] font-serif leading-snug min-w-0 ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary font-medium'}`}>
                 {isEmpty ? '(无标题)' : event.title}
               </p>
-
-              {/* Date + time on one line — always show both dates */}
-              <p className="text-[12px] text-text-secondary font-sans leading-none">
-                {`${start.getMonth() + 1}月${start.getDate()}日 ${fmtTime(event.startTime)}`}
-                {' – '}
-                {`${end.getMonth() + 1}月${end.getDate()}日 ${fmtTime(event.endTime)}`}
-              </p>
-
-              {event.description && (
-                <p className="text-sm text-text-secondary line-clamp-3 font-sans leading-relaxed">
-                  {event.description}
-                </p>
-              )}
-
-              {event.location && (
-                <div className="flex items-start gap-1.5 text-xs text-text-secondary">
-                  <MapPin className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-text-tertiary" />
-                  <span className="line-clamp-1">{event.location}</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
-                <Button
-                  variant="ghost" size="sm"
+              <div className="flex items-center gap-0.5 flex-shrink-0 -mt-0.5 -mr-1">
+                <button
+                  onClick={onEdit}
+                  className="w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-sunken transition-colors"
+                  title="编辑"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
                   onClick={() => setShowConfirm(true)}
-                  className="text-color-text-danger hover:bg-surface-sunken gap-1.5 px-2 h-8"
+                  className="w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-color-text-danger hover:bg-surface-sunken transition-colors"
+                  title="删除"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  删除
-                </Button>
-
-                <Button variant="default" size="sm" onClick={onEdit} className="h-8 gap-1.5">
-                  <Pencil className="h-3.5 w-3.5" />
-                  编辑
-                </Button>
+                </button>
               </div>
             </div>
+
+            {/* Date / time */}
+            <p className="text-[12px] text-text-secondary font-sans leading-relaxed pl-[22px]">
+              {fmtDateLine(event.startTime, event.endTime)}
+            </p>
+
+            {/* Description */}
+            {event.description && (
+              <p className="text-[13px] text-text-secondary line-clamp-3 font-sans leading-relaxed pl-[22px]">
+                {event.description}
+              </p>
+            )}
+
+            {/* Location */}
+            {event.location && (
+              <div className="flex items-start gap-1.5 text-xs text-text-secondary pl-[22px]">
+                <MapPin className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-text-tertiary" />
+                <span className="line-clamp-1">{event.location}</span>
+              </div>
+            )}
           </div>
         </PopoverContent>
       </Popover>

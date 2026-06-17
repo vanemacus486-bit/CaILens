@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
+﻿import { useMemo, useState, useCallback, useRef } from 'react'
 import type { CalendarEvent } from '@/domain/event'
 import type { Category, CategoryId } from '@/domain/category'
 import { computeDayStats } from '@/domain/stats'
@@ -330,12 +330,9 @@ interface YearHeatmapProps {
   categories: readonly Category[]
   language: 'zh' | 'en'
   now?: number
-  /** 事件标题集成 */
-  eventTitle?: string
-  onEventTitleChange?: (title: string) => void
 }
 
-export function YearHeatmap({ rangeEvents, categories, language, now: _now, eventTitle = '', onEventTitleChange }: YearHeatmapProps) {
+export function YearHeatmap({ rangeEvents, categories, language, now: _now }: YearHeatmapProps) {
   const [selectedId, setSelectedId] = useState<CategoryId>('accent')
   const [viewMode, setViewMode] = useState<'year' | 'roll'>('roll')
   const [year, setYear] = useState(() => new Date().getFullYear())
@@ -348,81 +345,6 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
   const containerRef = useRef<HTMLDivElement>(null)
   const now = _now ?? Date.now()
 
-  // ── Event mode state ────────────────────────────────────
-  const [eventInput, setEventInput] = useState(eventTitle)
-  const [eventOpen, setEventOpen] = useState(false)
-  const eventRef = useRef<HTMLDivElement>(null)
-
-  // Sync eventTitle from URL
-  useEffect(() => { setEventInput(eventTitle) }, [eventTitle])
-
-  // Click outside
-  useEffect(() => {
-    if (!eventOpen) return
-    const handler = (e: MouseEvent) => {
-      if (eventRef.current && !eventRef.current.contains(e.target as Node)) setEventOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [eventOpen])
-
-  // Unique event titles
-  const eventSuggestions = useMemo(() => {
-    const freq = new Map<string, number>()
-    for (const e of rangeEvents) {
-      const t = e.title.trim()
-      if (!t) continue
-      freq.set(t, (freq.get(t) ?? 0) + 1)
-    }
-    return Array.from(freq.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([t]) => t)
-  }, [rangeEvents])
-
-  const filteredEvents = useMemo(() => {
-    if (!eventInput.trim()) return eventSuggestions.slice(0, 20)
-    const q = eventInput.toLowerCase()
-    return eventSuggestions
-      .filter((t) => t.toLowerCase().includes(q))
-      .slice(0, 20)
-  }, [eventSuggestions, eventInput])
-
-  // Compute event hours per day when title is set
-  const eventDayHours = useMemo(() => {
-    if (!eventTitle) return null
-    const map = new Map<number, number>()
-    const q = eventTitle.toLowerCase()
-    for (const e of rangeEvents) {
-      if (e.title.toLowerCase() !== q) continue
-      const dayStart = new Date(e.startTime).setHours(0, 0, 0, 0)
-      const dayEnd = dayStart + DAY_MS
-      const clampedStart = Math.max(e.startTime, dayStart)
-      const clampedEnd = Math.min(e.endTime, dayEnd)
-      const hours = Math.max(0, (clampedEnd - clampedStart)) / 3_600_000
-      if (hours > 0) {
-        map.set(dayStart, (map.get(dayStart) ?? 0) + hours)
-      }
-      // Also check if event spans to next day
-      if (e.endTime > dayEnd) {
-        const nextDay = dayStart + DAY_MS
-        const nextClamped = Math.min(e.endTime, nextDay + DAY_MS)
-        const nextHours = Math.max(0, (nextClamped - nextDay)) / 3_600_000
-        if (nextHours > 0) {
-          map.set(nextDay, (map.get(nextDay) ?? 0) + nextHours)
-        }
-      }
-    }
-    return map
-  }, [rangeEvents, eventTitle])
-
-  // Event intensity thresholds (smaller range since events have fewer hours)
-  const getEventLevel = useCallback((hours: number): 0 | 1 | 2 | 3 | 4 => {
-    if (hours <= 0) return 0
-    if (hours <= 0.25) return 1
-    if (hours <= 0.75) return 2
-    if (hours <= 1.5) return 3
-    return 4
-  }, [])
   const isCurrentYear = year === new Date(now).getFullYear()
   const isLatestRolling = rollingEnd.getTime() >= now - DAY_MS
 
@@ -559,15 +481,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
         const cell = grid[dow][w]
         if (!cell) continue
 
-        const eventHours = eventTitle && eventDayHours
-          ? (eventDayHours.get(new Date(cell.date).setHours(0,0,0,0)) ?? 0)
-          : 0
-        const level = eventTitle
-          ? getEventLevel(eventHours)
-          : getIntensityLevel(cell.ratio, thresholds)
-        const fillColor = eventTitle
-          ? 'var(--accent)'
-          : undefined
+        const level = getIntensityLevel(cell.ratio, thresholds)
 
         items.push(
           <div
@@ -582,13 +496,10 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
               if (cell.isFuture) return
               const rect = containerRef.current?.getBoundingClientRect()
               if (!rect) return
-              const enhancedCell = eventTitle
-                ? { ...cell, hours: eventHours, ratio: eventHours }
-                : cell
               setTooltip({
                 x: e.clientX - rect.left,
                 y: e.clientY - rect.top,
-                cell: enhancedCell as HeatmapCell,
+                cell: cell as HeatmapCell,
                 dayNameZh: getDayName(cell.date, 'zh'),
                 dayNameEn: getDayName(cell.date, 'en'),
               })
@@ -598,10 +509,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
             {level > 0 && (
               <span
                 className="heatmap-cell-fill"
-                style={{
-                  opacity: COLOR.heatmapOpacityRamp[level],
-                  backgroundColor: fillColor ?? undefined,
-                }}
+                style={{ opacity: COLOR.heatmapOpacityRamp[level] }}
               />
             )}
           </div>,
@@ -610,7 +518,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
     }
 
     return items
-  }, [grid, monthLabels, language, handlePointerEnter, handlePointerLeave, eventTitle, eventDayHours, getEventLevel, thresholds])
+  }, [grid, monthLabels, language, handlePointerEnter, handlePointerLeave, thresholds])
 
   // Best day info
   const bestDayStr = useMemo(() => {
@@ -727,78 +635,6 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
             )
           })}
         </div>
-
-        {/* ── Event title selector ──────────────────── */}
-        {onEventTitleChange && (
-          <div ref={eventRef} style={{ position: 'relative', marginTop: 10, width: 260, alignSelf: 'flex-start' }}>
-            <input
-              type="text"
-              value={eventInput}
-              onChange={(e) => { setEventInput(e.target.value); setEventOpen(true) }}
-              onFocus={() => setEventOpen(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && filteredEvents.length > 0) {
-                  onEventTitleChange(filteredEvents[0])
-                  setEventOpen(false)
-                }
-                if (e.key === 'Escape') setEventOpen(false)
-              }}
-              placeholder={'🔍 搜索事件标题叠加热力…'}
-              style={{
-                width: '100%',
-                padding: '5px 10px',
-                fontSize: 12,
-                fontFamily: "'Source Serif 4', 'Noto Serif SC', serif",
-                borderRadius: 6,
-                border: '1px solid var(--border-subtle)',
-                background: 'var(--surface-raised)',
-                color: 'var(--text-primary)',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            {eventTitle && (
-              <button
-                onClick={() => { onEventTitleChange(''); setEventInput('') }}
-                style={{
-                  position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer', fontSize: 14,
-                  color: 'var(--text-tertiary)', padding: '2px 6px',
-                }}
-                title={'清除'}
-              >×</button>
-            )}
-            {eventOpen && filteredEvents.length > 0 && (
-              <div
-                style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-                  maxHeight: 200, overflowY: 'auto',
-                  background: 'var(--surface-raised)',
-                  border: '1px solid var(--border-default)', borderRadius: 6,
-                  marginTop: 2, boxShadow: 'var(--shadow-dialog)',
-                }}
-              >
-                {filteredEvents.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => { onEventTitleChange(t); setEventInput(t); setEventOpen(false) }}
-                    style={{
-                      display: 'block', width: '100%', textAlign: 'left',
-                      padding: '5px 10px', fontSize: 12,
-                      fontFamily: "'Source Serif 4', 'Noto Serif SC', serif",
-                      color: 'var(--text-primary)', background: 'transparent',
-                      border: 'none', cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-sunken)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ── Heatmap grid ───────────────────────────────────── */}
@@ -943,16 +779,8 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
           </div>
           <div className="heatmap-tooltip-hours">
             {tooltip.cell.hours.toFixed(1)}h
-            {eventTitle ? (
-              <span style={{ color: 'var(--accent)', marginLeft: 8, fontSize: 10 }}>
-                {eventTitle.length > 20 ? eventTitle.slice(0, 20) + '…' : eventTitle}
-              </span>
-            ) : (
-              <>
-                {' · '}
-                {t('达成', 'Hit')} {Math.round(tooltip.cell.ratio * 100)}%
-              </>
-            )}
+            {' · '}
+            {t('达成', 'Hit')} {Math.round(tooltip.cell.ratio * 100)}%
           </div>
         </div>
       )}

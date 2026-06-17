@@ -99,8 +99,6 @@ interface SleepMarksProps {
   days: number
   colorBedDot: string
   colorWakeDot: string
-  barFill: string
-  barStroke: string
   avgBedY?: number
   avgWakeY?: number
   avgBedLabel?: string
@@ -110,7 +108,7 @@ interface SleepMarksProps {
 }
 
 function SleepMarks({
-  nights, days, colorBedDot, colorWakeDot, barFill, barStroke,
+  nights, days, colorBedDot, colorWakeDot,
   avgBedY, avgWakeY, avgBedLabel, avgWakeLabel, avgLineColor, avgLabelColor,
 }: SleepMarksProps) {
   const plot = usePlotArea()
@@ -151,16 +149,9 @@ function SleepMarks({
         const cx = xOf(n.day)
         const y1 = yOf(n.bedY)
         const y2 = yOf(n.wakeY)
-        // bedY <= wakeY after wrapping, so y1 (bed) sits above y2 (wake)
-        const barW = 4
-        const barH = Math.max(2, y2 - y1)
         return (
           <g key={i}>
-            {/* Sleep bar */}
-            <rect x={cx - barW / 2} y={y1} width={barW} height={barH} rx={2} ry={2} fill={barFill} stroke={barStroke} strokeWidth={1} />
-            {/* Bed-time dot (top) */}
             <circle cx={cx} cy={y1} r={5} fill={colorBedDot} />
-            {/* Wake-time dot (bottom) */}
             <circle cx={cx} cy={y2} r={5} fill={colorWakeDot} />
           </g>
         )
@@ -380,8 +371,6 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
 
   const colorBedDot = 'var(--accent)'
   const colorWakeDot = 'var(--cat-sleep)'
-  const barFill = 'var(--cat-sleep-bg)'
-  const barStroke = 'var(--cat-sleep)'
   const avgLineColor = 'var(--line-strong)'
   const avgLabelColor = 'var(--ink-2)'
 
@@ -522,8 +511,6 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
                   days={viewWindow.days}
                   colorBedDot={colorBedDot}
                   colorWakeDot={colorWakeDot}
-                  barFill={barFill}
-                  barStroke={barStroke}
                   avgBedY={stats?.avgBedY}
                   avgWakeY={stats?.avgWakeY}
                   avgBedLabel={stats ? `平均就寝 ${fmtHour(stats.avgBed)}` : undefined}
@@ -544,9 +531,6 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
             <span className="sleep-legend-item">
               <span className="sleep-legend-dot" style={{ background: colorWakeDot }} />
               {'起床'}
-            </span>
-            <span className="sleep-legend-note">
-              {'每次睡眠对应一根竖条'}
             </span>
           </div>
 
@@ -708,12 +692,6 @@ const SLEEP_CSS = `
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-}
-.sleep-legend-note {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--heatmap-ink-3);
-  opacity: 0.65;
 }
 
 /* ── Stats bar ───────────────────────────── */

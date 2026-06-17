@@ -538,8 +538,11 @@ const ROADMAP_CSS = `
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 10px 4px 16px;
+  padding: 14px 20px 18px 6px;
   scrollbar-width: thin;
+}
+.mm-scroll:focus {
+  outline: none;
 }
 .mm-scroll::-webkit-scrollbar {
   height: 6px;
@@ -568,59 +571,125 @@ const ROADMAP_CSS = `
   stroke-dasharray: 4 4;
   opacity: 0.5;
 }
+.mm-edge-focused {
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 1;
+}
+/* 外层定位盒（overflow 可见，承载右缘按钮 / 悬停操作 / 聚焦光环） */
 .mm-node {
   position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border-radius: 12px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border-default);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s ease, transform 0.2s ease, background-color 0.25s ease;
   box-sizing: border-box;
+  transition: transform 0.2s ease;
 }
 .mm-node:hover {
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
-}
-.mm-node-root {
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
 }
 .mm-node-focused {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  transform: translateY(-2px);
+  z-index: 5;
+}
+
+/* 卡片本体（圆角 + 淡染底 + 裁剪色条/进度条） */
+.mm-node-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, background-color 0.25s ease, border-color 0.2s ease;
+}
+.mm-node:hover .mm-node-card {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.mm-node-root .mm-node-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+}
+.mm-node-focused .mm-node-card {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--accent), 0 6px 18px rgba(0, 0, 0, 0.16);
+}
+
+/* 正文两行 */
+.mm-node-body {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 12px;
 }
 .mm-node-title {
   font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 14px;
+  line-height: 1.25;
   color: var(--text-primary);
-  flex: 1;
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.mm-node-root .mm-node-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.mm-node-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mm-node-meta-sub {
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+}
 .mm-node-input {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   border: none;
   background: transparent;
   outline: none;
   font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 14px;
   color: var(--text-primary);
+  padding: 0;
 }
+
+/* 底部进度条 */
+.mm-node-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--surface-sunken);
+}
+.mm-node-progress-fill {
+  display: block;
+  height: 100%;
+  transition: width 400ms ease-out;
+}
+
+/* 悬停操作（加子目标 / 删除）右上角 */
 .mm-node-actions {
+  position: absolute;
+  top: 4px;
+  right: 6px;
   display: flex;
   align-items: center;
-  gap: 2px;
-  margin-left: auto;
+  gap: 1px;
   opacity: 0;
   transition: opacity 0.15s ease;
-  flex-shrink: 0;
+  background: color-mix(in srgb, var(--surface-raised) 82%, transparent);
+  border-radius: 6px;
+  z-index: 3;
 }
 .mm-node:hover .mm-node-actions {
   opacity: 1;
@@ -643,22 +712,57 @@ const ROADMAP_CSS = `
   color: var(--text-secondary);
   background: rgba(0, 0, 0, 0.06);
 }
-.mm-ring {
-  flex-shrink: 0;
+.mm-node-btn-danger:hover {
+  color: var(--color-text-danger);
 }
-.mm-node-ghost {
-  border: 1px dashed var(--accent);
+
+/* 右缘常驻按钮（折叠 / 展开 / 加子目标） */
+.mm-node-edge-btn {
+  position: absolute;
+  right: -11px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
   background: var(--surface-raised);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  z-index: 4;
+}
+.mm-node-edge-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ghost 新子目标 */
+.mm-node-ghost .mm-node-card {
+  border: 1px dashed var(--accent);
   box-shadow: none;
+}
+.mm-node-ghost .mm-node-body {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 .mm-node-dragging {
   opacity: 0.35;
   cursor: grabbing;
 }
-.mm-node-dragover {
+.mm-node-dragover .mm-node-card {
   outline: 2px dashed var(--accent);
   outline-offset: 2px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
 }
 .mm-ghost-check {
   color: var(--accent);
@@ -895,6 +999,34 @@ const ROADMAP_CSS = `
   font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   font-size: 13px;
   color: var(--text-quaternary);
+}
+
+/* ── 未分配收件箱：归到目标下拉 ── */
+.rm-assign-select {
+  flex-shrink: 0;
+  max-width: 96px;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 2px 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.rm-task-row:hover .rm-assign-select {
+  opacity: 1;
+}
+.rm-assign-select:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+.rm-assign-select:focus {
+  opacity: 1;
+  outline: none;
+  border-color: var(--accent);
 }
 
 /* ══════════════════════════════════════════════
@@ -1300,6 +1432,9 @@ const ROADMAP_CSS = `
   }
   .mm-node-actions,
   .rm-metric-tools {
+    opacity: 1;
+  }
+  .rm-assign-select {
     opacity: 1;
   }
   .rm-card {

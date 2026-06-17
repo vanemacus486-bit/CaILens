@@ -14,10 +14,10 @@ import type { GoalStatus } from './goal'
 
 // ── 尺寸常量（组件与布局共用） ──────────────────────────────
 
-export const MIND_NODE_W = 156
-export const MIND_NODE_H = 46
+export const MIND_NODE_W = 176
+export const MIND_NODE_H = 64
 export const MIND_H_GAP = 64
-export const MIND_V_GAP = 14
+export const MIND_V_GAP = 16
 
 const COL_PITCH = MIND_NODE_W + MIND_H_GAP
 const ROW_PITCH = MIND_NODE_H + MIND_V_GAP
@@ -57,7 +57,7 @@ export interface MindMapLayout {
 
 // ── 主函数 ──────────────────────────────────────────────────
 
-export function computeMindMapLayout(root: GoalNode): MindMapLayout {
+export function computeMindMapLayout(root: GoalNode, collapsed?: Set<string>): MindMapLayout {
   const nodes: MindMapNodePos[] = []
   const edges: MindMapEdge[] = []
   let rowCursor = 0
@@ -68,12 +68,16 @@ export function computeMindMapLayout(root: GoalNode): MindMapLayout {
     if (depth > maxDepth) maxDepth = depth
     const x = depth * COL_PITCH
 
+    // 折叠节点：按叶子绘制（不递归子树、不画子连线），但仍标记 hasChildren 供显示折叠徽标
+    const isCollapsed = collapsed?.has(node.goal.id) ?? false
+    const laidOutChildren = isCollapsed ? [] : node.children
+
     let y: number
-    if (node.children.length === 0) {
+    if (laidOutChildren.length === 0) {
       y = rowCursor * ROW_PITCH
       rowCursor++
     } else {
-      const childPositions = node.children.map((c) => assign(c, depth + 1, node.goal.id))
+      const childPositions = laidOutChildren.map((c) => assign(c, depth + 1, node.goal.id))
       const first = childPositions[0].y
       const last = childPositions[childPositions.length - 1].y
       y = (first + last) / 2
@@ -93,7 +97,7 @@ export function computeMindMapLayout(root: GoalNode): MindMapLayout {
     nodes.push(pos)
 
     // 连线（父 → 各直接子）
-    for (const child of node.children) {
+    for (const child of laidOutChildren) {
       const childPos = nodes.find((n) => n.id === child.goal.id)
       if (childPos) {
         edges.push({

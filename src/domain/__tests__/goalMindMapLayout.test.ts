@@ -91,4 +91,29 @@ describe('computeMindMapLayout', () => {
     const d = edgePath({ fromId: 'a', toId: 'b', x1: 0, y1: 10, x2: 100, y2: 50 })
     expect(d).toBe('M 0 10 C 50 10, 50 50, 100 50')
   })
+
+  it('折叠父节点：后代不出现在 nodes/edges，但 hasChildren 仍为 true', () => {
+    const root = node('root', [node('a', [node('a1'), node('a2')]), node('b')])
+
+    const full = computeMindMapLayout(root)
+    expect(full.nodes.map((n) => n.id).sort()).toEqual(['a', 'a1', 'a2', 'b', 'root'])
+
+    const collapsed = computeMindMapLayout(root, new Set(['a']))
+    const ids = collapsed.nodes.map((n) => n.id)
+    expect(ids).toContain('a')
+    expect(ids).not.toContain('a1')
+    expect(ids).not.toContain('a2')
+
+    const aPos = collapsed.nodes.find((n) => n.id === 'a')!
+    expect(aPos.hasChildren).toBe(true) // 折叠后仍标记有子节点，供显示展开徽标
+
+    // a 的子连线消失，但 root→a / root→b 仍在
+    expect(collapsed.edges.some((e) => e.fromId === 'a')).toBe(false)
+    expect(collapsed.edges.some((e) => e.fromId === 'root' && e.toId === 'a')).toBe(true)
+    expect(collapsed.edges.some((e) => e.fromId === 'root' && e.toId === 'b')).toBe(true)
+
+    // 行数从 3 叶子(a1,a2,b) 降到 2 行(a,b) → 高度变小
+    expect(collapsed.height).toBeLessThan(full.height)
+    expect(collapsed.height).toBe(2 * ROW_PITCH - MIND_V_GAP)
+  })
 })

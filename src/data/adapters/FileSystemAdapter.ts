@@ -20,8 +20,13 @@ import {
   watchDir,
   stopWatching as stopTauriWatching,
   onFsChange,
+  isWithinSelfWriteWindow,
+  getSelfWriteSeq,
   type FileEntryWithContent,
 } from '../tauriFs'
+
+/** 文件变更去抖窗口:把一次原子写产生的多个 create/modify/remove 事件合并成一次扫描。 */
+const FS_WATCH_DEBOUNCE_MS = 250
 
 const CURRENT_SCHEMA_VERSION = 1
 
@@ -197,6 +202,8 @@ class EventsFsTable implements StorageTable<CalendarEvent> {
   }
 
   async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    // 权威重载:清空后按磁盘上现存的事件文件重建,删除的事件不会复活
+    this.index.events.clear()
     for (const entry of entries) {
       if (!entry.path.endsWith('.json')) continue
       try {
@@ -492,6 +499,9 @@ class EstimatesFsTable implements StorageTable<WeeklyEstimate> {
   }
 
   async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    // 权威重载:清空后按磁盘上现存的周文件重建
+    this.index.estimates.clear()
+    this.index.estimatesByWeek.clear()
     for (const entry of entries) {
       if (!entry.path.endsWith('.json') || !entry.path.replace(/\\/g, '/').includes('/estimates/')) continue
       try {
@@ -581,16 +591,17 @@ class ProjectsFsTable implements StorageTable<Project> {
 
   async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
     const file = entries.find((e) => e.path.endsWith('projects.json'))
-    if (file) {
-      try {
-        const parsed = JSON.parse(file.content)
-        if (parsed.type === 'projects' && Array.isArray(parsed.data)) {
-          for (const item of parsed.data as Project[]) {
-            this.index.projects.set(item.id, item)
-          }
+    if (!file) return // 文件缺失:保留现有内存,避免误清空
+    try {
+      const parsed = JSON.parse(file.content)
+      if (parsed.type === 'projects' && Array.isArray(parsed.data)) {
+        // 权威重载:内存严格反映磁盘
+        this.index.projects.clear()
+        for (const item of parsed.data as Project[]) {
+          this.index.projects.set(item.id, item)
         }
-      } catch { /* ignore */ }
-    }
+      }
+    } catch { /* ignore */ }
   }
 }
 
@@ -659,16 +670,17 @@ class TodosFsTable implements StorageTable<Todo> {
 
   async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
     const file = entries.find((e) => e.path.endsWith('todos.json'))
-    if (file) {
-      try {
-        const parsed = JSON.parse(file.content)
-        if (parsed.type === 'todos' && Array.isArray(parsed.data)) {
-          for (const item of parsed.data as Todo[]) {
-            this.index.todos.set(item.id, item)
-          }
+    if (!file) return // 文件缺失:保留现有内存,避免误清空
+    try {
+      const parsed = JSON.parse(file.content)
+      if (parsed.type === 'todos' && Array.isArray(parsed.data)) {
+        // 权威重载:内存严格反映磁盘,磁盘上已删的条目不会复活
+        this.index.todos.clear()
+        for (const item of parsed.data as Todo[]) {
+          this.index.todos.set(item.id, item)
         }
-      } catch { /* ignore */ }
-    }
+      }
+    } catch { /* ignore */ }
   }
 }
 
@@ -737,16 +749,17 @@ class GoalsFsTable implements StorageTable<Goal> {
 
   async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
     const file = entries.find((e) => e.path.endsWith('goals.json'))
-    if (file) {
-      try {
-        const parsed = JSON.parse(file.content)
-        if (parsed.type === 'goals' && Array.isArray(parsed.data)) {
-          for (const item of parsed.data as Goal[]) {
-            this.index.goals.set(item.id, item)
-          }
+    if (!file) return // 文件缺失:保留现有内存,避免误清空
+    try {
+      const parsed = JSON.parse(file.content)
+      if (parsed.type === 'goals' && Array.isArray(parsed.data)) {
+        // 权威重载:内存严格反映磁盘
+        this.index.goals.clear()
+        for (const item of parsed.data as Goal[]) {
+          this.index.goals.set(item.id, item)
         }
-      } catch { /* ignore */ }
-    }
+      }
+    } catch { /* ignore */ }
   }
 }
 
@@ -886,6 +899,11 @@ export class FileSystemAdapter implements StorageAdapter {
   private _initialized = false
   private unlistenFs: (() => void) | null = null
 
+  // 文件监听扫描的去抖 + 串行化状态
+  private scanTimer: ReturnType<typeof setTimeout> | null = null
+  private scanning = false
+  private rescanQueued = false
+
   constructor() {
     this.events = new EventsFsTable(this.index, '')
     this.categories = new CategoriesFsTable(this.index, '')
@@ -955,7 +973,11 @@ export class FileSystemAdapter implements StorageAdapter {
   async fullScan(): Promise<void> {
     if (!this.rootPath) return
     const entries = await readDirWithContent(this.rootPath)
+    await this.applyScanEntries(entries)
+  }
 
+  /** 把一次目录扫描的内容应用到内存索引(各表 loadFromScan 已权威化:clear→重填)。 */
+  private async applyScanEntries(entries: FileEntryWithContent[]): Promise<void> {
     // Load each table from the in-memory entries (no per-file IPC)
     await (this.categories as CategoriesFsTable).loadFromScan(entries)
     await (this.settings as SettingsFsTable).loadFromScan(entries)
@@ -964,20 +986,56 @@ export class FileSystemAdapter implements StorageAdapter {
     await (this.projects as ProjectsFsTable).loadFromScan(entries)
     await (this.todos as TodosFsTable).loadFromScan(entries)
     await (this.goals as GoalsFsTable).loadFromScan(entries)
-
     await (this.events as EventsFsTable).loadFromScan(entries)
   }
 
   async startWatching(onChange: () => void): Promise<void> {
     if (!this.rootPath) return
     await watchDir(this.rootPath)
-    this.unlistenFs = await onFsChange(() => {
-      // Debounce �?re-scan on any change
-      this.fullScan().then(onChange).catch(() => {})
-    })
+    // 去抖:合并一次原子写产生的多个事件,且只对"外部"变更重扫(自写被 runScan 跳过)
+    this.unlistenFs = await onFsChange(() => this.scheduleScan(onChange))
+  }
+
+  private scheduleScan(onChange: () => void): void {
+    if (this.scanTimer) clearTimeout(this.scanTimer)
+    this.scanTimer = setTimeout(() => {
+      this.scanTimer = null
+      void this.runScan(onChange)
+    }, FS_WATCH_DEBOUNCE_MS)
+  }
+
+  private async runScan(onChange: () => void): Promise<void> {
+    const rootPath = this.rootPath
+    if (!rootPath) return
+    // 1) 自写回声:应用刚写过盘,内存早已是最新,跳过(治本:解决卡顿 + 已删条目复活)
+    if (isWithinSelfWriteWindow()) return
+    // 2) 串行化:正在扫描时不并发再扫,只排队一次
+    if (this.scanning) { this.rescanQueued = true; return }
+    this.scanning = true
+    try {
+      const seqBefore = getSelfWriteSeq()
+      const entries = await readDirWithContent(rootPath)
+      // 3) 读盘期间若发生自写,快照可能早于该写入 → 丢弃本次,稍后重扫
+      if (getSelfWriteSeq() !== seqBefore || isWithinSelfWriteWindow()) {
+        this.rescanQueued = true
+      } else {
+        await this.applyScanEntries(entries)
+        onChange()
+      }
+    } catch { /* ignore */ } finally {
+      this.scanning = false
+      if (this.rescanQueued) {
+        this.rescanQueued = false
+        this.scheduleScan(onChange)
+      }
+    }
   }
 
   async stopWatching(): Promise<void> {
+    if (this.scanTimer) {
+      clearTimeout(this.scanTimer)
+      this.scanTimer = null
+    }
     if (this.unlistenFs) {
       this.unlistenFs()
       this.unlistenFs = null

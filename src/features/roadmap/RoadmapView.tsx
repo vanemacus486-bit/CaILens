@@ -13,11 +13,13 @@ import { useEffect, useMemo, useCallback, useRef, useState } from 'react'
 import { Target } from 'lucide-react'
 import { useGoalStore } from '@/stores/goalStore'
 import { useEventStore } from '@/stores/eventStore'
+import { useTodoStore } from '@/stores/todoStore'
 import { getMainGoals } from '@/domain/goal'
 import type { CategoryId } from '@/domain/category'
 import { MainGoalSwitcher } from './MainGoalSwitcher'
 import { GoalMindMap } from './GoalMindMap'
 import { TaskCard } from './TaskCard'
+import { InboxCard } from './InboxCard'
 import { KeyMetricsCard } from './KeyMetricsCard'
 import ROADMAP_CSS from './roadmap.css'
 
@@ -48,12 +50,28 @@ export function RoadmapView() {
   } = useGoalStore()
 
   const { events, loadAllEvents } = useEventStore()
+  const {
+    todos,
+    isLoaded: todosLoaded,
+    loadTodos,
+    toggleComplete: toggleTodo,
+    deleteTodo,
+    updateTodo,
+    quickCapture,
+  } = useTodoStore()
 
   const [focusedGoalId, setFocusedGoalId] = useState<string | null>(null)
 
   useEffect(() => {
     if (events.length === 0) loadAllEvents()
   }, [events.length, loadAllEvents])
+
+  useEffect(() => {
+    if (!todosLoaded) loadTodos()
+  }, [todosLoaded, loadTodos])
+
+  // 未分配待办（goalId === null）：来源 todoStore，与 N 快速记录同源
+  const unassignedTodos = useMemo(() => todos.filter((t) => !t.goalId), [todos])
 
   // CSS injection (once)
   const cssInjected = useRef(false)
@@ -142,8 +160,9 @@ export function RoadmapView() {
   const handleDeleteGoal = useCallback(
     async (goalId: string) => {
       await deleteGoal(goalId)
+      await loadTodos() // 目标删除后其待办 goalId 被置空，刷新收件箱使其重新出现
     },
-    [deleteGoal],
+    [deleteGoal, loadTodos],
   )
 
   const handleColorChange = useCallback(
@@ -188,6 +207,33 @@ export function RoadmapView() {
     [reorderMainGoals],
   )
 
+  const handleAssignTodo = useCallback(
+    async (todoId: string, goalId: string) => {
+      await updateTodo({ id: todoId, goalId })
+      await loadAll() // 刷新目标分组：挂靠后的待办出现在对应任务卡
+    },
+    [updateTodo, loadAll],
+  )
+
+  const inboxCard =
+    unassignedTodos.length > 0 ? (
+      <div style={{ marginTop: 16 }}>
+        <InboxCard
+          todos={unassignedTodos}
+          goals={goals}
+          onAdd={async (title) => {
+            await quickCapture(title)
+          }}
+          onToggle={toggleTodo}
+          onDelete={deleteTodo}
+          onRename={(id, title) => {
+            void updateTodo({ id, title })
+          }}
+          onAssign={handleAssignTodo}
+        />
+      </div>
+    ) : null
+
   // ── Render ─────────────────────────────────────────────────
 
   if (isLoading && goals.length === 0) {
@@ -208,21 +254,24 @@ export function RoadmapView() {
 
   if (mainGoals.length === 0) {
     return (
-      <div className="roadmap-empty">
-        <div className="roadmap-empty-icon">
-          <Target size={24} strokeWidth={1.5} />
+      <div style={{ width: '100%', maxWidth: 880, margin: '0 auto', paddingBottom: 60 }}>
+        <div className="roadmap-empty">
+          <div className="roadmap-empty-icon">
+            <Target size={24} strokeWidth={1.5} />
+          </div>
+          <p className="roadmap-empty-title">还没有目标</p>
+          <p className="roadmap-empty-desc">创建第一个长期目标，开始追踪你的成长轨迹</p>
+          <button
+            className="roadmap-empty-btn"
+            onClick={async () => {
+              const goal = await createGoal({ title: '新目标' })
+              setSelectedMainGoal(goal.id)
+            }}
+          >
+            创建第一个长期目标
+          </button>
         </div>
-        <p className="roadmap-empty-title">还没有目标</p>
-        <p className="roadmap-empty-desc">创建第一个长期目标，开始追踪你的成长轨迹</p>
-        <button
-          className="roadmap-empty-btn"
-          onClick={async () => {
-            const goal = await createGoal({ title: '新目标' })
-            setSelectedMainGoal(goal.id)
-          }}
-        >
-          创建第一个长期目标
-        </button>
+        {inboxCard}
       </div>
     )
   }
@@ -286,6 +335,8 @@ export function RoadmapView() {
           )}
         </div>
       )}
+
+      {inboxCard}
     </div>
   )
 }
