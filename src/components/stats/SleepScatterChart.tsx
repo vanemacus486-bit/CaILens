@@ -1,8 +1,6 @@
 ﻿import { useMemo, useState, startTransition } from 'react'
 import { ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized, usePlotArea } from 'recharts'
 import type { CalendarEvent } from '@/domain/event'
-import { InsomniaSummary } from './InsomniaSummary'
-
 /* ── Types ─────────────────────────────────────────────────── */
 
 interface SleepNight {
@@ -562,7 +560,6 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
             </div>
           )}
 
-          <InsomniaSummary rangeEvents={rangeEvents} />
         </>
       )}
     </div>
