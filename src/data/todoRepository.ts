@@ -35,6 +35,14 @@ export class TodoRepository {
     })
   }
 
+  async getByGoal(goalId: string): Promise<Todo[]> {
+    return this.adapter.todos.query({
+      where: { key: 'goalId', op: 'equals', value: goalId },
+      orderBy: 'sortOrder',
+      orderDir: 'asc',
+    })
+  }
+
   async queryByDueDateRange(start: number, end: number): Promise<Todo[]> {
     return this.adapter.todos.query({
       where: { key: 'dueDate', op: 'above', value: start },
@@ -63,6 +71,7 @@ export class TodoRepository {
       updatedAt: now,
       completedAt: null,
       repeatPattern: input.repeatPattern ?? null,
+      goalId: input.goalId ?? null,
     }
     await this.adapter.todos.put(todo)
     return todo

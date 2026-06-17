@@ -31,6 +31,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     updatedAt: now,
     completedAt: null,
     repeatPattern: null,
+    goalId: null,
     ...overrides,
   }
 }

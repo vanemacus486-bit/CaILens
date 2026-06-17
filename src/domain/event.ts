@@ -129,6 +129,8 @@ export interface CalendarEvent {
   typedKey?: 'meal' | 'sleep' | null
   /** 类型化事件数据（Sleep / Meal），无此字段则为普通事件 */
   typedData?: TypedEventData
+  /** 关联的目标 ID（长期目标树中的节点） */
+  goalId?: string | null
   createdAt: number   // UTC ms
   updatedAt: number   // UTC ms
 }

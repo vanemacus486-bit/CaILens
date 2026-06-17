@@ -165,6 +165,7 @@ export async function seedDemoData(): Promise<void> {
       updatedAt: now,
       completedAt: status === 'done' ? (opts.completedAt ?? now) : null,
       repeatPattern: opts.repeatPattern ?? null,
+      goalId: null,
     })
   }
 

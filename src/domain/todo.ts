@@ -85,6 +85,8 @@ export interface Todo {
   completedAt: number | null
   /** 重复模式。null = 普通待办。'daily' = 完成后自动克隆到明天 */
   repeatPattern: RepeatPattern | null
+  /** 关联的目标 ID（长期目标树中的节点），null 表示未关联 */
+  goalId: string | null
 }
 
 // ── 输入类型 ────────────────────────────────────────────────
@@ -98,6 +100,7 @@ export interface CreateTodoInput {
   projectId?: string | null
   categoryId?: string | null
   repeatPattern?: RepeatPattern | null
+  goalId?: string | null
 }
 
 export interface UpdateTodoInput {
@@ -112,6 +115,7 @@ export interface UpdateTodoInput {
   projectId?: string | null
   categoryId?: string | null
   repeatPattern?: RepeatPattern | null
+  goalId?: string | null
 }
 
 // ── 纯函数工具 ──────────────────────────────────────────────
@@ -509,6 +513,7 @@ export function spawnNextRepeat(todo: Todo, now: number = Date.now()): Todo {
     createdAt: now,
     updatedAt: now,
     completedAt: null,
+    goalId: todo.goalId,
   }
 }
 
