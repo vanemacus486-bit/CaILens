@@ -1,268 +1,204 @@
-# CalLens 项目指引
+# CaILens — Agent Memory
 
-## 1. 项目哲学
+本地优先的时间统计工具，灵感来自柳比歇夫 56 年实践。记录、分类、可视化你的时间去向——没有账号、没有服务器、没有数据上报。
 
-**CalLens 不是日程工具，是一面镜子。**
+## Project
 
-几点睡、几斤重，是心生之相。一个人的作息，是他的价值观、人际关系、审美偏好、日常选择层层向下传导的最终结果——决定它的东西远在云端之上。直接干预作息，就像站在塔底徒手去接一只从塔顶释放的铅球：到了那个点不能不睡，到了那个点不能不醒，到了几点一定饿得受不了。变数早就发生过了，你只是在承受结果。
+| 项 | 值 |
+|---|---|
+| 仓库 | `git+https://github.com/vanemacus486-bit/CaILens.git` |
+| 入口 | `src/main.tsx` → `App.tsx` (React 19 + StrictMode) |
+| 构建 | Vite 8 (`base: './'` 相对路径) |
+| 类型 | TypeScript ~6.0.2 strict (`noImplicitAny`, `strictNullChecks` 等) |
+| 包类型 | `"type": "module"` (ESM) |
+| 路由 | react-router-dom v7 `HashRouter`，路径见下表 |
+| 存储 | Dexie v4 (IndexedDB)，schema v25，16 张表 |
+| 状态 | Zustand v5 切片订阅，9 个 store + 1 watchdog |
+| 测试 | Vitest 4 + jsdom + fake-indexeddb，25 文件 / 509 测试 |
+| 图标 | lucide-react |
+| 桌面 | Tauri v2 (`src-tauri/`) |
+| 移动 | Capacitor v8 (`capacitor.config.ts`) |
 
-CalLens 的工作不在塔底，在塔顶。它不催你早睡、不替你规划、不给你打分。它只做一件事：让你看清自己每天真正的输入——吃了什么、和谁来往、穿了什么、用什么工具、如何回应冒犯与辜负——从而让"漂移"的源头浮出水面。
+**路由表：**
 
-## 原则
-
-- **作息是输出，不是输入**。工具不去干预输出，只帮用户看清输入。
-- **越上游越重要**。饮食和运动是输入，人际关系和价值观是更上游的输入。功能要能引导用户向更上游回溯，而不是停在表层指标。
-- **观察先于管理，理解先于焦虑**。不做规划、不做提醒、不做催促、不做排名。
-- **可解释先于精确**。每一条分析结论都要能用一句白话讲清，不依赖黑箱。
-- **沉底先于冲刺**。鼓励长期稳态，而非短期高强度。一切指标设计都为"沉到底"服务。
-- **工具有限，生活无限**。工具只呈现因果信号，不替用户做决定。始终留出"不被工具审视"的空间。
-- **克制先于丰富**。代码质量优先于功能数量。在"加功能"和"保持克制"之间犹豫时，默认不加。
-
-军队、寺院、律宗、原教旨派之所以作息高度规律，不是因为戒律严，而是因为有一套完整、经得起生活和事业挑战的价值观，并把它贯彻到了衣食住行的每一个细节。CalLens 帮不了你建立价值观，但能帮你看清：你声称的价值观，和你每天实际的选择，是否对得上。
-
-对得上，拈花微笑。对不上，先别急着改作息。
-
----
-
-## 2. 技术栈
-
-| 层 | 选型 | 备注 |
+| 路径 | 组件 | 说明 |
 |---|---|---|
-| 框架 | React 19 + TypeScript 6 strict | 函数组件 + hooks，禁 `any` |
-| 构建 | Vite 8 | |
-| 样式 | Tailwind CSS v4 + CSS 变量 design tokens | shadcn/ui 风格，复制到项目内 |
-| 状态 | Zustand v5 | 切片订阅 |
-| 存储 | IndexedDB (Dexie v4) | 本地优先，无后端 |
-| 路由 | react-router-dom v7 | HashRouter |
-| 图表 | recharts v3 | 仅 StatsPage |
-| 日期 | date-fns v4 | 禁 dayjs/moment |
-| ICS | ical.js v2 | |
-| 测试 | Vitest 4 + RTL + fake-indexeddb | |
-| 图标 | lucide-react | |
-| 桌面 | Tauri v2 | Windows |
-| 移动 | Capacitor v8 | Android |
+| `/` | → `/week` | 重定向（保留 search params） |
+| `/week` | `WeekView` | 周视图（`?view=day&date=...` 切日；`?week=...` 指定周） |
+| `/action` | `ActionPage` | 待办事项 + 项目分组双视图 |
+| `/stats` | `StatsPage` | 复盘仪表盘（4 Tab：作息/日常/身体/关联） |
+| `/settings` | `SettingsPage` | 设置页（弹窗 `SettingsModal` 也可触发） |
+| `/projects/:projectId` | `ProjectDetailPage` | 项目详情（事件/SOP/灵感 3 Tab） |
+| `/profile` | `ProfilePage` | 个人档案 |
+| `/quick-capture` | `QuickCaptureWindow` | 浮动快速记录窗口 |
 
-**铁律：** 不引入 FullCalendar、Schedule-X、react-big-calendar 等日历库——周视图自实现。
+**全局快捷键：** `1`→日历, `2`→规划, `3`→复盘, `Esc`→回周视图, `N`→快速记录, `Ctrl+K`→搜索, `Ctrl+C/V`→复制/粘贴事件, `Ctrl+←/→`→上/下周, `Ctrl+Shift+←/→`→上/下天
 
----
-
-## 3. 命令
+## Commands
 
 ```bash
-npm run dev          # 开发服务器（:5173）
-npm run build        # tsc -b && vite build
-npm run lint         # ESLint
-npm run test         # 跑一次单元测试
-npm run tauri:build  # Tauri 生产构建（慢！每次代码变更后必须跑以覆盖 release/ 下的 exe）
-npm run test -- src/domain/__tests__/layout.test.ts  # 单文件测试
+npm run dev          # Vite dev server (:5173)
+npm run build        # tsc -b && vite build → 只出网页包 dist/，不更新桌面 .exe
+npm run lint         # eslint .
+npm run test         # vitest run  (509 tests, ~13s)
+npm run test:watch   # vitest (watch)
+npm run preview      # vite preview
+npm run tauri:build  # ★重打桌面 .exe（用户说"构建/打包"通常指这个）→ release/CaILens.exe
+npm run android:build# cd android && gradlew assembleDebug && node ../scripts/copy-release.mjs android
 ```
 
-**提交前自检：** `npm run lint && npm run test && npm run build`
-**每次代码变更后：** 自动跑 `npm run tauri:build` 覆盖 exe（用户明确要求的流程，不再仅跑 `npm run build` 验证）
+**提交前自检：** `npm run lint; npm run test; npm run build`（PowerShell 用 `;` 顺序执行，**别写 `&&`** — PS 5.1 会报"`&&` 不是有效语句分隔符"，三条全跑不了。详见下方 Build 节）
 
----
+## Build（构建 / 排查）
 
-## 4. 架构（依赖方向单向）
+> **‼️ 默认含义：用户说"构建 / 重新构建 / 打包 / 出包 / 出新版本"，在本项目几乎总是指 `npm run tauri:build`（重打桌面 .exe）。**
+> 用户是**双击桌面程序**用的，ta 要的是更新后的 `release/CaILens.exe`，不是网页包。
+> `npm run build` 只生成 `dist/`（网页），用户**根本看不到**——单独跑它来"完成构建任务"**几乎总是错的**：跑完桌面程序纹丝不动，又会被当成"构建失败"。
+> 拿不准就按 `npm run tauri:build` 做，或先问一句"要桌面 .exe 还是网页包？"。完整流程见本节末「**打包桌面 .exe**」。
+
+> **本机环境：Windows + PowerShell 5.1。** 多数"让 AI 构建却失败"并不是代码错，而是**命令写成了 bash 语法**或**误读了输出**。动手前先读本节。
+
+**注意：`npx tsc -b` / `npm run build` 只是"验证代码能不能编译过"，不产出用户要用的桌面程序：**
+
+```powershell
+npx tsc -b              # 只查类型：静默无输出＝通过；失败才打印 error TSxxxx
+npm run build           # 编译网页包到 dist/（这只是 tauri:build 的前置步骤，不更新桌面 .exe）
+```
+
+- **只想确认有没有类型错 → 跑 `npx tsc -b`**，它静默＝通过，不刷那 ~490 行字体清单，省 token。怀疑增量缓存脏了，用 `npx tsc -b --force` 重来。
+- 完整构建 `npm run build` 的**成败只看最后两三行**：出现 `✓ built in X` ＝成功；中途有 `error TSxxxx` 块＝失败。中间几百行 `dist/assets/noto-serif-sc-*.woff2` 是正常字体产物，**不是错误，别理**。
+- 要退出码：`npm run build; "EXIT=$LASTEXITCODE"`（`0`＝成功）。`$LASTEXITCODE` 是原生程序退出码，比 `$?` 可靠。
+
+**下面这些不是构建失败，别当成错去"修"：**
+
+| 看到的输出 | 真相 |
+|---|---|
+| `(!) Some chunks are larger than 500 kB` | vite 体积**警告**，构建已成功，忽略 |
+| `npm warn Unknown user config "electron_mirror"` | npm 配置提示，与构建无关 |
+| `head/grep/tail … 无法将…识别为 cmdlet` | 你在 PowerShell 用了 **bash 命令**，去掉管道重跑 |
+| `标记"&&"不是此版本中的有效语句分隔符` | PS 5.1 不支持 `&&`，见下表 |
+
+**bash → PowerShell 对照（AI 最常踩的坑）：**
+
+| 别用（bash 写法，会报错） | 用这个 |
+|---|---|
+| `npm run build 2>&1 \| head -40` | `npm run build`（直接跑，读尾部结论即可） |
+| `… \| tail -20` | `… \| Select-Object -Last 20` |
+| `… \| grep error` | `… \| Select-String error` |
+| `npm run lint && npm run test` | `npm run lint; if ($?) { npm run test }` |
+| `echo $?` | `$LASTEXITCODE` |
+
+> `npm run build` 内部的 `tsc -b && vite build` 跑在 **cmd.exe**（npm 自己起的子 shell）里，那里的 `&&` 合法；但**你在 PowerShell 终端直接敲 `tsc -b && vite build` 会报错**。所以始终走 `npm run build`，别手动拆开。
+
+**⚠️ 三种"构建"别搞混（"改了代码却没变化"的头号原因）：**
+
+| 你的目的 | 命令 | 改代码后的表现 |
+|---|---|---|
+| 开发时看效果（最常用） | `npm run dev` → 浏览器 `localhost:5173` | **自动热更新**，秒见 |
+| 桌面 App 一边开发一边看 | `npm run tauri:dev` | 桌面窗口 + 自动热更新 |
+| 出网页发布包 | `npm run build` → 写入 `dist/` | 只更新 `dist/`，**不碰任何已打开的 App** |
+| 出桌面 .exe | `npm run tauri:build` → `release/CaILens.exe` | 重新打包（含 Rust 编译，慢几分钟） |
+
+> **打包好的 `release/CaILens.exe` 是冻结快照**：内嵌的是上次 `npm run tauri:build` 那一刻的 `dist/`。之后改源代码、甚至单独跑 `npm run build`，都**不会**让这个 .exe 变——双击它永远是旧版本。
+> - 想让桌面 .exe 反映新代码：**先关掉正在运行的 App**（否则覆盖 `release/CaILens.exe` 会因文件占用失败），再 `npm run tauri:build`，然后重新打开。
+> - 频繁改代码迭代时**别每次重打 .exe**（每次都要编译 Rust，慢）。用 `npm run tauri:dev`（桌面+热更新）或 `npm run dev`（浏览器）即时验证，定稿后再 `tauri:build` 出包。
+
+**打包桌面 .exe（实测步骤，照此做必成）：**
+
+1. **先关掉正在运行的 CaILens** —— 最容易翻车的一步。`release/CaILens.exe` 被占用时，Rust 白编译 3 分钟后会卡在最后一步复制产物。先 `Get-Process CaILens`（无输出＝没运行）确认；要强制关：`Stop-Process -Name CaILens -Force -ErrorAction SilentlyContinue`。
+2. `npm run tauri:build`。依次执行：`npm run build`(前端→`dist/`) → **编译 Rust release（最慢，约 3 分钟）** → makensis 打安装包 → `copy-release.mjs` 复制到 `release/`。
+3. **输出末尾出现这几行＝成功：**
+   - `` Finished `release` profile [optimized] target(s) in Xm Xs ``
+   - `Built application at: ...\target\release\CaILens.exe`
+   - `Finished 1 bundle at: ...\nsis\CaILens_<版本>_x64-setup.exe`
+   - `Done — 3 file(s) copied to release/`
+4. **产物在 `release/`**：`CaILens.exe`（绿色版 ~21MB，须与 `WebView2Loader.dll` 同目录）＋ `CaILens_<版本>_x64-setup.exe`（NSIS 安装包 ~17MB）。
+5. **验证**：`release/CaILens.exe` 的修改时间必须是「刚刚」；时间没更新＝没打包成功，别开它。
+
+打包时这些是**正常提示、不是错误**：`Warn ... identifier ... ends with .app`（macOS 提示，Windows 无关）、`(!) Some chunks are larger than 500 kB`、`npm warn Unknown ... config "electron_mirror"`。
+
+> 版本号注意：安装包名里的版本取自 `src-tauri/tauri.conf.json` 的 `version`（当前 `3.9.0`），与 `package.json`（`3.23.0`）**不一致**。要对齐就改 `tauri.conf.json` 的 `version`。
+
+## Architecture
 
 ```
-domain/  ──→  data/  ──→  stores/  ──→  pages/ + features/ + components/
-(纯逻辑)    (Repository)   (Zustand)              (UI)
+use-cases/  →  domain/  →  data/  →  stores/  →  features/ + components/ + pages/
+(orchestration) (pure logic) (Repo+Dexie) (Zustand) (UI)
 ```
 
-**核心规则：**
-- **`src/domain/`** — 纯类型 + 纯函数，不依赖 React/Dexie/浏览器 API。必须有测试。
-- **`src/data/`** — 唯一操作 IndexedDB 的地方。Repository 构造函数注入 `Clock` + `IdGenerator`。通过 `getRepositories.ts` 的 DI 容器懒加载。
-- **`src/stores/`** — Zustand 包装 Repository。组件永不直接调 Repository。
-- **`src/pages/`** — 路由级页面（StatsPage / ActionPage / ProfilePage / ProjectDetailPage）。编排 store + 渲染。
-- **`src/features/`** — 业务功能模块（week-view、day-view、month-view、settings、quick-log、search、import-ics、sop）。
-- **`src/components/`** — 可复用 UI 原语。`ui/` shadcn 复制，`calendar/` 日历组件，`stats/` 图表，`nav/` 导航。
+**单向依赖，严禁反向。** `domain/` 不得 import React/Dexie/浏览器 API。
+
+| 层 | 关键文件 | 职责 |
+|---|---|---|
+| `domain/` | `event.ts`, `category.ts`, `stats.ts`, `layout.ts`, `todo.ts`, `time.ts`, `settings.ts`, `quadrant.ts`, `gaps.ts`, `maturity.ts`, `icsImport.ts`, `dailyContext.ts`, `dietStats.ts`, `insomnia.ts`, `napStats.ts`, `recipeStats.ts`, `log.ts`, `shortcuts.ts` | 纯类型 + 纯函数。统计引擎、布局算法、关键词学习、关联分析、稳态指标、成熟度判定 |
+| `data/` | `db.ts` (Dexie v25), `getRepositories.ts` (DI 容器), `eventRepository.ts`, `categoryRepository.ts`, `todoRepository.ts`, `projectRepository.ts`, `settingsRepository.ts`, `dailyContextRepository.ts`, `estimateRepository.ts`, `inspirationRepository.ts`, `profileRepository.ts`, `migrations/upgrades.ts`, `adapters/StorageAdapter.ts`, `adapters/IndexedDBAdapter.ts`, `adapters/FileSystemAdapter.ts`, `tauriFs.ts`, `seedDemoData.ts` | 唯一碰 IndexedDB 的地方。Repository 注入 Clock+IdGenerator。适配器模式：IndexedDB / 文件系统 / Tauri FS |
+| `stores/` | `eventStore.ts`, `categoryStore.ts`, `settingsStore.ts`, `todoStore.ts`, `projectStore.ts`, `dailyContextStore.ts`, `profileStore.ts`, `estimateStore.ts`, `uiStore.ts`, `watchdog.ts` | Zustand 切片包装 Repository。组件只通过 store 访问数据 |
+| `features/` | `week-view/` (WeekView, DayTimelineCard, EventBlock 等), `day-view/` (DayEventStream), `month-view/`, `quick-log/` (FloatingEventCard), `quick-capture/`, `search/` (CommandPalette), `import-ics/`, `settings/`, `action/` | 业务功能模块，按场景组织 |
+| `components/` | `ui/` (shadcn 复制: button, dialog, popover, alert-dialog, context-menu, DatePickerPopover, ErrorBoundary, snackbar), `calendar/` (EventBlock, DayColumn, CurrentTimeLine, EventCard, TimeGrid), `nav/` (TopNavBar, TabBar, ReviewLayout, SlideSegmented), `stats/` (40+ 图表组件) | 可复用 UI 原语 |
+| `pages/` | `StatsPage.tsx`, `ActionPage/`, `ProfilePage.tsx`, `ProjectDetailPage/` | 路由级页面，编排 store + 渲染 |
+| `hooks/` | `useStatsAggregation.ts`, `useShortcutManager.ts`, `useMediaQuery.ts`, `useTabTransition.ts`, `usePageScrollRestore.ts`, `useSessionRestore.ts` | 共享 hooks |
+| `use-cases/` | `classifyAndLearnKeyword.ts` | 跨 Repository 编排（事件创建→关键词自动学习→重归类） |
+| `lib/` | `cailensExport.ts`, `icsExport.ts`, `jsonCsvImport.ts`, `fireAndForget.ts`, `utils.ts`, `hooks/` | 工具函数：加密导出(age+gzip)、ICS 导出、JSON/CSV 导入 |
 
 **关键领域模块：**
 
 | 文件 | 作用 |
 |---|---|
-| `domain/event.ts` | `CalendarEvent` 类型，`EventColor` 枚举，`MealRecord`/`SleepRecord` |
-| `domain/category.ts` | `Category` 类型，`weeklyBudget`, `KeywordFolder` |
-| `domain/settings.ts` | `AppSettings`（language: zh/en） |
-| `domain/time.ts` | 时间工具（getDayStart, formatISODate 等） |
+| `domain/layout.ts` | 周视图布局算法（重叠事件并排计算） |
 | `domain/stats.ts` | computeWeekStats, computeDayStats, computeTypeSplit |
-| `domain/estimate.ts` | `WeeklyEstimate` 估算类型 |
-| `domain/project.ts` | `Project` 项目类型 |
-| `domain/sop.ts` | `SOP`, `SOPVersion` 流程 |
-| `domain/inspiration.ts` | `InspirationLog` 灵感记录 |
-| `domain/profile.ts` | 用户档案（身体数据） |
-| `domain/todo.ts` | 待办事项 + `groupTodosByDueDate` / `sortTodos` |
+| `domain/todo.ts` | Todo 类型 + sortTodos/groupTodosByDueDate (19KB 大文件) |
+| `domain/quadrant.ts` | 四象限分析 |
 | `domain/dailyContext.ts` | 每日上下文（穿搭/卫生/娱乐/身体指标） |
 | `domain/correlation.ts` | 关联分析 |
 | `domain/steadyMetrics.ts` | 稳态指标 |
-| `domain/standardWeek.ts` | 标准周计算 |
-| `domain/layout.ts` | 周视图布局算法（重叠排版） |
-| `domain/maturity.ts` | 数据成熟度判定 |
 | `domain/gaps.ts` | 间隙检测 |
-| `domain/icsImport.ts` | ICS 文件导入 |
+| `domain/maturity.ts` | 数据成熟度判定 (Cold/Warming/Mature) |
+| `domain/shortcuts.ts` | 快捷键系统定义 (6KB) |
+| `domain/dietStats.ts` | 饮食统计 (10KB) |
+| `domain/insomnia.ts` | 失眠分析 (4.7KB) |
+| `domain/napStats.ts` | 午睡统计 (3.5KB) |
+| `domain/recipeStats.ts` | 食谱统计 (7KB) |
+| `domain/log.ts` | 日志系统 |
+| `domain/eventSegment.ts` | 事件分段 |
+| `domain/minuteAxis.ts` | 分钟轴坐标系 |
+| `domain/dateRange.ts` | 日期范围工具 |
+| `domain/migration.ts` | 迁移工具 |
 
-**关键存储/状态文件：**
+## Design System
 
-| 文件 | 作用 |
-|---|---|
-| `data/db.ts` | Dexie schema（当前 v21），共 16 张表 |
-| `data/getRepositories.ts` | Repository DI 容器（懒加载单例） |
-| `data/adapters/StorageAdapter.ts` | 存储抽象（IndexedDB / FileSystem） |
-| `stores/eventStore.ts` | 全局事件状态 |
-| `stores/categoryStore.ts` | 全局分类状态 |
-| `stores/settingsStore.ts` | 全局设置状态 |
-| `stores/todoStore.ts` | 待办状态 |
-| `stores/projectStore.ts` | 项目状态 |
-| `stores/dailyContextStore.ts` | 每日上下文状态 |
-| `stores/bodyMetricsStore.ts` | 身体指标状态 |
-| `stores/profileStore.ts` | 档案状态 |
-| `stores/sopStore.ts` | SOP 状态 |
-| `stores/estimateStore.ts` | 估算状态 |
-| `stores/uiStore.ts` | UI 临时状态（抽屉开合、剪贴板等） |
-| `hooks/useStatsAggregation.ts` | 多粒度统计聚合 hook |
+**色彩：** 浅色 `--surface-base: #F1EBE0`，深色 `--surface-base: #1a1a1a`。暖中性色调。accent `#c47a5a`。
 
----
+**6 种事件色** = 6 种分类 = 6 种 CategoryId。各有 `bg/text/fill` 三个 CSS 变量：
+- `accent` (焦橙) / `sage` (鼠尾草绿) / `sand` (沙色) / `sky` (暖灰蓝) / `rose` (玫瑰色) / `stone` (石灰色)
 
-## 5. 设计系统
+**4 主题色** (rust/ocean/forest/plum) 覆盖 surface + accent + grid-line 三层，不影响事件色。
 
-Design tokens 定义在 `src/index.css`（CSS 变量），通过 Tailwind 类访问。
+**状态色：** success `#2D7D46`, danger `#B53535`, info `#3A5A80`。
 
-**色彩：** 浅色 `#f0ece4`，深色 `#2a2824`。暖中性色调。accent `#c96442` 不滥用。
-6 种事件色（accent/sage/sand/sky/rose/stone）各有 `bg/text/fill` 三个变量。
-状态色：success `#2D7D46`，danger `#B53535`，info `#3A5A80`。
-4 主题色（rust/ocean/forest/plum），见 `domain/themes.ts`。
-**新增 UI 必须同时定义 `:root` 和 `.dark` 两套变量。**
+**字体：** Inter (UI), Source Serif 4 (阅读), JetBrains Mono (时间数字), LXGW WenKai (可选), Noto Serif SC / Noto Sans SC (中文)。
 
-**字体：** `font-sans`(Inter) UI 文本，`font-serif`(Source Serif 4) 阅读内容，`font-mono`(JetBrains Mono) 时间数字。
+**视觉克制：** `rounded-lg`，不用纯黑边框，不用阴影做层次（用 surface/base/raised/sunken），过渡 200-400ms ease-out，饱和色彩克制。
 
-**视觉克制：** 圆角 `rounded-lg`，不用纯黑边框（用 `border-border-subtle/default`），不用阴影做层次（用 surface base/raised/sunken），不饱和色彩，过渡 200-400ms ease-out，不用 emoji 装饰 UI。移动端不优先支持但不能崩溃。
+**CSS 变量定义：** `src/index.css` + `src/styles/tokens.css`。Tailwind 通过 `tailwind.config.ts` 映射到 CSS 变量。
 
----
-
-## 6. 数据约束
+## Data Constraints
 
 - 所有时间存 **UTC 毫秒时间戳**，仅显示层转本地时区
-- 颜色用预定义字符串 key（`EventColor`），不存 hex
-- **`CategoryId = EventColor`**，永远同值
+- 颜色用预定义字符串 key (`EventColor`)，不存 hex
+- **CategoryId = EventColor**，永远同值
 - 分类数量固定 6 个，不可增删
-- Schema 变更通过 `db.version(N+1).stores({...}).upgrade(tx=>...)` 迁移
+- Schema 变更通过 `db.version(N).stores({...}).upgrade(...)` 迁移
+- 所有时间数据统一存 UTC 毫秒时间戳，仅显示层做本地时区转换
 
-**Current schema (v21) — 共 16 张表：**
+## Conventions
 
-```
-events:             id, startTime, endTime, projectId
-categories:         id
-settings:           id
-weeklyEstimates:    id, weekStart, categoryId
-projects:           id, categoryId, name, status, sortOrder, useCount, lastUsedAt
-sops:               id, projectId
-sopVersions:        id, sopId, version
-inspirations:       id, projectId, eventId
-mealRecords:        id, eventId
-sleepRecords:       id, eventId
-profiles:           id
-outfitLogs:         id, date
-hygieneLogs:        id, date
-leisureLogs:        id, date
-bodyMetricsRecords: id, date
-todos:              id, status, dueDate, sortOrder, projectId
-```
-
----
-
-## 7. 测试约定
-
-- 测试在 `__tests__/` 下，命名 `*.test.ts(x)`
-- `domain/` 新增纯函数**必须**有测试（边界 + happy path）
-- IndexedDB 测试用 `fake-indexeddb`（已配在 `test-setup.ts`）
-- Repository 通过注入 fake Clock + IdGenerator 测试
-
----
-
-## 8. 开发规范
-
-### 8.1 永远先看再写
-了解现有文件、理解当前模式再动手。本项目分层严格。
-
-### 8.2 改之前确认范围
-改 >100 行时先评估影响。涉及 schema 迁移、删文件、改公共类型需谨慎。
-
-### 8.3 提交前自检
-```bash
-npm run lint && npm run test && npm run build
-```
-
-### 8.4 不要做的事
-- 不引入新 npm 依赖（除非必要且已评估）
-- 不在组件里写业务逻辑（应放 `domain/`）
-- 不在 `domain/` 引入 React / 浏览器 API
-- 不绕过 store 直接调 Repository
-- 不用 `any` / `as unknown as` / `@ts-ignore`
-- 不写防御性编程包 try-catch 吞错误
-- 不提前抽象（YAGNI）
-
-### 8.5 `index.html` `<style>` 禁全局选择器
-Tailwind v4 用 `@layer` 管理样式。`index.html` 的 `<style>` 无 `@layer`（非 layered），**非 layered 样式无条件优先于 layered 样式**。`* { margin:0 }` 会杀死所有 Tailwind 间距工具类。所有规则必须 scope 到 `#splash-screen` 等容器选择器。
-
----
-
-## 9. 核心产品需求
-
-### 需求一：
-
-### 需求二：
-
-### 需求三：
-
-### 需求四：
-
-### 需求五：
-
----
-
-## 10. 实现边界（坚决不做）
-
-- 不引入标签 / 子分类 / 自定义分类数量
-- 不引入 LLM 自动分类（仅关键词匹配）
-- 不引入"计划 vs 实际"对比（仅估算偏差）
-- 不引入 AI 通知 / 提醒 / 多设备同步
-- 不引入 AI 聊天、对话式分析（v3.23 之后已彻底移除）
-- 不引入全天事件 / 重复事件
-- 不引入新的 npm 依赖（recharts、ical.js 已完成评估）
-- 不在视图中添加名言/引言（用户明确要求删除并记住此偏好）
-
----
-
-## 11. 路由表
-
-| 路径 | 组件 | 说明 |
-|---|---|---|
-| `/` | `<Navigate to="/week">` | 重定向到周视图 |
-| `/week` | `WeekView` | 周视图（默认）；`?view=day&date=...` 切日视图；`?week=...` 指定周 |
-| `/action` | `ActionPage` | 待办事项 + 项目分组双视图 |
-| `/stats` | `StatsPage` | 复盘仪表盘（4 Tab：作息/日常/身体/关联） |
-| `/settings` | `SettingsPage` | 设置页（桌面/移动版） |
-| `/projects/:projectId` | `ProjectDetailPage` | 项目详情（事件/SOP/灵感 3 Tab） |
-| `/profile` | `ProfilePage` | 个人档案 |
-
-**全局快捷键：** `1` → /week，`2` → /action，`3` → /stats，`Esc` → 回 /week（ProfilePage 自处理 Esc → /stats）
-
----
-
-## 12. Schema 版本历史
-
-| 版本 | 变更 |
-|---|---|
-| v1 | 初始，仅 events |
-| v3 | +categories + settings，补 categoryId |
-| v4 | keywords: string[] → folders: KeywordFolder[] |
-| v5 | categories 补 weeklyBudget |
-| v6 | +weeklyEstimates |
-| v7 | events +endTime 索引 |
-| v13 | +projects + events.projectId 索引 |
-| v14 | +sops + sopVersions + inspirations |
-| v16 | projects +useCount/lastUsedAt + mealRecords + sleepRecords |
-| v17 | +profiles |
-| v18 | +outfitLogs, hygieneLogs, leisureLogs, bodyMetricsRecords |
-| v19 | +todos |
-| v21 | 合并 taskGroups/taskGroupItems → projects/todos；projects +sortOrder；todos +projectId |
+- **函数组件 + hooks**，禁 `any` / `as unknown as` / `@ts-ignore`
+- **`domain/` 零副作用**：无 React、无 IndexedDB、无浏览器 API
+- **组件不直接调 Repository**：必须通过 store
+- **`index.html` `<style>` 禁全局选择器**：Tailwind v4 用 `@layer`，非 layered 样式无条件优先
+- **新增 UI 必须定义 `:root` 和 `.dark` 两套变量**
+- **测试**：`domain/` 纯函数必须有测试；IndexedDB 测试用 `fake-indexeddb`；Repository 注入 fake Clock + IdGenerator
+- **不引入新 npm 依赖** 除非必要且已评估
+- **不引入日历库**（周视图自实现）
+- **不在视图中添加名言/引言**
+- **YAGNI**：不在 `domain/` 写过度抽象的代码
