@@ -962,7 +962,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, even
 
 // ── Scoped CSS ───────────────────────────────────────────────
 
-const HEATMAP_CSS = `
+export const HEATMAP_CSS = `
 .year-heatmap-root {
   position: relative;
   width: 100%;

@@ -333,13 +333,20 @@
 
 /* ── Unified focus ring ────────────────────────────────── */
 button:focus-visible:not(.focus-ring-custom),
+button:focus:not(.focus-ring-custom),
 a:focus-visible:not(.focus-ring-custom),
+a:focus:not(.focus-ring-custom),
 input:focus-visible:not(.focus-ring-custom),
+input:focus:not(.focus-ring-custom),
 textarea:focus-visible:not(.focus-ring-custom),
+textarea:focus:not(.focus-ring-custom),
 select:focus-visible:not(.focus-ring-custom),
+select:focus:not(.focus-ring-custom),
 summary:focus-visible:not(.focus-ring-custom),
 [role="button"]:focus-visible:not(.focus-ring-custom),
-[tabindex]:focus-visible:not(.focus-ring-custom) {
+[role="button"]:focus:not(.focus-ring-custom),
+[tabindex]:focus-visible:not(.focus-ring-custom),
+[tabindex]:focus:not(.focus-ring-custom) {
   outline: none;
 }
 

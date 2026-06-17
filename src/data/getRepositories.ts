@@ -7,6 +7,7 @@ import { InspirationRepository } from './inspirationRepository'
 import { ProfileRepository } from './profileRepository'
 import { DailyContextRepository } from './dailyContextRepository'
 import { TodoRepository } from './todoRepository'
+import { GoalRepository } from './goalRepository'
 import type { StorageAdapter } from './adapters/StorageAdapter'
 
 let _eventRepo: EventRepository
@@ -18,6 +19,7 @@ let _inspirationRepo: InspirationRepository
 let _profileRepo: ProfileRepository
 let _dailyContextRepo: DailyContextRepository
 let _todoRepo: TodoRepository
+let _goalRepo: GoalRepository
 
 export function initRepositories(adapter: StorageAdapter) {
   _eventRepo = new EventRepository(adapter)
@@ -29,6 +31,7 @@ export function initRepositories(adapter: StorageAdapter) {
   _profileRepo = new ProfileRepository(adapter)
   _dailyContextRepo = new DailyContextRepository(adapter)
   _todoRepo = new TodoRepository(adapter)
+  _goalRepo = new GoalRepository(adapter)
 }
 
 export function getEventRepo(): EventRepository {
@@ -74,4 +77,9 @@ export function getDailyContextRepo(): DailyContextRepository {
 export function getTodoRepo(): TodoRepository {
   if (!_todoRepo) throw new Error('TodoRepository not initialized. Call initRepositories() first.')
   return _todoRepo
+}
+
+export function getGoalRepo(): GoalRepository {
+  if (!_goalRepo) throw new Error('GoalRepository not initialized. Call initRepositories() first.')
+  return _goalRepo
 }

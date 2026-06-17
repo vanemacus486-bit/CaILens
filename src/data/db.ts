@@ -8,6 +8,7 @@ import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { Profile } from '@/domain/profile'
 import type { Todo } from '@/domain/todo'
+import type { Goal } from '@/domain/goal'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import { upgradeV3, upgradeV4, upgradeV5, upgradeV16, upgradeV21, upgradeV24 } from './migrations/upgrades'
 
@@ -26,6 +27,7 @@ export class CailensDB extends Dexie {
   outfitLogs!:      Table<import('@/domain/dailyContext').DailyOutfit, string>
   hygieneLogs!:     Table<import('@/domain/dailyContext').DailyHygiene, string>
   todos!: Table<Todo, string>
+  goals!: Table<Goal, string>
 
   constructor(name = 'cailens') {
     super(name)
@@ -181,6 +183,25 @@ export class CailensDB extends Dexie {
       hygieneLogs: 'id, date',
       todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern',
     }).upgrade(upgradeV24)
+
+    // v26：新增 goals 表；todos/events 增 goalId 索引
+    this.version(26).stores({
+      events: 'id, startTime, endTime, projectId, goalId',
+      categories: 'id', settings: 'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+      projects: 'id, categoryId, name, status, sortOrder, useCount, lastUsedAt, dailyRepeat',
+      inspirations: 'id, projectId, eventId',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+      profiles: 'id',
+      outfitLogs: 'id, date', hygieneLogs: 'id, date',
+      todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern, priority, domain, goalId',
+      goals: 'id, parentId, status, sortOrder',
+    }).upgrade(async (tx) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await tx.table('todos').toCollection().modify((t: any) => { if (t.goalId === undefined) t.goalId = null })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await tx.table('events').toCollection().modify((e: any) => { if (e.goalId === undefined) e.goalId = null })
+    })
 
     // 全新 DB 首次创建时触发（version 0 → any）
     this.on('populate', () =>

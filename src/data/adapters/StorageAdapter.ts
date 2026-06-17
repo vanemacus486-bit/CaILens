@@ -7,6 +7,7 @@ import type { InspirationLog } from '@/domain/inspiration'
 import type { Profile } from '@/domain/profile'
 import type { DailyOutfit, DailyHygiene } from '@/domain/dailyContext'
 import type { Todo } from '@/domain/todo'
+import type { Goal } from '@/domain/goal'
 
 export interface WhereCondition {
   key: string
@@ -45,6 +46,7 @@ export interface StorageAdapter {
   outfitLogs: StorageTable<DailyOutfit>
   hygieneLogs: StorageTable<DailyHygiene>
   todos: StorageTable<Todo>
+  goals: StorageTable<Goal>
   initialize(): Promise<void>
   /** Path to the storage root, or null if not configured (e.g. in-memory / IndexedDB). */
   readonly storagePath: string | null

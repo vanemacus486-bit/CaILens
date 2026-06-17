@@ -8,6 +8,7 @@ import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit, DailyHygiene } from '@/domain/dailyContext'
 import type { Todo } from '@/domain/todo'
+import type { Goal } from '@/domain/goal'
 import type { StorageAdapter, StorageTable, QueryOptions } from './StorageAdapter'
 import { CailensDB, db as dexieDb } from '../db'
 
@@ -124,6 +125,7 @@ export class IndexedDBAdapter implements StorageAdapter {
   outfitLogs: StorageTable<DailyOutfit>
   hygieneLogs: StorageTable<DailyHygiene>
   todos: StorageTable<Todo>
+  goals: StorageTable<Goal>
 
   private db: CailensDB
 
@@ -141,6 +143,7 @@ export class IndexedDBAdapter implements StorageAdapter {
     this.outfitLogs = new IndexedDBTable(db.outfitLogs)
     this.hygieneLogs = new IndexedDBTable(db.hygieneLogs)
     this.todos = new IndexedDBTable(db.todos)
+    this.goals = new IndexedDBTable(db.goals)
   }
 
   readonly storagePath: string | null = null

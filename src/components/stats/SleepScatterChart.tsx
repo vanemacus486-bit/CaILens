@@ -1,5 +1,5 @@
 ﻿import { useMemo, useState, startTransition } from 'react'
-import { ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized, ReferenceLine } from 'recharts'
+import { ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized, usePlotArea } from 'recharts'
 import type { CalendarEvent } from '@/domain/event'
 import { InsomniaSummary } from './InsomniaSummary'
 
@@ -85,7 +85,89 @@ function viewDesc(vm: SleepViewMode): string {
 /** Every 2 hours from 18:00 → 14:00 next day */
 const Y_TICKS = [1080, 1200, 1320, 1440, 1560, 1680, 1800, 1920, 2040, 2160, 2280]
 
-/* ── Custom SVG overlay: bars + dots ──────────────────── */
+/* ── Custom SVG overlay: bars + dots + average lines ──────
+   Recharts v3 only exposes axis scales (useX/YAxisScale, and what
+   <ReferenceLine> relies on) once a graphical series (Bar/Line/Scatter)
+   is registered on the axis. This chart has none, so those return
+   undefined and nothing draws. Instead we read the plot-area geometry
+   — which is series-independent — and map our fixed domains to pixels
+   ourselves: X over [1, days], Y over [Y_TICKS min, max] with the axis
+   reversed (18:00 at top → 14:00 next day at bottom). */
+
+interface SleepMarksProps {
+  nights: SleepNight[]
+  days: number
+  colorBedDot: string
+  colorWakeDot: string
+  barFill: string
+  barStroke: string
+  avgBedY?: number
+  avgWakeY?: number
+  avgBedLabel?: string
+  avgWakeLabel?: string
+  avgLineColor: string
+  avgLabelColor: string
+}
+
+function SleepMarks({
+  nights, days, colorBedDot, colorWakeDot, barFill, barStroke,
+  avgBedY, avgWakeY, avgBedLabel, avgWakeLabel, avgLineColor, avgLabelColor,
+}: SleepMarksProps) {
+  const plot = usePlotArea()
+  if (!plot) return null
+
+  const { x: px, y: py, width: pw, height: ph } = plot
+  const yMin = Y_TICKS[0]
+  const yMax = Y_TICKS[Y_TICKS.length - 1]
+  const ySpan = yMax - yMin
+
+  // X domain is [1, days]; Y domain is [yMin, yMax] with the axis reversed,
+  // so yMin sits at the top (py) and yMax at the bottom (py + ph).
+  const xOf = (day: number) => (days <= 1 ? px + pw / 2 : px + ((day - 1) / (days - 1)) * pw)
+  const yOf = (v: number) => py + ((v - yMin) / ySpan) * ph
+
+  return (
+    <g>
+      {/* Average bed/wake reference lines (behind the marks) */}
+      {avgBedY != null && (
+        <>
+          <line x1={px} x2={px + pw} y1={yOf(avgBedY)} y2={yOf(avgBedY)} stroke={avgLineColor} strokeDasharray="4 4" strokeWidth={1} />
+          {avgBedLabel && (
+            <text x={px + pw} y={yOf(avgBedY) - 4} textAnchor="end" fill={avgLabelColor} fontSize={11} style={{ fontFamily: 'var(--font-mono)' }}>{avgBedLabel}</text>
+          )}
+        </>
+      )}
+      {avgWakeY != null && (
+        <>
+          <line x1={px} x2={px + pw} y1={yOf(avgWakeY)} y2={yOf(avgWakeY)} stroke={avgLineColor} strokeDasharray="4 4" strokeWidth={1} />
+          {avgWakeLabel && (
+            <text x={px + pw} y={yOf(avgWakeY) - 4} textAnchor="end" fill={avgLabelColor} fontSize={11} style={{ fontFamily: 'var(--font-mono)' }}>{avgWakeLabel}</text>
+          )}
+        </>
+      )}
+
+      {/* Per-night sleep bar + bed/wake dots */}
+      {nights.map((n, i) => {
+        const cx = xOf(n.day)
+        const y1 = yOf(n.bedY)
+        const y2 = yOf(n.wakeY)
+        // bedY <= wakeY after wrapping, so y1 (bed) sits above y2 (wake)
+        const barW = 4
+        const barH = Math.max(2, y2 - y1)
+        return (
+          <g key={i}>
+            {/* Sleep bar */}
+            <rect x={cx - barW / 2} y={y1} width={barW} height={barH} rx={2} ry={2} fill={barFill} stroke={barStroke} strokeWidth={1} />
+            {/* Bed-time dot (top) */}
+            <circle cx={cx} cy={y1} r={5} fill={colorBedDot} />
+            {/* Wake-time dot (bottom) */}
+            <circle cx={cx} cy={y2} r={5} fill={colorWakeDot} />
+          </g>
+        )
+      })}
+    </g>
+  )
+}
 
 /* ── Component ──────────────────────────────────────────── */
 
@@ -314,59 +396,6 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
     ? { fontSize: 11, fontFamily: 'var(--font-mono)' }
     : { fontSize: 11, fontFamily: 'var(--font-ui)' }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderCustomSvg = (props: any) => {
-    const { xAxisMap, yAxisMap, offset } = props || {}
-    if (!xAxisMap || !yAxisMap) return null
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const xAxis = Object.values(xAxisMap)[0] as any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const yAxis = Object.values(yAxisMap)[0] as any
-    if (!xAxis?.scale || !yAxis?.scale) return null
-
-    const xScale = xAxis.scale as (v: number) => number
-    const yScale = yAxis.scale as (v: number) => number
-    const chartLeft = offset?.left ?? 0
-    const chartTop = offset?.top ?? 0
-
-    return (
-      <g>
-        {viewNights.map((n, i) => {
-          const cx = xScale(n.day) + chartLeft
-          const y1 = yScale(n.bedY) + chartTop
-          const y2 = yScale(n.wakeY) + chartTop
-          // bedY is always <= wakeY after wrapping, so y1 is higher on screen (bed)
-          const barY = y1
-          const barH = Math.max(2, y2 - y1)
-          const barW = 4
-          const barX = cx - barW / 2
-
-          return (
-            <g key={i}>
-              {/* Sleep bar */}
-              <rect
-                x={barX}
-                y={barY}
-                width={barW}
-                height={barH}
-                rx={2}
-                ry={2}
-                fill={barFill}
-                stroke={barStroke}
-                strokeWidth={1}
-              />
-              {/* Bed-time dot (top of bar) */}
-              <circle cx={cx} cy={y1} r={5} fill={colorBedDot} />
-              {/* Wake-time dot (bottom of bar) */}
-              <circle cx={cx} cy={y2} r={5} fill={colorWakeDot} />
-            </g>
-          )
-        })}
-      </g>
-    )
-  }
-
   return (
     <div className="sleep-root">
       <style>{SLEEP_CSS}</style>
@@ -484,42 +513,24 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
                   }}
                 />
 
-                {/* Custom bars + dots */}
-                <Customized component={renderCustomSvg} />
-
-                {/* Average bed time line */}
-                {stats && (
-                  <ReferenceLine
-                    y={stats.avgBedY}
-                    stroke={avgLineColor}
-                    strokeDasharray="4 4"
-                    strokeWidth={1}
-                    label={{
-                      value: `平均就寝 ${fmtHour(stats.avgBed)}`,
-                      position: 'right',
-                      fill: avgLabelColor,
-                      fontSize: 11,
-                      fontFamily: 'var(--font-mono)',
-                    }}
-                  />
-                )}
-
-                {/* Average wake time line */}
-                {stats && (
-                  <ReferenceLine
-                    y={stats.avgWakeY}
-                    stroke={avgLineColor}
-                    strokeDasharray="4 4"
-                    strokeWidth={1}
-                    label={{
-                      value: `平均起床 ${fmtHour(stats.avgWake)}`,
-                      position: 'right',
-                      fill: avgLabelColor,
-                      fontSize: 11,
-                      fontFamily: 'var(--font-mono)',
-                    }}
-                  />
-                )}
+                {/* Bars + dots + average lines (custom SVG overlay).
+                    Drawn from plot-area geometry because this chart has no
+                    graphical series for the axis-scale hooks to attach to. */}
+                <Customized
+                  component={SleepMarks}
+                  nights={viewNights}
+                  days={viewWindow.days}
+                  colorBedDot={colorBedDot}
+                  colorWakeDot={colorWakeDot}
+                  barFill={barFill}
+                  barStroke={barStroke}
+                  avgBedY={stats?.avgBedY}
+                  avgWakeY={stats?.avgWakeY}
+                  avgBedLabel={stats ? `平均就寝 ${fmtHour(stats.avgBed)}` : undefined}
+                  avgWakeLabel={stats ? `平均起床 ${fmtHour(stats.avgWake)}` : undefined}
+                  avgLineColor={avgLineColor}
+                  avgLabelColor={avgLabelColor}
+                />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
