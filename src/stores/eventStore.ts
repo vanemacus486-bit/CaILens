@@ -6,8 +6,7 @@ import type { CategoryId } from '@/domain/category'
 import { parseIcs, classifyEvent } from '@/domain/icsImport'
 import type { ImportResult, ImportedEvent } from '@/domain/icsImport'
 import { useCategoryStore } from './categoryStore'
-import { useDailyContextStore } from './dailyContextStore'
-import { getDayStart, shiftEventsByWeeks, formatISODate } from '@/domain/time'
+import { getDayStart, shiftEventsByWeeks } from '@/domain/time'
 import { tryLearnAndReclassify } from '@/use-cases/classifyAndLearnKeyword'
 
 // ── Event cache ──────────────────────────────────────────────
@@ -131,11 +130,6 @@ export const useEventStore = create<EventState>()((set, get) => ({
       })
     }
 
-    // 自动记录洗澡卫生（同时检查 input.title 和 event.title）
-    if (isShowerEvent(input) || isShowerEvent(event)) {
-      await recordShowerHygiene(event.startTime)
-    }
-
     return event
   },
 
@@ -146,11 +140,6 @@ export const useEventStore = create<EventState>()((set, get) => ({
     set((state) => ({
       events: state.events.map((e) => (e.id === event.id ? event : e)),
     }))
-
-    // 自动记录洗澡卫生（仅当标题改成了洗澡时）
-    if (isShowerEvent(event) && !isShowerEvent(prevEvent)) {
-      await recordShowerHygiene(event.startTime)
-    }
 
     // Auto-learn keyword when categoryId changes (delegated to use-case)
     const targetId = input.categoryId ?? input.color
@@ -298,26 +287,3 @@ export const useEventStore = create<EventState>()((set, get) => ({
     }))
   },
 }));
-
-// ── 洗澡自动记录卫生 ────────────────────────────────────
-
-function isShowerEvent(event?: { title?: string }): boolean {
-  if (!event?.title) return false
-  const t = event.title.trim().toLowerCase()
-  return t === '洗澡' || t === 'shower' || t.includes('洗澡') || t.includes('shower')
-}
-
-async function recordShowerHygiene(startTime: number): Promise<void> {
-  const date = formatISODate(new Date(startTime))
-  try {
-    await useDailyContextStore.getState().saveHygiene(date, ['shower'])
-    // 重新加载卫生数据使页面即时更新
-    const now = new Date()
-    const end = formatISODate(now)
-    const start = formatISODate(new Date(now.getTime() - 90 * 86400000))
-    await useDailyContextStore.getState().loadHygiene(start, end)
-    await useDailyContextStore.getState().loadRecentHygiene(90)
-  } catch {
-    // 静默失败——卫生记录的辅助功能不应阻塞主流程
-  }
-}

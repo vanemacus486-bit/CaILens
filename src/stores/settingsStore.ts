@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { getSettingsRepo } from '@/data/getRepositories'
 import type { AppSettings, AppLanguage, AppTheme, UiFont, VisualStyle, FontScale } from '@/domain/settings'
+import type { HygieneActivityDef } from '@/domain/hygieneActivity'
 import { DEFAULT_SETTINGS, resolveTheme } from '@/domain/settings'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
 
@@ -69,6 +70,7 @@ interface AppSettingsState {
   setShortcut: (action: ShortcutAction, binding: ShortcutString | null) => Promise<void>
   resetAllShortcuts: () => Promise<void>
   setUiFont: (font: UiFont) => Promise<void>
+  setHygieneActivities: (activities: HygieneActivityDef[]) => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
@@ -182,6 +184,11 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const settings = await getSettingsRepo().update({ uiFont: font })
     localStorage.setItem(FONT_KEY, font)
     applyFont(font)
+    set({ settings })
+  },
+
+  setHygieneActivities: async (activities) => {
+    const settings = await getSettingsRepo().update({ hygieneActivities: activities })
     set({ settings })
   },
 }))

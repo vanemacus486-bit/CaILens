@@ -25,7 +25,7 @@ export class CailensDB extends Dexie {
   mealRecords!:     Table<import('@/domain/event').MealRecord, string>
   sleepRecords!:    Table<import('@/domain/event').SleepRecord, string>
   outfitLogs!:      Table<import('@/domain/dailyContext').DailyOutfit, string>
-  hygieneLogs!:     Table<import('@/domain/dailyContext').DailyHygiene, string>
+  hygieneLogs!:     Table<import('./adapters/StorageAdapter').HygieneLogRecord, string>
   todos!: Table<Todo, string>
   goals!: Table<Goal, string>
 
@@ -201,6 +201,51 @@ export class CailensDB extends Dexie {
       await tx.table('todos').toCollection().modify((t: any) => { if (t.goalId === undefined) t.goalId = null })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await tx.table('events').toCollection().modify((e: any) => { if (e.goalId === undefined) e.goalId = null })
+    })
+
+    // v27：卫生改为类型化事件 — 旧 hygieneLogs 勾选记录迁移为 hygiene 事件
+    this.version(27).stores({
+      events: 'id, startTime, endTime, projectId, goalId',
+    }).upgrade(async (tx) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const logs = (await tx.table('hygieneLogs').toArray()) as any[]
+      if (logs.length === 0) return
+      const now = Date.now()
+      // 旧 HygieneActivity → 中文标题（内联，避免依赖已删除的 domain 常量）
+      const HYGIENE_LABELS: Record<string, string> = {
+        shower: '洗澡', brush_teeth: '刷牙', skincare: '护肤',
+        shave: '刮胡子', hair_wash: '洗头', nail_care: '修剪指甲',
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const newEvents: any[] = []
+      for (const log of logs) {
+        if (!log || typeof log.date !== 'string' || !Array.isArray(log.activities)) continue
+        const [y, m, d] = log.date.split('-').map(Number)
+        if (!y || !m || !d) continue
+        let i = 0
+        for (const activity of log.activities) {
+          const label = HYGIENE_LABELS[activity as string]
+          if (!label) continue
+          // 旧记录无时刻，默认落在当日 08:00 起、每项间隔 10 分钟
+          const start = new Date(y, m - 1, d, 8, i * 10).getTime()
+          newEvents.push({
+            id: crypto.randomUUID(),
+            title: label,
+            startTime: start,
+            endTime: start + 5 * 60_000,
+            color: 'sand',
+            categoryId: 'sand',
+            typedKey: 'hygiene',
+            typedData: { type: 'hygiene', activity },
+            goalId: null,
+            createdAt: now,
+            updatedAt: now,
+          })
+          i++
+        }
+      }
+      if (newEvents.length > 0) await tx.table('events').bulkAdd(newEvents)
+      await tx.table('hygieneLogs').clear()
     })
 
     // 全新 DB 首次创建时触发（version 0 → any）

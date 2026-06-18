@@ -5,9 +5,19 @@ import type { WeeklyEstimate } from '@/domain/estimate'
 import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { Profile } from '@/domain/profile'
-import type { DailyOutfit, DailyHygiene } from '@/domain/dailyContext'
+import type { DailyOutfit } from '@/domain/dailyContext'
 import type { Todo } from '@/domain/todo'
 import type { Goal } from '@/domain/goal'
+
+/**
+ * 旧卫生勾选记录类型。hygieneLogs 表已于 schema v27 清空并停用
+ * （卫生改为类型化事件，见 domain/hygieneActivity.ts），此处仅保留
+ * 最小结构以维持表的类型签名。
+ */
+export interface HygieneLogRecord {
+  id: string
+  date: string
+}
 
 export interface WhereCondition {
   key: string
@@ -44,7 +54,7 @@ export interface StorageAdapter {
   inspirations: StorageTable<InspirationLog>
   profile: StorageTable<Profile>
   outfitLogs: StorageTable<DailyOutfit>
-  hygieneLogs: StorageTable<DailyHygiene>
+  hygieneLogs: StorageTable<HygieneLogRecord>
   todos: StorageTable<Todo>
   goals: StorageTable<Goal>
   initialize(): Promise<void>

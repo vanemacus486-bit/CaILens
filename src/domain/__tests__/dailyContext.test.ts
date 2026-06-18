@@ -1,17 +1,12 @@
 /**
  * # dailyContext 纯函数测试
  *
- * 覆盖：aggregateNutrientStatus, computeHygieneScore,
- *       computeHygieneBaseline
+ * 覆盖：aggregateNutrientStatus
  */
 
 import { describe, it, expect } from 'vitest'
 import {
   aggregateNutrientStatus,
-  computeHygieneScore,
-  computeHygieneBaseline,
-  HYGIENE_ACTIVITY_SCORES,
-  HYGIENE_MAX_DAILY_SCORE,
   SUGAR_DAILY_LIMIT,
   CAFFEINE_DAILY_LIMIT,
 } from '../dailyContext'
@@ -80,65 +75,5 @@ describe('aggregateNutrientStatus', () => {
     expect(result.proteinCount).toBe(2)
     expect(result.vegetableCount).toBe(1)
     expect(result.vegetableInsufficient).toBe(false)
-  })
-})
-
-// ── computeHygieneScore ───────────────────────────────────
-
-describe('computeHygieneScore', () => {
-  it('returns 0 for empty activities', () => {
-    expect(computeHygieneScore([])).toBe(0)
-  })
-
-  it('sums scores for multiple activities', () => {
-    const score = computeHygieneScore(['shower', 'brush_teeth'])
-    expect(score).toBe(HYGIENE_ACTIVITY_SCORES.shower + HYGIENE_ACTIVITY_SCORES.brush_teeth)
-  })
-
-  it('caps at HYGIENE_MAX_DAILY_SCORE', () => {
-    const all: Array<keyof typeof HYGIENE_ACTIVITY_SCORES> = [
-      'shower', 'brush_teeth', 'skincare', 'shave', 'hair_wash', 'nail_care',
-    ]
-    const score = computeHygieneScore(all)
-    expect(score).toBeLessThanOrEqual(HYGIENE_MAX_DAILY_SCORE)
-    expect(score).toBe(90)
-  })
-
-  it('ignores unknown activities', () => {
-    // @ts-expect-error — testing unknown activity
-    const score = computeHygieneScore(['shower', 'unknown_activity'])
-    expect(score).toBe(HYGIENE_ACTIVITY_SCORES.shower)
-  })
-})
-
-// ── computeHygieneBaseline ─────────────────────────────────
-
-describe('computeHygieneBaseline', () => {
-  it('returns default baseline when no history', () => {
-    const baseline = computeHygieneBaseline([], 7)
-    expect(baseline).toBe(HYGIENE_MAX_DAILY_SCORE * 0.6)
-  })
-
-  it('computes moving average minus decay', () => {
-    const history = [
-      { date: '2025-01-01', score: 80 },
-      { date: '2025-01-02', score: 60 },
-      { date: '2025-01-03', score: 70 },
-    ]
-    const avg = (80 + 60 + 70) / 3
-    const expected = Math.max(0, avg - 5) // HYGIENE_DAILY_DECAY = 5
-    const baseline = computeHygieneBaseline(history, 7)
-    expect(baseline).toBeCloseTo(expected, 1)
-  })
-
-  it('uses only recent window', () => {
-    const history = [
-      { date: '2025-01-01', score: 100 },
-      { date: '2025-01-02', score: 10 },
-      { date: '2025-01-03', score: 10 },
-    ]
-    const baseline = computeHygieneBaseline(history, 2) // last 2
-    const avg = (10 + 10) / 2
-    expect(baseline).toBeCloseTo(Math.max(0, avg - 5), 1)
   })
 })

@@ -5,10 +5,10 @@ import type { WeeklyEstimate } from '@/domain/estimate'
 import type { Profile } from '@/domain/profile'
 import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
-import type { DailyOutfit, DailyHygiene } from '@/domain/dailyContext'
+import type { DailyOutfit } from '@/domain/dailyContext'
 import type { Todo } from '@/domain/todo'
 import type { Goal } from '@/domain/goal'
-import type { StorageAdapter, StorageTable, QueryOptions } from './StorageAdapter'
+import type { StorageAdapter, StorageTable, QueryOptions, HygieneLogRecord } from './StorageAdapter'
 import {
   isTauri,
   readDirWithContent,
@@ -76,7 +76,7 @@ interface MemoryIndex {
   projects: Map<string, Project>
   inspirations: Map<string, InspirationLog>
   outfitLogs: Map<string, DailyOutfit>
-  hygieneLogs: Map<string, DailyHygiene>
+  hygieneLogs: Map<string, HygieneLogRecord>
   todos: Map<string, Todo>
   goals: Map<string, Goal>
 }
@@ -873,7 +873,7 @@ export class FileSystemAdapter implements StorageAdapter {
   projects: StorageTable<Project>
   inspirations: StorageTable<InspirationLog>
   outfitLogs: StorageTable<DailyOutfit>
-  hygieneLogs: StorageTable<DailyHygiene>
+  hygieneLogs: StorageTable<HygieneLogRecord>
   todos: StorageTable<Todo>
   goals: StorageTable<Goal>
 

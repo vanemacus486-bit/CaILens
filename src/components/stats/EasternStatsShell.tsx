@@ -31,6 +31,11 @@ const SHELL_CSS = `
   flex: 1;
   overflow-y: auto;
   padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  /* 垂直居中内容；内容超高时回退到顶部对齐滚动，避免裁切顶部 */
+  justify-content: center;
+  justify-content: safe center;
 }
 
 @media (max-width: 719px) {

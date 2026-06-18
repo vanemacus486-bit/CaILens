@@ -3,6 +3,7 @@ import type { CreateEventInput } from '@/domain/event'
 
 export type SettingsTab =
   | 'categories'
+  | 'hygiene'
   | 'appearance'
   | 'shortcuts'
   | 'data'
@@ -28,8 +29,20 @@ interface UIState {
   setQuickCaptureInboxOpen: (open: boolean) => void
 }
 
+const SIDEBAR_KEY = 'cailens.sidebarOpen'
+
+// 默认收起：左侧面板由顶栏 ☰ 按需展开，不再常驻
+function loadSidebarExpanded(): boolean {
+  if (typeof localStorage === 'undefined') return false
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
 export const useUIStore = create<UIState>()((set) => ({
-  sidebarExpanded: true,
+  sidebarExpanded: loadSidebarExpanded(),
   mobileSidebarOpen: false,
   commandPaletteOpen: false,
   settingsModalOpen: false,
@@ -37,7 +50,11 @@ export const useUIStore = create<UIState>()((set) => ({
   clipboardEvent: null,
   lastFocusedEventId: null,
   quickCaptureInboxOpen: false,
-  toggleSidebar: () => set((s) => ({ sidebarExpanded: !s.sidebarExpanded })),
+  toggleSidebar: () => set((s) => {
+    const next = !s.sidebarExpanded
+    try { localStorage.setItem(SIDEBAR_KEY, String(next)) } catch { /* ignore */ }
+    return { sidebarExpanded: next }
+  }),
   setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setSettingsModalOpen: (open) => set({ settingsModalOpen: open }),

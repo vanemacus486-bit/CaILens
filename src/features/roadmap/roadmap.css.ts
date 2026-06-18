@@ -599,19 +599,19 @@ const ROADMAP_CSS = `
   border-radius: 14px;
   background: var(--surface-raised);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 1px 0 var(--surface-lit), 0 1px 3px rgba(0, 0, 0, 0.06);
   overflow: hidden;
   transition: box-shadow 0.2s ease, background-color 0.25s ease, border-color 0.2s ease;
 }
 .mm-node:hover .mm-node-card {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 1px 0 var(--surface-lit), 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 .mm-node-root .mm-node-card {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+  box-shadow: inset 0 1px 0 var(--surface-lit), 0 2px 8px rgba(0, 0, 0, 0.10);
 }
 .mm-node-focused .mm-node-card {
   border-color: transparent;
-  box-shadow: 0 0 0 2px var(--accent), 0 6px 18px rgba(0, 0, 0, 0.16);
+  box-shadow: inset 0 1px 0 var(--surface-lit), 0 0 0 2px var(--accent), 0 6px 18px rgba(0, 0, 0, 0.16);
 }
 
 /* 正文两行 */
@@ -662,19 +662,30 @@ const ROADMAP_CSS = `
   padding: 0;
 }
 
-/* 底部进度条 */
-.mm-node-progress {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 3px;
-  background: var(--surface-sunken);
+/* 标题行（圆圈 + 文字） */
+.mm-node-title-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
 }
-.mm-node-progress-fill {
-  display: block;
-  height: 100%;
-  transition: width 400ms ease-out;
+
+/* 左侧进度圆圈 */
+.mm-node-ring {
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+.mm-node-ring-track {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  opacity: 0.15;
+}
+.mm-node-ring-fill {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke-dasharray 400ms ease-out;
 }
 
 /* 悬停操作（加子目标 / 删除）右上角 */
@@ -778,6 +789,10 @@ const ROADMAP_CSS = `
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: 18px 20px;
+  box-shadow:
+    inset 0 1px 0 var(--surface-lit),
+    0 1px 2px rgba(45,30,18,0.04),
+    0 8px 18px -14px rgba(45,30,18,0.16);
 }
 .rm-card-head {
   display: flex;

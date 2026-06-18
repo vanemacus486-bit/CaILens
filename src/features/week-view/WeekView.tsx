@@ -15,6 +15,7 @@ import type { DragState } from './hooks/useEventDrag'
 import { WeekDateHeader } from './WeekDateHeader'
 import { CalendarHeader } from './CalendarHeader'
 import { WeekToolbar } from './WeekToolbar'
+import { WeekSidebar } from './WeekSidebar'
 import { EventDetailCard } from './EventDetailCard'
 import { WeekEmptyState } from './WeekEmptyState'
 import { DayEventStream } from '@/features/day-view/DayEventStream'
@@ -119,6 +120,17 @@ export function WeekView() {
     }
   }, [viewMode, handleMonthChange, handleDayChange, setWeekStart])
 
+  // Mini-calendar (sidebar) date click → navigate the main view, mode-aware
+  const handleSidebarSelectDate = useCallback((day: Date) => {
+    if (viewMode === 'month') {
+      handleMonthChange(new Date(day.getFullYear(), day.getMonth(), 1))
+    } else if (viewMode === 'day') {
+      handleDayChange(day)
+    } else {
+      setWeekStart(getWeekStart(day, 1))
+    }
+  }, [viewMode, handleMonthChange, handleDayChange, setWeekStart])
+
   const [cardState, setCardState] = useState<CardState>({ mode: 'none' })
   const [activeDragState, setActiveDragState] = useState<DragState>({ phase: 'idle', ghostStyle: null })
 
@@ -220,6 +232,7 @@ export function WeekView() {
     : null
 
   const isMobile = useIsMobile()
+  const sidebarExpanded = useUIStore((s) => s.sidebarExpanded)
   const [mobileViewMode, setMobileViewMode] = useState<'day' | 'week'>('day')
 
   const justClosedCardRef = useRef(false)
@@ -249,6 +262,22 @@ export function WeekView() {
       editingEvent: undefined,
     })
   }, [cardState.mode])
+
+  // 「新日程」按钮：锚定按钮打开创建卡片，默认时间取下一个半点
+  const handleNewEvent = useCallback((anchorEl: HTMLElement) => {
+    const d = new Date()
+    d.setSeconds(0, 0)
+    d.setMinutes(d.getMinutes() < 30 ? 30 : 60)
+    const start = d.getTime()
+    setCardState({ mode: 'none' })
+    setFloatingCard({
+      open: true,
+      anchorEl,
+      times: { start, end: start + 60 * 60_000 },
+      color: 'accent',
+      editingEvent: undefined,
+    })
+  }, [])
 
   const handleEventClick = useCallback((event: CalendarEvent, el: HTMLElement) => {
     useUIStore.getState().setLastFocusedEventId(event.id)
@@ -348,7 +377,6 @@ export function WeekView() {
   return (
     <>
       <div className="flex-1 flex flex-col min-w-0">
-        <header>
         <WeekToolbar
           weekStart={weekStart}
           onPrev={() => {
@@ -386,10 +414,22 @@ export function WeekView() {
             onSearch={() => useUIStore.getState().setCommandPaletteOpen(true)}
           />
         )}
+
+        <div className="flex-1 flex min-w-0">
+          {!isMobile && sidebarExpanded && (
+            <WeekSidebar
+              language={language}
+              viewMode={viewMode}
+              weekStart={weekStart}
+              selectedDay={selectedDay}
+              onSelectDate={handleSidebarSelectDate}
+              onNewEvent={handleNewEvent}
+            />
+          )}
+          <div className="flex-1 flex flex-col min-w-0">
         {viewMode === 'week' && !(isMobile && mobileViewMode === 'day') && (
           <WeekDateHeader days={days} onDayClick={handleDayChange} />
         )}
-        </header>
 
         {viewMode === 'month' ? (
           <MonthView monthStart={selectedDay} onDayChange={handleDayChange} onMonthChange={handleMonthChange} hideHeader={!isMobile} />
@@ -462,6 +502,8 @@ export function WeekView() {
           )}
         </div>
         )}
+          </div>
+        </div>
       </div>
 
       {cardState.mode === 'detail' && (

@@ -2,11 +2,11 @@
  * # 每日生活上下文（Daily Context）
  *
  * 记录影响作息但不属于"时间块"的生活变量。
- * 五个子域：饮食、穿搭、卫生、娱乐、身体时序记录。
+ * 子域：饮食、穿搭。（卫生已改为类型化事件，见 domain/hygieneActivity.ts）
  *
  * **设计原则：**
  * - 饮食聚合自现有 MealData (typedData on events)，非全新录入
- * - 穿搭/卫生/娱乐为新增独立记录
+ * - 穿搭为新增独立记录
  * - 所有记录以"天"为粒度，同一日期每子域最多一条
  * - 记录耗时目标 20 秒内（UI 层约束，domain 只定义结构）
  */
@@ -104,122 +104,4 @@ export interface DailyOutfit {
   items: OutfitItem[]
   /** 自由备注，如"下雨天"、"约会" */
   note?: string
-}
-
-// ── 卫生 ─────────────────────────────────────────────────
-
-/** 可记录的卫生活动类型 */
-export type HygieneActivity =
-  | 'shower'      // 洗澡
-  | 'brush_teeth' // 刷牙
-  | 'skincare'    // 护肤
-  | 'shave'       // 刮胡子
-  | 'hair_wash'   // 洗头
-  | 'nail_care'   // 修剪指甲
-
-
-export const HYGIENE_ACTIVITY_LABELS: Record<HygieneActivity, { zh: string; en: string }> = {
-  shower:     { zh: '洗澡',     en: 'Shower' },
-  brush_teeth: { zh: '刷牙',    en: 'Brush Teeth' },
-  skincare:   { zh: '护肤',     en: 'Skincare' },
-  shave:      { zh: '刮胡子',   en: 'Shave' },
-  hair_wash:  { zh: '洗头',     en: 'Hair Wash' },
-  nail_care:  { zh: '修剪指甲', en: 'Nail Care' },
-}
-
-/** 每个卫生活动的分数权重 */
-export const HYGIENE_ACTIVITY_SCORES: Record<HygieneActivity, number> = {
-  shower:      20,
-  brush_teeth: 15,
-  skincare:    20,
-  shave:       10,
-  hair_wash:   15,
-  nail_care:   10,
-}
-
-/** 单日最高卫生分数 */
-export const HYGIENE_MAX_DAILY_SCORE = 100
-
-/** 每日衰减率（基准线每天下降的分数） */
-export const HYGIENE_DAILY_DECAY = 5
-
-/** 固定基准线（图表参考线用） */
-export const HYGIENE_BASELINE = 50
-
-export interface DailyHygiene {
-  id: string
-  /** 日期 YYYY-MM-DD */
-  date: string
-  /** 当日完成的卫生活动 */
-  activities: HygieneActivity[]
-  /** 当日卫生总分（根据 activities 计算） */
-  score: number
-}
-
-/**
- * 根据当日活动列表计算卫生分数。
- * 各活动分数累加，上限 HYGIENE_MAX_DAILY_SCORE。
- */
-export function computeHygieneScore(activities: readonly HygieneActivity[]): number {
-  const total = activities.reduce(
-    (sum, act) => sum + (HYGIENE_ACTIVITY_SCORES[act] ?? 0),
-    0,
-  )
-  return Math.min(total, HYGIENE_MAX_DAILY_SCORE)
-}
-
-/**
- * 计算基准线。
- * 策略：最近 N 天卫生分数的移动平均，每天衰减 HYGIENE_DAILY_DECAY。
- * 若无历史数据，返回 HYGIENE_MAX_DAILY_SCORE × 0.6 作为默认基线。
- */
-export function computeHygieneBaseline(
-  history: ReadonlyArray<{ date: string; score: number }>,
-  windowDays = 7,
-): number {
-  if (history.length === 0) return HYGIENE_MAX_DAILY_SCORE * 0.6
-
-  const recent = history.slice(-windowDays)
-  const avg = recent.reduce((sum, d) => sum + d.score, 0) / recent.length
-
-  // 基线 = 移动平均 - 衰减
-  return Math.max(0, avg - HYGIENE_DAILY_DECAY)
-}
-
-/**
- * 计算跨天连续卫生分数（用于折线图时序展示）。
- * 策略：从 0 开始，每天衰减 HYGIENE_DAILY_DECAY，加上当日卫生分，不低于 0。
- */
-export function computeRunningHygieneScore(
-  records: ReadonlyArray<DailyHygiene>,
-): Array<{ date: string; score: number }> {
-  const sorted = [...records].sort(
-    (a, b) => a.date.localeCompare(b.date),
-  )
-
-  let running = 0
-  const timeline: Array<{ date: string; score: number }> = []
-
-  for (const day of sorted) {
-    // 每日衰减
-    running = Math.max(0, running - HYGIENE_DAILY_DECAY)
-    // 加上当日活动分
-    running += computeHygieneScore(day.activities)
-    // 不超出上限
-    running = Math.min(running, HYGIENE_MAX_DAILY_SCORE)
-
-    timeline.push({ date: day.date, score: Math.round(running) })
-  }
-
-  return timeline
-}
-
-// ── 聚合类型 ─────────────────────────────────────────────
-
-/** 每日上下文聚合（各子域数据汇总到一天） */
-export interface DailyContextSummary {
-  date: string
-  diet: NutrientStatus | null
-  outfit: DailyOutfit | null
-  hygiene: DailyHygiene | null
 }

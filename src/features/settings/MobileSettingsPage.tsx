@@ -4,6 +4,7 @@ import { useUIStore, type SettingsTab } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { cn } from '@/lib/utils'
 import { SettingsCategories } from './SettingsCategories'
+import { SettingsHygiene } from './SettingsHygiene'
 import { SettingsAppearance } from './SettingsAppearance'
 import { SettingsShortcuts } from './SettingsShortcuts'
 import { SettingsData } from './SettingsData'
@@ -13,6 +14,7 @@ import { isTauri } from '@/data/tauriFs'
 
 const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
   { key: 'categories', label: 'Categories', labelZh: '分类' },
+  { key: 'hygiene', label: 'Hygiene', labelZh: '卫生' },
   { key: 'appearance', label: 'Appearance', labelZh: '外观与语言' },
   { key: 'shortcuts',  label: 'Shortcuts', labelZh: '快捷键' },
   { key: 'data',       label: 'Data & Profile', labelZh: '数据与档案' },
@@ -22,6 +24,7 @@ const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
 
 const MOBILE_TAB_CONTENT: Record<SettingsTab, React.FC> = {
   categories: SettingsCategories,
+  hygiene: SettingsHygiene,
   appearance: SettingsAppearance,
   shortcuts:  SettingsShortcuts,
   data:       SettingsData,

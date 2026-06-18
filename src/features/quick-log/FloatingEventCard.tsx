@@ -7,6 +7,8 @@ import { getEventRepo } from '@/data/getRepositories'
 import { classifyEvent } from '@/domain/icsImport'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
+import { inferHygieneActivity, findHygieneActivity, DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 
 // ── Types ───────────────────────────────────────────────
 
@@ -85,6 +87,7 @@ export function FloatingEventCard({
   editingEvent, onClose, onSave, onUpdate, onDelete,
 }: FloatingEventCardProps) {
   const categories = useCategoryStore((s) => s.categories)
+  const hygieneActivities = useAppSettingsStore((s) => s.settings.hygieneActivities) ?? DEFAULT_HYGIENE_ACTIVITIES
   const isEditing = !!editingEvent
 
   // ── Core state ──────────────────────────────────────
@@ -100,6 +103,7 @@ export function FloatingEventCard({
   )
   const [title, setTitle] = useState(editingEvent?.title ?? '')
   const [userChangedCategory, setUserChangedCategory] = useState(false)
+  const [manualCategory, setManualCategory] = useState(false)
 
   // Sub-mode states
   const [sleepType, setSleepType] = useState<SleepSubType>(
@@ -146,6 +150,12 @@ export function FloatingEventCard({
   // ── Derived ─────────────────────────────────────────
 
   const catColor = `var(--event-${categoryId}-fill)`
+
+  // 卫生提示：新建且非睡眠/吃饭模式时，标题命中卫生关键词则提示将记为"卫生"事件
+  const hygieneHintId = !isEditing && mode !== 'sleep' && mode !== 'meal-food'
+    ? inferHygieneActivity(title, hygieneActivities)
+    : null
+  const hygieneHint = hygieneHintId ? findHygieneActivity(hygieneActivities, hygieneHintId) : null
 
   // ── Auto-classify when title changes ────────────────
 
@@ -221,6 +231,7 @@ export function FloatingEventCard({
       const newCatId = CATEGORY_BY_ALT_KEY[e.key]
       setCategoryId(newCatId)
       setUserChangedCategory(true)
+      setManualCategory(true)
       setMode(modeFromCategory(newCatId))
       setError(null)
       setGhostSuggestion(null)
@@ -289,6 +300,7 @@ export function FloatingEventCard({
 
     let typedData: TypedEventData | undefined
     let eventTitle = effectiveTitle
+    let saveCategory: CategoryId = categoryId
 
     if (mode === 'sleep' || editingEvent?.typedData?.type === 'sleep') {
       typedData = {
@@ -307,14 +319,30 @@ export function FloatingEventCard({
         source: 'home',
       } as TypedEventData
       eventTitle = title || '吃饭'
+    } else if (
+      editingEvent?.typedData?.type === 'hygiene' ||
+      inferHygieneActivity(effectiveTitle, hygieneActivities)
+    ) {
+      const existing = editingEvent?.typedData
+      const activityId =
+        existing && existing.type === 'hygiene'
+          ? existing.activity
+          : inferHygieneActivity(effectiveTitle, hygieneActivities)
+      if (activityId) {
+        const def = findHygieneActivity(hygieneActivities, activityId)
+        typedData = { type: 'hygiene', activity: activityId } as TypedEventData
+        eventTitle = effectiveTitle.trim() || def?.name || '卫生'
+        // 卫生默认归"庶务"，除非用户用 Alt+数字手动选了分类
+        if (!manualCategory && !isEditing) saveCategory = 'sand'
+      }
     }
 
     const input = {
       title: eventTitle,
       startTime,
       endTime,
-      color: categoryId as EventColor,
-      categoryId,
+      color: saveCategory as EventColor,
+      categoryId: saveCategory,
       typedKey: typedData?.type ?? null,
       typedData,
     }
@@ -456,6 +484,11 @@ export function FloatingEventCard({
             </button>
             {mode === 'meal-food' && (
               <span className="text-xs text-text-tertiary font-sans">吃饭</span>
+            )}
+            {hygieneHint && (
+              <span className="text-xs text-text-tertiary font-sans">
+                {`卫生 · ${hygieneHint.name}`}
+              </span>
             )}
           </div>
           <button

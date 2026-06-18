@@ -1,4 +1,6 @@
 import type { ShortcutAction, ShortcutString } from './shortcuts'
+import type { HygieneActivityDef } from './hygieneActivity'
+import { DEFAULT_HYGIENE_ACTIVITIES } from './hygieneActivity'
 
 export type AppLanguage = 'zh' | 'en'
 export type AppTheme = 'light' | 'dark' | 'auto'
@@ -16,6 +18,8 @@ export interface AppSettings {
   visualStyle?: VisualStyle
   fontScale?: FontScale
   shortcuts?: Partial<Record<ShortcutAction, ShortcutString>>
+  /** 自定义卫生活动（哪些事件计入卫生 + 颜色）；缺省回退 DEFAULT_HYGIENE_ACTIVITIES */
+  hygieneActivities?: HygieneActivityDef[]
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -24,6 +28,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'light',
   visualStyle: 'graphite',
   fontScale: 'default',
+  hygieneActivities: [...DEFAULT_HYGIENE_ACTIVITIES],
 }
 
 export function resolveTheme(theme: AppTheme | undefined, systemPrefersDark: boolean): 'light' | 'dark' {

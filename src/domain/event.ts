@@ -100,7 +100,14 @@ export interface MealData {
   source: MealSource
 }
 
-export type TypedEventData = SleepData | MealData
+/** 卫生活动事件：按真实时间点记录（与饮食 MealData 同构）。
+ *  activity 为用户自定义卫生活动的 id（见 domain/hygieneActivity） */
+export interface HygieneData {
+  type: 'hygiene'
+  activity: string
+}
+
+export type TypedEventData = SleepData | MealData | HygieneData
 
 export function isSleepData(data: TypedEventData): data is SleepData {
   return data.type === 'sleep'
@@ -108,6 +115,10 @@ export function isSleepData(data: TypedEventData): data is SleepData {
 
 export function isMealData(data: TypedEventData): data is MealData {
   return data.type === 'meal'
+}
+
+export function isHygieneData(data: TypedEventData): data is HygieneData {
+  return data.type === 'hygiene'
 }
 
 /** 根据时长自动判定睡眠类型：< 2h 为小睡 */
@@ -125,9 +136,9 @@ export interface CalendarEvent {
   projectId?: string
   description?: string
   location?: string
-  /** 类型化事件标识（"meal"/"sleep"/null），便于快速筛选 */
-  typedKey?: 'meal' | 'sleep' | null
-  /** 类型化事件数据（Sleep / Meal），无此字段则为普通事件 */
+  /** 类型化事件标识（"meal"/"sleep"/"hygiene"/null），便于快速筛选 */
+  typedKey?: 'meal' | 'sleep' | 'hygiene' | null
+  /** 类型化事件数据（Sleep / Meal / Hygiene），无此字段则为普通事件 */
   typedData?: TypedEventData
   /** 关联的目标 ID（长期目标树中的节点） */
   goalId?: string | null

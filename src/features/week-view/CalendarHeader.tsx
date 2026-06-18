@@ -1,4 +1,4 @@
-import { Search, Settings } from 'lucide-react'
+import { Search, Settings, Menu } from 'lucide-react'
 import { addDays, getISOWeek } from 'date-fns'
 import { formatMonthDay, formatWeekday } from '@/domain/time'
 import { SlideSegmented } from '@/components/nav/SlideSegmented'
@@ -49,16 +49,25 @@ export function CalendarHeader({
   }
 
   return (
-    <div className="flex items-center px-6 h-[52px] flex-shrink-0 border-b border-border-subtle">
-      {/* ── 左：品牌名 ── */}
-      <span className="font-serif text-[17px] font-semibold text-text-primary tracking-[-0.01em] select-none flex-shrink-0">
+    <div className="nav-bar flex items-center px-3 h-[52px] flex-shrink-0">
+      {/* ── ☰ 切换左侧面板 ── */}
+      <button
+        onClick={() => useUIStore.getState().toggleSidebar()}
+        className="w-9 h-9 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-sunken cursor-pointer transition-colors duration-200 flex-shrink-0"
+        aria-label={t('切换侧栏', 'Toggle sidebar')}
+      >
+        <Menu size={18} strokeWidth={1.75} />
+      </button>
+
+      {/* ── 品牌名 ── */}
+      <span className="ml-1 mr-3 font-serif text-[17px] font-semibold text-text-primary tracking-[-0.01em] select-none flex-shrink-0">
         CaILens
       </span>
 
       {/* ── 回到今天 ── */}
       <button
         onClick={onToday}
-        className="ml-4 font-sans text-xs text-text-secondary border border-border-subtle rounded-md px-2.5 py-1 cursor-pointer hover:bg-surface-sunken transition-colors duration-200 bg-transparent flex-shrink-0"
+        className="font-sans text-xs text-text-secondary border border-border-subtle rounded-md px-2.5 py-1 cursor-pointer hover:bg-surface-sunken transition-colors duration-200 bg-transparent flex-shrink-0"
       >
         {todayLabel}
       </button>

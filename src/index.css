@@ -471,25 +471,17 @@ body.resizing-event .overflow-y-auto {
   transition: opacity 300ms ease-out;
 }
 
-/* ── Navigation bar — dark header ──────────────────────── */
-/* Local token overrides cascade into all children (SlideSegmented, icons…) */
+/* Shared "lit-from-above" top highlight for raised surfaces (cards, mind-map nodes).
+   Mirrors the nav bar's material so the whole app shares one lighting model. */
+:root { --surface-lit: rgba(255,255,255,0.72); }
+.dark { --surface-lit: rgba(255,255,255,0.06); }
+
+/* ── Navigation bar — light toolbar ────────────────────── */
+/* Flat with the cream body; a hairline bottom border is the only separation.
+   Uses surface tokens so it adapts to light/dark automatically. */
 .nav-bar {
-  background: #2C2A28;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-  --text-primary:    rgba(255,255,255,0.90);
-  --text-secondary:  rgba(255,255,255,0.60);
-  --text-tertiary:   rgba(255,255,255,0.38);
-  --text-quaternary: rgba(255,255,255,0.22);
-  --surface-sunken:  rgba(255,255,255,0.07);
-  --surface-raised:  rgba(255,255,255,0.13);
-  --border-subtle:   rgba(255,255,255,0.08);
-  --accent:          #d4926e;
-}
-.dark .nav-bar {
-  background: #201e1c;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  --surface-sunken:  rgba(255,255,255,0.06);
-  --surface-raised:  rgba(255,255,255,0.11);
+  background: var(--surface-base);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 /* ── Responsive time-column width ────────────────────────── */

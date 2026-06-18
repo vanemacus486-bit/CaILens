@@ -14,6 +14,8 @@ import {
 } from '@/domain/goalMindMapLayout'
 
 const COL_PITCH = MIND_NODE_W + MIND_H_GAP
+const RING_R = 6
+const RING_C = 2 * Math.PI * RING_R
 
 interface GoalMindMapProps {
   mainGoal: Goal
@@ -429,7 +431,22 @@ export function GoalMindMap({
                       />
                     ) : (
                       <>
-                        <span className="mm-node-title">{n.title}</span>
+                        <div className="mm-node-title-row">
+                          <svg className="mm-node-ring" viewBox="0 0 16 16" width="16" height="16">
+                            <circle cx="8" cy="8" r={RING_R} className="mm-node-ring-track" />
+                            {progress.total > 0 && (
+                              <circle
+                                cx="8" cy="8" r={RING_R}
+                                className="mm-node-ring-fill"
+                                style={{
+                                  stroke: color,
+                                  strokeDasharray: `${(progress.percent / 100) * RING_C} ${RING_C}`,
+                                }}
+                              />
+                            )}
+                          </svg>
+                          <span className="mm-node-title">{n.title}</span>
+                        </div>
                         <span className="mm-node-meta">
                           {progress.total > 0 ? `${progress.done}/${progress.total}` : '—'}
                           {childCount > 0 && (
@@ -439,13 +456,6 @@ export function GoalMindMap({
                       </>
                     )}
                   </div>
-
-                  <span className="mm-node-progress">
-                    <span
-                      className="mm-node-progress-fill"
-                      style={{ width: `${progress.percent}%`, background: color }}
-                    />
-                  </span>
                 </div>
 
                 {/* 悬停操作：加子目标 / 删除 */}

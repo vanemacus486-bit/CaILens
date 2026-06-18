@@ -6,6 +6,8 @@ interface Props {
   language: AppLanguage
 }
 
+// 占位组件：穿搭功能暂未推出，暂不消费 props（保留 Props 供调用方类型校验）
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function OutfitCard(_props: Props) {
   return (
     <div className="outfit-placeholder">

@@ -6,6 +6,7 @@ import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/utils'
 import { SettingsCategories } from './SettingsCategories'
+import { SettingsHygiene } from './SettingsHygiene'
 import { SettingsAppearance } from './SettingsAppearance'
 import { SettingsShortcuts } from './SettingsShortcuts'
 import { SettingsData } from './SettingsData'
@@ -29,6 +30,7 @@ const TAB_GROUPS: { labelZh: string; labelEn: string; tabs: TabDef[] }[] = [
     labelEn: 'Preferences',
     tabs: [
       { key: 'categories', labelZh: '分类', labelEn: 'Categories', descZh: '分配每周168小时', descEn: 'Allocate 168h/week' },
+      { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
       { key: 'appearance', labelZh: '外观', labelEn: 'Appearance', descZh: '主题、字体与界面语言', descEn: 'Theme, font & language' },
     ],
   },
@@ -64,6 +66,7 @@ const TAB_GROUPS: { labelZh: string; labelEn: string; tabs: TabDef[] }[] = [
 
 const TAB_CONTENT: Record<SettingsTab, React.FC> = {
   categories: SettingsCategories,
+  hygiene: SettingsHygiene,
   appearance: SettingsAppearance,
   shortcuts: SettingsShortcuts,
   data:        SettingsData,

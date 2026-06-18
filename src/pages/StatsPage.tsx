@@ -17,6 +17,7 @@ import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
 import { DietCalendarCard } from '@/components/stats/DietCalendarCard'
 import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneCalendarCard } from '@/components/stats/HygieneCalendarCard'
+import { DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { EasternStatsShell, type RoutineViewMode } from '@/components/stats/EasternStatsShell'
 
 // ── 辅助函数（日期导航） ──────────────────────────────────
@@ -49,12 +50,10 @@ export function StatsPage() {
   const loadError       = useEventStore((s) => s.loadError)
   const categories      = useCategoryStore((s) => s.categories)
   const language        = useAppSettingsStore((s) => s.settings.language)
+  const hygieneActivities = useAppSettingsStore((s) => s.settings.hygieneActivities) ?? DEFAULT_HYGIENE_ACTIVITIES
 
   const outfits         = useDailyContextStore((s) => s.outfits)
-  const hygieneRecords  = useDailyContextStore((s) => s.hygieneRecords)
   const loadOutfits     = useDailyContextStore((s) => s.loadOutfits)
-  const loadHygiene     = useDailyContextStore((s) => s.loadHygiene)
-  const loadRecentHygiene = useDailyContextStore((s) => s.loadRecentHygiene)
 
   // ── URL state ────────────────────────────────────────────
 
@@ -78,9 +77,7 @@ export function StatsPage() {
     const end = formatISODate(now)
     const start = formatISODate(addDays(now, -90))
     fireAndForget(loadOutfits(start, end), 'load outfits')
-    fireAndForget(loadHygiene(start, end), 'load hygiene')
-    fireAndForget(loadRecentHygiene(90), 'load recent hygiene')
-  }, [loadOutfits, loadHygiene, loadRecentHygiene])
+  }, [loadOutfits])
 
   useEffect(() => { document.title = 'CaILens · 复盘' }, [])
 
@@ -158,7 +155,7 @@ export function StatsPage() {
               <DietCalendarCard rangeEvents={rangeEvents} />
             )}
             {routineView === 'hygiene' && (
-              <HygieneCalendarCard records={hygieneRecords} rangeEvents={rangeEvents} language={language} />
+              <HygieneCalendarCard rangeEvents={rangeEvents} activities={hygieneActivities} language={language} />
             )}
             {routineView === 'outfit' && (
               <OutfitCard outfits={outfits} language={language} />
