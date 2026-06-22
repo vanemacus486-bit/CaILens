@@ -9,6 +9,8 @@ import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, Typ
 import type { CategoryId } from '@/domain/category'
 import { inferHygieneActivity, findHygieneActivity, DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { RecentPills } from './RecentPills'
+import { AutocompleteDropdown, type AutocompleteSuggestion } from './AutocompleteDropdown'
 
 // ── Types ───────────────────────────────────────────────
 
@@ -17,8 +19,6 @@ export type CardMode =
   | 'chores'        // 庶务
   | 'meal-food'     // 吃饭 → 输入食物
   | 'growth'        // 个人提升 → 未指定
-  | 'growth-read'   // 个人提升 → 阅读
-  | 'growth-sport'  // 个人提升 → 运动
   | 'leisure'       // 娱乐放松
   | 'sleep'         // 睡眠
 
@@ -32,6 +32,8 @@ interface FloatingEventCardProps {
   onSave: (input: CreateEventInput) => Promise<string>
   onUpdate: (input: UpdateEventInput) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  /** 记录并继续：用上一条的结束时间立即开下一条 */
+  onContinue?: (nextStart: number, nextEnd: number, color: EventColor) => void
 }
 
 // ── Helpers ─────────────────────────────────────────────
@@ -44,6 +46,16 @@ const CATEGORY_BY_ALT_KEY: Record<string, CategoryId> = {
   '5': 'rose',
   '6': 'stone',
 }
+
+// 底部分类点的顺序与 Alt 数字键一一对应
+const CATEGORY_DOTS: { id: CategoryId; altKey: string }[] = [
+  { id: 'accent', altKey: '1' },
+  { id: 'sage',   altKey: '2' },
+  { id: 'sand',   altKey: '3' },
+  { id: 'sky',    altKey: '4' },
+  { id: 'rose',   altKey: '5' },
+  { id: 'stone',  altKey: '6' },
+]
 
 function modeFromCategory(catId: CategoryId): CardMode {
   switch (catId) {
@@ -59,6 +71,15 @@ function modeFromCategory(catId: CategoryId): CardMode {
 function tsToStr(ts: number): string {
   const d = new Date(ts)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function formatDuration(min: number): string {
+  if (min <= 0) return ''
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  if (h === 0) return `${m}分`
+  if (m === 0) return `${h}时`
+  return `${h}时${m}分`
 }
 
 function dateLabel(ts: number): string {
@@ -84,7 +105,7 @@ function inferMealOrder(timeMs: number): 'breakfast' | 'lunch' | 'dinner' | 'nig
 
 export function FloatingEventCard({
   open, anchorEl, defaultTimes, defaultColor,
-  editingEvent, onClose, onSave, onUpdate, onDelete,
+  editingEvent, onClose, onSave, onUpdate, onDelete, onContinue,
 }: FloatingEventCardProps) {
   const categories = useCategoryStore((s) => s.categories)
   const hygieneActivities = useAppSettingsStore((s) => s.settings.hygieneActivities) ?? DEFAULT_HYGIENE_ACTIVITIES
@@ -134,8 +155,23 @@ export function FloatingEventCard({
     return crossDay ? ts + 24 * 60 * 60 * 1000 : ts
   })()
 
-  // Ghost suggestion below input
-  const [ghostSuggestion, setGhostSuggestion] = useState<string | null>(null)
+  // Effective start timestamp + live duration (minutes)
+  const effectiveStartTs = (() => {
+    const [sh, sm] = startStr.split(':').map(Number)
+    const base = new Date(defaultTimes.start)
+    return new Date(base.getFullYear(), base.getMonth(), base.getDate(), sh, sm).getTime()
+  })()
+  const durationMin = Math.max(0, Math.round((effectiveEndTs - effectiveStartTs) / 60_000))
+
+  // Autocomplete suggestions below input
+  const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([])
+  const [selectedIndex, setSelectedIndex] = useState(-1)
+
+  // 键位提示行：只在前几次使用时出现，老用户自动消失
+  const [showHint] = useState(() => {
+    try { return Number(localStorage.getItem('cailens.cardHintSeen') ?? '0') < 6 }
+    catch { return false }
+  })
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null)
@@ -178,12 +214,13 @@ export function FloatingEventCard({
     return () => clearTimeout(timer)
   }, [open, mode])
 
-  // ── Ghost suggestion (debounced) ────────────────────
+  // ── Autocomplete suggestions (debounced) ────────────
 
   useEffect(() => {
     const q = title.trim().toLowerCase()
     if (q.length < 2) {
-      setGhostSuggestion(null)
+      setSuggestions([])
+      setSelectedIndex(-1)
       return
     }
 
@@ -191,7 +228,7 @@ export function FloatingEventCard({
     debounceRef.current = setTimeout(async () => {
       try {
         const repo = getEventRepo()
-        const results = await repo.search(q, 8)
+        const results = await repo.search(q, 40)
         const freq = new Map<string, number>()
         for (const e of results) {
           if (e.categoryId !== categoryId) continue
@@ -199,11 +236,14 @@ export function FloatingEventCard({
           freq.set(e.title, (freq.get(e.title) ?? 0) + 1)
         }
         const matches = Array.from(freq.entries())
+          .filter(([t]) => t.toLowerCase().includes(q) && t.toLowerCase() !== q)
           .sort((a, b) => b[1] - a[1])
-          .filter(([t]) => t.toLowerCase().startsWith(q) && t.toLowerCase() !== q)
-        setGhostSuggestion(matches.length > 0 ? matches[0][0] : null)
+          .slice(0, 6)
+          .map(([t, count]) => ({ title: t, count }))
+        setSuggestions(matches)
+        setSelectedIndex(-1)
       } catch {
-        setGhostSuggestion(null)
+        setSuggestions([])
       }
     }, 150)
 
@@ -212,15 +252,45 @@ export function FloatingEventCard({
     }
   }, [title, categoryId])
 
+  // ── Category selection (shared by Alt+1~6 and dots) ──
+
+  const selectCategory = useCallback((newCatId: CategoryId) => {
+    setCategoryId(newCatId)
+    setUserChangedCategory(true)
+    setManualCategory(true)
+    setMode(modeFromCategory(newCatId))
+    setError(null)
+    setSuggestions([])
+    setSelectedIndex(-1)
+  }, [])
+
+  const acceptSuggestion = useCallback((s: AutocompleteSuggestion) => {
+    setTitle(s.title)
+    setSuggestions([])
+    setSelectedIndex(-1)
+  }, [])
+
   // ── Keyboard handler ────────────────────────────────
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Tab → accept ghost suggestion
+    const hasList = suggestions.length > 0
+
+    // ↑↓ → navigate suggestions (-1 = back to typed text)
+    if (hasList && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault()
+      setSelectedIndex((i) =>
+        e.key === 'ArrowDown'
+          ? Math.min(suggestions.length - 1, i + 1)
+          : Math.max(-1, i - 1),
+      )
+      return
+    }
+
+    // Tab → accept highlighted (or top) suggestion
     if (e.key === 'Tab' && !e.shiftKey) {
-      if (ghostSuggestion) {
+      if (hasList) {
         e.preventDefault()
-        setTitle(ghostSuggestion)
-        setGhostSuggestion(null)
+        acceptSuggestion(suggestions[selectedIndex >= 0 ? selectedIndex : 0])
       }
       return
     }
@@ -228,36 +298,36 @@ export function FloatingEventCard({
     // Alt+1~6 → category switching
     if (e.altKey && CATEGORY_BY_ALT_KEY[e.key]) {
       e.preventDefault()
-      const newCatId = CATEGORY_BY_ALT_KEY[e.key]
-      setCategoryId(newCatId)
-      setUserChangedCategory(true)
-      setManualCategory(true)
-      setMode(modeFromCategory(newCatId))
-      setError(null)
-      setGhostSuggestion(null)
+      selectCategory(CATEGORY_BY_ALT_KEY[e.key])
       return
     }
 
-    // Enter → save
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Enter → 两段式：候选高亮时先采用，否则保存（⇧⏎ 记录并继续）
+    if (e.key === 'Enter') {
       e.preventDefault()
-      handleSaveRef.current()
+      if (hasList && selectedIndex >= 0) {
+        acceptSuggestion(suggestions[selectedIndex])
+        return
+      }
+      handleSaveRef.current(e.shiftKey)
       return
     }
 
-    // Escape → close or go back to chores
+    // Escape → 先收候选，再退吃饭子模式，最后关卡片
     if (e.key === 'Escape') {
       e.preventDefault()
-      if (mode === 'meal-food') {
+      if (hasList) {
+        setSuggestions([])
+        setSelectedIndex(-1)
+      } else if (mode === 'meal-food') {
         setMode('chores')
         setTitle('')
-        setGhostSuggestion(null)
       } else {
         onClose()
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ghostSuggestion, categoryId, mode])
+  }, [suggestions, selectedIndex, mode, selectCategory, acceptSuggestion])
 
   // ── Save logic ──────────────────────────────────────
 
@@ -277,12 +347,12 @@ export function FloatingEventCard({
     return null
   }
 
-  async function handleSave(overrideTitle?: string) {
-    const effectiveTitle = overrideTitle ?? title
-    if (!overrideTitle && (mode === 'chores' || mode === 'input') && isMealTitle(effectiveTitle)) {
+  async function handleSave(continueAfter = false) {
+    const effectiveTitle = title
+    if ((mode === 'chores' || mode === 'input') && isMealTitle(effectiveTitle)) {
       setMode('meal-food')
       setTitle('')
-      setGhostSuggestion(null)
+      setSuggestions([])
       return
     }
 
@@ -350,13 +420,34 @@ export function FloatingEventCard({
     try {
       if (isEditing && editingEvent) {
         await onUpdate({ id: editingEvent.id, ...input })
+        onClose()
       } else {
         await onSave(input)
+        try {
+          const n = Number(localStorage.getItem('cailens.cardHintSeen') ?? '0')
+          localStorage.setItem('cailens.cardHintSeen', String(n + 1))
+        } catch { /* ignore */ }
+        if (continueAfter && onContinue) {
+          // 下一条接力：开始=本条结束，时长沿用本条，分类沿用
+          onContinue(endTime, endTime + (endTime - startTime), saveCategory as EventColor)
+        } else {
+          onClose()
+        }
       }
-      onClose()
     } catch {
       setError('保存失败')
     }
+  }
+
+  // ── Duration quick chips ─────────────────────────────
+
+  function applyDuration(min: number) {
+    const end = effectiveStartTs + min * 60_000
+    const endD = new Date(end)
+    const startD = new Date(effectiveStartTs)
+    setEndStr(`${String(endD.getHours()).padStart(2, '0')}:${String(endD.getMinutes()).padStart(2, '0')}`)
+    setCrossDay(endD.toDateString() !== startD.toDateString())
+    setError(null)
   }
 
   // ── Delete ───────────────────────────────────────────
@@ -470,33 +561,38 @@ export function FloatingEventCard({
   // ── Default mode ─────────────────────────────────────
 
   function renderDefaultMode() {
+    const showRecent = !isEditing && title.trim().length === 0
+    const showList = suggestions.length > 0
     return (
       <>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: catColor }} />
             <button
               onClick={() => setShowTimeEdit(!showTimeEdit)}
-              className="font-mono text-xs text-text-secondary cursor-pointer hover:text-text-primary transition-colors"
+              className="font-mono text-xs text-text-secondary cursor-pointer hover:text-text-primary transition-colors truncate"
             >
               {headerTime}
+              {durationMin > 0 && (
+                <span className="text-text-tertiary">{` · ${formatDuration(durationMin)}`}</span>
+              )}
             </button>
             {mode === 'meal-food' && (
-              <span className="text-xs text-text-tertiary font-sans">吃饭</span>
+              <span className="text-xs text-text-tertiary font-sans flex-shrink-0">吃饭</span>
             )}
             {hygieneHint && (
-              <span className="text-xs text-text-tertiary font-sans">
+              <span className="text-xs text-text-tertiary font-sans flex-shrink-0">
                 {`卫生 · ${hygieneHint.name}`}
               </span>
             )}
           </div>
           <button
             onClick={mode === 'meal-food'
-              ? () => { setMode('chores'); setTitle(''); setGhostSuggestion(null) }
+              ? () => { setMode('chores'); setTitle(''); setSuggestions([]) }
               : onClose
             }
-            className="text-text-tertiary hover:text-text-primary cursor-pointer p-1"
+            className="text-text-tertiary hover:text-text-primary cursor-pointer p-1 flex-shrink-0"
             aria-label="关闭"
           >
             <X size={16} />
@@ -505,43 +601,62 @@ export function FloatingEventCard({
 
         {/* Collapsible time editor */}
         {showTimeEdit && (
-          <div className="flex items-center gap-1.5 mb-2 animate-slide-down">
-            <input
-              type="time"
-              value={startStr}
-              onChange={(e) => { setStartStr(e.target.value); setError(null) }}
-              className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded px-2 py-1.5 focus:border-border-default focus-visible:outline-none"
-            />
-            <button
-              onClick={() => { setCrossDay(!crossDay); setError(null) }}
-              className={cn(
-                'px-2 py-1.5 rounded text-xs font-sans border transition-colors cursor-pointer flex-shrink-0',
-                crossDay
-                  ? 'bg-accent/10 border-accent/40 text-accent'
-                  : 'bg-surface-sunken border-border-subtle text-text-tertiary hover:bg-surface-base',
-              )}
-              title="次日"
-            >
-              次日
-            </button>
-            <input
-              type="time"
-              value={endStr}
-              onChange={(e) => { setEndStr(e.target.value); setError(null) }}
-              className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded px-2 py-1.5 focus:border-border-default focus-visible:outline-none"
-            />
+          <div className="mb-2 animate-slide-down">
+            <div className="flex items-center gap-1.5">
+              <input
+                type="time"
+                value={startStr}
+                onChange={(e) => { setStartStr(e.target.value); setError(null) }}
+                className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded px-2 py-1.5 focus:border-border-default focus-visible:outline-none"
+              />
+              <button
+                onClick={() => { setCrossDay(!crossDay); setError(null) }}
+                className={cn(
+                  'px-2 py-1.5 rounded text-xs font-sans border transition-colors cursor-pointer flex-shrink-0',
+                  crossDay
+                    ? 'bg-accent/10 border-accent/40 text-accent'
+                    : 'bg-surface-sunken border-border-subtle text-text-tertiary hover:bg-surface-base',
+                )}
+                title="次日"
+              >
+                次日
+              </button>
+              <input
+                type="time"
+                value={endStr}
+                onChange={(e) => { setEndStr(e.target.value); setError(null) }}
+                className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded px-2 py-1.5 focus:border-border-default focus-visible:outline-none"
+              />
+            </div>
+            {/* Duration quick chips */}
+            <div className="flex gap-1.5 mt-1.5">
+              {[15, 30, 60, 120].map((min) => (
+                <button
+                  key={min}
+                  onClick={() => applyDuration(min)}
+                  className={cn(
+                    'flex-1 py-1 rounded text-xs font-sans border transition-colors cursor-pointer',
+                    durationMin === min
+                      ? 'bg-accent/10 border-accent/40 text-accent'
+                      : 'bg-surface-sunken border-border-subtle text-text-tertiary hover:bg-surface-base',
+                  )}
+                >
+                  {min < 60 ? `${min}分` : `${min / 60}时`}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Main input with ghost suggestion */}
+        {/* Main input */}
         <div className="relative mb-1">
           <input
             ref={inputRef}
             type="text"
             value={title}
-            onChange={(e) => { setTitle(e.target.value); setGhostSuggestion(null) }}
+            onChange={(e) => { setTitle(e.target.value); setSelectedIndex(-1) }}
             onKeyDown={handleKeyDown}
-            placeholder={ghostSuggestion ? '' : placeholderText}
+            placeholder={placeholderText}
             className={cn(
               'w-full font-sans text-sm text-text-primary',
               'bg-transparent border-0',
@@ -556,19 +671,58 @@ export function FloatingEventCard({
           />
         </div>
 
-        {/* Ghost suggestion line */}
-        {ghostSuggestion && (
-          <div
-            className="flex items-center gap-1.5 px-2 py-0.5 text-xs font-sans text-text-tertiary cursor-pointer hover:text-text-secondary transition-colors"
-            onMouseDown={(e) => { e.preventDefault(); setTitle(ghostSuggestion) }}
-          >
-            <span>{ghostSuggestion}</span>
-            <span className="text-[10px] opacity-50">Tab</span>
+        {/* Autocomplete dropdown (while typing) */}
+        {showList && (
+          <AutocompleteDropdown
+            suggestions={suggestions}
+            selectedIndex={selectedIndex}
+            onSelect={(t) => { setTitle(t); setSuggestions([]); setSelectedIndex(-1); inputRef.current?.focus() }}
+          />
+        )}
+
+        {/* Recent pills (empty input) */}
+        {showRecent && !showList && (
+          <RecentPills
+            categoryId={categoryId}
+            onSelect={(t) => { setTitle(t); inputRef.current?.focus() }}
+            max={5}
+          />
+        )}
+
+        {/* Keyboard hint (first few uses) */}
+        {showHint && showRecent && !showList && (
+          <div className="px-2 mt-1.5 text-[10px] leading-tight text-text-tertiary/70 font-sans">
+            ⇥ 补全 · ⌥1–6 选分类 · ⇧⏎ 记录并继续
           </div>
         )}
 
         {/* Error */}
         {error && <p className="text-xs text-color-text-danger mt-1 font-sans">{error}</p>}
+
+        {/* Category dots */}
+        <div className="flex items-center gap-2 mt-3">
+          {CATEGORY_DOTS.map(({ id, altKey }) => {
+            const name = categories.find((c) => c.id === id)?.name ?? id
+            const active = id === categoryId
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => selectCategory(id)}
+                title={`${name} · ⌥${altKey}`}
+                aria-label={name}
+                aria-pressed={active}
+                className={cn(
+                  'w-5 h-5 rounded-full transition-all duration-150 cursor-pointer',
+                  active
+                    ? 'ring-2 ring-text-secondary scale-110'
+                    : 'opacity-50 hover:opacity-100',
+                )}
+                style={{ backgroundColor: `var(--event-${id}-fill)` }}
+              />
+            )
+          })}
+        </div>
 
         {/* Actions */}
         <div className="flex justify-end gap-2 mt-3">
@@ -578,6 +732,15 @@ export function FloatingEventCard({
               className="font-sans text-xs text-color-text-danger bg-transparent border border-color-text-danger/30 rounded-md px-3 py-1.5 cursor-pointer hover:bg-color-text-danger/10 transition-colors"
             >
               删除
+            </button>
+          )}
+          {!isEditing && (
+            <button
+              onClick={() => handleSave(true)}
+              title="记录并继续下一条 (⇧⏎)"
+              className="font-sans text-xs font-medium text-text-secondary bg-transparent border border-border-default rounded-md px-3 py-1.5 cursor-pointer hover:bg-surface-sunken transition-colors"
+            >
+              继续 ⇧⏎
             </button>
           )}
           <button

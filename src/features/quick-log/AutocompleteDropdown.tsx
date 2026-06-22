@@ -24,7 +24,7 @@ export function AutocompleteDropdown({ suggestions, selectedIndex, onSelect }: A
   return (
     <div
       className={cn(
-        'absolute left-0 right-0 top-full mt-1 z-50',
+        'mt-1',
         'bg-surface-raised border border-border-default rounded-lg',
         'shadow-tooltip overflow-hidden',
       )}

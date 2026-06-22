@@ -363,6 +363,17 @@ export function WeekView() {
     await deleteEvent(id)
   }, [deleteEvent])
 
+  // 记录并继续：保持卡片打开，用上一条的结束时间开下一条
+  const handleFloatingCardContinue = useCallback((nextStart: number, nextEnd: number, color: EventColor) => {
+    setFloatingCard((prev) => ({
+      ...prev,
+      open: true,
+      times: { start: nextStart, end: nextEnd },
+      color,
+      editingEvent: undefined,
+    }))
+  }, [])
+
   const gridRef = useRef<HTMLDivElement>(null)
 
   // Session state: save week + view, restore scroll
@@ -529,6 +540,7 @@ export function WeekView() {
 
       {floatingCard.open && floatingCard.times && floatingCard.anchorEl && (
         <FloatingEventCard
+          key={`${floatingCard.times.start}-${floatingCard.editingEvent?.id ?? 'new'}`}
           open={floatingCard.open}
           anchorEl={floatingCard.anchorEl}
           defaultTimes={floatingCard.times}
@@ -538,6 +550,7 @@ export function WeekView() {
           onSave={handleFloatingCardSave}
           onUpdate={handleFloatingCardUpdate}
           onDelete={handleFloatingCardDelete}
+          onContinue={handleFloatingCardContinue}
         />
       )}
     </>
