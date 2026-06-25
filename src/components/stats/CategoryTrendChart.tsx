@@ -7,9 +7,11 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
+  LabelList,
 } from 'recharts'
 import { RechartsTooltip } from './RechartsTooltip'
 import type { Category, CategoryId } from '@/domain/category'
@@ -59,7 +61,10 @@ function loadSelection(): CategoryId[] {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.every((v) => CATEGORY_IDS.includes(v))) {
-        return parsed
+        // De-dup: a stale stored value with repeats would render duplicate
+        // <Line> series (same React key) and double a category in the tooltip.
+        const unique = [...new Set(parsed)] as CategoryId[]
+        if (unique.length > 0) return unique
       }
     }
   } catch { /* ignore */ }
@@ -91,6 +96,8 @@ export function CategoryTrendChart({
 }: CategoryTrendChartProps) {
   const [selected, setSelected] = useState<CategoryId[]>(loadSelection)
   const [isCompact, setIsCompact] = useState(false)
+  // Which line the cursor is over — emphasised in the chart and the tooltip.
+  const [activeId, setActiveId] = useState<CategoryId | null>(null)
 
   useEffect(() => { saveSelection(selected) }, [selected])
 
@@ -120,11 +127,15 @@ export function CategoryTrendChart({
   /* ── Chart data ──────────────────────────── */
 
   const chartData = useMemo(() => {
-    return history.map((b) => {
+    return history.map((b, i) => {
       const label = formatBucketLabel(b, periodType)
-      const row: Record<string, string | number> = { label }
+      const row: Record<string, string | number | boolean> = { label, isCurrent: i === history.length - 1 }
+      const prev = i > 0 ? history[i - 1] : null
       for (const id of CATEGORY_IDS) {
-        row[id] = b.byCategory[id] ?? 0
+        const v = b.byCategory[id] ?? 0
+        row[id] = v
+        // `__d_<id>` = change vs the previous bucket; the tooltip reads it for 环比.
+        if (prev) row[`__d_${id}`] = v - (prev.byCategory[id] ?? 0)
       }
       return row
     })
@@ -142,6 +153,13 @@ export function CategoryTrendChart({
     if (maxVal === 0) return 80
     const scaled = maxVal * 1.15
     return Math.ceil(scaled / 10) * 10
+  }, [chartData, selected])
+
+  const topLabelIds = useMemo(() => {
+    if (chartData.length === 0) return selected
+    const lastRow = chartData[chartData.length - 1]
+    const ranked = [...selected].sort((a, b) => ((lastRow[b] as number) || 0) - ((lastRow[a] as number) || 0))
+    return ranked.slice(0, 3)
   }, [chartData, selected])
 
   const budgetLine = useMemo(() => {
@@ -168,8 +186,10 @@ export function CategoryTrendChart({
 
     const selectedTotal = selected.reduce((sum, id) => sum + (current.byCategory[id] || 0), 0)
 
-    const days = (current.end.getTime() - current.start.getTime()) / DAY_MS
-    const dailyAvg = days > 0 ? selectedTotal / days : 0
+    // 1a: elapsed days (cap at now for in-progress period)
+    const elapsedMs = Math.min(Date.now(), current.end.getTime()) - current.start.getTime()
+    const curDays = Math.max(elapsedMs / DAY_MS, 1)
+    const dailyAvg = selectedTotal / curDays
 
     let peakId: CategoryId = selected[0] || 'accent'
     let peakHours = 0
@@ -178,12 +198,15 @@ export function CategoryTrendChart({
       if (h > peakHours) { peakHours = h; peakId = id }
     }
 
+    // 1b: WoW as daily-average delta
     let wowPct: number | null = null
     let wowAbs: number | null = null
     if (prev) {
       const prevTotal = selected.reduce((sum, id) => sum + (prev.byCategory[id] || 0), 0)
-      wowAbs = selectedTotal - prevTotal
-      wowPct = prevTotal > 0 ? (wowAbs / prevTotal) * 100 : null
+      const prevDays = (prev.end.getTime() - prev.start.getTime()) / DAY_MS
+      const prevDaily = prevDays > 0 ? prevTotal / prevDays : 0
+      wowPct = prevDaily > 0 ? ((dailyAvg - prevDaily) / prevDaily) * 100 : null
+      wowAbs = dailyAvg - prevDaily
     }
 
     return { selectedTotal, dailyAvg, peakId, peakHours, wowPct, wowAbs, hasPrev: prev !== null }
@@ -271,7 +294,7 @@ export function CategoryTrendChart({
 
       {/* ── Chart ───────────────────────────────────────── */}
       <div className="trend-chart-container">
-        <ResponsiveContainer width="100%" height={320}>
+        <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
             <CartesianGrid
               strokeDasharray="3 3"
@@ -298,9 +321,25 @@ export function CategoryTrendChart({
                 fill: var(--ink-3) !important;
               }
             `}</style>
-            <Tooltip content={<RechartsTooltip decimals={1} />} />
+            <Tooltip content={<RechartsTooltip decimals={1} sortByValue showTotal showShare showDelta activeDataKey={activeId} />} />
 
-            {selected.length > 0 && (
+            {chartData.length > 1 && (
+              <ReferenceArea
+                x1={chartData[chartData.length - 2].label as string}
+                x2={chartData[chartData.length - 1].label as string}
+                fill="var(--line)"
+                fillOpacity={0.25}
+                label={{
+                  value: '进行中',
+                  position: 'insideTopRight',
+                  fill: 'var(--ink-2)',
+                  fontSize: 10,
+                  fontFamily: 'var(--font-ui)',
+                }}
+              />
+            )}
+
+            {selected.length === 1 && (
               <Area
                 type="monotone"
                 dataKey={selected[0]}
@@ -310,6 +349,7 @@ export function CategoryTrendChart({
                 name={catMap.get(selected[0])?.name ?? selected[0]}
                 dot={false}
                 connectNulls={false}
+                tooltipType="none"
               />
             )}
 
@@ -322,15 +362,69 @@ export function CategoryTrendChart({
                   dataKey={id}
                   name={cat?.name ?? id}
                   stroke={`var(--event-${id}-fill)`}
-                  strokeWidth={1.5}
-                  dot={{ r: 3, strokeWidth: 0 }}
+                  strokeWidth={activeId === id ? 2.5 : 1.5}
+                  strokeOpacity={activeId && activeId !== id ? 0.25 : 1}
+                  onMouseEnter={() => setActiveId(id)}
+                  onMouseLeave={() => setActiveId(null)}
+                  isAnimationActive={false}
+                  dot={(props: { cx?: number; cy?: number; payload?: { isCurrent?: boolean } }) => {
+                    const { cx, cy, payload } = props
+                    const dotOpacity = activeId && activeId !== id ? 0.25 : 1
+                    if (payload?.isCurrent) {
+                      return (
+                        <circle
+                          cx={cx} cy={cy} r={4}
+                          fill="var(--surface)"
+                          stroke={`var(--event-${id}-fill)`}
+                          strokeWidth={1.5}
+                          opacity={dotOpacity}
+                        />
+                      )
+                    }
+                    return (
+                      <circle
+                        cx={cx} cy={cy} r={3}
+                        fill={`var(--event-${id}-fill)`}
+                        stroke="none"
+                        opacity={dotOpacity}
+                      />
+                    )
+                  }}
                   activeDot={{ r: 3, strokeWidth: 0 }}
                   connectNulls={false}
-                />
+                >
+                  {selected.length <= 3 || topLabelIds.includes(id) ? (
+                    <LabelList
+                      dataKey={id}
+                      position="right"
+                      content={(props: { x?: unknown; y?: unknown; value?: unknown; index?: unknown }) => {
+                        // recharts' label `Props` is a wide SVGText&Label intersection;
+                        // take only the fields we use and narrow them ourselves.
+                        const value = typeof props.value === 'number' ? props.value : 0
+                        if (props.index !== chartData.length - 1 || value === 0) return null
+                        const nx = typeof props.x === 'number' ? props.x : 0
+                        const ny = typeof props.y === 'number' ? props.y : 0
+                        return (
+                          <text
+                            x={nx + 6}
+                            y={ny}
+                            dy={3}
+                            fill={`var(--event-${id}-fill)`}
+                            fontSize={10}
+                            fontFamily="var(--font-ui)"
+                            textAnchor="start"
+                          >
+                            {cat?.name ?? id}
+                          </text>
+                        )
+                      }}
+                    />
+                  ) : null}
+                </Line>
               )
             })}
 
-            {budgetLine > 0 && (
+            {budgetLine > 0 && selected.length === 1 && (
               <ReferenceLine
                 y={budgetLine}
                 stroke="var(--line-strong)"
@@ -383,6 +477,7 @@ export function CategoryTrendChart({
             </div>
             <div className="trend-stat-detail">
               {(() => {
+                if (selected.length > 1) return '日均'
                 const targetHrs = selected.reduce((sum, id) => {
                   const cat = catMap.get(id)
                   return sum + (cat?.weeklyBudget ?? 0)
@@ -406,20 +501,15 @@ export function CategoryTrendChart({
 
           <div className="trend-stat">
             <div className="trend-stat-label">{'环 比'}</div>
-            <div
-              className="trend-stat-value"
-              style={{
-                color: stats.wowPct !== null
-                  ? (stats.wowPct >= 0 ? 'var(--color-text-success)' : 'var(--color-text-danger)')
-                  : undefined,
-              }}
-            >
-              {stats.wowPct !== null ? `${stats.wowPct >= 0 ? '+' : ''}${stats.wowPct.toFixed(0)}%` : '—'}
+            <div className="trend-stat-value">
+              {stats.wowPct !== null
+                ? `${stats.wowPct >= 0 ? '↑' : '↓'}${Math.abs(stats.wowPct).toFixed(0)}%`
+                : '—'}
             </div>
             <div className="trend-stat-detail">
               {stats.hasPrev
                 ? (stats.wowAbs !== null
-                    ? `${stats.wowAbs >= 0 ? '+' : ''}${stats.wowAbs.toFixed(1)}h`
+                    ? `${stats.wowAbs >= 0 ? '+' : ''}${stats.wowAbs.toFixed(1)}h/d`
                     : '较上期')
                 : '需要更多数据'}
             </div>
@@ -560,6 +650,7 @@ const TREND_CSS = `
 .trend-chart-container {
   margin-top: 28px;
   position: relative;
+  height: clamp(300px, 46vh, 520px);
 }
 
 /* ── Stats bar ───────────────────────────── */
