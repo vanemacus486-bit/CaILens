@@ -60,6 +60,7 @@ function renderMap(props: Partial<React.ComponentProps<typeof GoalMindMap>> = {}
       onDelete={props.onDelete ?? noop}
       onColorChange={props.onColorChange ?? asyncNoop}
       onReorder={props.onReorder ?? noop}
+      onMarkDone={props.onMarkDone ?? noop}
     />,
   )
 }
@@ -75,7 +76,7 @@ describe('GoalMindMap', () => {
     expect(getByText('子目标A')).toBeTruthy()
   })
 
-  it('元信息行显示 done/total，并按 percent 填充底部进度条', () => {
+  it('元信息行显示 done/total，进度圆环按 percent 填充', () => {
     const root = makeGoal({ id: 'root' })
     const c1 = makeGoal({ id: 'c1', title: 'C', parentId: 'root' })
     const todosByGoal = {
@@ -86,8 +87,13 @@ describe('GoalMindMap', () => {
     const c1node = container.querySelector(node('c1')) as HTMLElement
     expect(within(c1node).getByText('1/2')).toBeTruthy()
 
-    const fill = c1node.querySelector('.mm-node-progress-fill') as HTMLElement
-    expect(fill.style.width).toBe('50%')
+    // 进度以左侧圆环呈现：strokeDasharray = `${填充弧长} ${周长}`，50% → 比值 0.5
+    const fill = c1node.querySelector('.mm-node-ring-fill') as HTMLElement
+    expect(fill).toBeTruthy()
+    const [filled, circumference] = fill.style.strokeDasharray
+      .split(' ')
+      .map((s) => parseFloat(s))
+    expect(filled / circumference).toBeCloseTo(0.5, 2)
   })
 
   it('父节点元信息显示「N 子目标」', () => {

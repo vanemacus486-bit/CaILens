@@ -138,7 +138,9 @@ export class ProjectRepository {
   /** 更新项目的缓存统计（事件创建/修改时调用） */
   async refreshStats(id: string): Promise<void> {
     const events = await this.adapter.events.getAll()
-    const projectEvents = events.filter((e) => e.projectId === id)
+    // 排除软删除事件（deletedAt 非空）——与 eventRepository 所有读取路径一致，
+    // 否则已删除事件仍会计入项目的 totalMinutes / eventCount。
+    const projectEvents = events.filter((e) => !e.deletedAt && e.projectId === id)
     const totalMinutes = projectEvents.reduce(
       (sum, e) => sum + (e.endTime - e.startTime) / 60_000,
       0,

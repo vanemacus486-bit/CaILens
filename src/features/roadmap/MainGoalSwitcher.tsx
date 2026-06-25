@@ -13,23 +13,29 @@ interface PillCtxMenu {
 interface MainGoalSwitcherProps {
   mainGoals: Goal[]
   selectedId: string | null
+  doneCount: number
   onSelect: (id: string) => void
   onCreate: (title: string, categoryId?: CategoryId | null) => void
   onDelete: (id: string) => void
   onRename: (id: string, title: string) => void
   onColorChange: (id: string, categoryId: CategoryId | null) => void
   onReorder: (orderedIds: string[]) => void
+  onMarkDone: (id: string) => void
+  onShowArchive: () => void
 }
 
 export function MainGoalSwitcher({
   mainGoals,
   selectedId,
+  doneCount,
   onSelect,
   onCreate,
   onDelete,
   onRename,
   onColorChange,
   onReorder,
+  onMarkDone,
+  onShowArchive,
 }: MainGoalSwitcherProps) {
   const [adding, setAdding] = useState(false)
   const [input, setInput] = useState('')
@@ -222,6 +228,17 @@ export function MainGoalSwitcher({
         </button>
       )}
 
+      {/* 已完成归档入口 */}
+      {doneCount > 0 && (
+        <button
+          className="roadmap-pill roadmap-pill-archive"
+          onClick={onShowArchive}
+          title="已完成项目"
+        >
+          {'已完成'} · {doneCount}
+        </button>
+      )}
+
       {/* 右键菜单 */}
       {ctxMenu && (
         <div
@@ -274,6 +291,17 @@ export function MainGoalSwitcher({
               </button>
             )}
           </div>
+
+          <div className="roadmap-ctx-divider" />
+          <button
+            className="roadmap-ctx-item"
+            onClick={() => {
+              onMarkDone(ctxMenu.goalId)
+              setCtxMenu(null)
+            }}
+          >
+            {'✓ 标记为已完成'}
+          </button>
 
           <div className="roadmap-ctx-divider" />
           <button

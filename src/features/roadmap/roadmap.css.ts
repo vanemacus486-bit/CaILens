@@ -59,6 +59,18 @@ const ROADMAP_CSS = `
   color: var(--text-secondary);
   border-color: var(--text-tertiary);
 }
+.roadmap-pill-archive {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  border-color: var(--border-subtle);
+  font-size: 13px;
+  padding: 6px 14px;
+}
+.roadmap-pill-archive:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
 .roadmap-pill-input {
   flex-shrink: 0;
   padding: 6px 14px;
@@ -507,6 +519,106 @@ const ROADMAP_CSS = `
   padding: 20px 24px;
 }
 
+/* ══════════════════════════════════════════════
+   布局：脑图 band 在上（全宽矮条），聚焦目标工作区在下（全宽）
+   —— 替代旧的左右 master-detail：图横向铺、工作区拿满宽
+   ══════════════════════════════════════════════ */
+.roadmap-board {
+  margin-top: 14px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 4px 6px;
+}
+/* band 内脑图：限高成矮条，超出则在条内滚动（不撑高整页） */
+.roadmap-board .mm-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* ── 工作区 + tab ── */
+.roadmap-workspace {
+  margin-top: 20px;
+}
+.roadmap-ws-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.roadmap-ws-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  transition: color 0.2s ease;
+}
+.roadmap-ws-tab:hover {
+  color: var(--text-secondary);
+}
+.roadmap-ws-tab-active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.roadmap-ws-tab-active::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+.roadmap-ws-tab-count {
+  margin-left: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-quaternary);
+}
+
+/* 任务 tab：任务宽列 + 指标侧栏 */
+.roadmap-ws-tasks {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+/* 占位（时间 / 已完成 / 文档 即将上线） */
+.roadmap-ws-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 56px 20px;
+  text-align: center;
+  color: var(--text-quaternary);
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 13px;
+  background: var(--surface-raised);
+  border: 1px dashed var(--border-subtle);
+  border-radius: 16px;
+}
+
+/* 窄屏：band 矮一点，工作区单列竖叠 */
+@media (max-width: 899px) {
+  .roadmap-ws-tasks {
+    grid-template-columns: 1fr;
+  }
+  .roadmap-board .mm-scroll {
+    max-height: 240px;
+  }
+}
+
 /* ── Root (main goal) header row ─────────────── */
 .roadmap-node-root {
   min-height: 30px;
@@ -940,6 +1052,20 @@ const ROADMAP_CSS = `
 }
 .rm-task-row:hover .rm-task-del {
   opacity: 1;
+}
+.rm-task-row-done {
+  opacity: 0.55;
+}
+.rm-task-row-done:hover {
+  background: transparent;
+}
+.rm-task-separator {
+  padding: 8px 8px 4px;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 12px;
+  color: var(--text-quaternary);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 4px;
 }
 .rm-task-check,
 .rm-task-check-slot {
@@ -1379,6 +1505,7 @@ const ROADMAP_CSS = `
    任务列表拖动 & 重命名
    ══════════════════════════════════════════════ */
 .rm-task-drag {
+  position: relative;
   width: 16px;
   height: 24px;
   display: flex;
@@ -1386,12 +1513,26 @@ const ROADMAP_CSS = `
   justify-content: center;
   color: var(--text-quaternary);
   cursor: grab;
-  opacity: 0;
-  transition: opacity 0.15s ease;
   flex-shrink: 0;
 }
-.rm-task-row:hover .rm-task-drag {
+/* grip 默认隐藏，悬停整行时浮现（无子目标点时＝旧行为） */
+.rm-task-grip {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.rm-task-row:hover .rm-task-grip {
   opacity: 1;
+}
+/* 聚合视图：子目标色点常驻显示，悬停时淡出让位给 grip */
+.rm-task-drag .rm-task-goal-dot-rest {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.15s ease;
+}
+.rm-task-row:hover .rm-task-drag .rm-task-goal-dot-rest {
+  opacity: 0;
 }
 .rm-task-drag:active {
   cursor: grabbing;
@@ -1455,6 +1596,595 @@ const ROADMAP_CSS = `
   .rm-card {
     padding: 16px;
   }
+}
+
+/* ── 工作区聚焦面包屑（当前看的是哪个节点） ── */
+.roadmap-ws-focus {
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 42%;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-size: 12px;
+}
+.roadmap-ws-focus svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.roadmap-ws-focus-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 文档 tab（自由文档） ── */
+.rm-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* 文档板：宽屏双列瀑布流铺满工作区宽度，窄屏回落单列 */
+.rm-doc-board {
+  columns: 2;
+  column-gap: 14px;
+}
+.rm-doc-board > .rm-note {
+  margin-bottom: 14px;
+  break-inside: avoid;
+}
+@media (max-width: 1099px) {
+  .rm-doc-board {
+    columns: 1;
+  }
+}
+.rm-doc-empty {
+  padding: 28px 20px;
+  background: var(--surface-raised);
+  border: 1px dashed var(--border-subtle);
+  border-radius: 12px;
+  text-align: center;
+}
+.rm-doc-empty-text {
+  margin: 0;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--text-quaternary);
+}
+.rm-note {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.rm-note:hover {
+  border-color: var(--border-strong, var(--text-quaternary));
+}
+.rm-note-editing {
+  border-color: var(--accent);
+}
+/* 左侧项目分类色细条 */
+.rm-note::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 14px 0 0 14px;
+  background: var(--rm-note-accent, var(--accent));
+  opacity: 0.85;
+}
+/* 读态可点击进入编辑，呈文本光标暗示 */
+.rm-note-read {
+  cursor: text;
+}
+
+/* 标题（读/编共用字号字重，切换无跳动） */
+.rm-note-title,
+.rm-note-title-view {
+  margin: 0 0 12px;
+  padding: 0 32px 0 0;
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.rm-note-title {
+  width: 100%;
+  border: none;
+  background: transparent;
+}
+.rm-note-title::placeholder {
+  color: var(--text-quaternary);
+  font-weight: 600;
+}
+.rm-note-title:focus {
+  outline: none;
+}
+.rm-note-untitled {
+  color: var(--text-quaternary);
+  font-weight: 500;
+}
+
+/* 正文（读/编共用字号行高，darker 提对比去“阴间”） */
+.rm-note-body,
+.rm-note-p {
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 14.5px;
+  line-height: 1.78;
+  color: var(--text-primary);
+}
+.rm-note-body {
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  resize: none;
+  overflow: hidden;
+}
+.rm-note-body::placeholder {
+  color: var(--text-quaternary);
+}
+.rm-note-body:focus {
+  outline: none;
+}
+/* 读态正文：按段排版，统一段距取代用户空行的巨坑 */
+.rm-note-prose {
+  display: flex;
+  flex-direction: column;
+}
+.rm-note-p {
+  margin: 0 0 0.72em;
+  overflow-wrap: anywhere;
+}
+.rm-note-p:last-child {
+  margin-bottom: 0;
+}
+.rm-note-empty-hint {
+  margin: 0;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 13px;
+  color: var(--text-quaternary);
+}
+
+/* 读态：超长折叠 + 渐隐 + 展开 */
+.rm-note-prose-clamped {
+  position: relative;
+  max-height: 260px;
+  overflow: hidden;
+}
+.rm-note-prose-clamped::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 64px;
+  background: linear-gradient(to bottom, transparent, var(--surface-raised));
+  pointer-events: none;
+}
+.rm-note-expand {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 2px 0;
+  background: none;
+  border: none;
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-size: 12.5px;
+  color: var(--accent);
+  cursor: pointer;
+}
+.rm-note-expand:hover {
+  text-decoration: underline;
+}
+
+/* 更新时间脚注 */
+.rm-note-foot {
+  margin-top: 12px;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 11.5px;
+  color: var(--text-quaternary);
+}
+
+/* 轻量 Markdown 元素 */
+.rm-md-h {
+  margin: 14px 0 6px;
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.rm-note-prose > .rm-md-h:first-child {
+  margin-top: 0;
+}
+.rm-md-h2 {
+  font-size: 15px;
+}
+.rm-md-h3 {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+.rm-md-list {
+  margin: 0 0 0.72em;
+  padding-left: 1.4em;
+}
+ul.rm-md-list {
+  list-style-type: disc;
+}
+ol.rm-md-list {
+  list-style-type: decimal;
+}
+.rm-md-list li {
+  margin-bottom: 2px;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 14.5px;
+  line-height: 1.78;
+  color: var(--text-primary);
+}
+.rm-md-list li::marker {
+  color: var(--text-tertiary);
+}
+.rm-note-prose strong {
+  font-weight: 700;
+}
+.rm-note-prose em {
+  font-style: italic;
+}
+.rm-md-code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-sunken);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88em;
+  color: var(--text-secondary);
+}
+
+/* 删除（读/编共用，右上角，hover 显形） */
+.rm-note-del {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-quaternary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.rm-note:hover .rm-note-del,
+.rm-note-editing .rm-note-del {
+  opacity: 1;
+}
+.rm-note-del:hover {
+  color: var(--color-text-danger, #B53535);
+  background: var(--surface-sunken);
+}
+.rm-note-confirm {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.rm-note-confirm-btn {
+  padding: 3px 9px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.rm-note-confirm-del {
+  color: var(--color-text-danger, #B53535);
+  border-color: var(--color-text-danger, #B53535);
+}
+.rm-note-confirm-del:hover {
+  background: var(--color-text-danger, #B53535);
+  color: #fff;
+}
+.rm-note-confirm-keep:hover {
+  background: var(--surface-sunken);
+}
+.rm-doc-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 9px 16px;
+  background: transparent;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 10px;
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.rm-doc-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface-raised);
+}
+
+/* ── 已完成归档 tab ── */
+.rm-archive {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 720px;
+}
+.rm-archive-empty {
+  padding: 40px 20px;
+  text-align: center;
+  background: var(--surface-raised);
+  border: 1px dashed var(--border-subtle);
+  border-radius: 16px;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-quaternary);
+}
+.rm-archive-head {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.rm-archive-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rm-archive-day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+.rm-archive-day-label {
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.rm-archive-day-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-quaternary);
+}
+.rm-archive-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rm-archive-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.rm-archive-item:hover {
+  background: var(--surface-raised);
+}
+.rm-archive-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 5px;
+  background: var(--text-quaternary);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.rm-archive-check:hover {
+  background: var(--text-tertiary);
+}
+.rm-archive-goal-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.rm-archive-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  text-decoration-color: var(--border-subtle);
+}
+.rm-archive-del {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-quaternary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.rm-archive-item:hover .rm-archive-del {
+  opacity: 1;
+}
+.rm-archive-del:hover {
+  color: var(--color-text-danger, #B53535);
+  background: var(--surface-sunken);
+}
+
+/* ── 项目归档视图 ── */
+.rm-archive-projects {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 800px;
+}
+.rm-archive-projects-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.rm-archive-project-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.rm-archive-project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+.rm-archive-project-header:hover {
+  background: var(--surface-sunken);
+}
+.rm-archive-project-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-tertiary);
+}
+.rm-archive-project-title {
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+.rm-archive-project-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rm-archive-project-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-quaternary);
+}
+.rm-archive-project-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-quaternary);
+  padding: 2px 8px;
+  background: var(--surface-base);
+  border-radius: 999px;
+}
+.rm-archive-project-body {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 12px;
+}
+.rm-archive-project-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface-base);
+  border-radius: 10px;
+}
+.rm-archive-doc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rm-archive-doc-label {
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.rm-archive-doc-text {
+  margin: 0;
+  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+.rm-archive-project-todos {
+  margin-top: 4px;
+}
+.rm-archive-project-todos .rm-archive {
+  gap: 12px;
+}
+.rm-archive-restore-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 6px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.rm-archive-restore-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface-sunken);
 }
 `
 

@@ -17,6 +17,8 @@ interface TodoState {
   toggleComplete: (id: string) => Promise<Todo>
   clearRepeatPattern: (id: string) => Promise<void>
   reorderTodo: (id: string, targetId: string, position: 'before' | 'after') => Promise<void>
+  /** 在「同一目标」内把某待办移到 newIndex（规划页任务卡拖拽重排用） */
+  moveTodoWithinGoal: (goalId: string, todoId: string, newIndex: number) => Promise<void>
   quickCapture: (title: string) => Promise<Todo>
 
   // ── 收件箱任务 ────────────────────────────────────────────
@@ -139,6 +141,27 @@ export const useTodoStore = create<TodoState>()((set, get) => ({
       await getTodoRepo().bulkPut(updatedUngrouped)
     } catch (e) {
       // 出错时从 DB 恢复
+      const all = sortTodos(await getTodoRepo().getAll())
+      set({ todos: all, error: (e as Error).message })
+    }
+  },
+
+  moveTodoWithinGoal: async (goalId, todoId, newIndex) => {
+    try {
+      const goalTodos = get()
+        .todos.filter((t) => t.goalId === goalId)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+      const fromIdx = goalTodos.findIndex((t) => t.id === todoId)
+      if (fromIdx === -1 || fromIdx === newIndex) return
+      const [item] = goalTodos.splice(fromIdx, 1)
+      goalTodos.splice(newIndex, 0, item)
+      const now = Date.now()
+      const reordered = goalTodos.map((t, i) => ({ ...t, sortOrder: i, updatedAt: now }))
+      await getTodoRepo().bulkPut(reordered)
+      const all = sortTodos(await getTodoRepo().getAll())
+      set({ todos: all })
+    } catch (e) {
+      // 失败时从 DB 恢复，避免本地顺序与持久层不一致
       const all = sortTodos(await getTodoRepo().getAll())
       set({ todos: all, error: (e as Error).message })
     }

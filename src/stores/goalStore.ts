@@ -7,9 +7,11 @@
 
 import { create } from 'zustand'
 import type { Goal, CreateGoalInput, UpdateGoalInput } from '@/domain/goal'
-import { sortGoals, getMainGoals } from '@/domain/goal'
+import { sortGoals, getMainGoals, isActiveGoal } from '@/domain/goal'
 import type { KeyMetric, CreateMetricInput } from '@/domain/keyMetric'
 import { makeMetric } from '@/domain/keyMetric'
+import type { GoalNote } from '@/domain/goalDoc'
+import { normalizeGoalDoc, makeNote } from '@/domain/goalDoc'
 import type { Todo } from '@/domain/todo'
 import { getGoalRepo, getTodoRepo } from '@/data/getRepositories'
 
@@ -17,7 +19,6 @@ const LS_KEY = 'cailens_selected_main_goal'
 
 interface GoalState {
   goals: Goal[]
-  todosByGoal: Record<string, Todo[]>
   isLoaded: boolean
   isLoading: boolean
   error: string | null
@@ -30,12 +31,6 @@ interface GoalState {
   reorderGoal: (id: string, dir: 'up' | 'down') => Promise<void>
   setSelectedMainGoal: (id: string) => void
 
-  // 待办块操作（复用 todoRepo）
-  addTodoToGoal: (goalId: string, title: string) => Promise<void>
-  toggleTodoDone: (todoId: string) => Promise<void>
-  removeTodoFromGoal: (todoId: string) => Promise<void>
-  renameTodo: (todoId: string, newTitle: string) => Promise<void>
-  moveTodo: (goalId: string, todoId: string, newIndex: number) => Promise<void>
   reorderMainGoals: (orderedIds: string[]) => Promise<void>
 
   toggleLinkedEvent: (goalId: string, eventId: string) => Promise<void>
@@ -47,13 +42,22 @@ interface GoalState {
   removeMetric: (goalId: string, metricId: string) => Promise<void>
   toggleMetricLinkedEvent: (goalId: string, metricId: string, eventId: string) => Promise<void>
 
-  // 帮助方法
-  getTodosByGoal: (goalId: string) => Todo[]
+  // 自由文档
+  addGoalNote: (goalId: string) => Promise<string>
+  updateGoalNote: (
+    goalId: string,
+    noteId: string,
+    patch: Partial<Pick<GoalNote, 'title' | 'body'>>,
+  ) => Promise<void>
+  removeGoalNote: (goalId: string, noteId: string) => Promise<void>
+
+  // 项目完成 / 恢复
+  markProjectDone: (goalId: string) => Promise<void>
+  restoreProject: (goalId: string) => Promise<void>
 }
 
 export const useGoalStore = create<GoalState>()((set, get) => ({
   goals: [],
-  todosByGoal: {},
   isLoaded: false,
   isLoading: false,
   error: null,
@@ -62,21 +66,8 @@ export const useGoalStore = create<GoalState>()((set, get) => ({
   loadAll: async () => {
     set({ isLoading: true, error: null })
     try {
-      const goalRepo = getGoalRepo()
-      const todoRepo = getTodoRepo()
-      const goals = sortGoals(await goalRepo.getAll())
-      const allTodos = await todoRepo.getAll()
-
-      // 构建 todosByGoal 索引
-      const todosByGoal: Record<string, Todo[]> = {}
-      for (const t of allTodos) {
-        if (t.goalId) {
-          (todosByGoal[t.goalId] ??= []).push(t)
-        }
-      }
-      for (const key of Object.keys(todosByGoal)) {
-        todosByGoal[key].sort((a, b) => a.sortOrder - b.sortOrder)
-      }
+      // 只管目标树本身；待办由 todoStore 持有（规划页从 todoStore 派生 todosByGoal）
+      const goals = sortGoals(await getGoalRepo().getAll())
 
       // 确定 selectedMainGoalId
       const mainGoals = getMainGoals(goals)
@@ -88,7 +79,7 @@ export const useGoalStore = create<GoalState>()((set, get) => ({
         selectedId = mainGoals[0].id
       }
 
-      set({ goals, todosByGoal, selectedMainGoalId: selectedId, isLoaded: true, isLoading: false })
+      set({ goals, selectedMainGoalId: selectedId, isLoaded: true, isLoading: false })
     } catch (e) {
       set({ error: (e as Error).message, isLoading: false })
     }
@@ -128,11 +119,7 @@ export const useGoalStore = create<GoalState>()((set, get) => ({
 
     // 1. 乐观更新 UI（立即响应）
     const remaining = allGoals.filter((g) => !toDeleteSet.has(g.id))
-    const newTodosByGoal = { ...get().todosByGoal }
-    for (const goalId of toDelete) {
-      delete newTodosByGoal[goalId]
-    }
-    set({ goals: sortGoals(remaining), todosByGoal: newTodosByGoal })
+    set({ goals: sortGoals(remaining) })
 
     // 如果删除的是当前选中主目标，立即切换
     if (toDeleteSet.has(currentSelectedId ?? '')) {
@@ -145,16 +132,17 @@ export const useGoalStore = create<GoalState>()((set, get) => ({
       }
     }
 
-    // 2. 并行执行 DB 操作（不阻塞 UI）
+    // 2. DB：把这些目标下的待办一次性释放回收件箱（goalId=null），再删目标。
+    //    用单次 bulkPut 而非逐条 update —— 文件系统存储下每写一条都会 flush 落盘，
+    //    逐条会变成 N 次磁盘写 + N 次监听回灌，正是“删除卡顿 / 列表闪烁”的来源。
     const goalRepo = getGoalRepo()
     const todoRepo = getTodoRepo()
-    await Promise.all(
-      toDelete.map(async (goalId) => {
-        const linkedTodos = await todoRepo.getByGoal(goalId)
-        await Promise.all(linkedTodos.map((t) => todoRepo.update({ id: t.id, goalId: null })))
-      }),
-    )
+    const linkedLists = await Promise.all(toDelete.map((goalId) => todoRepo.getByGoal(goalId)))
+    const now = Date.now()
+    const released: Todo[] = linkedLists.flat().map((t) => ({ ...t, goalId: null, updatedAt: now }))
+    if (released.length > 0) await todoRepo.bulkPut(released)
     await Promise.all(toDelete.map((goalId) => goalRepo.delete(goalId)))
+    // 调用方（RoadmapView）随后 loadTodos() 刷新收件箱，释放的待办即重新出现
   },
 
   reorderGoal: async (id, direction) => {
@@ -167,93 +155,6 @@ export const useGoalStore = create<GoalState>()((set, get) => ({
   setSelectedMainGoal: (id) => {
     localStorage.setItem(LS_KEY, id)
     set({ selectedMainGoalId: id })
-  },
-
-  addTodoToGoal: async (goalId, title) => {
-    const todoRepo = getTodoRepo()
-    const todo = await todoRepo.create({
-      title,
-      goalId,
-    })
-    set((state) => {
-      const current = state.todosByGoal[goalId] ?? []
-      return {
-        todosByGoal: {
-          ...state.todosByGoal,
-          [goalId]: [...current, todo].sort((a, b) => a.sortOrder - b.sortOrder),
-        },
-      }
-    })
-  },
-
-  toggleTodoDone: async (todoId) => {
-    const todoRepo = getTodoRepo()
-    const updated = await todoRepo.toggleComplete(todoId)
-    const goalId = updated.goalId
-
-    set((state) => {
-      if (!goalId) return state
-      const items = (state.todosByGoal[goalId] ?? []).map((t) =>
-        t.id === updated.id ? updated : t,
-      )
-      return {
-        todosByGoal: { ...state.todosByGoal, [goalId]: items },
-      }
-    })
-
-    // 重加载以确保状态一致
-    if (goalId) {
-      const fresh = await todoRepo.getByGoal(goalId)
-      set((state) => ({
-        todosByGoal: { ...state.todosByGoal, [goalId]: fresh },
-      }))
-    }
-  },
-
-  removeTodoFromGoal: async (todoId) => {
-    const todoRepo = getTodoRepo()
-    const existing = await todoRepo.getById(todoId)
-    const goalId = existing?.goalId
-    await todoRepo.delete(todoId)
-    if (goalId) {
-      set((state) => {
-        const items = (state.todosByGoal[goalId] ?? []).filter((t) => t.id !== todoId)
-        return {
-          todosByGoal: { ...state.todosByGoal, [goalId]: items },
-        }
-      })
-    }
-  },
-
-  renameTodo: async (todoId, newTitle) => {
-    const todoRepo = getTodoRepo()
-    const existing = await todoRepo.getById(todoId)
-    if (!existing?.goalId) return
-    await todoRepo.update({ id: todoId, title: newTitle })
-    const goalId = existing.goalId
-    set((state) => ({
-      todosByGoal: {
-        ...state.todosByGoal,
-        [goalId]: (state.todosByGoal[goalId] ?? []).map((t) =>
-          t.id === todoId ? { ...t, title: newTitle } : t,
-        ),
-      },
-    }))
-  },
-
-  moveTodo: async (goalId, todoId, newIndex) => {
-    const todoRepo = getTodoRepo()
-    const todos = [...(get().todosByGoal[goalId] ?? [])]
-    const fromIdx = todos.findIndex((t) => t.id === todoId)
-    if (fromIdx === -1 || fromIdx === newIndex) return
-    const [item] = todos.splice(fromIdx, 1)
-    todos.splice(newIndex, 0, item)
-    const now = Date.now()
-    const updated = todos.map((t, i) => ({ ...t, sortOrder: i, updatedAt: now }))
-    await todoRepo.bulkPut(updated)
-    set((state) => ({
-      todosByGoal: { ...state.todosByGoal, [goalId]: updated },
-    }))
   },
 
   reorderMainGoals: async (orderedIds) => {
@@ -283,6 +184,34 @@ export const useGoalStore = create<GoalState>()((set, get) => ({
       ? current.filter((e) => e !== eventId)
       : [...current, eventId]
     await get().updateGoal({ id: goalId, linkedEventIds: next })
+  },
+
+  // 任何写操作都先把 doc 归一成新版 { notes }（顺带迁移旧三段框架），
+  // 再整体写回 —— 落盘的永远是新结构，旧字段随首次编辑自然消失。
+  addGoalNote: async (goalId) => {
+    const goal = get().goals.find((g) => g.id === goalId)
+    if (!goal) return ''
+    const note = makeNote(crypto.randomUUID(), Date.now())
+    const notes = [...normalizeGoalDoc(goal.doc).notes, note]
+    await get().updateGoal({ id: goalId, doc: { notes } })
+    return note.id
+  },
+
+  updateGoalNote: async (goalId, noteId, patch) => {
+    const goal = get().goals.find((g) => g.id === goalId)
+    if (!goal) return
+    const now = Date.now()
+    const notes = normalizeGoalDoc(goal.doc).notes.map((n) =>
+      n.id === noteId ? { ...n, ...patch, updatedAt: now } : n,
+    )
+    await get().updateGoal({ id: goalId, doc: { notes } })
+  },
+
+  removeGoalNote: async (goalId, noteId) => {
+    const goal = get().goals.find((g) => g.id === goalId)
+    if (!goal) return
+    const notes = normalizeGoalDoc(goal.doc).notes.filter((n) => n.id !== noteId)
+    await get().updateGoal({ id: goalId, doc: { notes } })
   },
 
   addMetric: async (goalId, input) => {
@@ -329,7 +258,24 @@ export const useGoalStore = create<GoalState>()((set, get) => ({
     await get().updateGoal({ id: goalId, metrics: next })
   },
 
-  getTodosByGoal: (goalId) => {
-    return get().todosByGoal[goalId] ?? []
+  markProjectDone: async (goalId) => {
+    const now = Date.now()
+    await get().updateGoal({ id: goalId, status: 'done', completedAt: now, updatedAt: now })
+
+    // 如果完成的是当前选中主目标，自动切到下一个活跃主目标
+    if (get().selectedMainGoalId === goalId) {
+      const remaining = get().goals.filter((g) => g.parentId === null && isActiveGoal(g))
+      if (remaining.length > 0) {
+        get().setSelectedMainGoal(remaining[0].id)
+      } else {
+        set({ selectedMainGoalId: null })
+        localStorage.removeItem(LS_KEY)
+      }
+    }
+  },
+
+  restoreProject: async (goalId) => {
+    const now = Date.now()
+    await get().updateGoal({ id: goalId, status: 'active', completedAt: undefined, updatedAt: now })
   },
 }))

@@ -18,9 +18,9 @@ export interface GoalNode {
 
 // ── 森林 / 树构建 ──────────────────────────────────────────
 
-/** 构建全部顶层树（排除 archived） */
+/** 构建全部顶层树（仅 active） */
 export function buildGoalForest(goals: Goal[]): GoalNode[] {
-  const active = goals.filter((g) => g.status !== 'archived')
+  const active = goals.filter((g) => g.status === 'active')
   const childrenMap = buildChildrenMap(active)
   const roots: GoalNode[] = []
   for (const g of active) {
@@ -38,7 +38,7 @@ export function buildGoalForest(goals: Goal[]): GoalNode[] {
 export function buildGoalTree(goals: Goal[], rootId: string): GoalNode | null {
   const root = goals.find((g) => g.id === rootId)
   if (!root) return null
-  const active = goals.filter((g) => g.status !== 'archived')
+  const active = goals.filter((g) => g.status === 'active')
   const childrenMap = buildChildrenMap(active)
   return buildNode(root, childrenMap, new Set(), 0)
 }

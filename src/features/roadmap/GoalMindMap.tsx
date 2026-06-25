@@ -28,6 +28,7 @@ interface GoalMindMapProps {
   onDelete: (goalId: string) => void
   onColorChange: (goalId: string, categoryId: CategoryId | null) => Promise<void>
   onReorder: (orderedIds: string[]) => void
+  onMarkDone: (id: string) => void
 }
 
 interface CtxMenu {
@@ -76,6 +77,7 @@ export function GoalMindMap({
   onDelete,
   onColorChange,
   onReorder,
+  onMarkDone,
 }: GoalMindMapProps) {
   const [addingFor, setAddingFor] = useState<string | null>(null)
   const [addValue, setAddValue] = useState('')
@@ -204,7 +206,7 @@ export function GoalMindMap({
   const childrenSorted = useCallback(
     (parentId: string | null) =>
       allGoals
-        .filter((g) => g.parentId === parentId && g.status !== 'archived')
+        .filter((g) => g.parentId === parentId && g.status === 'active')
         .sort((a, b) => a.sortOrder - b.sortOrder),
     [allGoals],
   )
@@ -224,7 +226,7 @@ export function GoalMindMap({
         return
       }
       const siblings = allGoals
-        .filter((g) => g.parentId === dragPos.parentId && g.status !== 'archived')
+        .filter((g) => g.parentId === dragPos.parentId && g.status === 'active')
         .sort((a, b) => a.sortOrder - b.sortOrder)
       const fromIdx = siblings.findIndex((s) => s.id === dragNodeId)
       const toIdx = siblings.findIndex((s) => s.id === dropNodeId)
@@ -621,6 +623,19 @@ export function GoalMindMap({
             <Plus size={13} strokeWidth={2} />
             加子目标
           </button>
+
+          {/* 主目标可标记完成 */}
+          {ctxMenu.isRoot && (
+            <button
+              className="roadmap-ctx-item"
+              onClick={() => {
+                onMarkDone(ctxMenu.goalId)
+                setCtxMenu(null)
+              }}
+            >
+              {'✓ 标记为已完成'}
+            </button>
+          )}
 
           {!ctxMenu.isRoot && (
             <button

@@ -6,7 +6,7 @@
  */
 
 import type { Goal, CreateGoalInput, UpdateGoalInput } from '@/domain/goal'
-import { nextGoalSortOrder, getChildren } from '@/domain/goal'
+import { nextGoalSortOrder, getChildren, isActiveGoal } from '@/domain/goal'
 import type { StorageAdapter } from './adapters/StorageAdapter'
 
 export interface Clock {
@@ -100,7 +100,7 @@ export class GoalRepository {
 
     // 只在同层 siblings 内重排
     const siblings = all.filter(
-      (g) => g.parentId === target.parentId && g.status !== 'archived',
+      (g) => g.parentId === target.parentId && isActiveGoal(g),
     ).sort((a, b) => a.sortOrder - b.sortOrder)
 
     const idx = siblings.findIndex((g) => g.id === id)
