@@ -9,6 +9,7 @@ export type SettingsTab =
   | 'data'
   | 'storage'
   | 'about'
+  | 'support'
 
 interface UIState {
   sidebarExpanded: boolean

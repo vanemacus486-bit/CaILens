@@ -12,7 +12,9 @@ import { SettingsShortcuts } from './SettingsShortcuts'
 import { SettingsData } from './SettingsData'
 import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsAbout } from './SettingsAbout'
+import { SettingsSupport } from './SettingsSupport'
 import { isTauri } from '@/data/tauriFs'
+import { isSponsorConfigured } from '@/lib/sponsor'
 
 /* ── Tab 分组定义（新结构：合并后 6 项） ── */
 
@@ -23,6 +25,9 @@ interface TabDef {
   descZh: string
   descEn: string
 }
+
+// 「支持」入口：配置了真实收款 URL 才在正式构建显示；开发模式始终显示便于预览
+const SHOW_SUPPORT = isSponsorConfigured() || import.meta.env.DEV
 
 const TAB_GROUPS: { labelZh: string; labelEn: string; tabs: TabDef[] }[] = [
   {
@@ -51,14 +56,15 @@ const TAB_GROUPS: { labelZh: string; labelEn: string; tabs: TabDef[] }[] = [
   {
     labelZh: '其他',
     labelEn: 'Other',
-    tabs: isTauri()
-      ? [
-          { key: 'storage', labelZh: '存储', labelEn: 'Storage', descZh: '文件存储路径', descEn: 'File storage path' },
-          { key: 'about', labelZh: '关于', labelEn: 'About', descZh: '版本与变更记录', descEn: 'Version & changelog' },
-        ]
-      : [
-          { key: 'about', labelZh: '关于', labelEn: 'About', descZh: '版本与变更记录', descEn: 'Version & changelog' },
-        ],
+    tabs: [
+      ...(isTauri()
+        ? [{ key: 'storage' as SettingsTab, labelZh: '存储', labelEn: 'Storage', descZh: '文件存储路径', descEn: 'File storage path' }]
+        : []),
+      { key: 'about' as SettingsTab, labelZh: '关于', labelEn: 'About', descZh: '版本与变更记录', descEn: 'Version & changelog' },
+      ...(SHOW_SUPPORT
+        ? [{ key: 'support' as SettingsTab, labelZh: '支持', labelEn: 'Support', descZh: '赞助与持续更新', descEn: 'Sponsor & updates' }]
+        : []),
+    ],
   },
 ]
 
@@ -72,6 +78,7 @@ const TAB_CONTENT: Record<SettingsTab, React.FC> = {
   data:        SettingsData,
   storage:     SettingsStorage,
   about:       SettingsAbout,
+  support:     SettingsSupport,
 }
 
 /* ── 简单模糊搜索 ── */

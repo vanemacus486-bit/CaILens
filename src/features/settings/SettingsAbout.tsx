@@ -1,5 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { RefreshCw, Download, Loader2 } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { isTauri } from '@/data/tauriFs'
+import { openExternal } from '@/lib/platform'
+import { checkForUpdateVerbose, relaunchApp, type UpdateCheckResult } from '@/lib/appUpdate'
 
 // Import CHANGELOG.md as raw text — Vite handles this at build time
 import changelogRaw from '../../../CHANGELOG.md?raw'
@@ -49,6 +53,42 @@ function parseChangelog(raw: string): ChangelogEntry[] {
 
 export function SettingsAbout() {
   const language = useAppSettingsStore((s) => s.settings.language)
+  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+
+  const [checking, setChecking] = useState(false)
+  const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null)
+  const [downloading, setDownloading] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState(0)
+  const [installing, setInstalling] = useState(false)
+
+  const runUpdateCheck = async () => {
+    setChecking(true)
+    setUpdateResult(null)
+    setUpdateResult(await checkForUpdateVerbose())
+    setChecking(false)
+  }
+
+  const handleInstallUpdate = async (result: UpdateCheckResult & { status: 'available' }) => {
+    if (!result.info.downloadAndInstall) {
+      openExternal(result.info.url)
+      return
+    }
+    try {
+      setDownloading(true)
+      setDownloadProgress(0)
+      await result.info.downloadAndInstall((pct) => {
+        setDownloadProgress(pct)
+      })
+      setDownloading(false)
+      setInstalling(true)
+      await new Promise((r) => setTimeout(r, 800))
+      await relaunchApp()
+    } catch {
+      setDownloading(false)
+      setInstalling(false)
+      openExternal(result.info.url)
+    }
+  }
 
   const entries = useMemo(() => parseChangelog(changelogRaw), [])
   // Show last 5 entries
@@ -95,6 +135,49 @@ export function SettingsAbout() {
             {language === 'zh' ? '构建时间：' : 'Built: '}
             {buildTime}
           </p>
+
+          {isTauri() && (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                onClick={runUpdateCheck}
+                disabled={checking}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border-default px-3 py-1.5 text-xs font-sans font-medium text-text-secondary hover:text-text-primary hover:bg-surface-base transition-colors duration-200 cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw size={13} strokeWidth={1.75} className={checking ? 'animate-spin' : undefined} />
+                {checking ? t('检查中…', 'Checking…') : t('检查更新', 'Check for updates')}
+              </button>
+              {updateResult?.status === 'available' && !downloading && !installing && (
+                <button
+                  onClick={() => handleInstallUpdate(updateResult)}
+                  className="inline-flex items-center gap-1 text-xs font-sans font-medium text-accent hover:text-accent-hover transition-colors duration-200 cursor-pointer"
+                >
+                  {t('发现新版本', 'New version')} v{updateResult.info.version}
+                  {' → '}
+                  {updateResult.info.downloadAndInstall
+                    ? t('立即更新', 'Update Now')
+                    : t('下载', 'Download')}
+                </button>
+              )}
+              {downloading && (
+                <span className="inline-flex items-center gap-1 text-xs font-sans text-text-secondary">
+                  <Download size={12} strokeWidth={1.75} className="animate-pulse" />
+                  {t('下载中', 'Downloading')} {downloadProgress}%
+                </span>
+              )}
+              {installing && (
+                <span className="inline-flex items-center gap-1 text-xs font-sans text-text-secondary">
+                  <Loader2 size={12} strokeWidth={1.75} className="animate-spin" />
+                  {t('正在安装，即将重启…', 'Installing, will restart…')}
+                </span>
+              )}
+              {updateResult?.status === 'latest' && (
+                <span className="text-xs font-sans text-text-tertiary">{t('已是最新版本', 'You’re up to date')}</span>
+              )}
+              {updateResult?.status === 'error' && (
+                <span className="text-xs font-sans text-text-tertiary">{t('检查失败，请稍后再试', 'Check failed, try again later')}</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -150,6 +233,16 @@ export function SettingsAbout() {
         {language === 'zh'
           ? 'CaILens — 本地优先的时间记录工具。不依赖后端服务，所有数据存储在本地。'
           : 'CaILens — A local-first time tracking tool. No backend, all data stored locally.'}
+      </p>
+
+      {/* Privacy policy link */}
+      <p className="text-[11px] text-text-tertiary font-sans leading-relaxed">
+        <button
+          onClick={() => openExternal('https://github.com/vanemacus486-bit/CaILens/blob/main/PRIVACY.md')}
+          className="underline hover:text-text-secondary transition-colors cursor-pointer"
+        >
+          {t('隐私政策', 'Privacy Policy')}
+        </button>
       </p>
     </div>
   )
