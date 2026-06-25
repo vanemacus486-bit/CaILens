@@ -23,12 +23,15 @@ export async function startFsWatcher(adapter: FileSystemAdapter): Promise<void> 
     // 清空事件缓存，确保下次读取从磁盘重新加载
     clearEventCache()
 
-    // 并行刷新各 store（各自从已更新的 MemoryIndex 读取）
+    // 并行刷新各 store（各自从已更新的 MemoryIndex 读取）。
+    // 事件用 reloadVisible 而非 loadAllEvents —— 后者只更新 allEvents（统计用），
+    // 当前周视图读的是 events，外部改文件时不会刷新（与本模块「外部编辑即时同步」
+    // 的职责相悖）。reloadVisible 会同时刷新可见周/区间 + allEvents。
     await Promise.all([
       useTodoStore.getState().loadTodos().catch(() => {}),
       useGoalStore.getState().loadAll().catch(() => {}),
       useProjectStore.getState().loadAll().catch(() => {}),
-      useEventStore.getState().loadAllEvents().catch(() => {}),
+      useEventStore.getState().reloadVisible().catch(() => {}),
     ])
   })
 }

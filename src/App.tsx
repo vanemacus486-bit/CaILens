@@ -1,18 +1,20 @@
-import { useEffect, useMemo } from 'react'
+import { lazy, Suspense, useEffect, useMemo } from 'react'
 import { HashRouter, Navigate, Route, Routes, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
-import { StatsPage } from '@/pages/StatsPage'
-import { CommandPalette } from '@/features/search/CommandPalette'
-import { SettingsPage } from '@/features/settings/SettingsPage'
-import { SettingsModal } from '@/features/settings/SettingsModal'
-import { ProjectDetailPage } from '@/pages/project/ProjectDetailPage'
-
-import { ActionPage } from '@/pages/action/ActionPage'
-import { ProfilePage } from '@/pages/ProfilePage'
 import { ReviewLayout } from '@/components/nav/ReviewLayout'
-import { QuickCaptureWindow } from '@/features/quick-capture/QuickCaptureWindow'
 import { TopNavBar } from '@/components/nav/TopNavBar'
-import { QuickCaptureInbox } from '@/features/action/QuickCaptureInbox'
+
+// 路由级懒加载：仅周视图（首屏）同步加载，其余按需拆包，显著减小首屏 JS 体积
+const StatsPage = lazy(() => import('@/pages/StatsPage').then((m) => ({ default: m.StatsPage })))
+const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const ProjectDetailPage = lazy(() => import('@/pages/project/ProjectDetailPage').then((m) => ({ default: m.ProjectDetailPage })))
+const ActionPage = lazy(() => import('@/pages/action/ActionPage').then((m) => ({ default: m.ActionPage })))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const QuickCaptureWindow = lazy(() => import('@/features/quick-capture/QuickCaptureWindow').then((m) => ({ default: m.QuickCaptureWindow })))
+const CommandPalette = lazy(() => import('@/features/search/CommandPalette').then((m) => ({ default: m.CommandPalette })))
+const QuickCaptureInbox = lazy(() => import('@/features/action/QuickCaptureInbox').then((m) => ({ default: m.QuickCaptureInbox })))
+// 无条件挂载但内部 closed→null：改为「打开时才挂载」可把加密导出(age)/ics 库移出首屏
+const SettingsModal = lazy(() => import('@/features/settings/SettingsModal').then((m) => ({ default: m.SettingsModal })))
 import { useUIStore } from '@/stores/uiStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
@@ -20,16 +22,26 @@ import { useEventStore } from '@/stores/eventStore'
 import { useProfileStore } from '@/stores/profileStore'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { SnackbarHost } from '@/components/ui/snackbar'
+import { UpdateBanner } from '@/components/ui/UpdateBanner'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { addWeeks, getWeekStart, formatISODate } from '@/domain/time'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { subDays, addDays, parseISO } from 'date-fns'
 import type { ShortcutAction } from '@/domain/shortcuts'
+import { isNativeMobile } from '@/lib/platform'
+const MobileLayout = lazy(() => import('@/features/mobile/MobileLayout').then((m) => ({ default: m.MobileLayout })))
+const MobileDayPage = lazy(() => import('@/features/mobile/MobileDayPage').then((m) => ({ default: m.MobileDayPage })))
+
+/** 懒加载页面切换时的占位（与背景同色，避免闪烁突兀）。 */
+function PageFallback() {
+  return <div className="flex-1 bg-surface-base" />
+}
 
 function Layout() {
   const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen)
   const quickCaptureInboxOpen = useUIStore((s) => s.quickCaptureInboxOpen)
+  const settingsModalOpen = useUIStore((s) => s.settingsModalOpen)
   const theme = useAppSettingsStore((s) => s.settings.theme)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
   const navigate = useNavigate()
@@ -142,14 +154,29 @@ function Layout() {
       {(!location.pathname.startsWith('/week') || isMobile) && <TopNavBar />}
       <main className="flex-1 h-full overflow-hidden flex flex-col min-w-0">
         <ErrorBoundary>
-          <Outlet />
+          <Suspense fallback={<PageFallback />}>
+            <Outlet />
+          </Suspense>
         </ErrorBoundary>
       </main>
 
-      {commandPaletteOpen && <CommandPalette />}
-      <SettingsModal />
-      {quickCaptureInboxOpen && <QuickCaptureInbox />}
+      {commandPaletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette />
+        </Suspense>
+      )}
+      {settingsModalOpen && (
+        <Suspense fallback={null}>
+          <SettingsModal />
+        </Suspense>
+      )}
+      {quickCaptureInboxOpen && (
+        <Suspense fallback={null}>
+          <QuickCaptureInbox />
+        </Suspense>
+      )}
       <SnackbarHost />
+      <UpdateBanner />
     </div>
   )
 }
@@ -161,6 +188,23 @@ function RedirectToWeek() {
 }
 
 export default function App() {
+  // Native Capacitor shell → minimal mobile routes only
+  if (isNativeMobile()) {
+    return (
+      <HashRouter>
+        <Suspense fallback={null}>
+          <Routes>
+            <Route element={<MobileLayout />}>
+              <Route path="/" element={<Navigate to={`/day?date=${formatISODate(new Date())}`} replace />} />
+              <Route path="/day" element={<MobileDayPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </HashRouter>
+    )
+  }
+
   return (
     <HashRouter>
       <Routes>

@@ -111,13 +111,23 @@ class EventsFsTable implements StorageTable<CalendarEvent> {
   }
 
   async put(event: CalendarEvent): Promise<void> {
+    await this.writeOne(event)
+    this.rebuildStartTimeIndex()
+  }
+
+  /**
+   * 写单条事件到磁盘并更新内存映射，但**不**重建 startTime 排序索引。
+   * 供 put（单条）与 bulkPut（批量）复用：批量时只在最后统一重建一次索引，
+   * 避免 N 条写入触发 N 次 O(n log n) 重排 —— 这是 ICS 导入 / 批量改时段·
+   * 改分类·改标题时卡顿的根源（原 bulkPut 逐条 put，每条都重排全量索引）。
+   */
+  private async writeOne(event: CalendarEvent): Promise<void> {
     const existing = this.index.events.get(event.id)
     if (existing && existing.filePath) {
       // Update existing file
       const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'event', data: event }, null, 2)
       await writeTextFile(existing.filePath, content)
       this.index.events.set(event.id, { event, filePath: existing.filePath })
-      this.rebuildStartTimeIndex()
     } else {
       // Create new file
       const { year, month, day } = getEventDateParts(event.startTime)
@@ -130,7 +140,6 @@ class EventsFsTable implements StorageTable<CalendarEvent> {
       const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'event', data: event }, null, 2)
       await writeTextFile(filePath, content)
       this.index.events.set(event.id, { event, filePath })
-      this.rebuildStartTimeIndex()
     }
   }
 
@@ -155,7 +164,8 @@ class EventsFsTable implements StorageTable<CalendarEvent> {
   }
 
   async bulkPut(items: CalendarEvent[]): Promise<void> {
-    for (const item of items) await this.put(item)
+    for (const item of items) await this.writeOne(item)
+    this.rebuildStartTimeIndex()
   }
 
   async query(opts: QueryOptions<CalendarEvent>): Promise<CalendarEvent[]> {
@@ -201,7 +211,7 @@ class EventsFsTable implements StorageTable<CalendarEvent> {
       .sort((a, b) => a.ts - b.ts)
   }
 
-  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+  async loadFromScan(entries: FileEntryWithContent[], markInitialized = true): Promise<void> {
     // 权威重载:清空后按磁盘上现存的事件文件重建,删除的事件不会复活
     this.index.events.clear()
     for (const entry of entries) {
@@ -211,6 +221,30 @@ class EventsFsTable implements StorageTable<CalendarEvent> {
         if (parsed.type === 'event' && parsed.data) {
           const event = parsed.data as CalendarEvent
           this.index.events.set(event.id, { event, filePath: entry.path })
+        }
+      } catch {
+        // skip unparseable files
+      }
+    }
+    this.rebuildStartTimeIndex()
+    // markInitialized=false 表示这是「部分加载」(只含最近事件),全量补全后再置 true
+    this.index.eventsInitialized = markInitialized
+  }
+
+  /**
+   * 合并加载:不清空现有内存(保留首屏已加载的最近事件 + 用户启动后新建的事件),
+   * 只补充磁盘上尚未在内存中的历史事件。用于启动后台补全 loadRemainingEvents()。
+   */
+  async mergeFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    for (const entry of entries) {
+      if (!entry.path.endsWith('.json')) continue
+      try {
+        const parsed = JSON.parse(entry.content)
+        if (parsed.type === 'event' && parsed.data) {
+          const event = parsed.data as CalendarEvent
+          if (!this.index.events.has(event.id)) {
+            this.index.events.set(event.id, { event, filePath: entry.path })
+          }
         }
       } catch {
         // skip unparseable files
@@ -964,7 +998,9 @@ export class FileSystemAdapter implements StorageAdapter {
     }
 
     if (this.rootPath) {
-      await this.fullScan()
+      // 启动只加载首屏必需(单文件表 + 最近事件),其余历史事件由
+      // loadRemainingEvents() 在后台补全 —— 大幅缩短启动阻塞时间。
+      await this.quickScanInitial()
     }
 
     this._initialized = true
@@ -974,6 +1010,69 @@ export class FileSystemAdapter implements StorageAdapter {
     if (!this.rootPath) return
     const entries = await readDirWithContent(this.rootPath)
     await this.applyScanEntries(entries)
+  }
+
+  /**
+   * 启动首屏加载:单文件表(都很小) + 最近两个月事件(覆盖当前周及邻近周),
+   * 让首屏立即可交互。其余历史事件交给 loadRemainingEvents() 在后台补全。
+   */
+  async quickScanInitial(): Promise<void> {
+    if (!this.rootPath) return
+    const root = this.rootPath
+
+    // 1) 单文件表 + estimates(体积小,直接读)
+    const SINGLE_FILES = ['categories.json', 'settings.json', 'profile.json', 'todos.json', 'goals.json', 'projects.json']
+    const metaEntries: FileEntryWithContent[] = []
+    await Promise.all(SINGLE_FILES.map(async (name) => {
+      try {
+        const content = await readTextFile(joinPath(root, name))
+        metaEntries.push({ path: joinPath(root, name), modified: 0, content })
+      } catch { /* 文件可能尚不存在(新库) */ }
+    }))
+    try {
+      const estEntries = await readDirWithContent(joinPath(root, 'estimates'))
+      metaEntries.push(...estEntries)
+    } catch { /* estimates 目录可能不存在 */ }
+
+    await (this.categories as CategoriesFsTable).loadFromScan(metaEntries)
+    await (this.settings as SettingsFsTable).loadFromScan(metaEntries)
+    await (this.profile as ProfileFsTable).loadFromScan(metaEntries)
+    await (this.weeklyEstimates as EstimatesFsTable).loadFromScan(metaEntries)
+    await (this.projects as ProjectsFsTable).loadFromScan(metaEntries)
+    await (this.todos as TodosFsTable).loadFromScan(metaEntries)
+    await (this.goals as GoalsFsTable).loadFromScan(metaEntries)
+
+    // 2) 最近两个月事件(当前月 + 上月,自动跨年),以「部分加载」标记(markInitialized=false)
+    const recent = await this.readRecentEventEntries(2)
+    await (this.events as EventsFsTable).loadFromScan(recent, false)
+  }
+
+  /** 读取最近 N 个自然月的事件文件内容(events/YYYY/MM/)。 */
+  private async readRecentEventEntries(months: number): Promise<FileEntryWithContent[]> {
+    if (!this.rootPath) return []
+    const out: FileEntryWithContent[] = []
+    const now = new Date()
+    for (let i = 0; i < months; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const dir = joinPath(this.rootPath, 'events', String(d.getFullYear()), pad2(d.getMonth() + 1))
+      try {
+        out.push(...await readDirWithContent(dir))
+      } catch { /* 月目录可能不存在 */ }
+    }
+    return out
+  }
+
+  /**
+   * 后台补全:扫描全部历史事件并合并进内存索引(不清空首屏已加载的最近事件),
+   * 完成后通过 onReady 回调通知上层静默刷新视图。由 main.tsx 在首屏渲染后调用。
+   */
+  async loadRemainingEvents(onReady?: () => void): Promise<void> {
+    if (!this.rootPath) return
+    try {
+      const entries = await readDirWithContent(joinPath(this.rootPath, 'events'))
+      await (this.events as EventsFsTable).mergeFromScan(entries)
+    } catch { /* ignore */ }
+    onReady?.()
   }
 
   /** 把一次目录扫描的内容应用到内存索引(各表 loadFromScan 已权威化:clear→重填)。 */
