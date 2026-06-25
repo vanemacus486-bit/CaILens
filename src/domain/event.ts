@@ -142,6 +142,8 @@ export interface CalendarEvent {
   typedData?: TypedEventData
   /** 关联的目标 ID（长期目标树中的节点） */
   goalId?: string | null
+  /** 软删除时间戳（UTC ms）；非空则视为已删除，不在普通查询中返回 */
+  deletedAt?: number
   createdAt: number   // UTC ms
   updatedAt: number   // UTC ms
 }

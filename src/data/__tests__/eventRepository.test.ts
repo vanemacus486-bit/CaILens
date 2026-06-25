@@ -377,10 +377,15 @@ describe('getLatest', () => {
 // ── delete ────────────────────────────────────────────────
 
 describe('delete', () => {
-  it('removes the event from the database', async () => {
+  it('soft-deletes the event (sets deletedAt, hides from queries)', async () => {
     await repo.create(makeInput())
     await repo.delete(FIXED_UUID)
-    const found = await db.events.get(FIXED_UUID)
+    // Raw DB record still exists with deletedAt set
+    const raw = await db.events.get(FIXED_UUID)
+    expect(raw).toBeDefined()
+    expect(raw?.deletedAt).toBeDefined()
+    // Repository queries no longer return it
+    const found = await repo.getById(FIXED_UUID)
     expect(found).toBeUndefined()
   })
 

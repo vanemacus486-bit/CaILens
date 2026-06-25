@@ -28,13 +28,14 @@ export class EventRepository {
   async getByTimeRange(start: number, end: number): Promise<CalendarEvent[]> {
     const results = await this.adapter.events.query({
       where: { key: 'startTime', op: 'below', value: end },
-      filter: (e) => e.endTime > start,
+      filter: (e) => !e.deletedAt && e.endTime > start,
     })
     return results.sort((a, b) => a.startTime - b.startTime)
   }
 
   async getById(id: string): Promise<CalendarEvent | undefined> {
-    return this.adapter.events.get(id)
+    const e = await this.adapter.events.get(id)
+    return e?.deletedAt ? undefined : e
   }
 
   async create(input: CreateEventInput): Promise<CalendarEvent> {
@@ -66,7 +67,9 @@ export class EventRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.adapter.events.delete(id)
+    const existing = await this.adapter.events.get(id)
+    if (!existing) return
+    await this.adapter.events.put({ ...existing, deletedAt: this.clock.now(), updatedAt: this.clock.now() })
   }
 
   async bulkCreate(inputs: CreateEventInput[]): Promise<CalendarEvent[]> {
@@ -97,7 +100,8 @@ export class EventRepository {
   }
 
   async getAll(): Promise<CalendarEvent[]> {
-    return this.adapter.events.getAll()
+    const all = await this.adapter.events.getAll()
+    return all.filter((e) => !e.deletedAt)
   }
 
   async search(query: string, limit = 50): Promise<CalendarEvent[]> {
@@ -106,6 +110,7 @@ export class EventRepository {
 
     const results = await this.adapter.events.query({
       filter: (e) => {
+        if (e.deletedAt) return false
         if (e.title.toLowerCase().includes(q)) return true
         if (e.description && e.description.toLowerCase().includes(q)) return true
         if (e.location && e.location.toLowerCase().includes(q)) return true
@@ -153,6 +158,7 @@ export class EventRepository {
     const results = await this.adapter.events.query({
       orderBy: 'endTime',
       orderDir: 'desc',
+      filter: (e) => !e.deletedAt,
       limit: 1,
     })
     return results[0] ?? null
@@ -167,6 +173,7 @@ export class EventRepository {
     const meals = all
       .filter(
         (e) =>
+          !e.deletedAt &&
           e.typedData?.type === 'meal' &&
           e.typedData.mealOrder === mealOrder,
       )

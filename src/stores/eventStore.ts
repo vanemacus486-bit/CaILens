@@ -17,6 +17,10 @@ import { tryLearnAndReclassify } from '@/use-cases/classifyAndLearnKeyword'
 const _eventCache = new Map<string, CalendarEvent[]>()
 const ALL_KEY = '__all__'
 
+// 记录最近一次「可见范围」加载(周/区间),供后台事件补全完成后静默重放刷新视图
+type RangeLoad = { kind: 'week'; weekStart: number } | { kind: 'range'; start: number; end: number }
+let _lastRangeLoad: RangeLoad | null = null
+
 function weekKey(start: number): string {
   return `w:${start}`
 }
@@ -43,6 +47,7 @@ interface EventState {
   loadWeek: (weekStart: Date) => Promise<void>
   loadRange: (start: number, end: number) => Promise<void>
   loadAllEvents: () => Promise<void>
+  reloadVisible: () => Promise<void>
   createEvent: (input: CreateEventInput) => Promise<CalendarEvent>
   updateEvent: (input: UpdateEventInput) => Promise<CalendarEvent>
   deleteEvent: (id: string) => Promise<void>
@@ -63,6 +68,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
   loadWeek: async (weekStart) => {
     set({ isLoading: true, loadError: null })
+    _lastRangeLoad = { kind: 'week', weekStart: weekStart.getTime() }
     try {
       const start = getDayStart(weekStart)
       const end   = getDayStart(addDays(weekStart, 7))
@@ -83,6 +89,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
   loadRange: async (start, end) => {
     set({ isLoading: true, loadError: null })
+    _lastRangeLoad = { kind: 'range', start, end }
     try {
       const key = rangeKey(start, end)
 
@@ -109,6 +116,31 @@ export const useEventStore = create<EventState>()((set, get) => ({
       set({ allEvents })
     } catch {
       // silent — standard week will show empty buckets
+    }
+  },
+
+  // 后台事件补全完成后调用:清缓存并静默重放最近一次可见加载 + 全部事件,
+  // 让当前周视图/复盘范围无感刷新为完整数据(不触发 loading 态)。
+  reloadVisible: async () => {
+    clearEventCache()
+    try {
+      const last = _lastRangeLoad
+      if (last?.kind === 'week') {
+        const start = getDayStart(new Date(last.weekStart))
+        const end = getDayStart(addDays(new Date(last.weekStart), 7))
+        const events = await getEventRepo().getByTimeRange(start, end)
+        _eventCache.set(weekKey(start), events)
+        set({ events })
+      } else if (last?.kind === 'range') {
+        const rangeEvents = await getEventRepo().getByTimeRange(last.start, last.end)
+        _eventCache.set(rangeKey(last.start, last.end), rangeEvents)
+        set({ rangeEvents })
+      }
+      const allEvents = await getEventRepo().getByTimeRange(0, Date.now() + 365 * 24 * 60 * 60 * 1000)
+      _eventCache.set(ALL_KEY, allEvents)
+      set({ allEvents })
+    } catch {
+      // silent
     }
   },
 

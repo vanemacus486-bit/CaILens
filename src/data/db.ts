@@ -248,6 +248,16 @@ export class CailensDB extends Dexie {
       await tx.table('hygieneLogs').clear()
     })
 
+    // v28：events 新增 deletedAt 索引（软删除 tombstone，为二期同步预留）
+    this.version(28).stores({
+      events: 'id, startTime, endTime, projectId, goalId, deletedAt',
+    }).upgrade((tx) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tx.table('events').toCollection().modify((e: any) => {
+        if (e.deletedAt === undefined) e.deletedAt = null
+      })
+    )
+
     // 全新 DB 首次创建时触发（version 0 → any）
     this.on('populate', () =>
       Promise.all([

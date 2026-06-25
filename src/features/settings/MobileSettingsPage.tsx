@@ -10,7 +10,9 @@ import { SettingsShortcuts } from './SettingsShortcuts'
 import { SettingsData } from './SettingsData'
 import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsAbout } from './SettingsAbout'
+import { SettingsSupport } from './SettingsSupport'
 import { isTauri } from '@/data/tauriFs'
+import { isSponsorConfigured } from '@/lib/sponsor'
 
 const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
   { key: 'categories', label: 'Categories', labelZh: '分类' },
@@ -20,6 +22,9 @@ const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
   { key: 'data',       label: 'Data & Profile', labelZh: '数据与档案' },
   ...(isTauri() ? [{ key: 'storage' as SettingsTab, label: 'Storage', labelZh: '存储' }] : []),
   { key: 'about' as SettingsTab, label: 'About', labelZh: '关于' },
+  ...(isSponsorConfigured() || import.meta.env.DEV
+    ? [{ key: 'support' as SettingsTab, label: 'Support', labelZh: '支持' }]
+    : []),
 ]
 
 const MOBILE_TAB_CONTENT: Record<SettingsTab, React.FC> = {
@@ -30,6 +35,7 @@ const MOBILE_TAB_CONTENT: Record<SettingsTab, React.FC> = {
   data:       SettingsData,
   storage:    SettingsStorage,
   about:      SettingsAbout,
+  support:    SettingsSupport,
 }
 
 export function MobileSettingsPage() {
