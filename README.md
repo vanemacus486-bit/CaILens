@@ -363,9 +363,9 @@ npm run android:build# Android APK 构建
 
 ## 开源协议
 
-[Creative Commons Attribution-NonCommercial 4.0 International](./LICENSE)
+[专有 EULA](./LICENSE) — Copyright (c) 2025–2026 vanemacus486-bit. 保留所有权利。
 
-你可以自由使用、分享、改编本软件，但仅限于非商业用途，且需署名。商业使用需另行授权。
+授予个人在单一设备上使用的许可。禁止再分发、转售及反向工程。完整条款见 LICENSE 文件。
 
 ---
 

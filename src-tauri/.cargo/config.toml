@@ -1,0 +1,10 @@
+# 构建提速：用 LLVM lld 替换 MinGW 默认的 ld.bfd 链接器（链接显著更快）。
+# 工具链 = stable-x86_64-pc-windows-gnu；lld 用 rustc 自带的（无需额外安装），
+# 通过 -B 把 gcc 的可执行搜索路径指向自带的 gcc-ld 目录（内含 ld.lld.exe），
+# 再用 -fuse-ld=lld 强制启用。已实测可链接（Form 2）。
+# 回退：删除本文件即恢复默认链接器。若 rustup 更换工具链布局导致链接失败，同样删除本文件。
+[target.x86_64-pc-windows-gnu]
+rustflags = [
+  '-C', 'link-arg=-fuse-ld=lld',
+  '-C', 'link-arg=-BC:\Users\vanem\.rustup\toolchains\stable-x86_64-pc-windows-gnu\lib\rustlib\x86_64-pc-windows-gnu\bin\gcc-ld',
+]

@@ -1,10 +1,10 @@
 [package]
 name = "CaILens"
-version = "0.1.0"
-description = "A local-first time-logging tool"
-authors = [""]
-license = ""
-repository = ""
+version = "3.23.0"
+description = "A local-first time-tracking tool inspired by Lyubishchev"
+authors = ["vanemacus486-bit"]
+license = "SEE LICENSE IN LICENSE"
+repository = "https://github.com/vanemacus486-bit/CaILens"
 edition = "2021"
 rust-version = "1.77.2"
 
@@ -25,10 +25,15 @@ tauri = { version = "2.11.0", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 notify = { version = "7", features = [] }
 
+# 构建提速：对 webview 壳应用，激进 Rust 优化几乎不改善终端体验，却拖慢每次重打。
+# 要最小体积发版包，把 lto 改回 true、codegen-units 改回 1、opt-level 改回 3 即可。
 [profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
+opt-level = 2
+lto = false
+codegen-units = 16
 strip = true
+incremental = true

@@ -29,12 +29,19 @@ pub fn run() {
                 )?;
             }
 
+            // Register updater plugin (desktop only)
+            #[cfg(desktop)]
+            {
+                app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+            }
+
             // Register global shortcut: Alt+Space
             register_global_shortcut(app.handle().clone())?;
 
             Ok(())
         })
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init())
         .plugin(Builder::new().build())
         .manage(QuickCaptureState::new())
         .invoke_handler(tauri::generate_handler![

@@ -358,9 +358,9 @@ npm run android:build# Android APK build
 
 ## License
 
-[Creative Commons Attribution-NonCommercial 4.0 International](./LICENSE)
+[Proprietary EULA](./LICENSE) — Copyright (c) 2025–2026 vanemacus486-bit. All rights reserved.
 
-You may use, share, and adapt this software for non-commercial purposes only, with attribution. Commercial use requires a separate agreement.
+Personal use on a single device. Redistribution, resale, and reverse engineering are prohibited. See the full license for terms.
 
 ---
 

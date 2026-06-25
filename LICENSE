@@ -1,20 +1,46 @@
-Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
+# CaILens 最终用户许可协议 (EULA)
 
-This work is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License.
+**Copyright (c) 2025–2026 vanemacus486-bit. All rights reserved.**
 
-You are free to:
-- Share — copy and redistribute the material in any medium or format
-- Adapt — remix, transform, and build upon the material
-
-Under the following terms:
-- Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
-- NonCommercial — You may not use the material for commercial purposes.
-- No additional restrictions — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
-
-Full license text: https://creativecommons.org/licenses/by-nc/4.0/legalcode
+本协议是您（"用户"）与 CaILens 软件（"本软件"）的开发者之间的法律协议。安装、复制或以任何方式使用本软件即表示您同意受本协议条款约束。如不同意，请勿使用本软件。
 
 ---
 
-Copyright (c) 2025–2026 CaILens contributors
+## 1. 许可授予
 
-For commercial licensing inquiries, contact the project maintainer.
+开发者授予用户一项非独占、不可转让、有限的权利，在单一设备上以个人用途使用本软件。本许可是对您的授权，而非对软件的销售。
+
+## 2. 限制
+
+未经开发者事先书面许可，用户不得：
+
+- （a）以任何形式再分发、出租、出借、转授权或转让本软件；
+- （b）对本软件的全部或部分进行反向工程、反编译、反汇编或试图推导源代码；
+- （c）将本软件用于任何商业目的（包括但不限于出售、作为服务提供、或嵌入商业产品中）；
+- （d）移除、修改或遮掩本软件中的任何版权声明或其他所有权声明。
+
+## 3. 数据
+
+- 本软件所有用户数据仅存储于用户本地设备（IndexedDB / 本地文件系统）。开发者不收集、不上传、不存储任何用户数据，亦不提供任何形式的账号或云同步服务。
+- 用户对自行创建、导入、存储于本软件中的全部数据拥有所有权。开发者对任何数据丢失、损坏或泄露不承担责任。
+- 本软件仅有的对外网络请求为：检查更新（访问 GitHub Releases API，仅获取版本号，不发送任何用户数据）和用户主动发起的第三方链接跳转。
+
+## 4. 免责声明
+
+本软件按"现状"（AS IS）提供，不附带任何明示或默示的担保，包括但不限于对适销性、特定用途适用性或不侵权的默示担保。在任何情况下，开发者不对因使用或无法使用本软件而导致的任何损害（包括但不限于数据丢失、业务中断、利润损失）承担责任，即使已被告知此类损害的可能性。
+
+## 5. 终止
+
+本协议在终止前持续有效。若用户违反本协议任何条款，开发者可随时终止本授权。终止时用户须销毁本软件的所有副本。
+
+## 6. 适用法律
+
+本协议受 [请填写适用法域，如：中华人民共和国法律 / the laws of the State of Delaware] 管辖，并据其解释。
+
+## 7. 联系方式
+
+如有授权相关疑问，请联系：https://github.com/vanemacus486-bit/CaILens
+
+---
+
+> ⚠️ **注意：本文件为开发者自行起草，非律师出具。正式发布前建议由法律专业人士复核。**

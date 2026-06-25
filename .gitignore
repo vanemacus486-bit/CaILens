@@ -33,3 +33,8 @@ graphify-out/
 # Codegraph cache
 .codegraph/
 
+# Tauri signing keys (private key — NEVER commit)
+*.key
+*.key.pub
+CaILens_keys/
+
