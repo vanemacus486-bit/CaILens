@@ -110,67 +110,67 @@
 
 /* ── Dark mode (neutral gray) ──────────────────────────── */
 .dark {
-  --surface-base:    #1a1a1a;
-  --surface-raised:  #222222;
-  --surface-sunken:  #141414;
+  --surface-base:    #2A2722;
+  --surface-raised:  #343029;
+  --surface-sunken:  #211E1A;
 
-  --border-subtle:   #262626;
-  --border-default:  #333333;
-  --grid-line:          rgba(255,255,255,0.12);
-  --grid-line-date-sep: rgba(255,255,255,0.18);
+  --border-subtle:   #46413A;
+  --border-default:  #565045;
+  --grid-line:          rgba(240,230,215,0.08);
+  --grid-line-date-sep: rgba(240,230,215,0.13);
 
-  --text-primary:    #ededed;
-  --text-secondary:  #8a8a8a;
-  --text-tertiary:   #5a5a5a;
-  --text-quaternary: #404040;
+  --text-primary:    #ECE7DD;
+  --text-secondary:  #B5ADA0;
+  --text-tertiary:   #8C8478;
+  --text-quaternary: #635C50;
 
-  --accent:          #c48a78;
-  --accent-hover:    #b07a68;
-  --accent-light:    #2a1e1a;
+  --accent:          #DE9270;
+  --accent-hover:    #E8A07E;
+  --accent-light:    #3A2C22;
 
-  --time-line:       #c48a78;
+  --time-line:       #DE9270;
 
-  --event-accent-bg:   #3a2824;
-  --event-accent-text: #c48a78;
-  --event-accent-fill: #c48a78;
-  --event-sage-bg:     #263026;
-  --event-sage-text:   #8aaa86;
-  --event-sage-fill:   #8aaa86;
-  --event-sand-bg:     #2e2820;
-  --event-sand-text:   #b8a87a;
-  --event-sand-fill:   #b8a87a;
-  --event-sky-bg:      #262a2e;
-  --event-sky-text:    #9aa2a6;
-  --event-sky-fill:    #9aa2a6;
-  --event-rose-bg:     #30262a;
-  --event-rose-text:   #b88a90;
-  --event-rose-fill:   #b88a90;
-  --event-stone-bg:    #242424;
-  --event-stone-text:  #969696;
-  --event-stone-fill:  #969696;
+  --event-accent-bg:   #412C22;
+  --event-accent-text: #E0966F;
+  --event-accent-fill: #E0966F;
+  --event-sage-bg:     #2C3623;
+  --event-sage-text:   #9DBE93;
+  --event-sage-fill:   #9DBE93;
+  --event-sand-bg:     #372F1E;
+  --event-sand-text:   #CDB87C;
+  --event-sand-fill:   #CDB87C;
+  --event-sky-bg:      #283440;
+  --event-sky-text:    #94AEBC;
+  --event-sky-fill:    #94AEBC;
+  --event-rose-bg:     #3D2C32;
+  --event-rose-text:   #D09AA0;
+  --event-rose-fill:   #D09AA0;
+  --event-stone-bg:    #322E28;
+  --event-stone-text:  #ADA89F;
+  --event-stone-fill:  #ADA89F;
 
-  --bg-cell-empty: #2a2a2a;
+  --bg-cell-empty: #252219;
 
   /* Stats shell (dark) */
   --stats-shell-bg:        var(--surface-base);
   --stats-shell-ink-1:     var(--text-primary);
   --stats-shell-ink-2:     var(--text-secondary);
   --stats-shell-ink-3:     var(--text-tertiary);
-  --stats-shell-rule:      rgba(237,237,237,0.08);
+  --stats-shell-rule:      rgba(240,230,215,0.08);
   --stats-shell-pill-bg:   var(--surface-raised);
   --stats-shell-pill-text: var(--text-tertiary);
 
   /* Year heatmap (dark) */
   --heatmap-bg:            var(--surface-base);
   --heatmap-bg-card:       var(--surface-raised);
-  --heatmap-bg-cell-empty: #2a2a2a;
+  --heatmap-bg-cell-empty: #252219;
   --heatmap-ink-1:         var(--text-primary);
   --heatmap-ink-2:         var(--text-secondary);
   --heatmap-ink-3:         var(--text-tertiary);
-  --heatmap-rule:          rgba(237,237,237,0.08);
+  --heatmap-rule:          rgba(240,230,215,0.08);
 
   /* Chart colors */
-  --chart-grid:       #262626;
+  --chart-grid:       #3A352E;
   --chart-budget-line: #8a7a4a;
 
   --c-active: var(--event-accent-fill);
@@ -350,97 +350,6 @@ summary:focus-visible:not(.focus-ring-custom),
   outline: none;
 }
 
-/* ── Accent themes ──────────────────────────────────────── */
-/* Each accent shifts three layers:
-   1. Surface + border — the overall "feel" of the page
-   2. Brand accent — buttons, links, timeline, focus rings
-   3. Event category colors are NOT overridden — they are semantic
-      (category identity), not thematic (aesthetic preference). */
-
-/* ── Ocean (cool, calm) ─────────────────────────────────── */
-[data-accent="ocean"] {
-  --surface-base:        #eceef0;
-  --surface-raised:      #f5f7f9;
-  --surface-sunken:      #eeeff2;
-  --border-subtle:       #dfe1e5;
-  --border-default:      #c9ccd1;
-  --grid-line:           rgba(0,0,0,0.12);
-  --grid-line-date-sep:  rgba(0,0,0,0.18);
-  --accent:              #4A7090;
-  --accent-hover:        #3A6078;
-  --accent-light:        #E8F0F5;
-  --time-line:           #4A7090;
-}
-.dark[data-accent="ocean"] {
-  --surface-base:        #1a1a1a;
-  --surface-raised:      #222222;
-  --surface-sunken:      #141414;
-  --border-subtle:       #262626;
-  --border-default:      #333333;
-  --grid-line:           rgba(255,255,255,0.12);
-  --grid-line-date-sep:  rgba(255,255,255,0.18);
-  --accent:              #6A90B0;
-  --accent-hover:        #7AA0C0;
-  --accent-light:        #1A2835;
-  --time-line:           #6A90B0;
-}
-
-/* ── Forest (grounded, natural) ─────────────────────────── */
-[data-accent="forest"] {
-  --surface-base:        #eeede4;
-  --surface-raised:      #f8f8f5;
-  --surface-sunken:      #f1f0e8;
-  --border-subtle:       #e0ded5;
-  --border-default:      #cac7be;
-  --grid-line:           rgba(0,0,0,0.12);
-  --grid-line-date-sep:  rgba(0,0,0,0.18);
-  --accent:              #5A7A5E;
-  --accent-hover:        #4A6B4E;
-  --accent-light:        #EEF2EC;
-  --time-line:           #5A7A5E;
-}
-.dark[data-accent="forest"] {
-  --surface-base:        #1a1a1a;
-  --surface-raised:      #222222;
-  --surface-sunken:      #141414;
-  --border-subtle:       #262626;
-  --border-default:      #333333;
-  --grid-line:           rgba(255,255,255,0.12);
-  --grid-line-date-sep:  rgba(255,255,255,0.18);
-  --accent:              #7A9A7E;
-  --accent-hover:        #8AAA8E;
-  --accent-light:        #1E281E;
-  --time-line:           #7A9A7E;
-}
-
-/* ── Plum (subdued, elegant) ────────────────────────────── */
-[data-accent="plum"] {
-  --surface-base:        #f0ece7;
-  --surface-raised:      #faf8f7;
-  --surface-sunken:      #f3efe9;
-  --border-subtle:       #e2ddd7;
-  --border-default:      #ccc7c0;
-  --grid-line:           rgba(0,0,0,0.12);
-  --grid-line-date-sep:  rgba(0,0,0,0.18);
-  --accent:              #8A6A7A;
-  --accent-hover:        #7A5A6A;
-  --accent-light:        #F2ECF0;
-  --time-line:           #8A6A7A;
-}
-.dark[data-accent="plum"] {
-  --surface-base:        #1a1a1a;
-  --surface-raised:      #222222;
-  --surface-sunken:      #141414;
-  --border-subtle:       #262626;
-  --border-default:      #333333;
-  --grid-line:           rgba(255,255,255,0.12);
-  --grid-line-date-sep:  rgba(255,255,255,0.18);
-  --accent:              #A08090;
-  --accent-hover:        #B090A0;
-  --accent-light:        #281E22;
-  --time-line:           #A08090;
-}
-
 /* ── Drag state ─────────────────────────────────────────── */
 body.dragging-event,
 body.dragging-event * {
@@ -474,7 +383,7 @@ body.resizing-event .overflow-y-auto {
 /* Shared "lit-from-above" top highlight for raised surfaces (cards, mind-map nodes).
    Mirrors the nav bar's material so the whole app shares one lighting model. */
 :root { --surface-lit: rgba(255,255,255,0.72); }
-.dark { --surface-lit: rgba(255,255,255,0.06); }
+.dark { --surface-lit: rgba(255,250,240,0.06); }
 
 /* ── Navigation bar — light toolbar ────────────────────── */
 /* Flat with the cream body; a hairline bottom border is the only separation.
