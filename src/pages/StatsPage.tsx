@@ -17,6 +17,8 @@ import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
 import { DietCalendarCard } from '@/components/stats/DietCalendarCard'
 import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneCalendarCard } from '@/components/stats/HygieneCalendarCard'
+import { MoodCard } from '@/components/stats/MoodCard'
+import { HabitTrendCard } from '@/components/stats/HabitTrendCard'
 import { DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { EasternStatsShell, type RoutineViewMode } from '@/components/stats/EasternStatsShell'
 
@@ -132,14 +134,17 @@ export function StatsPage() {
         <div className="routine-container">
           <div>
             {routineView === 'trend' && (
-              <CategoryTrendChart
-                history={history}
-                categories={categories}
-                periodType={period}
-                maturity={maturity}
-                onNavigate={navigateRoutine}
-                onPeriodChange={setPeriod}
-              />
+              <>
+                <CategoryTrendChart
+                  history={history}
+                  categories={categories}
+                  periodType={period}
+                  maturity={maturity}
+                  onNavigate={navigateRoutine}
+                  onPeriodChange={setPeriod}
+                />
+                <HabitTrendCard />
+              </>
             )}
             {routineView === 'heatmap' && (
               <YearHeatmap
@@ -159,6 +164,9 @@ export function StatsPage() {
             )}
             {routineView === 'outfit' && (
               <OutfitCard outfits={outfits} language={language} />
+            )}
+            {routineView === 'mood' && (
+              <MoodCard />
             )}
           </div>
         </div>

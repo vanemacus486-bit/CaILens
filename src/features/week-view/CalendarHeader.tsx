@@ -106,7 +106,7 @@ export function CalendarHeader({
           onChange={(v) => v === 'month' ? onSetMonth() : onSetWeek()}
         />
 
-        <SlideSegmented items={navItems} value={activeMode} onChange={handleModeChange} expand />
+        <SlideSegmented items={navItems} value={activeMode} onChange={handleModeChange} expand shareKey="domain" />
 
         <button
           onClick={onSearch}

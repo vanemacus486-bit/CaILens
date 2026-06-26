@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react'
 
-export type RoutineViewMode = 'trend' | 'heatmap' | 'sleep' | 'diet' | 'hygiene' | 'outfit'
+export type RoutineViewMode = 'trend' | 'heatmap' | 'sleep' | 'diet' | 'hygiene' | 'outfit' | 'mood'
 
 interface Props {
   children: ReactNode

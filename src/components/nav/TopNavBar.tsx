@@ -14,6 +14,7 @@ const STATS_PILLS: { id: RoutineViewMode; label: string }[] = [
   { id: 'diet',    label: '饮食' },
   { id: 'hygiene', label: '卫生' },
   { id: 'outfit',  label: '穿搭' },
+  { id: 'mood',    label: '情绪' },
 ]
 
 export function TopNavBar() {
@@ -65,7 +66,7 @@ export function TopNavBar() {
           />
         )}
 
-        <SlideSegmented items={navItems} value={activeMode} onChange={handleModeChange} expand />
+        <SlideSegmented items={navItems} value={activeMode} onChange={handleModeChange} expand shareKey="domain" />
 
         <button
           onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}

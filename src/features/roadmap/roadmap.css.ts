@@ -584,12 +584,12 @@ const ROADMAP_CSS = `
   color: var(--text-quaternary);
 }
 
-/* 任务 tab：任务宽列 + 指标侧栏 */
+/* 任务 tab：任务宽列 + 指标侧栏；stretch 让两卡等高（底边齐平） */
 .roadmap-ws-tasks {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* 占位（时间 / 已完成 / 文档 即将上线） */

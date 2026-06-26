@@ -11,12 +11,14 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
-  LabelList,
+  Customized,
+  usePlotArea,
 } from 'recharts'
 import { RechartsTooltip } from './RechartsTooltip'
 import type { Category, CategoryId } from '@/domain/category'
 import type { DataMaturity } from '@/domain/maturity'
 import type { Granularity, Bucket } from '@/hooks/useStatsAggregation'
+import { resolveLabelStack } from '@/domain/labelStack'
 
 const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
 const CAT_STORAGE_KEY = 'cailens-trend-categories'
@@ -73,6 +75,62 @@ function loadSelection(): CategoryId[] {
 
 function saveSelection(ids: CategoryId[]) {
   try { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(ids)) } catch { /* ignore */ }
+}
+
+// ── Right-edge endpoint labels (single de-collided layer) ─────
+//
+// Drawn as one `Customized` layer instead of a per-line `<LabelList>` so the
+// labels know each other's positions: when two series end at close values their
+// labels are pushed apart vertically (resolveLabelStack) instead of stacking.
+// A thin leader connects a nudged label back to its true endpoint.
+
+interface EndpointLabelItem { id: CategoryId; name: string; value: number }
+
+const LABEL_FONT = 10
+const LABEL_GAP = 14
+
+function EndpointLabels(props: { labels?: EndpointLabelItem[]; maxValue?: number }) {
+  const plot = usePlotArea()
+  const labels = props.labels ?? []
+  const maxValue = props.maxValue ?? 0
+  if (!plot || labels.length === 0 || maxValue <= 0) return null
+
+  const { x, y, width, height } = plot
+  const yOf = (v: number) => y + (1 - v / maxValue) * height
+  const placed = resolveLabelStack(
+    labels.map((l) => ({ key: l.id, idealY: yOf(l.value) })),
+    { top: y + 2, bottom: y + height - 2, gap: LABEL_GAP },
+  )
+  const labelX = x + width + 8
+
+  return (
+    <g>
+      {labels.map((l) => {
+        const adjY = placed.get(l.id)
+        if (adjY == null) return null
+        const idealY = yOf(l.value)
+        const color = `var(--event-${l.id}-fill)`
+        return (
+          <g key={l.id}>
+            {Math.abs(adjY - idealY) > 2 && (
+              <line
+                x1={x + width + 2} y1={idealY}
+                x2={labelX - 2} y2={adjY}
+                stroke={color} strokeWidth={1} opacity={0.35}
+              />
+            )}
+            <text
+              x={labelX} y={adjY} dy={3}
+              fill={color} fontSize={LABEL_FONT}
+              fontFamily="var(--font-ui)" textAnchor="start"
+            >
+              {l.name}
+            </text>
+          </g>
+        )
+      })}
+    </g>
+  )
 }
 
 // ── Component ────────────────────────────────────────────────
@@ -161,6 +219,22 @@ export function CategoryTrendChart({
     const ranked = [...selected].sort((a, b) => ((lastRow[b] as number) || 0) - ((lastRow[a] as number) || 0))
     return ranked.slice(0, 3)
   }, [chartData, selected])
+
+  // Visible right-edge labels: same rule as before (≤3 selected → all; else top 3),
+  // skipping zero-value endpoints. Fed to the single EndpointLabels overlay.
+  const endpointLabels = useMemo<EndpointLabelItem[]>(() => {
+    if (chartData.length === 0) return []
+    const lastRow = chartData[chartData.length - 1]
+    const showAll = selected.length <= 3
+    const out: EndpointLabelItem[] = []
+    for (const id of selected) {
+      if (!showAll && !topLabelIds.includes(id)) continue
+      const value = (lastRow[id] as number) || 0
+      if (value <= 0) continue
+      out.push({ id, name: catMap.get(id)?.name ?? id, value })
+    }
+    return out
+  }, [chartData, selected, topLabelIds, catMap])
 
   const budgetLine = useMemo(() => {
     if (categories.length === 0) return 0
@@ -295,7 +369,7 @@ export function CategoryTrendChart({
       {/* ── Chart ───────────────────────────────────────── */}
       <div className="trend-chart-container">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+          <ComposedChart data={chartData} margin={{ top: 8, right: 56, left: 0, bottom: 8 }}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--line)"
@@ -392,37 +466,12 @@ export function CategoryTrendChart({
                   }}
                   activeDot={{ r: 3, strokeWidth: 0 }}
                   connectNulls={false}
-                >
-                  {selected.length <= 3 || topLabelIds.includes(id) ? (
-                    <LabelList
-                      dataKey={id}
-                      position="right"
-                      content={(props: { x?: unknown; y?: unknown; value?: unknown; index?: unknown }) => {
-                        // recharts' label `Props` is a wide SVGText&Label intersection;
-                        // take only the fields we use and narrow them ourselves.
-                        const value = typeof props.value === 'number' ? props.value : 0
-                        if (props.index !== chartData.length - 1 || value === 0) return null
-                        const nx = typeof props.x === 'number' ? props.x : 0
-                        const ny = typeof props.y === 'number' ? props.y : 0
-                        return (
-                          <text
-                            x={nx + 6}
-                            y={ny}
-                            dy={3}
-                            fill={`var(--event-${id}-fill)`}
-                            fontSize={10}
-                            fontFamily="var(--font-ui)"
-                            textAnchor="start"
-                          >
-                            {cat?.name ?? id}
-                          </text>
-                        )
-                      }}
-                    />
-                  ) : null}
-                </Line>
+                />
               )
             })}
+
+            {/* Right-edge endpoint labels — one de-collided layer (see EndpointLabels) */}
+            <Customized component={EndpointLabels} labels={endpointLabels} maxValue={dynamicMax} />
 
             {budgetLine > 0 && selected.length === 1 && (
               <ReferenceLine
