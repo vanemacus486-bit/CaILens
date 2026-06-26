@@ -313,6 +313,27 @@
   transform: translateY(0) scale(1);
 }
 
+/* ── Sleep card: 猫咪呼吸起伏 + 飘 Zzz ──────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes sleep-breathe {
+    0%, 100% { transform: scale(1) translateY(0); }
+    50%      { transform: scale(1.04) translateY(-1px); }
+  }
+  @keyframes sleep-zzz {
+    0%   { opacity: 0; transform: translate(0, 3px) scale(0.7); }
+    25%  { opacity: 0.9; }
+    100% { opacity: 0; transform: translate(8px, -13px) scale(1.15); }
+  }
+  .animate-sleep-breathe {
+    transform-box: fill-box;
+    transform-origin: 50% 85%;
+    animation: sleep-breathe 3.6s ease-in-out infinite;
+  }
+  .animate-sleep-zzz {
+    animation: sleep-zzz 3s ease-in-out infinite;
+  }
+}
+
 /* ── Search result highlight pulse ────────────────────── */
 @media (prefers-reduced-motion: no-preference) {
   @keyframes search-highlight-pulse {
