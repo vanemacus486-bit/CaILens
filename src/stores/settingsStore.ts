@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { getSettingsRepo } from '@/data/getRepositories'
 import type { AppSettings, AppLanguage, AppTheme, UiFont, VisualStyle, FontScale } from '@/domain/settings'
 import type { HygieneActivityDef } from '@/domain/hygieneActivity'
+import type { HabitPlan } from '@/domain/habitPlan'
+import { makePhase, startOfLocalDay } from '@/domain/habitPlan'
 import { DEFAULT_SETTINGS, resolveTheme } from '@/domain/settings'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
 
@@ -71,6 +73,9 @@ interface AppSettingsState {
   resetAllShortcuts: () => Promise<void>
   setUiFont: (font: UiFont) => Promise<void>
   setHygieneActivities: (activities: HygieneActivityDef[]) => Promise<void>
+  createHabitPlan: (title: string) => Promise<HabitPlan>
+  updateHabitPlan: (plan: HabitPlan) => Promise<void>
+  deleteHabitPlan: (id: string) => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
@@ -189,6 +194,42 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
 
   setHygieneActivities: async (activities) => {
     const settings = await getSettingsRepo().update({ hygieneActivities: activities })
+    set({ settings })
+  },
+
+  createHabitPlan: async (title) => {
+    const now = Date.now()
+    const plan: HabitPlan = {
+      id: crypto.randomUUID(),
+      title: title.trim() || '新习惯计划',
+      status: 'active',
+      startDate: startOfLocalDay(now),
+      phaseLengthDays: 14,
+      streams: [],
+      phases: [
+        makePhase(crypto.randomUUID(), '宽松'),
+        makePhase(crypto.randomUUID(), '收紧'),
+        makePhase(crypto.randomUUID(), '目标'),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    }
+    const current = (await getSettingsRepo().get()).habitPlans ?? []
+    const settings = await getSettingsRepo().update({ habitPlans: [...current, plan] })
+    set({ settings })
+    return plan
+  },
+
+  updateHabitPlan: async (plan) => {
+    const current = (await getSettingsRepo().get()).habitPlans ?? []
+    const next = current.map((p) => (p.id === plan.id ? { ...plan, updatedAt: Date.now() } : p))
+    const settings = await getSettingsRepo().update({ habitPlans: next })
+    set({ settings })
+  },
+
+  deleteHabitPlan: async (id) => {
+    const current = (await getSettingsRepo().get()).habitPlans ?? []
+    const settings = await getSettingsRepo().update({ habitPlans: current.filter((p) => p.id !== id) })
     set({ settings })
   },
 }))

@@ -21,6 +21,7 @@ import { GoalMindMap } from './GoalMindMap'
 import { TaskCard } from './TaskCard'
 import { InboxCard } from './InboxCard'
 import { KeyMetricsCard } from './KeyMetricsCard'
+import { HabitPlansCard } from './HabitPlansCard'
 import { GoalDocTab } from './GoalDocTab'
 import { DoneArchiveTab } from './DoneArchiveTab'
 import { ArchiveView } from './ArchiveView'
@@ -369,6 +370,7 @@ export function RoadmapView() {
             创建第一个长期目标
           </button>
         </div>
+        <div style={{ marginTop: 16 }}><HabitPlansCard /></div>
         {inboxCardInner && <div style={{ marginTop: 16 }}>{inboxCardInner}</div>}
       </div>
     )
@@ -522,6 +524,8 @@ export function RoadmapView() {
       ) : (
         inboxCardInner && <div style={{ marginTop: 16 }}>{inboxCardInner}</div>
       )}
+
+      {!showArchive && <div style={{ marginTop: 24 }}><HabitPlansCard /></div>}
 
       {/* 标记完成确认对话框 */}
       <AlertDialog open={confirmDoneHasOpen} onOpenChange={(open) => { if (!open) { setConfirmDoneGoalId(null); setConfirmDoneHasOpen(false) } }}>

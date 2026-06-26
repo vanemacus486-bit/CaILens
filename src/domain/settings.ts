@@ -1,6 +1,7 @@
 import type { ShortcutAction, ShortcutString } from './shortcuts'
 import type { HygieneActivityDef } from './hygieneActivity'
 import { DEFAULT_HYGIENE_ACTIVITIES } from './hygieneActivity'
+import type { HabitPlan } from './habitPlan'
 
 export type AppLanguage = 'zh' | 'en'
 export type AppTheme = 'light' | 'dark' | 'auto'
@@ -20,6 +21,8 @@ export interface AppSettings {
   shortcuts?: Partial<Record<ShortcutAction, ShortcutString>>
   /** 自定义卫生活动（哪些事件计入卫生 + 颜色）；缺省回退 DEFAULT_HYGIENE_ACTIVITIES */
   hygieneActivities?: HygieneActivityDef[]
+  /** 习惯调节计划（分阶段增减某些活动时间 + 达标检测）；与 hygieneActivities 同为 settings 内用户自定义列表 */
+  habitPlans?: HabitPlan[]
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
