@@ -81,6 +81,8 @@
   --color-text-success:  #2D7D46;
   --color-text-danger:   #B53535;
   --color-bg-danger:    #F8E8E8;
+  --color-bg-danger-solid: #E81123;
+  --color-bg-danger-solid-press: #C50F1F;
   --color-bg-info:       #E8F0F8;
   --color-text-info:     #3A5A80;
 
@@ -178,6 +180,8 @@
   --color-text-success:  #5eaa74;
   --color-text-danger:   #d06464;
   --color-bg-danger:    #3A2020;
+  --color-bg-danger-solid: #E81123;
+  --color-bg-danger-solid-press: #C50F1F;
   --color-bg-info:       #2A3040;
   --color-text-info:     #90B8D8;
 
@@ -411,7 +415,6 @@ body.resizing-event .overflow-y-auto {
    Uses surface tokens so it adapts to light/dark automatically. */
 .nav-bar {
   background: var(--surface-base);
-  border-bottom: 1px solid var(--border-subtle);
 }
 
 /* ── Responsive time-column width ────────────────────────── */

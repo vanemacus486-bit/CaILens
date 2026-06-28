@@ -3,14 +3,15 @@ import { formatWeekday, isToday } from '@/domain/time'
 
 interface WeekDateHeaderProps {
   days: Date[]
+  highlightedDayMs?: number | null
   onDayClick?: (date: Date) => void
 }
 
-export function WeekDateHeader({ days, onDayClick }: WeekDateHeaderProps) {
+export function WeekDateHeader({ days, highlightedDayMs, onDayClick }: WeekDateHeaderProps) {
   return (
     <div className="grid flex-shrink-0 min-w-[540px]" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)' }}>
       {/* Spacer — aligns with TimeGrid's label column */}
-      <div className="bg-surface-sunken border-l border-grid-line" />
+      <div className="bg-surface-base border-l border-grid-line" />
 
       {days.map((day) => {
         const today = isToday(day.getTime())
@@ -18,7 +19,8 @@ export function WeekDateHeader({ days, onDayClick }: WeekDateHeaderProps) {
           <div
             key={day.getTime()}
             className={cn(
-              'flex flex-col items-center justify-center py-2.5 select-none cursor-default bg-surface-sunken hover:bg-surface-sunken/70 transition-colors duration-150 border-b border-grid-line-date-sep relative',
+              'flex flex-col items-center justify-center py-2.5 select-none cursor-default bg-surface-base hover:bg-surface-base/70 transition-colors duration-150 border-b border-grid-line-date-sep relative',
+              highlightedDayMs != null && day.getTime() === highlightedDayMs && 'bg-accent/15 ring-1 ring-accent/40',
             )}
             onDoubleClick={() => onDayClick?.(day)}
             title="双击查看当天"

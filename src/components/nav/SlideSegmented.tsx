@@ -14,6 +14,7 @@
 
 import { useLayoutEffect, useRef, useState } from 'react'
 import { type LucideIcon } from 'lucide-react'
+import { HoverCard } from '@/components/ui/hover-card'
 
 interface SlideItem<T extends string> {
   id: T
@@ -29,6 +30,10 @@ interface Props<T extends string> {
   expand?: boolean
   /** 跨 mount/unmount 接力滑块用的共享键（同一逻辑切换器在不同路由各一份时设相同值） */
   shareKey?: string
+  /** 撑满父宽，各项等分（用于侧边栏等固定宽度容器） */
+  stretch?: boolean
+  /** 快捷键映射：item.id → 快捷键文字（如 'Alt+1'），会触发 HoverCard 展示 */
+  shortcuts?: Record<string, string>
 }
 
 // 卸载实例 → 模块表保存滑块屏幕位置；新实例据此滑入。TTL 防陈旧。
@@ -41,7 +46,7 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-export function SlideSegmented<T extends string>({ items, value, onChange, expand = false, shareKey }: Props<T>) {
+export function SlideSegmented<T extends string>({ items, value, onChange, expand = false, shareKey, stretch = false, shortcuts }: Props<T>) {
   const trackRef = useRef<HTMLDivElement>(null)
   const indicatorRef = useRef<HTMLSpanElement>(null)
   const [pos, setPos] = useState<{ left: number; width: number } | null>(null)
@@ -119,7 +124,7 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
   return (
     <div
       ref={trackRef}
-      className="relative inline-flex items-center bg-surface-sunken rounded-lg p-[3px] gap-0.5"
+      className={`relative items-center bg-surface-sunken rounded-lg p-[3px] gap-0.5 ${stretch ? 'flex w-full' : 'inline-flex'}`}
     >
       {shown && (
         <span
@@ -136,22 +141,30 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
         const isActive = it.id === value
         const Icon = it.icon
         const showLabel = !expand || isActive
-        return (
+        const btn = (
           <button
             key={it.id}
             data-seg-btn
             type="button"
             onClick={() => onChange(it.id)}
-            title={it.label}
+            title={showLabel ? undefined : it.label}
             aria-label={it.label}
-            className={`relative z-[1] inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md cursor-pointer border-none bg-transparent font-sans text-[13px] font-medium transition-colors duration-200 ${
+            className={`relative z-[1] inline-flex items-center justify-center h-8 rounded-md cursor-pointer border-none bg-transparent font-sans text-[13px] font-medium transition-colors duration-200 ${stretch ? 'flex-1 gap-1 px-1.5' : 'gap-1.5 px-3'} ${
               isActive ? 'text-accent' : 'text-text-tertiary hover:text-text-secondary'
             }`}
           >
-            {Icon && <Icon size={18} strokeWidth={1.75} />}
+            {Icon && <Icon size={stretch ? 15 : 18} strokeWidth={1.75} />}
             {showLabel && <span className="whitespace-nowrap">{it.label}</span>}
           </button>
         )
+        if (!showLabel) {
+          return (
+            <HoverCard key={it.id} content={it.label} shortcut={shortcuts?.[it.id]} position="right" delay={300}>
+              {btn}
+            </HoverCard>
+          )
+        }
+        return btn
       })}
     </div>
   )

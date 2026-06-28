@@ -1,239 +1,195 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { formatWeekday, isToday } from '@/domain/time'
 import type { CalendarEvent } from '@/domain/event'
-import type { Category } from '@/domain/category'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useT } from '@/i18n/useT'
+import { MonthOverflowPopover } from './MonthOverflowPopover'
 
 // ── Helpers ──────────────────────────────────────────────
-
-function fmtMonth(date: Date, language: 'zh' | 'en'): string {
-  const monthsZh = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
-  const monthsEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-  const pool = language === 'zh' ? monthsZh : monthsEn
-  return pool[date.getMonth()]
-}
 
 function fmtTime(ms: number): string {
   const d = new Date(ms)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-function catFill(cat: Category | undefined): string {
-  if (!cat) return 'var(--text-tertiary)'
-  if (cat.id === 'stone') return 'var(--cat-sleep)'
-  return `var(--event-${cat.id}-fill)`
-}
+// ── Component ─────────────────────────────────────────────
 
-/** 单元格最多显示几条事件，多出折叠为「另外 N 项」 */
-const MAX_EVENTS = 6
-
-// ═══════════════════════════════════════════════════════════
-//  Component
-// ═══════════════════════════════════════════════════════════
-
-interface MonthViewProps {
-  monthStart: Date
-  /** Navigate to a specific day (click a cell → switch to day view). */
-  onDayChange: (day: Date) => void
-  /** Change the displayed month without switching view mode. */
-  onMonthChange: (monthStart: Date) => void
-  /** Hide the built-in header (desktop uses the shared CalendarHeader instead). */
-  hideHeader?: boolean
-}
-
-export function MonthView({ monthStart, onDayChange, onMonthChange, hideHeader = false }: MonthViewProps) {
-  const rangeEvents   = useEventStore((s) => s.rangeEvents)
-  const loadRange     = useEventStore((s) => s.loadRange)
-  const categories    = useCategoryStore((s) => s.categories)
+export function MonthView({
+  onNavigateToWeek,
+  monthDate,
+}: {
+  onNavigateToWeek?: (date: Date) => void
+  monthDate: Date
+}) {
   const language      = useAppSettingsStore((s) => s.settings.language)
+  const events        = useEventStore((s) => s.rangeEvents)
+  const categories    = useCategoryStore((s) => s.categories)
+  const loadRange     = useEventStore((s) => s.loadRange)
+  const t = useT()
 
-  const year = monthStart.getFullYear()
-  const month = monthStart.getMonth()
+  // ── 受控月份 ──
+  const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1)
+  const year       = monthStart.getFullYear()
+  const month      = monthStart.getMonth()
+  const monthStartMs = monthStart.getTime()
+  const monthEndMs   = new Date(year, month + 1, 1).getTime() - 1
 
-  // Month boundaries
-  const monthStartMs = new Date(year, month, 1).getTime()
-  const monthEndMs = new Date(year, month + 1, 1).getTime()
-
-  // Load events for the month
+  // ── 加载当月事件 ──
   useEffect(() => {
     fireAndForget(loadRange(monthStartMs, monthEndMs), 'load month range')
-  }, [monthStartMs, monthEndMs, loadRange])
+  }, [loadRange, monthStartMs, monthEndMs])
 
-  // ── Calendar grid data ─────────────────────────────────
+  // ── Calendar grid ──────────────────────────────────────
+  const firstDayDow = monthStart.getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
 
-  const gridData = useMemo(() => {
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    // Monday-first: convert JS getDay() (0=Sun) to Monday-based index (0=Mon)
-    const jsDay = new Date(year, month, 1).getDay()
-    const mondayFirstIndex = jsDay === 0 ? 6 : jsDay - 1
-
-    const cells: Array<{ date: Date; isCurrentMonth: boolean; dayEvents: CalendarEvent[] }> = []
-    const prevMonthDays = new Date(year, month, 0).getDate()
-    for (let i = mondayFirstIndex - 1; i >= 0; i--) {
-      const d = new Date(year, month - 1, prevMonthDays - i)
-      cells.push({ date: d, isCurrentMonth: false, dayEvents: [] })
-    }
-
-    // Current month days — events sorted chronologically
-    for (let day = 1; day <= daysInMonth; day++) {
-      const d = new Date(year, month, day)
-      const dayStart = d.getTime()
-      const dayEnd = dayStart + 86_400_000
-      // 按「当天开始」的事件归入此格 —— 跨夜事件留在起始日，避免 23:00 排到次日顶部
-      const dayEvents = rangeEvents
-        .filter((e) => e.startTime >= dayStart && e.startTime < dayEnd)
-        .sort((a, b) => a.startTime - b.startTime)
-      cells.push({ date: d, isCurrentMonth: true, dayEvents })
-    }
-
-    // Trailing filler days (fill 6 rows = 42 cells)
-    while (cells.length < 42) {
-      const last = cells[cells.length - 1].date
-      const next = new Date(last.getTime() + 86_400_000)
-      cells.push({ date: next, isCurrentMonth: false, dayEvents: [] })
-    }
-
-    return cells
-  }, [year, month, rangeEvents])
-
-  // ── Day-of-week header labels ─────────────────────────
-
-  const dayHeaders = useMemo(() => {
-    const base = new Date(2026, 0, 5) // Monday
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(base.getTime() + i * 86_400_000)
-      return {
-        short: formatWeekday(d, 'short'),
-        isWeekend: i >= 5,
-      }
-    })
-  }, [])
-
-  // ── Navigation ─────────────────────────────────────────
-
-  const handlePrevMonth = () => onMonthChange(new Date(year, month - 1, 1))
-  const handleNextMonth = () => onMonthChange(new Date(year, month + 1, 1))
-  const handleToday = () => {
-    const now = new Date()
-    onMonthChange(new Date(now.getFullYear(), now.getMonth(), 1))
+  const weekdayHeaders: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const isoDow = i === 0 ? 6 : i - 1
+    const d = new Date(2025, 0, 6 + isoDow)
+    weekdayHeaders.push(formatWeekday(d, 'short'))
   }
 
-  const weekRangeStr = useMemo(() => {
-    const firstWeek = Math.ceil((new Date(year, month, 1).getDate() + new Date(year, month, 1).getDay()) / 7)
-    const lastDay = new Date(year, month + 1, 0).getDate()
-    const lastWeek = Math.ceil((lastDay + new Date(year, month, 1).getDay()) / 7)
-    return `${firstWeek}–${lastWeek}`
-  }, [year, month])
+  // 按日分组事件
+  const eventsByDay = useMemo(() => {
+    const map = new Map<number, CalendarEvent[]>()
+    for (const e of events) {
+      const eDate = new Date(e.startTime)
+      const key = eDate.getFullYear() * 10000 + (eDate.getMonth() + 1) * 100 + eDate.getDate()
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(e)
+    }
+    return map
+  }, [events])
 
+  // Grid cells: 5 rows × 7 cols
+  const cells = useMemo(() => {
+    const result: { date: number; day: number; events: CalendarEvent[]; isCurrentMonth: boolean }[] = []
+    const startPad = firstDayDow === 0 ? 6 : firstDayDow - 1 // 周一 = 0
+    const totalDays = startPad + daysInMonth
+    const rows = Math.ceil(totalDays / 7)
+
+    for (let i = 0; i < rows * 7; i++) {
+      const day = i - startPad + 1
+      const isCurrentMonth = day >= 1 && day <= daysInMonth
+      const dateObj = new Date(year, month, day)
+      const key = dateObj.getFullYear() * 10000 + (dateObj.getMonth() + 1) * 100 + dateObj.getDate()
+      const dayEvents = (eventsByDay.get(key) ?? [])
+        .sort((a, b) => a.startTime - b.startTime)
+      result.push({ date: dateObj.getTime(), day, events: dayEvents, isCurrentMonth })
+    }
+    return result
+  }, [firstDayDow, daysInMonth, year, month, eventsByDay])
+
+  // ── Popover ──
+  const [popoverCell, setPopoverCell] = useState<{ date: number; events: CalendarEvent[]; dateObj: Date } | null>(null)
+  const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null)
+
+  const handleOverflowClick = (e: React.MouseEvent, date: number, events: CalendarEvent[]) => {
+    setPopoverAnchor(e.currentTarget as HTMLElement)
+    setPopoverCell({ date, events, dateObj: new Date(date) })
+  }
+  const handlePopoverClose = () => {
+    setPopoverCell(null)
+    setPopoverAnchor(null)
+  }
+
+  // ⚠️ 所有 hooks 必须在 early return 之前调用完毕
   return (
-    <div className="h-full flex flex-col overflow-hidden px-2 md:px-3 pt-1 pb-2">
-      {/* ── HEADER（桌面端由共享 CalendarHeader 接管，此处隐藏） ── */}
-      {!hideHeader && (
-        <div className="flex items-center justify-between mb-6 flex-shrink-0 px-1">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handlePrevMonth}
-              className="font-sans text-lg text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer leading-none bg-transparent border-none"
-            >
-              ‹
-            </button>
-            <div>
-              <div className="font-serif text-[13px] text-text-tertiary italic leading-none mb-1">{year}</div>
-              <div className="font-serif text-[30px] font-semibold text-text-primary tracking-[-0.02em] leading-tight">
-                {fmtMonth(monthStart, language)}
-              </div>
-              <div className="font-serif text-[13px] text-text-secondary italic mt-1">
-                {language === 'zh'
-                  ? `${fmtMonth(monthStart, 'en')} · 第 ${weekRangeStr} 周 · 共 ${new Date(year, month + 1, 0).getDate()} 天`
-                  : `${fmtMonth(monthStart, 'zh')} · W${weekRangeStr} · ${new Date(year, month + 1, 0).getDate()} days`}
-              </div>
-            </div>
-            <button
-              onClick={handleNextMonth}
-              className="font-sans text-lg text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer leading-none bg-transparent border-none self-start mt-8"
-            >
-              ›
-            </button>
-          </div>
-          <button
-            onClick={handleToday}
-            className="font-sans text-xs text-text-secondary border border-border-subtle rounded-md px-3 py-1.5 cursor-pointer hover:bg-surface-sunken transition-colors duration-200 bg-transparent"
-          >
-            回到本月
-          </button>
-        </div>
-      )}
-
-      {/* ── Day-of-week headers ── */}
-      <div className="grid grid-cols-7 flex-shrink-0">
-        {dayHeaders.map(({ short, isWeekend }) => (
+    <div className="flex flex-col h-full p-5 overflow-y-auto bg-surface-base">
+      {/* Grid — 暖底色，所有周等高 */}
+      <div
+        className="grid flex-1 min-h-0"
+        style={{
+          gridTemplateColumns: 'repeat(7, 1fr)',
+          gridTemplateRows: 'auto',
+          gridAutoRows: 'minmax(100px, auto)',
+        }}
+      >
+        {/* Weekday headers */}
+        {weekdayHeaders.map((name, i) => (
           <div
-            key={short}
-            className="font-sans text-[11px] font-medium text-center py-2 uppercase tracking-wider"
-            style={{ color: isWeekend ? 'var(--accent)' : 'var(--text-tertiary)' }}
+            key={i}
+            className="font-sans text-[11px] text-text-tertiary/80 font-medium text-center pb-1.5 border-b border-border-subtle"
           >
-            {short}
+            {name}
           </div>
         ))}
-      </div>
 
-      {/* ── Calendar grid（事件列表式，6 行等分铺满高度，溢出折叠「另外 N 项」）── */}
-      <div className="flex-1 min-h-0 grid grid-cols-7 grid-rows-6 border-t border-l border-border-subtle/50">
-        {gridData.map((cell, i) => {
-          const today = cell.isCurrentMonth && isToday(cell.date.getTime())
-          const shown = cell.dayEvents.slice(0, MAX_EVENTS)
-          const overflow = cell.dayEvents.length - shown.length
-
+        {/* Cells rendered as normal flow within last row */}
+        {cells.map((cell) => {
+          const isToday_ = isToday(cell.date)
+          const overflow = cell.events.length > 2 ? cell.events.length - 2 : 0
           return (
             <div
-              key={i}
-              onClick={() => { if (cell.isCurrentMonth) onDayChange(cell.date) }}
-              className={`border-r border-b border-border-subtle/50 min-h-0 px-2 py-1.5 flex flex-col gap-y-0.5 overflow-hidden transition-colors duration-150 select-none
-                ${cell.isCurrentMonth ? 'cursor-pointer hover:bg-surface-sunken/50' : 'bg-surface-sunken/20'}
-                ${today ? 'bg-accent-light/25' : ''}
+              key={cell.date}
+              className={`
+                min-h-[80px] p-1.5 border-b border-r border-border-subtle
+                ${!cell.isCurrentMonth ? 'opacity-30' : ''}
+                ${isToday_ ? 'bg-accent/5' : ''}
+                hover:bg-surface-sunken/50 transition-colors duration-150
               `}
             >
-              {/* 日期 */}
-              <div className="flex items-center mb-1 flex-shrink-0">
-                {today ? (
-                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full bg-accent text-white font-serif text-[13px] font-semibold leading-none">
-                    {cell.date.getDate()}
-                  </span>
-                ) : (
-                  <span className={`font-serif text-[14px] leading-none ${cell.isCurrentMonth ? 'text-text-primary' : 'text-text-tertiary/40'}`}>
-                    {cell.date.getDate()}
-                  </span>
-                )}
+              <div
+                className={`
+                  w-6 h-6 flex items-center justify-center rounded-full font-sans text-xs
+                  ${isToday_ ? 'bg-accent text-white font-medium' : 'text-text-secondary'}
+                `}
+              >
+                {cell.day > 0 ? cell.day : ''}
               </div>
 
-              {/* 事件列表 */}
-              {shown.map((e) => {
-                const cat = categories.find((c) => c.id === e.categoryId)
+              {/* Events (max 2) */}
+              {cell.events.slice(0, 2).map((ev) => {
+                const cat = categories.find((c) => c.id === ev.categoryId)
+                const color = cat ? `var(--event-${cat.id}-fill)` : 'var(--event-accent-fill)'
                 return (
-                  <div key={e.id} className="flex items-center gap-1.5 leading-none min-w-0 py-px">
+                  <div
+                    key={ev.id}
+                    className="flex items-center gap-1 mt-px rounded px-0.5"
+                    title={ev.title}
+                  >
                     <span
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: catFill(cat) }}
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: color }}
                     />
-                    <span className="font-mono text-[11px] text-text-secondary flex-shrink-0 tabular-nums">{fmtTime(e.startTime)}</span>
-                    <span className="font-sans text-[12px] text-text-primary truncate">{e.title}</span>
+                    <span className="truncate font-sans text-[11px] text-text-secondary leading-normal" style={{ color }}>
+                      {fmtTime(ev.startTime)} {ev.title}
+                    </span>
                   </div>
                 )
               })}
 
-              {/* 溢出 */}
+              {/* 溢出 — 点击打开悬浮卡片 */}
               {overflow > 0 && (
-                <div className="font-sans text-[11px] text-text-tertiary pl-0.5 leading-tight mt-px">
-                  {language === 'zh' ? `另外 ${overflow} 项` : `+${overflow} more`}
-                </div>
+                <span
+                  onClick={(e) => handleOverflowClick(e, cell.date, cell.events)}
+                  className="font-sans text-[11px] text-text-tertiary pl-0.5 leading-tight mt-px cursor-pointer hover:text-accent transition-colors"
+                >
+                  {t('month.moreEvents', overflow)}
+                </span>
               )}
             </div>
           )
         })}
       </div>
+
+      {/* ── Overflow popover ── */}
+      {popoverCell && popoverAnchor && (
+        <MonthOverflowPopover
+          open
+          anchorEl={popoverAnchor}
+          events={popoverCell.events}
+          date={popoverCell.date}
+          categories={categories}
+          language={language}
+          onClose={handlePopoverClose}
+          onNavigateToWeek={onNavigateToWeek}
+        />
+      )}
     </div>
   )
 }

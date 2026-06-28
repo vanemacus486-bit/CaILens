@@ -16,16 +16,23 @@ const QuickCaptureInbox = lazy(() => import('@/features/action/QuickCaptureInbox
 // 无条件挂载但内部 closed→null：改为「打开时才挂载」可把加密导出(age)/ics 库移出首屏
 const SettingsModal = lazy(() => import('@/features/settings/SettingsModal').then((m) => ({ default: m.SettingsModal })))
 import { useUIStore } from '@/stores/uiStore'
+import { AppHeader } from '@/components/nav/AppHeader'
+import { WeekSidebar } from '@/features/week-view/WeekSidebar'
+import { SimpleSidebar } from '@/components/nav/SimpleSidebar'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useEventStore } from '@/stores/eventStore'
 import { useProfileStore } from '@/stores/profileStore'
+import { useTodoStore } from '@/stores/todoStore'
+import { useTodoListStore } from '@/stores/todoListStore'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { SnackbarHost } from '@/components/ui/snackbar'
 import { UpdateBanner } from '@/components/ui/UpdateBanner'
+import { BedtimeBannerHost } from '@/components/ui/BedtimeBannerHost'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { addWeeks, getWeekStart, formatISODate } from '@/domain/time'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
+import { useSleepReminderScheduler } from '@/hooks/useSleepReminderScheduler'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { subDays, addDays, parseISO } from 'date-fns'
 import type { ShortcutAction } from '@/domain/shortcuts'
@@ -54,35 +61,14 @@ function Layout() {
     const loadCategories = useCategoryStore.getState().loadCategories
     const loadSettings = useAppSettingsStore.getState().loadSettings
     const loadProfile = useProfileStore.getState().loadProfile
+    const loadTodos = useTodoStore.getState().loadTodos
+    const loadLists = useTodoListStore.getState().loadLists
     fireAndForget(loadCategories(), 'load categories')
     fireAndForget(loadSettings(), 'load settings')
     fireAndForget(loadProfile(), 'load profile')
+    fireAndForget(loadTodos(), 'load todos')
+    fireAndForget(loadLists(), 'load lists')
   }, [])
-
-  // 全局快捷键: 1=日历 2=复盘 Esc=回日历
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const t = e.target
-      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable)) return
-      switch (e.key) {
-        case '1': navigate('/week'); e.preventDefault(); break
-        case '2': navigate('/action'); e.preventDefault(); break
-
-        case 'Escape':
-          if (window.location.hash.startsWith('#/profile')) {
-            // ProfilePage 自己处理 Esc → 回复盘
-            return
-          }
-          if (window.location.hash && !window.location.hash.startsWith('#/week')) {
-            navigate('/week')
-            e.preventDefault()
-          }
-          break
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [navigate])
 
   const shortcutHandlers = useMemo<Partial<Record<ShortcutAction, () => void>>>(() => ({
     openCommandPalette: () => useUIStore.getState().setCommandPaletteOpen(true),
@@ -106,9 +92,20 @@ function Layout() {
       if (!clip) return
       fireAndForget(useEventStore.getState().createEvent(clip), 'paste event')
     },
-    goToThisWeek: () => navigate('/week'),
-    goToDayView: () => navigate(`/week?view=day&date=${formatISODate(new Date())}`),
+    goToThisWeek: () => {
+      // ProfilePage 自己处理 Esc → 回复盘
+      if (location.pathname === '/profile') return
+      navigate('/week')
+    },
+    goToDayView: () => {
+      const today = new Date()
+      const ws = getWeekStart(today, 1)
+      navigate(`/week?week=${formatISODate(ws)}&highlight=${formatISODate(today)}`)
+    },
     goToStats: () => navigate('/stats'),
+    goToCalendar: () => navigate('/week'),
+    goToPlan: () => navigate('/action'),
+    goToReview: () => navigate('/stats'),
     openSettings: () => useUIStore.getState().setSettingsModalOpen(true),
     toggleTheme: () => fireAndForget(
       setTheme(theme === 'dark' ? 'light' : 'dark'),
@@ -125,14 +122,18 @@ function Layout() {
       navigate(`/week?week=${formatISODate(addWeeks(current, 1))}`)
     },
     goToPreviousDay: () => {
-      const dateParam = searchParams.get('date')
+      const dateParam = searchParams.get('highlight')
       const current = dateParam ? parseISO(dateParam) : new Date()
-      navigate(`/week?view=day&date=${formatISODate(subDays(current, 1))}`)
+      const prev = subDays(current, 1)
+      const ws = getWeekStart(prev, 1)
+      navigate(`/week?week=${formatISODate(ws)}&highlight=${formatISODate(prev)}`)
     },
     goToNextDay: () => {
-      const dateParam = searchParams.get('date')
+      const dateParam = searchParams.get('highlight')
       const current = dateParam ? parseISO(dateParam) : new Date()
-      navigate(`/week?view=day&date=${formatISODate(addDays(current, 1))}`)
+      const next = addDays(current, 1)
+      const ws = getWeekStart(next, 1)
+      navigate(`/week?week=${formatISODate(ws)}&highlight=${formatISODate(next)}`)
     },
     deleteFocusedEvent: () => {
       const eventId = useUIStore.getState().lastFocusedEventId
@@ -145,20 +146,37 @@ function Layout() {
       fireAndForget(useEventStore.getState().duplicateEvent(eventId), 'duplicate event')
     },
     quickCaptureTodo: () => useUIStore.getState().setQuickCaptureInboxOpen(true),
+    toggleSidebar: () => useUIStore.getState().toggleSidebar(),
   }), [navigate, searchParams, setTheme, theme])
 
   useShortcutManager(shortcutHandlers)
 
+  // 就寝提醒调度
+  useSleepReminderScheduler()
+
+  const sidebarExpanded = useUIStore((s) => s.sidebarExpanded)
+  const isWeek = location.pathname.startsWith('/week')
+  const isActionOrStats = location.pathname.startsWith('/action') || location.pathname.startsWith('/stats')
+
   return (
     <div className="h-screen flex flex-col bg-surface-base text-text-primary overflow-hidden">
-      {(!location.pathname.startsWith('/week') || isMobile) && <TopNavBar />}
-      <main className="flex-1 h-full overflow-hidden flex flex-col min-w-0">
+      <AppHeader />
+      {(isMobile || (!isWeek && !isActionOrStats)) && <TopNavBar />}
+      <div className="flex-1 flex min-h-0">
+        {!isMobile && sidebarExpanded && (isWeek
+          ? <WeekSidebar />
+          : isActionOrStats
+            ? <SimpleSidebar />
+            : null
+        )}
+        <main className="flex-1 h-full overflow-hidden flex flex-col min-w-0">
         <ErrorBoundary>
           <Suspense fallback={<PageFallback />}>
             <Outlet />
           </Suspense>
         </ErrorBoundary>
       </main>
+      </div>
 
       {commandPaletteOpen && (
         <Suspense fallback={null}>
@@ -176,6 +194,7 @@ function Layout() {
         </Suspense>
       )}
       <SnackbarHost />
+      <BedtimeBannerHost />
       <UpdateBanner />
     </div>
   )

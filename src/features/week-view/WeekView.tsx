@@ -4,6 +4,7 @@ import { getISOWeek } from 'date-fns'
 import { addWeeks, getWeekDays, isEventOnDay, formatISODate, parseISODate, getWeekStart } from '@/domain/time'
 import type { CalendarEvent, EventColor, CreateEventInput, UpdateEventInput } from '@/domain/event'
 import { fireAndForget } from '@/lib/fireAndForget'
+import { translate } from '@/i18n/useT'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { DayColumn } from '@/components/calendar/DayColumn'
 import { TimeGrid } from '@/components/calendar/TimeGrid'
@@ -13,12 +14,9 @@ import { useUIStore } from '@/stores/uiStore'
 import { useWeekFromURL } from './hooks/useWeekFromURL'
 import type { DragState } from './hooks/useEventDrag'
 import { WeekDateHeader } from './WeekDateHeader'
-import { CalendarHeader } from './CalendarHeader'
 import { WeekToolbar } from './WeekToolbar'
-import { WeekSidebar } from './WeekSidebar'
 import { EventDetailCard } from './EventDetailCard'
 import { WeekEmptyState } from './WeekEmptyState'
-import { DayEventStream } from '@/features/day-view/DayEventStream'
 import { MonthView } from '@/features/month-view/MonthView'
 import { FloatingEventCard } from '@/features/quick-log/FloatingEventCard'
 import { MobileDayView } from '@/features/day-view/MobileDayView'
@@ -45,91 +43,63 @@ export function WeekView() {
   const language = useAppSettingsStore((s) => s.settings.language)
 
     // View mode: derived from URL (single source of truth — no useState)
-  const viewMode = (searchParams.get('view') as 'week' | 'month' | 'day' | null) ?? 'week'
+  const viewMode = (searchParams.get('view') as 'week' | 'month' | null) ?? 'week'
 
   const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null)
 
   const [selectedDay, setSelectedDay] = useState<Date>(() => {
     const dateParam = searchParams.get('date')
     const viewParam = searchParams.get('view')
-    if (dateParam) {
+    if (dateParam && viewParam === 'month') {
       const parsed = parseISODate(dateParam)
-      // For month mode, normalise to the 1st of the month
-      if (viewParam === 'month') {
-        return new Date(parsed.getFullYear(), parsed.getMonth(), 1)
-      }
-      return parsed
+      return new Date(parsed.getFullYear(), parsed.getMonth(), 1)
     }
     return new Date()
   })
 
-
-
-  const handleDayChange = useCallback((date: Date) => {
-    setSelectedDay(date)
-    setSearchParams({ view: 'day', date: formatISODate(date) }, { replace: true })
-  }, [setSearchParams])
-
-  const handleMonthChange = useCallback((monthStart: Date) => {
-    setSelectedDay(monthStart)
-    setSearchParams({ view: 'month', date: formatISODate(monthStart) }, { replace: true })
-  }, [setSearchParams])
-
-  const handleBackToWeek = useCallback(() => {
-    setSearchParams((p) => {
-      const n = new URLSearchParams(p)
-      n.delete('view')
-      n.delete('date')
-      return n
-    }, { replace: true })
-  }, [setSearchParams])
-
-  const handleSetMonth = useCallback(() => {
-    const base = viewMode === 'month' ? selectedDay : weekStart
-    handleMonthChange(new Date(base.getFullYear(), base.getMonth(), 1))
-  }, [viewMode, selectedDay, weekStart, handleMonthChange])
-
-  const handlePrevPeriod = useCallback(() => {
-    if (viewMode === 'month') {
-      handleMonthChange(new Date(selectedDay.getFullYear(), selectedDay.getMonth() - 1, 1))
-    } else if (viewMode === 'day') {
-      handleDayChange(new Date(selectedDay.getTime() - 86_400_000))
-    } else {
-      setWeekStart(addWeeks(weekStart, -1))
+  // Sync selectedDay from URL when AppHeader changes month navigation
+  useEffect(() => {
+    const viewParam = searchParams.get('view')
+    const dateParam = searchParams.get('date')
+    if (viewParam === 'month' && dateParam) {
+      const parsed = parseISODate(dateParam)
+      if (!isNaN(parsed.getTime())) {
+        setSelectedDay(new Date(parsed.getFullYear(), parsed.getMonth(), 1))
+      }
     }
-  }, [viewMode, selectedDay, weekStart, handleMonthChange, handleDayChange, setWeekStart])
+  }, [searchParams])
 
-  const handleNextPeriod = useCallback(() => {
-    if (viewMode === 'month') {
-      handleMonthChange(new Date(selectedDay.getFullYear(), selectedDay.getMonth() + 1, 1))
-    } else if (viewMode === 'day') {
-      handleDayChange(new Date(selectedDay.getTime() + 86_400_000))
-    } else {
-      setWeekStart(addWeeks(weekStart, 1))
-    }
-  }, [viewMode, selectedDay, weekStart, handleMonthChange, handleDayChange, setWeekStart])
+  const [highlightedDayMs, setHighlightedDayMs] = useState<number | null>(null)
 
-  const handleToday = useCallback(() => {
-    const now = new Date()
-    if (viewMode === 'month') {
-      handleMonthChange(new Date(now.getFullYear(), now.getMonth(), 1))
-    } else if (viewMode === 'day') {
-      handleDayChange(now)
-    } else {
-      setWeekStart(getWeekStart(now, 1))
+  // Parse ?highlight=<date> from URL on mount or param change
+  useEffect(() => {
+    const highlightParam = searchParams.get('highlight')
+    if (highlightParam) {
+      const parsed = parseISODate(highlightParam)
+      const ms = parsed.getTime()
+      setHighlightedDayMs(ms)
+      // Auto-clear after 2.5s and remove from URL
+      const timer = setTimeout(() => {
+        setHighlightedDayMs(null)
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev)
+          next.delete('highlight')
+          return next
+        }, { replace: true })
+      }, 2500)
+      return () => clearTimeout(timer)
     }
-  }, [viewMode, handleMonthChange, handleDayChange, setWeekStart])
+  }, [searchParams, setSearchParams])
 
-  // Mini-calendar (sidebar) date click → navigate the main view, mode-aware
-  const handleSidebarSelectDate = useCallback((day: Date) => {
-    if (viewMode === 'month') {
-      handleMonthChange(new Date(day.getFullYear(), day.getMonth(), 1))
-    } else if (viewMode === 'day') {
-      handleDayChange(day)
-    } else {
-      setWeekStart(getWeekStart(day, 1))
-    }
-  }, [viewMode, handleMonthChange, handleDayChange, setWeekStart])
+  // Handle navigation from MonthView overflow popover: go to week view + highlight day
+  const handleNavigateToWeek = useCallback((date: Date) => {
+    const ws = getWeekStart(date, 1)
+    setWeekStart(ws)
+    setSearchParams(
+      { week: formatISODate(ws), highlight: formatISODate(date) },
+      { replace: true },
+    )
+  }, [setWeekStart, setSearchParams])
 
   const [cardState, setCardState] = useState<CardState>({ mode: 'none' })
   const [activeDragState, setActiveDragState] = useState<DragState>({ phase: 'idle', ghostStyle: null })
@@ -174,9 +144,7 @@ export function WeekView() {
   useEffect(() => {
     const year = weekStart.getFullYear()
     const weekNum = getISOWeek(weekStart)
-    document.title = language === 'zh'
-      ? `CaILens · ${year} 第 ${weekNum} 周`
-      : `CaILens · ${year} W${weekNum}`
+    document.title = translate('week.titleWithWeek', language, year, weekNum)
   }, [weekStart, language])
 
   // ── (standard week computation removed) ──
@@ -232,7 +200,6 @@ export function WeekView() {
     : null
 
   const isMobile = useIsMobile()
-  const sidebarExpanded = useUIStore((s) => s.sidebarExpanded)
   const [mobileViewMode, setMobileViewMode] = useState<'day' | 'week'>('day')
 
   const justClosedCardRef = useRef(false)
@@ -263,21 +230,6 @@ export function WeekView() {
     })
   }, [cardState.mode])
 
-  // 「新日程」按钮：锚定按钮打开创建卡片，默认时间取下一个半点
-  const handleNewEvent = useCallback((anchorEl: HTMLElement) => {
-    const d = new Date()
-    d.setSeconds(0, 0)
-    d.setMinutes(d.getMinutes() < 30 ? 30 : 60)
-    const start = d.getTime()
-    setCardState({ mode: 'none' })
-    setFloatingCard({
-      open: true,
-      anchorEl,
-      times: { start, end: start + 60 * 60_000 },
-      color: 'accent',
-      editingEvent: undefined,
-    })
-  }, [])
 
   const handleEventClick = useCallback((event: CalendarEvent, el: HTMLElement) => {
     useUIStore.getState().setLastFocusedEventId(event.id)
@@ -387,65 +339,33 @@ export function WeekView() {
 
   return (
     <>
-      <div className="flex-1 flex flex-col min-w-0">
-        <WeekToolbar
-          weekStart={weekStart}
-          onPrev={() => {
-            if (viewMode === 'month') {
-              setSelectedDay(new Date(selectedDay.getFullYear(), selectedDay.getMonth() - 1, 1))
-            } else if (viewMode === 'day') {
-              setSelectedDay(new Date(selectedDay.getTime() - 86_400_000))
-            } else {
-              setWeekStart(addWeeks(weekStart, -1))
-            }
-          }}
-          onNext={() => {
-            if (viewMode === 'month') {
-              setSelectedDay(new Date(selectedDay.getFullYear(), selectedDay.getMonth() + 1, 1))
-            } else if (viewMode === 'day') {
-              setSelectedDay(new Date(selectedDay.getTime() + 86_400_000))
-            } else {
-              setWeekStart(addWeeks(weekStart, 1))
-            }
-          }}
-          mobileViewMode={isMobile ? mobileViewMode : undefined}
-          onMobileViewModeChange={isMobile ? setMobileViewMode : undefined}
-        />
-        {!isMobile && (
-          <CalendarHeader
-            viewMode={viewMode}
-            weekStart={weekStart}
-            selectedDay={selectedDay}
-            language={language}
-            onPrev={handlePrevPeriod}
-            onNext={handleNextPeriod}
-            onToday={handleToday}
-            onSetWeek={handleBackToWeek}
-            onSetMonth={handleSetMonth}
-            onSearch={() => useUIStore.getState().setCommandPaletteOpen(true)}
-          />
-        )}
+      <WeekToolbar
+        weekStart={weekStart}
+        onPrev={() => {
+          if (viewMode === 'month') {
+            setSelectedDay(new Date(selectedDay.getFullYear(), selectedDay.getMonth() - 1, 1))
+          } else {
+            setWeekStart(addWeeks(weekStart, -1))
+          }
+        }}
+        onNext={() => {
+          if (viewMode === 'month') {
+            setSelectedDay(new Date(selectedDay.getFullYear(), selectedDay.getMonth() + 1, 1))
+          } else {
+            setWeekStart(addWeeks(weekStart, 1))
+          }
+        }}
+        mobileViewMode={isMobile ? mobileViewMode : undefined}
+        onMobileViewModeChange={isMobile ? setMobileViewMode : undefined}
+      />
 
-        <div className="flex-1 flex min-w-0">
-          {!isMobile && sidebarExpanded && (
-            <WeekSidebar
-              language={language}
-              viewMode={viewMode}
-              weekStart={weekStart}
-              selectedDay={selectedDay}
-              onSelectDate={handleSidebarSelectDate}
-              onNewEvent={handleNewEvent}
-            />
-          )}
-          <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface-raised border border-border-subtle rounded-2xl shadow-lg m-3">
         {viewMode === 'week' && !(isMobile && mobileViewMode === 'day') && (
-          <WeekDateHeader days={days} onDayClick={handleDayChange} />
+          <WeekDateHeader days={days} highlightedDayMs={highlightedDayMs} onDayClick={handleNavigateToWeek} />
         )}
 
         {viewMode === 'month' ? (
-          <MonthView monthStart={selectedDay} onDayChange={handleDayChange} onMonthChange={handleMonthChange} hideHeader={!isMobile} />
-        ) : viewMode === 'day' ? (
-          <DayEventStream dayStart={selectedDay} onDayChange={handleDayChange} hideHeader={!isMobile} />
+          <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} />
         ) : isMobile && mobileViewMode === 'day' ? (
           <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
         ) : (
@@ -476,6 +396,7 @@ export function WeekView() {
                     events={eventsByDay.get(day.getTime()) ?? EMPTY}
                     selectedEventId={selectedEventId}
                     highlightedEventId={highlightedEventId}
+                    highlightedDayMs={highlightedDayMs}
                     weekDays={days}
                     gridRef={gridRef}
                     onSlotClick={handleSlotClick}
@@ -513,8 +434,6 @@ export function WeekView() {
           )}
         </div>
         )}
-          </div>
-        </div>
       </div>
 
       {cardState.mode === 'detail' && (
