@@ -38,3 +38,7 @@ graphify-out/
 *.key.pub
 CaILens_keys/
 
+# Temporary / debug artifacts
+eslint_output.txt
+*.png
+
