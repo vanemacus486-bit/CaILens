@@ -2,7 +2,8 @@
  * # dietStats 纯函数测试
  *
  * 覆盖：groupMealsByDay, computeWeeklyTagTrend,
- *       computeMealTimeStats, getDietDimensionRange
+ *       computeMealTimeStats, getDietDimensionRange,
+ *       computeFoodFreqWeek, computeFoodFreqMonth
  */
 
 import { describe, it, expect } from 'vitest'
@@ -13,6 +14,9 @@ import {
   computeWeeklyTagTrend,
   computeMealTimeStats,
   getDietDimensionRange,
+  computeFoodFreqWeek,
+  computeFoodFreqMonth,
+  weekStartMonday,
 } from '../dietStats'
 
 // ── Helpers ───────────────────────────────────────────────
@@ -436,5 +440,213 @@ describe('getDietDimensionRange', () => {
     const apr = new Date(2025, 3, 1).getTime()
     const jun = new Date(2025, 5, 30).getTime()
     expect(getDietDimensionRange('quarter', apr)).toEqual(getDietDimensionRange('quarter', jun))
+  })
+})
+
+// ═══════════════════════════════════════════════════════════
+//  computeFoodFreqWeek
+// ═══════════════════════════════════════════════════════════
+
+describe('computeFoodFreqWeek', () => {
+  it('returns empty array for no meal events', () => {
+    const nonMeal: CalendarEvent = {
+      id: '1', title: 'Work',
+      startTime: ts(0, 9), endTime: ts(0, 10),
+      color: 'accent', categoryId: 'accent',
+      createdAt: 1, updatedAt: 1,
+    }
+    const result = computeFoodFreqWeek([nonMeal], weekRange)
+    expect(result).toEqual([])
+  })
+
+  it('aggregates meals by title across the week', () => {
+    // Baozi on Mon breakfast, Tue lunch, Wed dinner = 3 total
+    const events = [
+      makeMealEvent({ startTime: ts(0, 8), endTime: ts(0, 9), mealOrder: 'breakfast', title: '包子' }),
+      makeMealEvent({ startTime: ts(1, 12), endTime: ts(1, 13), mealOrder: 'lunch', title: '包子' }),
+      makeMealEvent({ startTime: ts(2, 18), endTime: ts(2, 19), mealOrder: 'dinner', title: '包子' }),
+    ]
+    const result = computeFoodFreqWeek(events, weekRange)
+    expect(result).toHaveLength(1)
+    expect(result[0].title).toBe('包子')
+    expect(result[0].total).toBe(3)
+    // Mon=breakfast, Tue=lunch, Wed=dinner, Thu-Sun=null
+    expect(result[0].days[0]).toBe('breakfast')
+    expect(result[0].days[1]).toBe('lunch')
+    expect(result[0].days[2]).toBe('dinner')
+    expect(result[0].days[3]).toBeNull()
+    expect(result[0].days[4]).toBeNull()
+    expect(result[0].days[5]).toBeNull()
+    expect(result[0].days[6]).toBeNull()
+  })
+
+  it('counts multiple meals on same day for total but uses earliest mealOrder', () => {
+    // Baozi twice on Monday: breakfast at 8:00, lunch at 12:00
+    const events = [
+      makeMealEvent({ startTime: ts(0, 8), endTime: ts(0, 9), mealOrder: 'breakfast', title: '包子' }),
+      makeMealEvent({ startTime: ts(0, 12), endTime: ts(0, 13), mealOrder: 'lunch', title: '包子' }),
+    ]
+    const result = computeFoodFreqWeek(events, weekRange)
+    expect(result).toHaveLength(1)
+    expect(result[0].title).toBe('包子')
+    expect(result[0].total).toBe(2)
+    // Earliest on Monday is breakfast (8:00)
+    expect(result[0].days[0]).toBe('breakfast')
+    // Other days are null
+    expect(result[0].days[1]).toBeNull()
+  })
+
+  it('uses null for days with no meal', () => {
+    const events = [
+      makeMealEvent({ startTime: ts(0, 8), endTime: ts(0, 9), mealOrder: 'breakfast', title: '牛奶' }),
+    ]
+    const result = computeFoodFreqWeek(events, weekRange)
+    expect(result[0].days[0]).toBe('breakfast')
+    for (let i = 1; i < 7; i++) {
+      expect(result[0].days[i]).toBeNull()
+    }
+  })
+
+  it('sorts by total descending, stable by title on tie', () => {
+    // 2 events for 'A', 3 for 'B', 1 for 'C'
+    const events = [
+      makeMealEvent({ startTime: ts(0, 8), endTime: ts(0, 9), mealOrder: 'breakfast', title: 'A' }),
+      makeMealEvent({ startTime: ts(0, 12), endTime: ts(0, 13), mealOrder: 'lunch', title: 'A' }),
+      makeMealEvent({ startTime: ts(1, 8), endTime: ts(1, 9), mealOrder: 'breakfast', title: 'B' }),
+      makeMealEvent({ startTime: ts(1, 12), endTime: ts(1, 13), mealOrder: 'lunch', title: 'B' }),
+      makeMealEvent({ startTime: ts(2, 8), endTime: ts(2, 9), mealOrder: 'breakfast', title: 'B' }),
+      makeMealEvent({ startTime: ts(2, 12), endTime: ts(2, 13), mealOrder: 'lunch', title: 'C' }),
+    ]
+    const result = computeFoodFreqWeek(events, weekRange)
+    expect(result.map((r) => r.title)).toEqual(['B', 'A', 'C'])
+  })
+
+  it('stably sorts ties by localeCompare', () => {
+    // Both have 1 event each
+    const events = [
+      makeMealEvent({ startTime: ts(0, 8), endTime: ts(0, 9), mealOrder: 'breakfast', title: 'B' }),
+      makeMealEvent({ startTime: ts(1, 8), endTime: ts(1, 9), mealOrder: 'breakfast', title: 'A' }),
+    ]
+    const result = computeFoodFreqWeek(events, weekRange)
+    expect(result.map((r) => r.title)).toEqual(['A', 'B'])
+  })
+
+  it('defaults empty title to 吃饭', () => {
+    const events = [
+      makeMealEvent({ startTime: ts(0, 8), endTime: ts(0, 9), mealOrder: 'breakfast', title: '' }),
+    ]
+    const result = computeFoodFreqWeek(events, weekRange)
+    expect(result[0].title).toBe('吃饭')
+  })
+
+  it('excludes events outside the range', () => {
+    const outside = makeMealEvent({ startTime: ts(7, 8), endTime: ts(7, 9), mealOrder: 'breakfast', title: '包子' })
+    const inside = makeMealEvent({ startTime: ts(0, 8), endTime: ts(0, 9), mealOrder: 'breakfast', title: '包子' })
+    const result = computeFoodFreqWeek([outside, inside], weekRange)
+    expect(result).toHaveLength(1)
+    expect(result[0].total).toBe(1)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════
+//  computeFoodFreqMonth
+// ═══════════════════════════════════════════════════════════
+
+describe('computeFoodFreqMonth', () => {
+  // May 2025: Mon 12, Tue 13, Wed 14, Thu 15, Fri 16, Sat 17, Sun 18
+  // Week 2: Mon 19, Tue 20, Wed 21, Thu 22, Fri 23, Sat 24, Sun 25
+  // Week 3: Mon 26, Tue 27, Wed 28, Thu 29, Fri 30, Sat 31
+  // Jun 1 is Sunday in week 4
+  const MAY_RANGE: DateRange = {
+    start: new Date(2025, 4, 1).getTime(),  // May 1 (Thursday)
+    end: new Date(2025, 5, 1).getTime(),    // Jun 1
+  }
+
+  const MONTH_WEEK_MS = 7 * 86_400_000
+
+  it('returns empty rows for no meal events', () => {
+    const result = computeFoodFreqMonth([], MAY_RANGE, 8)
+    expect(result.rows).toEqual([])
+    // weekCount depends on range
+    // May 1 (Thu) → weekStart = Mon Apr 28; May 31 (Sat) → weekStart = Mon May 26
+    // Apr 28 + floor((May 26 - Apr 28)/7) + 1 = floor(28/7) + 1 = 4 + 1 = 5
+    expect(result.weekCount).toBeGreaterThanOrEqual(4)
+  })
+
+  it('aggregates meals by title across month weeks', () => {
+    // Baozi on Mon May 12 (week 2), Mon May 19 (week 3), Mon May 26 (week 4)
+    const base = weekStartMonday(MAY_RANGE.start) // Mon Apr 28
+    const w2 = base + 2 * MONTH_WEEK_MS + 0 * 86_400_000 // Mon May 12
+    const w3 = base + 3 * MONTH_WEEK_MS + 0 * 86_400_000 // Mon May 19
+    const w4 = base + 4 * MONTH_WEEK_MS + 0 * 86_400_000 // Mon May 26
+
+    const events = [
+      makeMealEvent({ startTime: w2 + 8 * 3_600_000, endTime: w2 + 9 * 3_600_000, mealOrder: 'breakfast', title: '包子' }),
+      makeMealEvent({ startTime: w3 + 8 * 3_600_000, endTime: w3 + 9 * 3_600_000, mealOrder: 'breakfast', title: '包子' }),
+      makeMealEvent({ startTime: w4 + 8 * 3_600_000, endTime: w4 + 9 * 3_600_000, mealOrder: 'breakfast', title: '包子' }),
+    ]
+
+    const result = computeFoodFreqMonth(events, MAY_RANGE, 8)
+    expect(result.rows).toHaveLength(1)
+    expect(result.rows[0].title).toBe('包子')
+    expect(result.rows[0].total).toBe(3)
+    // weeks[0]=0 (Apr 28 - May 4), weeks[1]=0 (May 5-11), weeks[2]=1 (May 12-18), weeks[3]=1 (May 19-25), weeks[4]=1 (May 26 - Jun 1)
+    expect(result.rows[0].weeks[0]).toBe(0)
+    expect(result.rows[0].weeks[1]).toBe(0)
+    expect(result.rows[0].weeks[2]).toBe(1)
+    expect(result.rows[0].weeks[3]).toBe(1)
+    expect(result.rows[0].weeks[4]).toBe(1)
+  })
+
+  it('fills zero for empty middle weeks', () => {
+    // Meals only in week 0 (May 2, Fri) and week 4 (May 28, Wed)
+    const base = weekStartMonday(MAY_RANGE.start) // Mon Apr 28
+    const events = [
+      makeMealEvent({ startTime: base + 4 * 86_400_000, endTime: base + 5 * 86_400_000, mealOrder: 'lunch', title: '泡面' }),
+      makeMealEvent({ startTime: base + 4 * MONTH_WEEK_MS + 2 * 86_400_000, endTime: base + 4 * MONTH_WEEK_MS + 3 * 86_400_000, mealOrder: 'lunch', title: '泡面' }),
+    ]
+    const result = computeFoodFreqMonth(events, MAY_RANGE, 8)
+    expect(result.rows).toHaveLength(1)
+    expect(result.rows[0].weeks[0]).toBe(1)
+    expect(result.rows[0].weeks[1]).toBe(0)
+    expect(result.rows[0].weeks[2]).toBe(0)
+    expect(result.rows[0].weeks[3]).toBe(0)
+    expect(result.rows[0].weeks[4]).toBe(1)
+  })
+
+  it('sorts by total descending, topN truncation', () => {
+    // 3 events for 'B', 2 for 'A', 1 for 'C' — topN=2 should return B, A
+    const base = weekStartMonday(MAY_RANGE.start)
+    const events = [
+      makeMealEvent({ startTime: base + 2 * MONTH_WEEK_MS, endTime: base + 2 * MONTH_WEEK_MS + 3_600_000, mealOrder: 'breakfast', title: 'A' }),
+      makeMealEvent({ startTime: base + 2 * MONTH_WEEK_MS + 86_400_000, endTime: base + 2 * MONTH_WEEK_MS + 86_400_000 + 3_600_000, mealOrder: 'breakfast', title: 'A' }),
+      makeMealEvent({ startTime: base + 2 * MONTH_WEEK_MS + 86_400_000, endTime: base + 2 * MONTH_WEEK_MS + 86_400_000 + 3_600_000, mealOrder: 'breakfast', title: 'B' }),
+      makeMealEvent({ startTime: base + 2 * MONTH_WEEK_MS + 2 * 86_400_000, endTime: base + 2 * MONTH_WEEK_MS + 2 * 86_400_000 + 3_600_000, mealOrder: 'breakfast', title: 'B' }),
+      makeMealEvent({ startTime: base + 2 * MONTH_WEEK_MS + 3 * 86_400_000, endTime: base + 2 * MONTH_WEEK_MS + 3 * 86_400_000 + 3_600_000, mealOrder: 'breakfast', title: 'B' }),
+      makeMealEvent({ startTime: base + 2 * MONTH_WEEK_MS + 4 * 86_400_000, endTime: base + 2 * MONTH_WEEK_MS + 4 * 86_400_000 + 3_600_000, mealOrder: 'breakfast', title: 'C' }),
+    ]
+    const result = computeFoodFreqMonth(events, MAY_RANGE, 2)
+    expect(result.rows).toHaveLength(2)
+    expect(result.rows[0].title).toBe('B')
+    expect(result.rows[1].title).toBe('A')
+  })
+
+  it('stably sorts ties by localeCompare', () => {
+    const base = weekStartMonday(MAY_RANGE.start)
+    const events = [
+      makeMealEvent({ startTime: base + 2 * MONTH_WEEK_MS, endTime: base + 2 * MONTH_WEEK_MS + 3_600_000, mealOrder: 'breakfast', title: 'B' }),
+      makeMealEvent({ startTime: base + 2 * MONTH_WEEK_MS + 86_400_000, endTime: base + 2 * MONTH_WEEK_MS + 86_400_000 + 3_600_000, mealOrder: 'breakfast', title: 'A' }),
+    ]
+    const result = computeFoodFreqMonth(events, MAY_RANGE, 8)
+    expect(result.rows.map((r) => r.title)).toEqual(['A', 'B'])
+  })
+
+  it('defaults empty title to 吃饭', () => {
+    const base = weekStartMonday(MAY_RANGE.start)
+    const events = [
+      makeMealEvent({ startTime: base + 2 * MONTH_WEEK_MS, endTime: base + 2 * MONTH_WEEK_MS + 3_600_000, mealOrder: 'breakfast', title: '' }),
+    ]
+    const result = computeFoodFreqMonth(events, MAY_RANGE, 8)
+    expect(result.rows[0].title).toBe('吃饭')
   })
 })

@@ -2,10 +2,11 @@
  * # DietCalendarCard — 饮食时刻图
  *
  * 以周视图（24h 时刻轴）展示每日饮食记录，仅保留时刻图。
+ * 导航由 StatsPage 通过 anchorDate prop 控制。
  */
 
-import { useMemo, useState, startTransition } from 'react'
-import { format, startOfWeek, endOfWeek, addWeeks, isSameDay } from 'date-fns'
+import { useMemo } from 'react'
+import { startOfWeek, endOfWeek, isSameDay } from 'date-fns'
 import type { CalendarEvent, MealOrder } from '@/domain/event'
 import { MEAL_ORDER_LABELS, MEAL_TAG_LABELS } from '@/domain/event'
 import { WeekTimeAxis, type AxisDay } from './WeekTimeAxis'
@@ -16,6 +17,8 @@ import { dateRange } from '@/domain/dateRange'
 
 interface Props {
   rangeEvents: CalendarEvent[]
+  /** 外部控制的锚点日期 */
+  anchorDate?: Date
 }
 
 // ── 餐次颜色 ────────────────────────────────────────────────
@@ -41,33 +44,20 @@ function hourOfDay(ts: number): number {
 
 // ── 组件 ────────────────────────────────────────────────────
 
-export function DietCalendarCard({ rangeEvents }: Props) {
-  const [anchorDate, setAnchorDate] = useState(() => new Date())
-
+export function DietCalendarCard({ rangeEvents, anchorDate: anchorDateProp }: Props) {
   // ── 当前周范围 ────────────────────────────────────────
   const viewRange = useMemo(() => {
-    const start = startOfWeek(anchorDate, { weekStartsOn: 1 })
-    const end = endOfWeek(anchorDate, { weekStartsOn: 1 })
+    const d = anchorDateProp ?? new Date()
+    const start = startOfWeek(d, { weekStartsOn: 1 })
+    const end = endOfWeek(d, { weekStartsOn: 1 })
     return { start: start.getTime(), end: end.getTime() + 86_400_000 }
-  }, [anchorDate])
+  }, [anchorDateProp])
 
   // ── 分天数据 ──────────────────────────────────────────
   const dailyMeals = useMemo(() => {
     const range = dateRange(viewRange.start, viewRange.end)
     return groupMealsByDay(rangeEvents, range, true)
   }, [rangeEvents, viewRange])
-
-  // ── 导航 ──────────────────────────────────────────────
-  const goPrev = () => startTransition(() => setAnchorDate((d) => addWeeks(d, -1)))
-  const goNext = () => startTransition(() => setAnchorDate((d) => addWeeks(d, 1)))
-  const goToday = () => startTransition(() => setAnchorDate(new Date()))
-
-  // ── 标题 ──────────────────────────────────────────────
-  const titleLabel = useMemo(() => {
-    const start = new Date(viewRange.start)
-    const end = new Date(viewRange.end - 86_400_000)
-    return `${format(start, 'yyyy年M月d日')} — ${format(end, 'M月d日')}`
-  }, [viewRange])
 
   const today = useMemo(() => new Date(), [])
 
@@ -102,18 +92,6 @@ export function DietCalendarCard({ rangeEvents }: Props) {
   return (
     <div className="dcc-root">
       <style>{DCC_CSS}</style>
-
-      {/* ── 头部：周导航 ───────────────────────────── */}
-      <div className="dcc-header">
-        <div className="dcc-nav-row">
-          <button onClick={goPrev} className="dcc-nav-arrow" title="上一周">‹</button>
-          <span className="dcc-title">{titleLabel}</span>
-          <button onClick={goNext} className="dcc-nav-arrow" title="下一周">›</button>
-          <button onClick={goToday} className="dcc-today-btn">今天</button>
-        </div>
-      </div>
-
-      {/* ── 时刻图 ─────────────────────────────────── */}
       <WeekTimeAxis days={dietDays} />
     </div>
   )
@@ -125,58 +103,6 @@ const DCC_CSS = `
 .dcc-root {
   width: 100%;
   font-family: 'Source Serif 4', 'Noto Serif SC', serif;
-  color: var(--heatmap-ink-1);
-}
-
-/* ── Header / Navigation ────────────────────── */
-.dcc-header {
-  margin-bottom: 16px;
-}
-.dcc-nav-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.dcc-title {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--heatmap-ink-1);
-  min-width: 180px;
-  text-align: center;
-}
-.dcc-nav-arrow {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 16px;
-  color: var(--heatmap-ink-3);
-  transition: color 0.2s ease, background-color 0.2s ease;
-  flex-shrink: 0;
-}
-.dcc-nav-arrow:hover {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg-card);
-}
-.dcc-today-btn {
-  padding: 3px 10px;
-  border-radius: 5px;
-  border: 1px solid var(--heatmap-rule);
-  background: var(--heatmap-bg-card);
-  cursor: pointer;
-  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
-  font-size: 12px;
-  color: var(--heatmap-ink-2);
-  transition: color 0.2s ease;
-}
-.dcc-today-btn:hover {
   color: var(--heatmap-ink-1);
 }
 `

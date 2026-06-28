@@ -3,9 +3,10 @@ import { Lock, Calendar } from 'lucide-react'
 import { getEventRepo } from '@/data/getRepositories'
 import { generateIcs, downloadIcs } from '@/lib/icsExport'
 import { EncryptedExportDialog } from './EncryptedExportDialog'
+import type { AppLanguage } from '@/i18n/types'
 
 interface ExportSectionProps {
-  language: 'zh' | 'en'
+  language: AppLanguage
 }
 
 export function ExportSection({ language }: ExportSectionProps) {

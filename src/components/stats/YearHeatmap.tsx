@@ -1,8 +1,11 @@
-﻿import { useMemo, useState, useCallback, useRef } from 'react'
+﻿import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 import type { CalendarEvent } from '@/domain/event'
 import type { Category, CategoryId } from '@/domain/category'
 import { computeDayStats } from '@/domain/stats'
 import { COLOR } from '@/styles/tokens'
+import { useT } from '@/i18n/useT'
+import type { AppLanguage } from '@/i18n/types'
+import { LANGUAGE_LOCALE } from '@/i18n/types'
 
 const DAY_MS = 24 * 60 * 60_000
 const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
@@ -317,7 +320,7 @@ export function computeStats(days: DayCell[], selectedId: CategoryId, now: numbe
 const DAY_NAMES_ZH = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 const DAY_NAMES_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-function getDayName(date: Date, lang: 'zh' | 'en'): string {
+function getDayName(date: Date, lang: AppLanguage): string {
   const dow = date.getDay()
   const idx = dow === 0 ? 6 : dow - 1
   return lang === 'zh' ? DAY_NAMES_ZH[idx] : DAY_NAMES_EN[idx]
@@ -328,14 +331,22 @@ function getDayName(date: Date, lang: 'zh' | 'en'): string {
 interface YearHeatmapProps {
   rangeEvents: readonly CalendarEvent[]
   categories: readonly Category[]
-  language: 'zh' | 'en'
+  language: AppLanguage
   now?: number
+  /** 外部控制的年份（来自 URL date 参数），提供后组件年份由此驱动 */
+  anchorYear?: number
+  /** 外部受控的分类单选（来自 StatsPage → StatsRail） */
+  selectedId: CategoryId
+  /** 分类切换回调 */
+  onCategoryChange: (id: CategoryId) => void
+  /** 外部受控的视图模式（roll / year） */
+  viewMode: 'roll' | 'year'
+  /** 视图模式切换回调 */
+  onViewModeChange: (mode: 'roll' | 'year') => void
 }
 
-export function YearHeatmap({ rangeEvents, categories, language, now: _now }: YearHeatmapProps) {
-  const [selectedId, setSelectedId] = useState<CategoryId>('accent')
-  const [viewMode, setViewMode] = useState<'year' | 'roll'>('roll')
-  const [year, setYear] = useState(() => new Date().getFullYear())
+export function YearHeatmap({ rangeEvents, categories, language, now: _now, anchorYear, selectedId, onCategoryChange: _onCategoryChange, viewMode, onViewModeChange: _onViewModeChange }: YearHeatmapProps) {
+  const [year, setYear] = useState(() => anchorYear ?? new Date().getFullYear())
   const [rollingEnd, setRollingEnd] = useState(() => {
     const d = new Date()
     d.setHours(23, 59, 59, 999)
@@ -345,10 +356,26 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now }: Ye
   const containerRef = useRef<HTMLDivElement>(null)
   const now = _now ?? Date.now()
 
-  const isCurrentYear = year === new Date(now).getFullYear()
-  const isLatestRolling = rollingEnd.getTime() >= now - DAY_MS
+  // 外部 anchorYear 变化时同步内部状态
+  useEffect(() => {
+    if (anchorYear === undefined) return
+    setYear(anchorYear)
+    setRollingEnd(new Date(anchorYear, 11, 31, 23, 59, 59, 999))
+  }, [anchorYear])
 
-  const t = (zh: string, en: string) => language === 'zh' ? zh : en
+  // viewMode 变化时重置到当前日期
+  useEffect(() => {
+    const now = new Date()
+    if (viewMode === 'year') {
+      setYear(now.getFullYear())
+    } else {
+      setRollingEnd(new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999))
+    }
+  }, [viewMode])
+
+  const isCurrentYear = year === new Date(now).getFullYear()
+
+  const t = useT()
 
   const days = useMemo(
     () => {
@@ -383,10 +410,10 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now }: Ye
     [categories],
   )
 
-  const handleCategoryChange = useCallback((id: CategoryId) => {
-    setSelectedId(id)
-    document.documentElement.style.setProperty('--c-active', `var(--event-${id}-fill)`)
-  }, [])
+  // Sync --c-active when selectedId changes
+  useEffect(() => {
+    document.documentElement.style.setProperty('--c-active', `var(--event-${selectedId}-fill)`)
+  }, [selectedId])
 
   const handlePointerEnter = useCallback(
     (cell: HeatmapCell, e: React.PointerEvent) => {
@@ -448,14 +475,13 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now }: Ye
             lineHeight: '18px',
           }}
         >
-          {language === 'zh' ? ml.nameZh : ml.nameEn}
+          {ml.nameEn}
         </div>,
       )
     }
 
     // Day labels (col 1): only show 一/三/五 or Mon/Wed/Fri
     const dayLabelRows = [0, 2, 4] // Monday=0, Wednesday=2, Friday=4
-    const dayLabelsZh = ['一', '三', '五']
     const dayLabelsEn = ['Mon', 'Wed', 'Fri']
     for (let i = 0; i < 3; i++) {
       const dow = dayLabelRows[i]
@@ -470,7 +496,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now }: Ye
             lineHeight: '14px',
           }}
         >
-          {language === 'zh' ? dayLabelsZh[i] : dayLabelsEn[i]}
+          {dayLabelsEn[i]}
         </div>,
       )
     }
@@ -527,9 +553,10 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now }: Ye
     const m = d.getMonth() + 1
     const day = d.getDate()
     const dayName = getDayName(d, language)
+    const locale = LANGUAGE_LOCALE[language] ?? 'zh-CN'
     return language === 'zh'
       ? `${m}月${day}日 ${dayName}`
-      : `${dayName} ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+      : `${dayName} ${d.toLocaleDateString(locale, { month: 'short', day: 'numeric' })}`
   }, [stats.bestDay, language])
 
   // Streak visualization pips
@@ -555,87 +582,6 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now }: Ye
   return (
     <div ref={containerRef} className="year-heatmap-root">
       <style>{HEATMAP_CSS}</style>
-
-      {/* ── Title area ─────────────────────────────────────── */}
-      <div className={`heatmap-title-area${isCompact ? ' heatmap-title-compact' : ''}`}>
-        <div className="heatmap-title-left">
-          <div className="hm-title-row">
-            {/* Left arrow */}
-            {viewMode === 'year' ? (
-              <button onClick={() => setYear((y) => y - 1)} className="hm-year-btn" title={t('上一年', 'Previous year')}>‹</button>
-            ) : (
-              <button onClick={() => setRollingEnd((d) => new Date(d.getTime() - 366 * DAY_MS))} className="hm-year-btn" title={t('前一年', 'Previous year')}>‹</button>
-            )}
-            {/* Two-line title block */}
-            <div className="hm-title-block">
-              {viewMode === 'year' ? (
-                <>
-                  <div className="hm-title-line1">{year}</div>
-                  <div className="hm-title-line2">{t('年度热力图', 'Annual Heatmap')}</div>
-                </>
-              ) : (
-                <>
-                  <div className="hm-title-line1">{t('近 365 天', 'Last 365 Days')}</div>
-                  <div className="hm-title-line2">{t('热力图', 'Heatmap')}</div>
-                </>
-              )}
-            </div>
-            {/* Right arrow */}
-            {viewMode === 'year' ? (
-              <button onClick={() => setYear((y) => y + 1)} className="hm-year-btn" title={t('下一年', 'Next year')}>›</button>
-            ) : (
-              <button
-                onClick={() => setRollingEnd((d) => new Date(d.getTime() + 366 * DAY_MS))}
-                className="hm-year-btn"
-                title={t('后一年', 'Next year')}
-                style={{ opacity: isLatestRolling ? 0.3 : 1 }}
-                disabled={isLatestRolling}
-              >›</button>
-            )}
-            {/* View switcher pills */}
-            <div className="hm-view-switcher">
-              <button
-                className={`hm-view-pill${viewMode === 'roll' ? ' hm-view-pill-active' : ''}`}
-                onClick={() => setViewMode('roll')}
-              >{t('近 365 天', 'Last 365d')}</button>
-              <button
-                className={`hm-view-pill${viewMode === 'year' ? ' hm-view-pill-active' : ''}`}
-                onClick={() => setViewMode('year')}
-              >{t('年度视图', 'Year')}</button>
-            </div>
-          </div>
-          <p className="heatmap-title-desc">
-            {viewMode === 'year'
-              ? t('每日各分类投入达成率（实际 ÷ 目标）', 'Daily category hit-rate (actual ÷ target)')
-              : t('过去 365 天的每日投入记录', 'Daily record for the last 365 days')}
-          </p>
-        </div>
-
-        {/* Category pills */}
-        <div className="heatmap-pills">
-          {CATEGORY_IDS.map((id) => {
-            const cat = catMap.get(id)
-            const active = selectedId === id
-            return (
-              <button
-                key={id}
-                onClick={() => handleCategoryChange(id)}
-                className={`heatmap-pill${active ? ' heatmap-pill-active' : ''}`}
-                style={
-                  active
-                    ? {
-                        backgroundColor: `var(--event-${id}-fill)`,
-                        color: 'var(--surface)',
-                      }
-                    : undefined
-                }
-              >
-                {cat?.name ?? id}
-              </button>
-            )
-          })}
-        </div>
-      </div>
 
       {/* ── Heatmap grid ───────────────────────────────────── */}
       <div className="heatmap-grid-scroll">
@@ -771,11 +717,11 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now }: Ye
         >
           <div className="heatmap-tooltip-date">
             {tooltip.cell.date.toLocaleDateString(
-              language === 'zh' ? 'zh-CN' : 'en-US',
+              LANGUAGE_LOCALE[language] ?? 'zh-CN',
               { month: 'long', day: 'numeric' },
             )}
             {' '}
-            {language === 'zh' ? tooltip.dayNameZh : tooltip.dayNameEn}
+            {getDayName(tooltip.cell.date, language)}
           </div>
           <div className="heatmap-tooltip-hours">
             {tooltip.cell.hours.toFixed(1)}h
@@ -798,85 +744,6 @@ export const HEATMAP_CSS = `
   margin: 0 auto;
   font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
-}
-
-/* ── Title area ──────────────────────────── */
-.heatmap-title-area {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-}
-.heatmap-title-compact {
-  flex-direction: column;
-}
-.heatmap-title-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.hm-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.hm-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-.hm-title-line1 {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--heatmap-ink-1);
-  line-height: 1.15;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-.hm-title-line2 {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 14px;
-  font-style: italic;
-  color: var(--heatmap-ink-2);
-  line-height: 1.3;
-  white-space: nowrap;
-}
-.heatmap-title-desc {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 14px;
-  font-style: italic;
-  color: var(--heatmap-ink-3);
-  margin: 0;
-}
-/* ── Category pills ───────────────────────── */
-.heatmap-pills {
-  display: flex;
-  gap: 6px;
-  background: var(--heatmap-bg-card);
-  border-radius: 999px;
-  padding: 4px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-.heatmap-pill {
-  padding: 6px 16px;
-  border-radius: 999px;
-  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--heatmap-ink-2);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.25s ease, color 0.25s ease;
-  white-space: nowrap;
-}
-.heatmap-pill:hover {
-  color: var(--heatmap-ink-1);
-}
-.heatmap-pill-active {
-  font-weight: 600;
 }
 
 /* ── Grid scroll wrapper ──────────────────── */
@@ -994,59 +861,6 @@ export const HEATMAP_CSS = `
   margin-top: 8px;
 }
 
-.hm-year-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 16px;
-  color: var(--heatmap-ink-3);
-  transition: color 0.2s ease, background-color 0.2s ease;
-  flex-shrink: 0;
-}
-.hm-year-btn:hover {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg-card);
-}
-.hm-year-btn:disabled {
-  cursor: default;
-  pointer-events: none;
-}
-.hm-view-switcher {
-  display: flex;
-  gap: 2px;
-  margin-left: 8px;
-  background: var(--heatmap-bg-card);
-  border-radius: 6px;
-  padding: 2px;
-}
-.hm-view-pill {
-  padding: 2px 10px;
-  border-radius: 4px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--heatmap-ink-3);
-  transition: background-color 0.2s ease, color 0.2s ease;
-  white-space: nowrap;
-}
-.hm-view-pill:hover {
-  color: var(--heatmap-ink-1);
-}
-.hm-view-pill-active {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg);
-  font-weight: 600;
-}
-
 /* ── Stats bar ────────────────────────────── */
 .heatmap-stats-bar {
   display: grid;
@@ -1157,21 +971,5 @@ export const HEATMAP_CSS = `
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   opacity: 0.85;
-}
-
-/* ── Responsive ───────────────────────────── */
-@media (max-width: 719px) {
-  .hm-title-line1 {
-    font-size: 22px;
-  }
-  .hm-title-line2 {
-    font-size: 12px;
-  }
-  .heatmap-title-desc {
-    font-size: 13px;
-  }
-  .heatmap-pills {
-    width: 100%;
-  }
 }
 `

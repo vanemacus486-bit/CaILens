@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import {
   ComposedChart,
@@ -21,7 +21,6 @@ import type { Granularity, Bucket } from '@/hooks/useStatsAggregation'
 import { resolveLabelStack } from '@/domain/labelStack'
 
 const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
-const CAT_STORAGE_KEY = 'cailens-trend-categories'
 const DAY_MS = 24 * 60 * 60_000
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -33,48 +32,12 @@ function formatBucketLabel(bucket: Bucket, periodType: Granularity): string {
   return format(d, 'yyyy-MM')
 }
 
-function periodLabel(periodType: Granularity): string {
-  switch (periodType) {
-    case 'day':   return '日趋势'
-    case 'week':  return '周趋势'
-    case 'month': return '月趋势'
-  }
-}
-
-function periodDesc(periodType: Granularity): string {
-  switch (periodType) {
-    case 'day':   return '过去 14 天的每日投入变化'
-    case 'week':  return '过去 8 周的逐周投入变化'
-    case 'month': return '过去 12 个月的逐月投入变化'
-  }
-}
-
 function periodDays(periodType: Granularity): number {
   switch (periodType) {
     case 'day':   return 1
     case 'week':  return 7
     case 'month': return 30.44
   }
-}
-
-function loadSelection(): CategoryId[] {
-  try {
-    const raw = localStorage.getItem(CAT_STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.every((v) => CATEGORY_IDS.includes(v))) {
-        // De-dup: a stale stored value with repeats would render duplicate
-        // <Line> series (same React key) and double a category in the tooltip.
-        const unique = [...new Set(parsed)] as CategoryId[]
-        if (unique.length > 0) return unique
-      }
-    }
-  } catch { /* ignore */ }
-  return ['accent']
-}
-
-function saveSelection(ids: CategoryId[]) {
-  try { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(ids)) } catch { /* ignore */ }
 }
 
 // ── Right-edge endpoint labels (single de-collided layer) ─────
@@ -140,8 +103,8 @@ interface CategoryTrendChartProps {
   categories: Category[]
   periodType: Granularity
   maturity: DataMaturity
-  onNavigate?: (dir: -1 | 1) => void
-  onPeriodChange?: (p: Granularity) => void
+  /** 外部受控的选中分类（来自 StatsPage → StatsRail） */
+  selected: CategoryId[]
 }
 
 export function CategoryTrendChart({
@@ -149,31 +112,17 @@ export function CategoryTrendChart({
   categories,
   periodType,
   maturity,
-  onNavigate,
-  onPeriodChange,
+  selected,
 }: CategoryTrendChartProps) {
-  const [selected, setSelected] = useState<CategoryId[]>(loadSelection)
   const [isCompact, setIsCompact] = useState(false)
   // Which line the cursor is over — emphasised in the chart and the tooltip.
   const [activeId, setActiveId] = useState<CategoryId | null>(null)
-
-  useEffect(() => { saveSelection(selected) }, [selected])
 
   useEffect(() => {
     const check = () => setIsCompact(window.innerWidth < 720)
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
-  }, [])
-
-  const toggleCategory = useCallback((id: CategoryId) => {
-    setSelected((prev) => {
-      if (prev.includes(id)) {
-        if (prev.length === 1) return prev
-        return prev.filter((x) => x !== id)
-      }
-      return [...prev, id]
-    })
   }, [])
 
   const catMap = useMemo(() => {
@@ -304,67 +253,6 @@ export function CategoryTrendChart({
   return (
     <div className="trend-root">
       <style>{TREND_CSS}</style>
-
-      {/* ── Title area ─────────────────────────────────── */}
-      <div className={`trend-title-area${isCompact ? ' trend-title-compact' : ''}`}>
-        <div className="trend-title-left">
-          <div className="trend-title-row">
-            {onNavigate && (
-              <button
-                onClick={() => onNavigate(-1)}
-                className="trend-title-arrow"
-                title={'上一周期'}
-              >‹</button>
-            )}
-            <span className="trend-title-main">
-              {periodLabel(periodType)}
-            </span>
-            {onNavigate && (
-              <button
-                onClick={() => onNavigate(1)}
-                className="trend-title-arrow"
-                title={'下一周期'}
-              >›</button>
-            )}
-            {onPeriodChange && (
-              <div className="trend-title-periods">
-                {(['day', 'week', 'month'] as Granularity[]).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => onPeriodChange(p)}
-                    className={`trend-title-period${periodType === p ? ' trend-title-period-active' : ''}`}
-                  >
-                    {p === 'day' ? '日' : p === 'week' ? '周' : '月'}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <p className="trend-title-desc">{periodDesc(periodType)}</p>
-        </div>
-
-        {/* Category pills */}
-        <div className="trend-pills">
-          {CATEGORY_IDS.map((id) => {
-            const cat = catMap.get(id)
-            const active = selected.includes(id)
-            return (
-              <button
-                key={id}
-                onClick={() => toggleCategory(id)}
-                className={`trend-pill${active ? ' trend-pill-active' : ''}`}
-                style={
-                  active
-                    ? { backgroundColor: `var(--event-${id}-fill)`, color: 'var(--surface)' }
-                    : undefined
-                }
-              >
-                {cat?.name ?? id}
-              </button>
-            )
-          })}
-        </div>
-      </div>
 
       {/* ── Chart ───────────────────────────────────────── */}
       <div className="trend-chart-container">
@@ -580,124 +468,8 @@ const TREND_CSS = `
   color: var(--heatmap-ink-1);
 }
 
-/* ── Title area ──────────────────────────── */
-.trend-title-area {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-}
-.trend-title-compact {
-  flex-direction: column;
-}
-.trend-title-left {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-}
-.trend-title-main {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--heatmap-ink-1);
-  line-height: 1.2;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-.trend-title-desc {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 14px;
-  font-style: italic;
-  color: var(--heatmap-ink-3);
-  margin: 0;
-}
-.trend-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.trend-title-arrow {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 16px;
-  color: var(--heatmap-ink-3);
-  transition: color 0.2s ease, background-color 0.2s ease;
-  flex-shrink: 0;
-}
-.trend-title-arrow:hover {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg-card);
-}
-.trend-title-periods {
-  display: flex;
-  gap: 2px;
-  margin-left: 6px;
-  background: var(--heatmap-bg-card);
-  border-radius: 6px;
-  padding: 2px;
-}
-.trend-title-period {
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--heatmap-ink-3);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-.trend-title-period:hover {
-  color: var(--heatmap-ink-1);
-}
-.trend-title-period-active {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg);
-  font-weight: 600;
-}
-
-/* ── Pills ───────────────────────────────── */
-.trend-pills {
-  display: flex;
-  gap: 6px;
-  background: var(--heatmap-bg-card);
-  border-radius: 999px;
-  padding: 4px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-.trend-pill {
-  padding: 6px 16px;
-  border-radius: 999px;
-  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--heatmap-ink-2);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.25s ease, color 0.25s ease;
-  white-space: nowrap;
-}
-.trend-pill:hover {
-  color: var(--heatmap-ink-1);
-}
-.trend-pill-active {
-  font-weight: 600;
-}
-
 /* ── Chart container ─────────────────────── */
 .trend-chart-container {
-  margin-top: 28px;
   position: relative;
   height: clamp(300px, 46vh, 520px);
 }
@@ -751,15 +523,6 @@ const TREND_CSS = `
 
 /* ── Responsive ──────────────────────────── */
 @media (max-width: 719px) {
-  .trend-title-main {
-    font-size: 22px;
-  }
-  .trend-title-desc {
-    font-size: 13px;
-  }
-  .trend-pills {
-    width: 100%;
-  }
   .trend-stat-value {
     font-size: 22px;
   }

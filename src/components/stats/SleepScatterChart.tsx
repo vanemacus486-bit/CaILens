@@ -1,5 +1,5 @@
-﻿import { useMemo, useState, startTransition } from 'react'
-import { ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized, usePlotArea } from 'recharts'
+﻿import { useMemo, useState, useCallback, useEffect } from 'react'
+import { ComposedChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Customized, usePlotArea } from 'recharts'
 import type { CalendarEvent } from '@/domain/event'
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -13,6 +13,15 @@ interface SleepNight {
   bedTime: number
   wakeTime: number
   duration: number
+}
+
+interface HoverInfo {
+  night: SleepNight
+  /** plot-pixel x of the focused day (crosshair + popup anchor) */
+  cx: number
+  plotTop: number
+  plotLeft: number
+  plotRight: number
 }
 
 interface RawNight {
@@ -60,23 +69,6 @@ function monthLabel(date: Date): string {
   return `${date.getMonth() + 1}月`
 }
 
-function viewLabel(vm: SleepViewMode, anchor: Date): string {
-  const y = anchor.getFullYear()
-  const m = anchor.getMonth()
-  switch (vm) {
-    case 'month':   return `${y} 年 ${m + 1} 月`
-    case 'quarter': return `${m + 1}月-${m + 4}月`
-    case 'year':    return `${y} 年`
-  }
-}
-
-function viewDesc(vm: SleepViewMode): string {
-  switch (vm) {
-    case 'month':   return '就寝与起床时间'
-    case 'quarter': return '季度睡眠模式'
-    case 'year':    return '全年睡眠模式'
-  }
-}
 
 /* ── Y-axis config ─────────────────────────────────────── */
 
@@ -103,11 +95,15 @@ interface SleepMarksProps {
   avgWakeLabel?: string
   avgLineColor: string
   avgLabelColor: string
+  hoveredDay: number | null
+  crosshairColor: string
+  onHover: (info: HoverInfo | null) => void
 }
 
 function SleepMarks({
   nights, days, colorBedDot, colorWakeDot,
   avgBedY, avgWakeY, avgBedLabel, avgWakeLabel, avgLineColor, avgLabelColor,
+  hoveredDay, crosshairColor, onHover,
 }: SleepMarksProps) {
   const plot = usePlotArea()
   if (!plot) return null
@@ -121,6 +117,22 @@ function SleepMarks({
   // so yMin sits at the top (py) and yMax at the bottom (py + ph).
   const xOf = (day: number) => (days <= 1 ? px + pw / 2 : px + ((day - 1) / (days - 1)) * pw)
   const yOf = (v: number) => py + ((v - yMin) / ySpan) * ph
+
+  // Map a pointer's clientX to the nearest night that actually has data, so the
+  // crosshair always snaps onto real dots (and skips empty days gracefully).
+  const emit = (clientX: number, target: SVGRectElement) => {
+    if (nights.length === 0) { onHover(null); return }
+    const box = target.getBoundingClientRect()
+    const frac = box.width > 0 ? (clientX - box.left) / box.width : 0
+    const day = 1 + frac * (days - 1)
+    let best = nights[0]
+    for (const n of nights) {
+      if (Math.abs(n.day - day) < Math.abs(best.day - day)) best = n
+    }
+    onHover({ night: best, cx: xOf(best.day), plotTop: py, plotLeft: px, plotRight: px + pw })
+  }
+
+  const hovered = hoveredDay != null ? nights.find((n) => n.day === hoveredDay) ?? null : null
 
   return (
     <g>
@@ -142,18 +154,45 @@ function SleepMarks({
         </>
       )}
 
-      {/* Per-night sleep bar + bed/wake dots */}
+      {/* Hover crosshair — a vertical guide that pins the focused day */}
+      {hovered && (
+        <line
+          x1={xOf(hovered.day)} x2={xOf(hovered.day)} y1={py} y2={py + ph}
+          stroke={crosshairColor} strokeWidth={1} strokeDasharray="3 3" opacity={0.5}
+        />
+      )}
+
+      {/* Per-night bed/wake dots — the focused night gets a halo + larger dots */}
       {nights.map((n, i) => {
         const cx = xOf(n.day)
         const y1 = yOf(n.bedY)
         const y2 = yOf(n.wakeY)
+        const isHovered = hovered?.day === n.day
         return (
           <g key={i}>
-            <circle cx={cx} cy={y1} r={5} fill={colorBedDot} />
-            <circle cx={cx} cy={y2} r={5} fill={colorWakeDot} />
+            {isHovered && (
+              <>
+                <circle cx={cx} cy={y1} r={9} fill="none" stroke={colorBedDot} strokeWidth={1.5} opacity={0.45} />
+                <circle cx={cx} cy={y2} r={9} fill="none" stroke={colorWakeDot} strokeWidth={1.5} opacity={0.45} />
+              </>
+            )}
+            <circle cx={cx} cy={y1} r={isHovered ? 6 : 5} fill={colorBedDot} />
+            <circle cx={cx} cy={y2} r={isHovered ? 6 : 5} fill={colorWakeDot} />
           </g>
         )
       })}
+
+      {/* Transparent capture layer (on top) drives the hover / touch readout */}
+      <rect
+        data-sleep-capture="1"
+        x={px} y={py} width={pw} height={ph}
+        fill="rgba(0,0,0,0)"
+        style={{ pointerEvents: 'all', cursor: 'crosshair' }}
+        onMouseMove={(e) => emit(e.clientX, e.currentTarget)}
+        onMouseLeave={() => onHover(null)}
+        onTouchStart={(e) => { const t = e.touches[0]; if (t) emit(t.clientX, e.currentTarget) }}
+        onTouchMove={(e) => { const t = e.touches[0]; if (t) emit(t.clientX, e.currentTarget) }}
+      />
     </g>
   )
 }
@@ -162,11 +201,20 @@ function SleepMarks({
 
 interface SleepScatterChartProps {
   rangeEvents: CalendarEvent[]
+  /** 外部控制的锚点日期（来自 URL date 参数），提供后组件锚点由此驱动 */
+  anchorDate?: Date
+  /** 外部受控的视图模式 */
+  viewMode: SleepViewMode
+  /** 视图模式切换回调 */
+  onViewModeChange: (mode: SleepViewMode) => void
 }
 
-export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
+export function SleepScatterChart({ rangeEvents, anchorDate: anchorDateProp, viewMode, onViewModeChange: _ovmc }: SleepScatterChartProps) {
+  void _ovmc
   const isCompact = typeof window !== 'undefined' && window.innerWidth < 720
-  const cutoff = Date.now() - 365 * 86_400_000
+  // Memoized so the sleepEvents → allNights → viewNights chain keeps a stable
+  // identity across renders (a bare Date.now() recomputes every render and churns it).
+  const cutoff = useMemo(() => Date.now() - 365 * 86_400_000, [])
 
   /* ════════════════════════════════════════════════
      Step 1 — Filter sleep events
@@ -220,50 +268,23 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
      Step 3 — View state
      ════════════════════════════════════════════════ */
 
-  const [viewMode, setViewMode] = useState<SleepViewMode>('month')
-  const [anchorDate, setAnchorDate] = useState(() => {
-    const d = new Date()
-    return new Date(d.getFullYear(), d.getMonth(), 1)
-  })
+  const [anchorDate, setAnchorDate] = useState(() => anchorDateProp ?? (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })())
 
-  const goPrev = () => {
-    startTransition(() => {
-      setAnchorDate((d) => {
-        switch (viewMode) {
-          case 'month':   return new Date(d.getFullYear(), d.getMonth() - 1, 1)
-          case 'quarter': return new Date(d.getFullYear(), d.getMonth() - 4, 1)
-          case 'year':    return new Date(d.getFullYear() - 1, 0, 1)
-        }
-      })
-    })
-  }
+  // 外部 anchorDate 变化时同步内部状态
+  useEffect(() => {
+    if (anchorDateProp !== undefined) setAnchorDate(anchorDateProp)
+  }, [anchorDateProp])
 
-  const goNext = () => {
-    startTransition(() => {
-      setAnchorDate((d) => {
-        switch (viewMode) {
-          case 'month':   return new Date(d.getFullYear(), d.getMonth() + 1, 1)
-          case 'quarter': return new Date(d.getFullYear(), d.getMonth() + 4, 1)
-          case 'year':    return new Date(d.getFullYear() + 1, 0, 1)
-        }
-      })
+  // Hover/tap readout (replaces recharts' <Tooltip>, which never fires here
+  // because the chart registers no graphical series for it to attach to).
+  const [hover, setHover] = useState<HoverInfo | null>(null)
+  const handleHover = useCallback((info: HoverInfo | null) => {
+    setHover((prev) => {
+      if (!prev && !info) return prev
+      if (prev && info && prev.night.day === info.night.day) return prev
+      return info
     })
-  }
-
-  const changeViewMode = (vm: SleepViewMode) => {
-    if (vm === viewMode) return
-    startTransition(() => {
-      setViewMode(vm)
-      setAnchorDate(() => {
-        const now = new Date()
-        switch (vm) {
-          case 'month':   return new Date(now.getFullYear(), now.getMonth(), 1)
-          case 'quarter': return new Date(now.getFullYear(), Math.floor(now.getMonth() / 4) * 4, 1)
-          case 'year':    return new Date(now.getFullYear(), 0, 1)
-        }
-      })
-    })
-  }
+  }, [])
 
   /* ════════════════════════════════════════════════
      Step 4 — View window
@@ -371,13 +392,11 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
   const colorWakeDot = 'var(--cat-sleep)'
   const avgLineColor = 'var(--line-strong)'
   const avgLabelColor = 'var(--ink-2)'
+  const crosshairColor = 'var(--accent)'
 
   /* ════════════════════════════════════════════════
      Step 8 — Render
      ════════════════════════════════════════════════ */
-
-  const label = viewLabel(viewMode, anchorDate)
-  const desc = viewDesc(viewMode)
 
   const xTickFont = viewMode === 'month'
     ? { fontSize: 11, fontFamily: 'var(--font-mono)' }
@@ -388,33 +407,9 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
       <style>{SLEEP_CSS}</style>
       <style>{`
         .sleep-chart-container .recharts-cartesian-axis-tick text {
-          fill: var(--ink-3) !important;
+          fill: var(--ink-2) !important;
         }
       `}</style>
-
-      {/* ── Title area ──────────────────────────────── */}
-      <div className={`sleep-title-area${isCompact ? ' sleep-title-compact' : ''}`}>
-        <div className="sleep-title-left">
-          <div className="sleep-title-row">
-            <button onClick={goPrev} className="sleep-title-arrow" title={'上一周期'}>‹</button>
-            <span className="sleep-title-main">{label}</span>
-            <button onClick={goNext} className="sleep-title-arrow" title={'下一周期'}>›</button>
-
-            <div className="sleep-title-periods">
-              {(['month', 'quarter', 'year'] as SleepViewMode[]).map((vm) => (
-                <button
-                  key={vm}
-                  onClick={() => changeViewMode(vm)}
-                  className={`sleep-title-period${viewMode === vm ? ' sleep-title-period-active' : ''}`}
-                >
-                  {vm === 'month' ? '月' : vm === 'quarter' ? '季' : '年'}
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="sleep-title-desc">{desc}</p>
-        </div>
-      </div>
 
       {/* ── Empty state ─────────────────────────────── */}
       {viewNights.length === 0 ? (
@@ -425,7 +420,7 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
           <div className="sleep-chart-container">
             <ResponsiveContainer width="100%" height={360}>
               <ComposedChart data={viewNights} margin={{ top: 8, right: 24, left: 0, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} syncWithTicks={true} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={true} syncWithTicks={true} />
 
                 <XAxis
                   dataKey="day"
@@ -453,54 +448,7 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
                   ticks={Y_TICKS}
                 />
 
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload?.length) return null
-                    const row = payload[0]?.payload as SleepNight | undefined
-                    if (!row) return null
-                    return (
-                      <div style={{
-                        background: 'var(--surface-raised)',
-                        border: '1px solid var(--line)',
-                        borderRadius: 'var(--radius-s)',
-                        padding: '8px 12px',
-                        boxShadow: 'var(--shadow-tooltip)',
-                      }}>
-                        <div style={{
-                          fontSize: 11,
-                          color: 'var(--ink-3)',
-                          fontFamily: 'var(--font-mono)',
-                          marginBottom: 6,
-                        }}>
-                          {viewMode === 'month' ? `${anchorDate.getMonth() + 1}月${row.day}日` : `第 ${label} 日`}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: colorBedDot }} />
-                          <span style={{ fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-ui)' }}>就寝</span>
-                          <span style={{ fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font-mono)', fontWeight: 500, marginLeft: 'auto', paddingLeft: 16 }}>
-                            {fmtHour(row.bedTime)}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: colorWakeDot }} />
-                          <span style={{ fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-ui)' }}>起床</span>
-                          <span style={{ fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font-mono)', fontWeight: 500, marginLeft: 'auto', paddingLeft: 16 }}>
-                            {fmtHour(row.wakeTime)}
-                          </span>
-                        </div>
-                        <div style={{ height: 1, background: 'var(--line)', margin: '4px 0' }} />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-ui)' }}>时长</span>
-                          <span style={{ fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font-mono)', fontWeight: 500, marginLeft: 'auto', paddingLeft: 16 }}>
-                            {fmtDuration(row.duration)}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  }}
-                />
-
-                {/* Bars + dots + average lines (custom SVG overlay).
+                {/* Dots + average lines + hover crosshair (custom SVG overlay).
                     Drawn from plot-area geometry because this chart has no
                     graphical series for the axis-scale hooks to attach to. */}
                 <Customized
@@ -515,9 +463,54 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
                   avgWakeLabel={stats ? `平均起床 ${fmtHour(stats.avgWake)}` : undefined}
                   avgLineColor={avgLineColor}
                   avgLabelColor={avgLabelColor}
+                  hoveredDay={hover?.night.day ?? null}
+                  crosshairColor={crosshairColor}
+                  onHover={handleHover}
                 />
               </ComposedChart>
             </ResponsiveContainer>
+
+            {/* Hover/tap readout — date + exact bed/wake/duration, to the minute */}
+            {hover && (() => {
+              const n = hover.night
+              const tipLeft = Math.min(Math.max(hover.cx, hover.plotLeft + 82), hover.plotRight - 82)
+              const dateLabel = viewMode === 'month'
+                ? `${anchorDate.getMonth() + 1}月${n.day}日`
+                : `第 ${n.day} 日`
+              return (
+                <div style={{
+                  position: 'absolute',
+                  left: tipLeft,
+                  top: hover.plotTop + 4,
+                  transform: 'translateX(-50%)',
+                  pointerEvents: 'none',
+                  zIndex: 5,
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--radius-s)',
+                  padding: '8px 12px',
+                  boxShadow: 'var(--shadow-tooltip)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>{dateLabel}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: colorBedDot }} />
+                    <span style={{ fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-ui)' }}>就寝</span>
+                    <span style={{ fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font-mono)', fontWeight: 500, marginLeft: 'auto', paddingLeft: 16 }}>{fmtHour(n.bedTime)}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: colorWakeDot }} />
+                    <span style={{ fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-ui)' }}>起床</span>
+                    <span style={{ fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font-mono)', fontWeight: 500, marginLeft: 'auto', paddingLeft: 16 }}>{fmtHour(n.wakeTime)}</span>
+                  </div>
+                  <div style={{ height: 1, background: 'var(--line)', margin: '4px 0' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-ui)' }}>时长</span>
+                    <span style={{ fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font-mono)', fontWeight: 500, marginLeft: 'auto', paddingLeft: 16 }}>{fmtDuration(n.duration)}</span>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
           {/* ── Legend ──────────────────────────────── */}
@@ -555,7 +548,7 @@ export function SleepScatterChart({ rangeEvents }: SleepScatterChartProps) {
                 <div className="sleep-stat-value">
                   {stats.n}<span className="sleep-stat-unit">{'晚'}</span>
                 </div>
-                <div className="sleep-stat-detail">{label}</div>
+                <div className="sleep-stat-detail">{viewMode === 'month' ? '月' : viewMode === 'quarter' ? '季' : '年'}</div>
               </div>
             </div>
           )}
@@ -576,91 +569,6 @@ const SLEEP_CSS = `
   font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
   padding-top: 8px;
-}
-
-/* ── Title area ──────────────────────────── */
-.sleep-title-area {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-}
-.sleep-title-compact {
-  flex-direction: column;
-}
-.sleep-title-left {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.sleep-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.sleep-title-main {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--heatmap-ink-1);
-  line-height: 1.2;
-  letter-spacing: 0.02em;
-  min-width: 120px;
-  text-align: center;
-}
-.sleep-title-arrow {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 16px;
-  color: var(--heatmap-ink-3);
-  transition: color 0.2s ease, background-color 0.2s ease;
-  flex-shrink: 0;
-}
-.sleep-title-arrow:hover {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg-card);
-}
-.sleep-title-periods {
-  display: flex;
-  gap: 2px;
-  margin-left: 6px;
-  background: var(--heatmap-bg-card);
-  border-radius: 6px;
-  padding: 2px;
-}
-.sleep-title-period {
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: 'Source Serif 4', 'Noto Serif SC', serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--heatmap-ink-3);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-.sleep-title-period:hover {
-  color: var(--heatmap-ink-1);
-}
-.sleep-title-period-active {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg);
-  font-weight: 600;
-}
-.sleep-title-desc {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 14px;
-  font-style: italic;
-  color: var(--heatmap-ink-3);
-  margin: 0;
 }
 
 /* ── Chart container ─────────────────────── */
@@ -749,13 +657,6 @@ const SLEEP_CSS = `
 
 /* ── Responsive ──────────────────────────── */
 @media (max-width: 719px) {
-  .sleep-title-main {
-    font-size: 22px;
-    min-width: 100px;
-  }
-  .sleep-title-desc {
-    font-size: 13px;
-  }
   .sleep-stat-value {
     font-size: 22px;
   }

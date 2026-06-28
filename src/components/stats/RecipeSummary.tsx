@@ -14,10 +14,12 @@ import {
   MEAL_SOURCE_LABELS_EN,
 } from '@/domain/event'
 import { computeRecipeStats } from '@/domain/recipeStats'
+import type { AppLanguage } from '@/i18n/types'
+import { translate } from '@/i18n/useT'
 
 interface Props {
   rangeEvents: CalendarEvent[]
-  language: 'zh' | 'en'
+  language: AppLanguage
 }
 
 // ── 辅助: 百分比格式化 ──────────────────────────────────────
@@ -50,7 +52,10 @@ function Divider() {
 // ── 主组件 ──────────────────────────────────────────────────
 
 export function RecipeSummary({ rangeEvents, language }: Props) {
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+  const tr = (key: string, ...args: (string | number)[]) => translate(key, language, ...args)
+
+  // zh/en pair selector for domain-level labels
+  const tl = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const now = useMemo(() => Date.now(), [])
   const ninetyDaysAgo = now - 90 * 86_400_000
@@ -65,10 +70,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
     return (
       <div className="py-16 text-center">
         <p className="font-serif text-sm text-text-tertiary italic">
-          {t(
-            '还没有饮食记录。在快速输入中输入"吃午饭"等关键词即可开始记录。',
-            'No meal data yet. Type "吃午饭" or "dinner" in Quick Input to start tracking.',
-          )}
+          {tr('diet.noData')}
         </p>
       </div>
     )
@@ -83,7 +85,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
             {stats.daysWithMeals}
           </div>
           <div className="font-sans text-xs text-text-tertiary mt-1">
-            {'有记录天数'}
+            {tr('diet.daysWithMeals')}
           </div>
         </div>
         <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
@@ -91,7 +93,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
             {stats.totalMeals}
           </div>
           <div className="font-sans text-xs text-text-tertiary mt-1">
-            {'总餐数'}
+            {tr('diet.totalMeals')}
           </div>
         </div>
         <div className="bg-surface-raised border border-border-default rounded-xl p-4 text-center">
@@ -101,13 +103,13 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
               : '—'}
           </div>
           <div className="font-sans text-xs text-text-tertiary mt-1">
-            {'均餐/天'}
+            {tr('diet.mealsPerDay')}
           </div>
         </div>
       </div>
 
       {/* 餐次分布 */}
-      <StatCard title={'餐次分布'}>
+      <StatCard title={tr('diet.mealDistribution')}>
         <div className="space-y-2.5">
           {(
             Object.entries(stats.mealOrderDistribution) as [MealOrder, number][]
@@ -121,7 +123,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
               <div key={mo}>
                 <div className="flex items-center justify-between text-xs font-sans mb-1">
                   <span className="text-text-primary">
-                    {t(MEAL_ORDER_LABELS[mo], MEAL_ORDER_LABELS_EN[mo])}
+                    {tl(MEAL_ORDER_LABELS[mo], MEAL_ORDER_LABELS_EN[mo])}
                   </span>
                   <span className="font-mono text-text-secondary tabular-nums">
                     {count}
@@ -152,7 +154,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
           ).map(([src, count]) => (
             <div key={src} className="flex items-center gap-1.5">
               <span className="text-text-primary">
-                {t(MEAL_SOURCE_LABELS[src], MEAL_SOURCE_LABELS_EN[src])}
+                {tl(MEAL_SOURCE_LABELS[src], MEAL_SOURCE_LABELS_EN[src])}
               </span>
               <span className="font-mono text-text-tertiary tabular-nums">
                 {count}
@@ -164,10 +166,7 @@ export function RecipeSummary({ rangeEvents, language }: Props) {
 
       {/* 脚注 */}
       <p className="font-sans text-[10px] text-text-tertiary text-center italic">
-        {t(
-          '食谱从记录中长出来——持续记录，模式会自然显现。',
-          'Your recipe emerges from your records — keep tracking, patterns will surface.',
-        )}
+        {tr('diet.footer')}
       </p>
     </div>
   )

@@ -116,3 +116,182 @@ export function groupHygieneByDay(
   result.sort((a, b) => a.date.localeCompare(b.date))
   return result
 }
+
+// ═══════════════════════════════════════════════════════════
+//  Hygiene 频次输出类型
+// ═══════════════════════════════════════════════════════════
+
+/** 本周卫生频次矩阵的一行 */
+export interface HygieneFreqWeekRow {
+  activityId: string
+  name: string
+  colorKey: string
+  icon: string
+  /** 周一→周日，长度 7；当天该活动出现次数（0 = 没出现） */
+  days: number[]
+  /** 本周该活动总出现次数 */
+  total: number
+}
+
+/** 本月卫生频次矩阵的一行 */
+export interface HygieneFreqMonthRow {
+  activityId: string
+  name: string
+  colorKey: string
+  icon: string
+  /** 每个日历周该活动出现次数，length = weekCount */
+  weeks: number[]
+  total: number
+}
+
+/** 本月卫生频次矩阵 */
+export interface HygieneFreqMonth {
+  weekCount: number
+  rows: HygieneFreqMonthRow[]
+}
+
+// ── 辅助：周起始（周一）──────────────────────────────────
+
+function weekStartMonday(ts: number): number {
+  const d = new Date(ts)
+  const dayOfWeek = d.getDay()
+  const offset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset)
+  monday.setHours(0, 0, 0, 0)
+  return monday.getTime()
+}
+
+// ═══════════════════════════════════════════════════════════
+//  computeHygieneFreqWeek
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 按活动聚合本周卫生事件出现次数。
+ *
+ * 结果按 total 降序排列，同分用 name.localeCompare 稳定排序。
+ * 只统计能解析出卫生活动的事件且 startTime ∈ [range.start, range.end)。
+ */
+export function computeHygieneFreqWeek(
+  events: readonly CalendarEvent[],
+  range: DateRange,
+  activities: readonly HygieneActivityDef[],
+): HygieneFreqWeekRow[] {
+  // 过滤并解析事件
+  const resolved: { activityId: string; name: string; colorKey: string; icon: string; startTime: number }[] = []
+  for (const e of events) {
+    if (e.startTime < range.start || e.startTime >= range.end) continue
+    const r = resolveHygiene(e, activities)
+    if (!r) continue
+    const def = findHygieneActivity(activities, r.activityId)
+    resolved.push({
+      activityId: r.activityId,
+      name: r.name,
+      colorKey: r.colorKey,
+      icon: def?.icon ?? '',
+      startTime: e.startTime,
+    })
+  }
+
+  // 按 activityId 分组
+  const byActivity = new Map<string, { name: string; colorKey: string; icon: string; days: number[]; total: number }>()
+  for (const r of resolved) {
+    let bucket = byActivity.get(r.activityId)
+    if (!bucket) {
+      bucket = { name: r.name, colorKey: r.colorKey, icon: r.icon, days: new Array<number>(7).fill(0), total: 0 }
+      byActivity.set(r.activityId, bucket)
+    }
+    const d = new Date(r.startTime)
+    const dow = d.getDay() === 0 ? 6 : d.getDay() - 1 // 0=Monday..6=Sunday
+    bucket.days[dow]++
+    bucket.total++
+  }
+
+  // 构建结果并排序
+  const rows: HygieneFreqWeekRow[] = []
+  for (const [activityId, bucket] of byActivity) {
+    rows.push({ activityId, ...bucket })
+  }
+  rows.sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total
+    return a.name.localeCompare(b.name)
+  })
+
+  return rows
+}
+
+// ═══════════════════════════════════════════════════════════
+//  computeHygieneFreqMonth
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 按活动聚合本月卫生事件出现次数，分周展示。
+ *
+ * 周分片算法：
+ * - base = weekStartMonday(range.start)
+ * - 每条事件列号 col = floor((event.startTime - base) / (7 * 86400000))
+ * - weekCount 至少覆盖到 range.end - 1
+ * - 没有任何记录的中间周保留为整列 0（保证列与日历周对齐）
+ *
+ * 结果按 total 降序取前 topN 行，同分用 name.localeCompare 稳定排序。
+ */
+export function computeHygieneFreqMonth(
+  events: readonly CalendarEvent[],
+  range: DateRange,
+  activities: readonly HygieneActivityDef[],
+  topN: number,
+): HygieneFreqMonth {
+  const WEEK_MS = 7 * 86_400_000
+  const base = weekStartMonday(range.start)
+
+  const lastDay = range.end - 1
+  const lastWeekStart = weekStartMonday(lastDay)
+  const weekCount = Math.floor((lastWeekStart - base) / WEEK_MS) + 1
+
+  // 过滤并解析事件
+  const resolved: { activityId: string; name: string; colorKey: string; icon: string; startTime: number }[] = []
+  for (const e of events) {
+    if (e.startTime < range.start || e.startTime >= range.end) continue
+    const r = resolveHygiene(e, activities)
+    if (!r) continue
+    const def = findHygieneActivity(activities, r.activityId)
+    resolved.push({
+      activityId: r.activityId,
+      name: r.name,
+      colorKey: r.colorKey,
+      icon: def?.icon ?? '',
+      startTime: e.startTime,
+    })
+  }
+
+  // 按 activityId 分组
+  const byActivity = new Map<string, { name: string; colorKey: string; icon: string; weeks: number[] }>()
+  for (const r of resolved) {
+    let bucket = byActivity.get(r.activityId)
+    if (!bucket) {
+      bucket = { name: r.name, colorKey: r.colorKey, icon: r.icon, weeks: new Array<number>(weekCount).fill(0) }
+      byActivity.set(r.activityId, bucket)
+    }
+    const col = Math.floor((r.startTime - base) / WEEK_MS)
+    if (col >= 0 && col < weekCount) {
+      bucket.weeks[col]++
+    }
+  }
+
+  // 构建结果
+  const rows: HygieneFreqMonthRow[] = []
+  for (const [activityId, bucket] of byActivity) {
+    const total = bucket.weeks.reduce((s, v) => s + v, 0)
+    rows.push({ activityId, total, ...bucket })
+  }
+
+  // 排序 + topN
+  rows.sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total
+    return a.name.localeCompare(b.name)
+  })
+
+  return {
+    weekCount,
+    rows: topN > 0 ? rows.slice(0, topN) : rows,
+  }
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, fireEvent } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import {
   computeYearDailyGrid,
   buildHeatmapGrid,
@@ -15,10 +15,10 @@ const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'st
 
 function makeCategories(): Category[] {
   return [
-    { id: 'accent', name: '主要矛盾', color: 'accent', weeklyBudget: 20, folders: [] },
-    { id: 'sage', name: '次要矛盾', color: 'sage', weeklyBudget: 10, folders: [] },
+    { id: 'accent', name: '主�1�7矛盾', color: 'accent', weeklyBudget: 20, folders: [] },
+    { id: 'sage', name: '次�1�7矛盾', color: 'sage', weeklyBudget: 10, folders: [] },
     { id: 'sand', name: '庶务时间', color: 'sand', weeklyBudget: 5, folders: [] },
-    { id: 'sky', name: '个人提升', color: 'sky', weeklyBudget: 5, folders: [] },
+    { id: 'sky', name: '丄1�7��提升', color: 'sky', weeklyBudget: 5, folders: [] },
     { id: 'rose', name: '休息娱乐', color: 'rose', weeklyBudget: 5, folders: [] },
     { id: 'stone', name: '睡眠时长', color: 'stone', weeklyBudget: 3, folders: [] },
   ]
@@ -38,7 +38,7 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
   }
 }
 
-// ── computeYearDailyGrid ─────────────────────────────────────
+// ┢�┢� computeYearDailyGrid ┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�
 
 describe('computeYearDailyGrid', () => {
   it('returns 365 days for a non-leap year', () => {
@@ -79,8 +79,8 @@ describe('computeYearDailyGrid', () => {
 
   it('computes correct ratio based on weekly budget', () => {
     const categories = makeCategories()
-    // accent weeklyBudget = 20 → daily target = 20/7 ≈ 2.857h
-    // 2h event → ratio = 2 / 2.857 ≈ 0.7
+    // accent weeklyBudget = 20 �?daily target = 20/7 �?2.857h
+    // 2h event �?ratio = 2 / 2.857 �?0.7
     const event = makeEvent({
       startTime: new Date(2026, 0, 15, 9, 0).getTime(),
       endTime: new Date(2026, 0, 15, 11, 0).getTime(),
@@ -110,9 +110,9 @@ describe('computeYearDailyGrid', () => {
       categoryId: 'accent',
     })
     const days = computeYearDailyGrid([event], categories, 2026)
-    // Jan 15 (index 14): 22:00–00:00 = 2h
+    // Jan 15 (index 14): 22:00�?0:00 = 2h
     expect(days[14].byCategory['accent']).toBeCloseTo(2, 1)
-    // Jan 16 (index 15): 00:00–02:00 = 2h
+    // Jan 16 (index 15): 00:00�?2:00 = 2h
     expect(days[15].byCategory['accent']).toBeCloseTo(2, 1)
   })
 
@@ -148,7 +148,7 @@ describe('computeYearDailyGrid', () => {
   })
 })
 
-// ── getIntensityLevel ────────────────────────────────────────
+// ┢�┢� getIntensityLevel ┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�
 
 describe('getIntensityLevel', () => {
   it('returns 0 for ratio <= 0', () => {
@@ -178,7 +178,7 @@ describe('getIntensityLevel', () => {
   })
 })
 
-// ── computeDailyStreak ───────────────────────────────────────
+// ┢�┢� computeDailyStreak ┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�
 
 describe('computeDailyStreak', () => {
   function makeDaysWithStreak(data: Array<{ accent: number }>): DayCell[] {
@@ -227,7 +227,7 @@ describe('computeDailyStreak', () => {
   })
 })
 
-// ── buildHeatmapGrid ─────────────────────────────────────────
+// ┢�┢� buildHeatmapGrid ┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�
 
 describe('buildHeatmapGrid', () => {
   function emptyDay(): DayCell {
@@ -262,7 +262,7 @@ describe('buildHeatmapGrid', () => {
 
   it('marks future dates', () => {
     const days = make365Days()
-    const now = new Date(2026, 0, 15).getTime() // Jan 15 — most of the year is future
+    const now = new Date(2026, 0, 15).getTime() // Jan 15 �?most of the year is future
     const { grid } = buildHeatmapGrid(days, 'accent', 2026, now)
     const allCells = grid.flat().filter((c): c is NonNullable<typeof c> => c !== null)
     const futureCells = allCells.filter((c) => c.isFuture)
@@ -290,7 +290,7 @@ describe('buildHeatmapGrid', () => {
   })
 })
 
-// ── computeStats ─────────────────────────────────────────────
+// ┢�┢� computeStats ┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�
 
 describe('computeStats', () => {
   function emptyDay(): DayCell {
@@ -337,7 +337,7 @@ describe('computeStats', () => {
   })
 })
 
-// ── Component tests ──────────────────────────────────────────
+// ┢�┢� Component tests ┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�
 
 describe('YearHeatmap component', () => {
   it('renders without crashing with empty data', async () => {
@@ -345,7 +345,7 @@ describe('YearHeatmap component', () => {
     const categories = makeCategories()
     const now = Date.now()
     const { container } = render(
-      <YearHeatmap rangeEvents={[]} categories={categories} language="zh" now={now} />,
+      <YearHeatmap selectedId="accent" onCategoryChange={()=>{}} viewMode="roll" onViewModeChange={()=>{}} rangeEvents={[]} categories={categories} language="zh" now={now} />,
     )
     // Should render without crashing
     expect(container.querySelector('.year-heatmap-root')).not.toBeNull()
@@ -360,7 +360,7 @@ describe('YearHeatmap component', () => {
       categoryId: 'accent',
     })
     const { container } = render(
-      <YearHeatmap rangeEvents={[event]} categories={categories} language="zh" />,
+      <YearHeatmap selectedId="accent" onCategoryChange={()=>{}} viewMode="roll" onViewModeChange={()=>{}} rangeEvents={[event]} categories={categories} language="zh" />,
     )
     // Should have heatmap cells
     const cells = container.querySelectorAll('.heatmap-cell')
@@ -379,36 +379,10 @@ describe('YearHeatmap component', () => {
       categoryId: 'accent',
     })
     const { container } = render(
-      <YearHeatmap rangeEvents={[event]} categories={categories} language="zh" now={now} />,
+      <YearHeatmap selectedId="accent" onCategoryChange={()=>{}} viewMode="roll" onViewModeChange={()=>{}} rangeEvents={[event]} categories={categories} language="zh" now={now} />,
     )
     const todayCell = container.querySelector('.cell-today')
     expect(todayCell).not.toBeNull()
   })
 
-  it('renders all 6 category pills', async () => {
-    const { YearHeatmap } = await import('../YearHeatmap')
-    const categories = makeCategories()
-    const { container } = render(
-      <YearHeatmap rangeEvents={[]} categories={categories} language="zh" />,
-    )
-    const pills = container.querySelectorAll('.heatmap-pill')
-    expect(pills).toHaveLength(6)
-  })
-
-  it('switches active pill on click', async () => {
-    const { YearHeatmap } = await import('../YearHeatmap')
-    const categories = makeCategories()
-    const { container } = render(
-      <YearHeatmap rangeEvents={[]} categories={categories} language="zh" />,
-    )
-    const pills = container.querySelectorAll('.heatmap-pill')
-    // First pill (accent) should be active by default
-    expect(pills[0].classList.contains('heatmap-pill-active')).toBe(true)
-
-    // Click second pill (sage)
-    fireEvent.click(pills[1])
-    // The component re-renders — check that the pill now has active class
-    const updatedPills = container.querySelectorAll('.heatmap-pill')
-    expect(updatedPills[1].classList.contains('heatmap-pill-active')).toBe(true)
-  })
 })

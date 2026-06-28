@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2, AlertCircle } from 'lucide-react'
-import { startOfDay, startOfWeek, startOfMonth, addDays, addMonths } from 'date-fns'
+import { startOfDay, startOfWeek, startOfMonth, addDays, addMonths, addYears, addWeeks as dfnAddWeeks } from 'date-fns'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { formatISODate, parseISODate } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
@@ -14,13 +14,89 @@ import { useStatsAggregation } from '@/hooks/useStatsAggregation'
 import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
-import { DietCalendarCard } from '@/components/stats/DietCalendarCard'
+import { DietView } from '@/components/stats/DietView'
 import { OutfitCard } from '@/components/stats/OutfitCard'
-import { HygieneCalendarCard } from '@/components/stats/HygieneCalendarCard'
+import { HygieneView } from '@/components/stats/HygieneView'
 import { MoodCard } from '@/components/stats/MoodCard'
 import { HabitTrendCard } from '@/components/stats/HabitTrendCard'
 import { DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { EasternStatsShell, type RoutineViewMode } from '@/components/stats/EasternStatsShell'
+import { StatsHeader, type SegmentedOption } from '@/components/stats/StatsHeader'
+import { StatsRail, StatsRailCompact } from '@/components/stats/StatsRail'
+import type { CategoryId } from '@/domain/category'
+
+// ── Constants ──────────────────────────────────────────────────
+
+const CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
+const CAT_STORAGE_KEY = 'cailens-trend-categories'
+
+// ── Segment definitions per view ─────────────────────────────
+
+const VIEW_SEGMENTS: Record<RoutineViewMode, SegmentedOption[] | undefined> = {
+  trend:   [{ id: 'day', label: '日' }, { id: 'week', label: '周' }, { id: 'month', label: '月' }],
+  heatmap: [{ id: 'roll', label: '近一年' }, { id: 'year', label: '年度' }],
+  sleep:   [{ id: 'month', label: '月' }, { id: 'quarter', label: '季' }, { id: 'year', label: '年' }],
+  diet:    [{ id: 'timeline', label: '时间线' }, { id: 'frequency', label: '食物次数' }],
+  hygiene: [{ id: 'timeline', label: '时间线' }, { id: 'frequency', label: '活动次数' }],
+  outfit:  undefined,
+  mood:    undefined,
+}
+
+/** ════════════════════════════════════════════════════════════
+ *  View titles — derived from view, segments, and anchor date
+ */
+function getViewTitle(
+  view: RoutineViewMode,
+  period: Granularity,
+  segValue: string | undefined,
+  anchor: Date,
+): string {
+  switch (view) {
+    case 'trend': {
+      switch (period) {
+        case 'day':   return '日趋势'
+        case 'week':  return '周趋势'
+        case 'month': return '月趋势'
+      }
+    }
+    case 'heatmap': {
+      if (segValue === 'year') return `${anchor.getFullYear()}年热力图`
+      return '近365天热力图'
+    }
+    case 'sleep': {
+      const y = anchor.getFullYear()
+      const m = anchor.getMonth()
+      if (segValue === 'quarter') return `睡眠 · Q${Math.floor(m / 4) + 1}`
+      if (segValue === 'year') return `睡眠 · ${y}年`
+      return `睡眠 · ${y}年${m + 1}月`
+    }
+    case 'diet':    return '饮食'
+    case 'hygiene': return '卫生'
+    case 'outfit':  return '穿搭'
+    case 'mood':    return '情绪'
+  }
+}
+
+/** ════════════════════════════════════════════════════════════
+ *  Category selection persistence (trend multi-select)
+ */
+function loadTrendSelection(): CategoryId[] {
+  try {
+    const raw = localStorage.getItem(CAT_STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.every((v: unknown) => CATEGORY_IDS.includes(v as CategoryId))) {
+        const unique = [...new Set(parsed)] as CategoryId[]
+        if (unique.length > 0) return unique
+      }
+    }
+  } catch { /* ignore */ }
+  return ['accent']
+}
+
+function saveTrendSelection(ids: CategoryId[]) {
+  try { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(ids)) } catch { /* ignore */ }
+}
 
 // ── 辅助函数（日期导航） ──────────────────────────────────
 
@@ -40,7 +116,36 @@ function shiftAnchor(anchor: Date, period: Granularity, dir: -1 | 1): Date {
   }
 }
 
-// ── 常量 ──────────────────────────────────────────────────
+/** 每个复盘视图的时间步长（用于顶栏 ← → 箭头导航） */
+const VIEW_STEP: Record<RoutineViewMode, 'period' | 'year' | 'month' | 'week'> = {
+  trend:   'period',
+  heatmap: 'year',
+  sleep:   'month',
+  diet:    'week',
+  hygiene: 'week',
+  outfit:  'week',
+  mood:    'week',
+}
+
+/** 按视图计算当前锚点日期（从 URL date 参数解读） */
+function getViewAnchor(view: RoutineViewMode, period: Granularity, date: Date): Date {
+  switch (VIEW_STEP[view]) {
+    case 'period': return getAnchor(period, date)
+    case 'year':   return new Date(date.getFullYear(), 0, 1)
+    case 'month':  return startOfMonth(date)
+    case 'week':   return startOfWeek(date, { weekStartsOn: 1 })
+  }
+}
+
+/** 按视图步长偏移 date，返回新的 Date（写入 URL） */
+function shiftViewDate(view: RoutineViewMode, period: Granularity, date: Date, dir: -1 | 1): Date {
+  switch (VIEW_STEP[view]) {
+    case 'period': return shiftAnchor(date, period, dir)
+    case 'year':   return addYears(date, dir)
+    case 'month':  return addMonths(date, dir)
+    case 'week':   return dfnAddWeeks(date, dir)
+  }
+}
 
 // ── 主组件 ────────────────────────────────────────────────
 
@@ -57,6 +162,16 @@ export function StatsPage() {
   const outfits         = useDailyContextStore((s) => s.outfits)
   const loadOutfits     = useDailyContextStore((s) => s.loadOutfits)
 
+  // ── Responsive ────────────────────────────────────────────
+
+  const [isCompact, setIsCompact] = useState(false)
+  useEffect(() => {
+    const check = () => setIsCompact(window.innerWidth < 720)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   // ── URL state ────────────────────────────────────────────
 
   const routineView = (searchParams.get('view') as RoutineViewMode | null) ?? 'trend'
@@ -65,6 +180,25 @@ export function StatsPage() {
 
   const date   = useMemo(() => { const d = parseISODate(dateStr); return isNaN(d.getTime()) ? new Date() : d }, [dateStr])
   const anchor = useMemo(() => getAnchor(period, date), [period, date])
+  const viewAnchor = useMemo(() => getViewAnchor(routineView, period, date), [routineView, period, date])
+
+  // ── Category selection state (lifted from view components) ──
+
+  const [trendSelected, setTrendSelected] = useState<CategoryId[]>(loadTrendSelection)
+  useEffect(() => { saveTrendSelection(trendSelected) }, [trendSelected])
+
+  const [heatmapSelectedId, setHeatmapSelectedId] = useState<CategoryId>('accent')
+  // Sync --c-active CSS property when heatmap selection changes
+  useEffect(() => {
+    document.documentElement.style.setProperty('--c-active', `var(--event-${heatmapSelectedId}-fill)`)
+  }, [heatmapSelectedId])
+
+  // ── View mode state (lifted from view components) ─────────
+
+  const [heatmapViewMode, setHeatmapViewMode] = useState<'roll' | 'year'>('roll')
+  const [sleepViewMode, setSleepViewMode] = useState<'month' | 'quarter' | 'year'>('month')
+  const [dietMode, setDietMode] = useState<'timeline' | 'frequency'>('timeline')
+  const [hygieneMode, setHygieneMode] = useState<'timeline' | 'frequency'>('timeline')
 
   // ── Data loading ─────────────────────────────────────────
 
@@ -100,13 +234,81 @@ export function StatsPage() {
     setSearchParams(next, { replace: true })
   }
 
-  const setPeriod       = (p: Granularity)      => updateParams({ period: p === 'week' ? undefined : p })
-  const navigateRoutine = (dir: -1 | 1)          => updateParams({ date: formatISODate(shiftAnchor(anchor, period, dir)) })
+  const setPeriod = (p: Granularity) => updateParams({ period: p === 'week' ? undefined : p })
+  const navigateRoutine = (dir: -1 | 1) => updateParams({ date: formatISODate(shiftViewDate(routineView, period, date, dir)) })
+
+  // ── Segment change handler ─────────────────────────────────
+
+  const handleSegmentChange = useCallback((id: string) => {
+    switch (routineView) {
+      case 'trend':
+        setPeriod(id as Granularity)
+        break
+      case 'heatmap':
+        setHeatmapViewMode(id as 'roll' | 'year')
+        break
+      case 'sleep':
+        setSleepViewMode(id as 'month' | 'quarter' | 'year')
+        break
+      case 'diet':
+        setDietMode(id as 'timeline' | 'frequency')
+        break
+      case 'hygiene':
+        setHygieneMode(id as 'timeline' | 'frequency')
+        break
+    }
+  }, [routineView, setPeriod])
+
+  // ── Render helpers ─────────────────────────────────────────
+
+  const segments = VIEW_SEGMENTS[routineView]
+
+  const segValue = useMemo(() => {
+    switch (routineView) {
+      case 'trend':   return period
+      case 'heatmap': return heatmapViewMode
+      case 'sleep':   return sleepViewMode
+      case 'diet':    return dietMode
+      case 'hygiene': return hygieneMode
+      default:        return undefined
+    }
+  }, [routineView, period, heatmapViewMode, sleepViewMode, dietMode, hygieneMode])
+
+  const title = useMemo(
+    () => getViewTitle(routineView, period, segValue, viewAnchor),
+    [routineView, period, segValue, viewAnchor],
+  )
+
+  const railMode = routineView === 'trend' ? 'multi' : routineView === 'heatmap' ? 'single' : 'empty'
+  const railSelected = routineView === 'trend' ? trendSelected : heatmapSelectedId
+
+  const handleRailToggle = useCallback((id: CategoryId) => {
+    setTrendSelected((prev) => {
+      if (prev.includes(id)) {
+        if (prev.length === 1) return prev
+        return prev.filter((x) => x !== id)
+      }
+      return [...prev, id]
+    })
+  }, [])
+
+  const handleRailSelect = useCallback((id: CategoryId) => {
+    setHeatmapSelectedId(id)
+  }, [])
 
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <EasternStatsShell>
+    <EasternStatsShell
+      rail={
+        <StatsRail
+          mode={railMode}
+          selected={railSelected}
+          onToggle={railMode === 'multi' ? handleRailToggle : undefined}
+          onSelect={railMode === 'single' ? handleRailSelect : undefined}
+        />
+      }
+    >
       <style>{STATS_PAGE_CSS}</style>
 
       {isLoading && rangeEvents.length === 0 && (
@@ -132,6 +334,26 @@ export function StatsPage() {
 
       {!isLoading && !loadError && (
         <div className="routine-container">
+          {/* StatsHeader — shared title + segments bar + arrows */}
+          <StatsHeader
+            title={title}
+            segments={segments}
+            value={segValue}
+            onChange={handleSegmentChange}
+            onNavigate={navigateRoutine}
+          />
+
+          {/* Compact rail dots (<720px) — only for views with category selection */}
+          {isCompact && railMode !== 'empty' && (
+            <StatsRailCompact
+              mode={railMode}
+              selected={railSelected}
+              onToggle={railMode === 'multi' ? handleRailToggle : undefined}
+              onSelect={railMode === 'single' ? handleRailSelect : undefined}
+            />
+          )}
+
+          {/* View body */}
           <div>
             {routineView === 'trend' && (
               <>
@@ -140,8 +362,7 @@ export function StatsPage() {
                   categories={categories}
                   periodType={period}
                   maturity={maturity}
-                  onNavigate={navigateRoutine}
-                  onPeriodChange={setPeriod}
+                  selected={trendSelected}
                 />
                 <HabitTrendCard />
               </>
@@ -151,16 +372,38 @@ export function StatsPage() {
                 rangeEvents={rangeEvents}
                 categories={categories}
                 language={language}
+                anchorYear={viewAnchor.getFullYear()}
+                selectedId={heatmapSelectedId}
+                onCategoryChange={handleRailSelect}
+                viewMode={heatmapViewMode}
+                onViewModeChange={setHeatmapViewMode}
               />
             )}
             {routineView === 'sleep' && (
-              <SleepScatterChart rangeEvents={rangeEvents} />
+              <SleepScatterChart
+                rangeEvents={rangeEvents}
+                anchorDate={viewAnchor}
+                viewMode={sleepViewMode}
+                onViewModeChange={setSleepViewMode}
+              />
             )}
             {routineView === 'diet' && (
-              <DietCalendarCard rangeEvents={rangeEvents} />
+              <DietView
+                rangeEvents={rangeEvents}
+                anchorDate={viewAnchor}
+                mode={dietMode}
+                onModeChange={setDietMode}
+              />
             )}
             {routineView === 'hygiene' && (
-              <HygieneCalendarCard rangeEvents={rangeEvents} activities={hygieneActivities} language={language} />
+              <HygieneView
+                rangeEvents={rangeEvents}
+                activities={hygieneActivities}
+                language={language}
+                anchorDate={viewAnchor}
+                mode={hygieneMode}
+                onModeChange={setHygieneMode}
+              />
             )}
             {routineView === 'outfit' && (
               <OutfitCard outfits={outfits} language={language} />
