@@ -8,8 +8,7 @@ import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { Profile } from '@/domain/profile'
 import type { DailyOutfit } from '@/domain/dailyContext'
-import type { Todo } from '@/domain/todo'
-import type { Goal } from '@/domain/goal'
+import type { Todo, TodoList } from '@/domain/todo'
 
 /* ---------- types ---------- */
 
@@ -30,7 +29,7 @@ export interface CailensSnapshotData {
   outfitLogs: DailyOutfit[]
   hygieneLogs: HygieneLogRecord[]
   todos: Todo[]
-  goals: Goal[]
+  todoLists: TodoList[]
 }
 
 export interface CailensSnapshot {
@@ -65,7 +64,7 @@ export async function collectSnapshot(
     outfitLogs,
     hygieneLogs,
     todos,
-    goals,
+    todoLists,
   ] = await Promise.all([
     adapter.events.getAll(),
     adapter.categories.getAll(),
@@ -77,7 +76,7 @@ export async function collectSnapshot(
     adapter.outfitLogs.getAll(),
     adapter.hygieneLogs.getAll(),
     adapter.todos.getAll(),
-    adapter.goals.getAll(),
+    adapter.todoLists.getAll(),
   ])
 
   return {
@@ -94,7 +93,7 @@ export async function collectSnapshot(
       outfitLogs,
       hygieneLogs,
       todos,
-      goals,
+      todoLists,
     },
   }
 }
@@ -153,7 +152,7 @@ export async function restoreSnapshot(
   await apply('outfitLogs', adapter.outfitLogs, data.outfitLogs)
   await apply('hygieneLogs', adapter.hygieneLogs, data.hygieneLogs)
   await apply('todos', adapter.todos, data.todos)
-  await apply('goals', adapter.goals, data.goals)
+  await apply('todoLists', adapter.todoLists, data.todoLists)
 
   return { tables }
 }

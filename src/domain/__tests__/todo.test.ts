@@ -22,6 +22,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     description: '',
     status: 'todo',
     priority: 'medium',
+    listId: 'default',
     dueDate: null,
     sortOrder: 0,
     projectId: null,
@@ -32,6 +33,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     completedAt: null,
     repeatPattern: null,
     goalId: null,
+    isStarred: false,
     ...overrides,
   }
 }

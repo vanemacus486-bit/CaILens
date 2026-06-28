@@ -11,7 +11,6 @@ import { clearEventCache } from './eventStore'
 import { useEventStore } from './eventStore'
 import { useTodoStore } from './todoStore'
 import { useProjectStore } from './projectStore'
-import { useGoalStore } from './goalStore'
 
 /**
  * 挂起文件系统监听，数据变更时自动刷新所有相关 store。
@@ -29,7 +28,6 @@ export async function startFsWatcher(adapter: FileSystemAdapter): Promise<void> 
     // 的职责相悖）。reloadVisible 会同时刷新可见周/区间 + allEvents。
     await Promise.all([
       useTodoStore.getState().loadTodos().catch(() => {}),
-      useGoalStore.getState().loadAll().catch(() => {}),
       useProjectStore.getState().loadAll().catch(() => {}),
       useEventStore.getState().reloadVisible().catch(() => {}),
     ])

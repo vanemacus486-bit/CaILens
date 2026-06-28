@@ -27,6 +27,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+tauri-plugin-notification = "2"
 notify = { version = "7", features = [] }
 
 # 构建提速：对 webview 壳应用，激进 Rust 优化几乎不改善终端体验，却拖慢每次重打。

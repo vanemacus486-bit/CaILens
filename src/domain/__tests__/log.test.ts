@@ -31,11 +31,13 @@ function makeTodo(overrides: Partial<Todo> & { id: string }): Todo {
     projectId: null,
     categoryId: null,
     domain: null,
+    listId: 'default',
     createdAt: 0,
     updatedAt: 0,
     completedAt: null,
     repeatPattern: null,
     goalId: null,
+    isStarred: false,
     ...overrides,
   }
 }

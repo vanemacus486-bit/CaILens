@@ -5,6 +5,17 @@
  * 纯类型 + 纯函数，不依赖 React/Dexie/浏览器 API。
  */
 
+// ── 清单类型 ────────────────────────────────────────────────
+
+/** 多清单分组：每个 TodoList 是一个独立的待办清单 */
+export interface TodoList {
+  id: string
+  name: string
+  sortOrder: number
+  createdAt: number
+  updatedAt: number
+}
+
 // ── 状态枚举 ────────────────────────────────────────────────
 
 export type TodoStatus = 'todo' | 'in_progress' | 'done'
@@ -65,6 +76,8 @@ export const TODO_PRIORITY_SORT_ORDER: Record<string, number> = {
 
 export interface Todo {
   id: string
+  /** 所属清单 ID */
+  listId: string
   title: string
   description: string
   status: TodoStatus
@@ -87,12 +100,15 @@ export interface Todo {
   repeatPattern: RepeatPattern | null
   /** 关联的目标 ID（长期目标树中的节点），null 表示未关联 */
   goalId: string | null
+  /** 是否星标（标记重要任务） */
+  isStarred: boolean
 }
 
 // ── 输入类型 ────────────────────────────────────────────────
 
 export interface CreateTodoInput {
   title: string
+  listId?: string
   description?: string
   priority?: TodoPriority | null
   domain?: string | null
@@ -101,10 +117,12 @@ export interface CreateTodoInput {
   categoryId?: string | null
   repeatPattern?: RepeatPattern | null
   goalId?: string | null
+  isStarred?: boolean
 }
 
 export interface UpdateTodoInput {
   id: string
+  listId?: string
   title?: string
   description?: string
   status?: TodoStatus
@@ -116,6 +134,7 @@ export interface UpdateTodoInput {
   categoryId?: string | null
   repeatPattern?: RepeatPattern | null
   goalId?: string | null
+  isStarred?: boolean
 }
 
 // ── 纯函数工具 ──────────────────────────────────────────────
@@ -505,6 +524,7 @@ export function spawnNextRepeat(todo: Todo, now: number = Date.now()): Todo {
     status: 'todo',
     priority: todo.priority,
     domain: todo.domain,
+    listId: todo.listId,
     dueDate: null,
     sortOrder: todo.sortOrder,
     projectId: todo.projectId,
@@ -514,6 +534,7 @@ export function spawnNextRepeat(todo: Todo, now: number = Date.now()): Todo {
     updatedAt: now,
     completedAt: null,
     goalId: todo.goalId,
+    isStarred: todo.isStarred,
   }
 }
 

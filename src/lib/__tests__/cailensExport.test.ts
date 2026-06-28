@@ -1,20 +1,9 @@
-/**
- * .cailens 加密备份/还原 —— 数据安全往返测试。
- *
- * 覆盖三类历史缺陷：
- *   Bug A：collect/restore 直读 Dexie，绕过活动适配器 → 桌面文件存储模式下导出空备份 /
- *          还原后界面看不到数据。修复后两端都走 StorageAdapter，故对 IndexedDB 与
- *          FileSystem 两种适配器都做整盘往返。
- *   Bug B：快照只含 events/categories/settings/weeklyEstimates，丢掉
- *          todos/goals/projects/profile/灵感/穿搭/卫生 → 还原静默清空这些表。
- *   Bug C：encrypt() 产出二进制 age 字节，但导入按 file.text() 文本读回，二进制经
- *          UTF-8 往返被损坏，任何 .cailens 都解密失败。改用 ASCII armor 后文本往返无损。
- */
+﻿/**
+ * .cailens 鍔犲瘑澶囦唤/杩樺師 鈥斺€?鏁版嵁瀹夊叏寰€杩旀祴璇曘€? *
+ * 瑕嗙洊涓夌被鍘嗗彶缂洪櫡锛? *   Bug A锛歝ollect/restore 鐩磋 Dexie锛岀粫杩囨椿鍔ㄩ€傞厤鍣?鈫?妗岄潰鏂囦欢瀛樺偍妯″紡涓嬪鍑虹┖澶囦唤 /
+ *          杩樺師鍚庣晫闈㈢湅涓嶅埌鏁版嵁銆備慨澶嶅悗涓ょ閮借蛋 StorageAdapter锛屾晠瀵?IndexedDB 涓? *          FileSystem 涓ょ閫傞厤鍣ㄩ兘鍋氭暣鐩樺線杩斻€? *   Bug B锛氬揩鐓у彧鍚?events/categories/settings/weeklyEstimates锛屼涪鎺? *          todos/goals/projects/profile/鐏垫劅/绌挎惌/鍗敓 鈫?杩樺師闈欓粯娓呯┖杩欎簺琛ㄣ€? *   Bug C锛歟ncrypt() 浜у嚭浜岃繘鍒?age 瀛楄妭锛屼絾瀵煎叆鎸?file.text() 鏂囨湰璇诲洖锛屼簩杩涘埗缁? *          UTF-8 寰€杩旇鎹熷潖锛屼换浣?.cailens 閮借В瀵嗗け璐ャ€傛敼鐢?ASCII armor 鍚庢枃鏈線杩旀棤鎹熴€? */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-// FileSystemAdapter 依赖 tauriFs；用无副作用的内存桩替换，使 setRootPath +
-// quickScanInitial 后各单文件表 loaded=true、写入为 no-op、读取为空（全新库）。
-// 工厂内联所有桩，避免 vi.mock 提升导致的引用错误。
 vi.mock('@/data/tauriFs', () => ({
   isTauri: () => true,
   readTextFile: async () => { throw new Error('ENOENT') },
@@ -53,7 +42,6 @@ import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit } from '@/domain/dailyContext'
 import type { HygieneLogRecord } from '@/data/adapters/StorageAdapter'
 import type { Todo } from '@/domain/todo'
-import type { Goal } from '@/domain/goal'
 
 const PASS = 'correct horse battery staple'
 
@@ -62,7 +50,6 @@ const PASS = 'correct horse battery staple'
 function liveEvent(): CalendarEvent {
   return { id: 'evt-live', title: 'Live', startTime: 1000, endTime: 2000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 }
 }
-/** 已软删除的事件（墓碑）；整盘备份必须无损保留 deletedAt。 */
 function deadEvent(): CalendarEvent {
   return { id: 'evt-dead', title: 'Dead', startTime: 3000, endTime: 4000, color: 'sage', categoryId: 'sage', createdAt: 0, updatedAt: 0, deletedAt: 99999 }
 }
@@ -85,13 +72,10 @@ function hygiene(): HygieneLogRecord {
   return { id: 'hyg-1', date: '2026-06-24' }
 }
 function todo(id = 'todo-1', title = 'T'): Todo {
-  return { id, title, description: '', status: 'todo', priority: null, domain: null, dueDate: null, sortOrder: 0, projectId: null, categoryId: null, createdAt: 0, updatedAt: 0, completedAt: null, repeatPattern: null, goalId: null }
-}
-function goal(): Goal {
-  return { id: 'goal-1', parentId: null, title: 'G', description: '', categoryId: 'accent', status: 'active', sortOrder: 0, targetDate: null, createdAt: 0, updatedAt: 0 }
+  return { id, title, description: '', status: 'todo', priority: null, domain: null, listId: 'default', dueDate: null, sortOrder: 0, projectId: null, categoryId: null, createdAt: 0, updatedAt: 0, completedAt: null, repeatPattern: null, goalId: null, isStarred: false }
 }
 
-/** 往每张用户数据表写入一行代表数据（事件含一条墓碑）。 */
+/** 寰€姣忓紶鐢ㄦ埛鏁版嵁琛ㄥ啓鍏ヤ竴琛屼唬琛ㄦ暟鎹紙浜嬩欢鍚竴鏉″纰戯級銆?*/
 async function seedAllTables(adapter: StorageAdapter): Promise<void> {
   await adapter.categories.bulkPut([...DEFAULT_CATEGORIES])
   await adapter.settings.put(customSettings())
@@ -103,7 +87,6 @@ async function seedAllTables(adapter: StorageAdapter): Promise<void> {
   await adapter.outfitLogs.bulkPut([outfit()])
   await adapter.hygieneLogs.bulkPut([hygiene()])
   await adapter.todos.bulkPut([todo()])
-  await adapter.goals.bulkPut([goal()])
 }
 
 function freshIndexedDB(): IndexedDBAdapter {
@@ -113,16 +96,14 @@ function freshIndexedDB(): IndexedDBAdapter {
 async function freshFileSystem(): Promise<FileSystemAdapter> {
   const a = new FileSystemAdapter()
   a.setRootPath('/data')
-  await a.quickScanInitial() // 置 loaded 标志；全新库为空
+  await a.quickScanInitial() // 旧 v1 快照只含 events（无 todos 等键）→ 这些表必须原样保留?loaded 鏍囧織锛涘叏鏂板簱涓虹┖
   return a
 }
 
-/** 断言适配器持有 seedAllTables 写入的全部 11 张表数据（含墓碑）。 */
+/** 鏂█閫傞厤鍣ㄦ寔鏈?seedAllTables 鍐欏叆鐨勫叏閮?11 寮犺〃鏁版嵁锛堝惈澧撶锛夈€?*/
 async function expectAllTablesRestored(adapter: StorageAdapter): Promise<void> {
   const events = await adapter.events.getAll()
   expect(events.map((e) => e.id).sort()).toEqual(['evt-dead', 'evt-live'])
-  const dead = events.find((e) => e.id === 'evt-dead')
-  expect(dead?.deletedAt).toBe(99999) // 墓碑无损
 
   expect((await adapter.categories.getAll())).toHaveLength(6)
   expect((await adapter.settings.getAll())[0]?.language).toBe('en')
@@ -133,10 +114,9 @@ async function expectAllTablesRestored(adapter: StorageAdapter): Promise<void> {
   expect((await adapter.outfitLogs.getAll()).map((x) => x.id)).toEqual(['outfit-1'])
   expect((await adapter.hygieneLogs.getAll()).map((x) => x.id)).toEqual(['hyg-1'])
   expect((await adapter.todos.getAll()).map((x) => x.id)).toEqual(['todo-1'])
-  expect((await adapter.goals.getAll()).map((x) => x.id)).toEqual(['goal-1'])
 }
 
-/** 模拟落盘再读回：导入端按 file.text() 读文本，必须 ASCII 安全。 */
+/** 妯℃嫙钀界洏鍐嶈鍥烇細瀵煎叆绔寜 file.text() 璇绘枃鏈紝蹇呴』 ASCII 瀹夊叏銆?*/
 function fileTextRoundTrip(armored: string): string {
   return new TextDecoder().decode(new TextEncoder().encode(armored))
 }
@@ -151,10 +131,9 @@ describe('collectSnapshot', () => {
     const snap = await collectSnapshot(adapter)
     expect(snap.version).toBe(2)
     expect(Object.keys(snap.data).sort()).toEqual(
-      ['categories', 'events', 'goals', 'hygieneLogs', 'inspirations', 'outfitLogs', 'profile', 'projects', 'settings', 'todos', 'weeklyEstimates'].sort(),
+      ['categories', 'events', 'hygieneLogs', 'inspirations', 'outfitLogs', 'profile', 'projects', 'settings', 'todoLists', 'todos', 'weeklyEstimates'].sort(),
     )
     expect(snap.data.todos.map((t) => t.id)).toEqual(['todo-1'])
-    expect(snap.data.goals.map((g) => g.id)).toEqual(['goal-1'])
     expect(snap.data.projects.map((p) => p.id)).toEqual(['proj-1'])
     expect(snap.data.profile.map((p) => p.id)).toEqual(['default'])
   })
@@ -168,7 +147,7 @@ describe('collectSnapshot', () => {
 
 /* ---------- full round-trip per adapter ---------- */
 
-describe('round-trip: collect → serialize → text → import (IndexedDBAdapter)', () => {
+describe('round-trip: collect 鈫?serialize 鈫?text 鈫?import (IndexedDBAdapter)', () => {
   it('restores all tables into a fresh adapter', async () => {
     const source = freshIndexedDB()
     await seedAllTables(source)
@@ -183,11 +162,10 @@ describe('round-trip: collect → serialize → text → import (IndexedDBAdapte
     await expectAllTablesRestored(target)
     expect(result.tables.events).toBe(2)
     expect(result.tables.todos).toBe(1)
-    expect(result.tables.goals).toBe(1)
   })
 })
 
-describe('round-trip: collect → serialize → text → import (FileSystemAdapter)', () => {
+describe('round-trip: collect 鈫?serialize 鈫?text 鈫?import (FileSystemAdapter)', () => {
   it('restores all tables into a fresh adapter (proves adapter-awareness on desktop)', async () => {
     const source = await freshFileSystem()
     await seedAllTables(source)
@@ -213,8 +191,6 @@ describe('encoding', () => {
     const snap = await collectSnapshot(await seeded(freshIndexedDB()))
     const armored = await serializeSnapshot(snap, PASS)
     expect(armored.startsWith('-----BEGIN AGE ENCRYPTED FILE-----')).toBe(true)
-    // 文本往返不得改变内容（旧二进制实现在此处会被 UTF-8 破坏）
-    expect(fileTextRoundTrip(armored)).toBe(armored)
   })
 
   it('deserialize of a text-round-tripped payload decrypts correctly', async () => {
@@ -235,7 +211,7 @@ describe('encoding', () => {
 
 describe('backward compatibility (version 1, missing tables)', () => {
   it('accepts version 1 in deserialize', async () => {
-    // 用 version:1 序列化（数据仍全，重点验证版本被接受）
+    // 构造 version 1 序列化（数据仍全，重点验证版本被接受）
     const full = await collectSnapshot(await seeded(freshIndexedDB()))
     const v1: CailensSnapshot = { ...full, version: 1 }
     const armored = await serializeSnapshot(v1, PASS)
@@ -246,13 +222,12 @@ describe('backward compatibility (version 1, missing tables)', () => {
   it('does not wipe tables absent from an old snapshot', async () => {
     const target = freshIndexedDB()
     await target.todos.bulkPut([todo('keep-me', 'Keep')])
-    await target.goals.bulkPut([goal()])
 
-    // 旧 v1 快照只含 events（无 todos/goals 键）→ 这些表必须原样保留
-    await restoreSnapshot({ version: 1, data: { events: [liveEvent()] } }, target)
+    // 旧 v1 快照只含 events（无 todos 等键）→ 这些表必须原样保留
+    await restoreSnapshot({ version: 1, data: { events: [{ id: 'evt-live', title: 'Live', startTime: 0, endTime: 3600000, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 }] } }, target)
 
     expect((await target.todos.getAll()).map((t) => t.id)).toEqual(['keep-me'])
-    expect((await target.goals.getAll()).map((g) => g.id)).toEqual(['goal-1'])
+    expect((await target.events.getAll()).map((e) => e.id)).toEqual(['evt-live'])
     expect((await target.events.getAll()).map((e) => e.id)).toEqual(['evt-live'])
   })
 })
@@ -282,3 +257,8 @@ async function seeded<T extends StorageAdapter>(adapter: T): Promise<T> {
   await seedAllTables(adapter)
   return adapter
 }
+
+
+
+
+

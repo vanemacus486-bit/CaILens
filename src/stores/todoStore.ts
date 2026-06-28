@@ -16,10 +16,13 @@ interface TodoState {
   deleteTodo: (id: string) => Promise<void>
   toggleComplete: (id: string) => Promise<Todo>
   clearRepeatPattern: (id: string) => Promise<void>
-  reorderTodo: (id: string, targetId: string, position: 'before' | 'after') => Promise<void>
+  reorderTodo: (id: string, targetId: string, position: 'before' | 'after', listId?: string) => Promise<void>
   /** 在「同一目标」内把某待办移到 newIndex（规划页任务卡拖拽重排用） */
   moveTodoWithinGoal: (goalId: string, todoId: string, newIndex: number) => Promise<void>
   quickCapture: (title: string) => Promise<Todo>
+
+  /** 将待办移动到指定清单 */
+  moveToList: (todoId: string, listId: string) => Promise<void>
 
   // ── 收件箱任务 ────────────────────────────────────────────
   /** 创建一条 priority=null、domain=null 的收件箱任务 */
@@ -108,7 +111,7 @@ export const useTodoStore = create<TodoState>()((set, get) => ({
     set({ todos: all })
   },
 
-  reorderTodo: async (id, targetId, position) => {
+  reorderTodo: async (id, targetId, position, listId?) => {
     if (id === targetId) return
     try {
       const now = Date.now()
@@ -116,7 +119,11 @@ export const useTodoStore = create<TodoState>()((set, get) => ({
       // ── 1. 从 store 本地数据计算新顺序（立即，0ms） ──
       const current = get().todos
       const ungrouped = current
-        .filter((t) => !t.projectId)
+        .filter((t) => {
+          if (t.projectId) return false
+          if (listId) return t.listId === listId
+          return true
+        })
         .sort((a, b) => a.sortOrder - b.sortOrder)
 
       const fromIdx = ungrouped.findIndex((t) => t.id === id)
@@ -167,10 +174,22 @@ export const useTodoStore = create<TodoState>()((set, get) => ({
     }
   },
 
+  moveToList: async (todoId, listId) => {
+    try {
+      await getTodoRepo().update({ id: todoId, listId })
+      const all = sortTodos(await getTodoRepo().getAll())
+      set({ todos: all })
+    } catch (e) {
+      set({ error: (e as Error).message })
+      throw e
+    }
+  },
+
   quickCapture: async (title) => {
     try {
       const todo = await getTodoRepo().create({
         title,
+        listId: 'default',
         priority: 'medium',
         categoryId: null,
         projectId: null,
@@ -191,6 +210,7 @@ export const useTodoStore = create<TodoState>()((set, get) => ({
     try {
       const todo = await getTodoRepo().create({
         title,
+        listId: 'default',
         priority: null,
         domain: null,
         categoryId: null,
