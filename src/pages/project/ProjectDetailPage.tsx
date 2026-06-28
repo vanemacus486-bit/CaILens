@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Archive, Plus, RotateCcw } from 'lucide-react'
-import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useT } from '@/i18n/useT'
 import { useProjectStore } from '@/stores/projectStore'
 import { useTodoStore } from '@/stores/todoStore'
 import { sortTodos, calcProjectProgress } from '@/domain/todo'
@@ -10,8 +10,7 @@ import { TodoItem } from '@/pages/action/TodoItem'
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
-  const language = useAppSettingsStore((s) => s.settings.language)
-    const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+  const t = useT()
 
   const { projects, isLoaded, loadProjects, archiveProject, toggleDailyRepeat } = useProjectStore()
   const { todos, isLoaded: todosLoaded, loadTodos, toggleComplete, deleteTodo, updateTodo, createTodo } = useTodoStore()
@@ -131,8 +130,8 @@ export function ProjectDetailPage() {
           >
             <RotateCcw size={14} strokeWidth={1.75} />
             {project.dailyRepeat
-              ? t('每日重复', 'Daily Repeat')
-              : t('每日重复', 'Daily Repeat')}
+              ? t('dailyRepeat.label')
+              : t('dailyRepeat.label')}
           </button>
         </div>
       </div>
@@ -146,7 +145,7 @@ export function ProjectDetailPage() {
             value={newTodoTitle}
             onChange={(e) => setNewTodoTitle(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={t('输入待办标题，按回车添加', 'Add a to-do, press Enter')}
+            placeholder={t('project.todoPlaceholder')}
             className="flex-1 h-10 px-4 rounded-xl bg-surface-raised border border-border-subtle text-sm font-sans text-text-primary placeholder:text-text-quaternary outline-none focus:border-accent transition-colors"
           />
           <button
@@ -160,7 +159,7 @@ export function ProjectDetailPage() {
 
         {projectTodos.length === 0 ? (
           <p className="font-sans text-sm text-text-tertiary italic py-8 text-center">
-            {t('暂无待办', 'No to-dos yet.')}
+            {t('project.noTodos')}
           </p>
         ) : (
           <div className="space-y-1">

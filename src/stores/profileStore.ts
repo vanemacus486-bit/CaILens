@@ -37,6 +37,7 @@ interface ProfileState {
   isLoaded: boolean
   loadProfile: () => Promise<void>
   updateBodyMetrics: (metrics: Partial<BodyMetrics>) => Promise<void>
+  updateAccount: (patch: { name?: string; avatar?: string }) => Promise<void>
 }
 
 export const useProfileStore = create<ProfileState>()((set, get) => ({
@@ -67,6 +68,12 @@ export const useProfileStore = create<ProfileState>()((set, get) => ({
       body: { ...current.body, ...metrics },
       updatedAt,
     })
+    set({ profile: updated })
+  },
+
+  updateAccount: async (patch) => {
+    const updatedAt = new Date().toISOString().slice(0, 10)
+    const updated = await getProfileRepo().update({ ...patch, updatedAt })
     set({ profile: updated })
   },
 }))

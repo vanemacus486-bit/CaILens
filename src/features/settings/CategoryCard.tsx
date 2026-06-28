@@ -4,10 +4,12 @@ import type { CategoryId } from '@/domain/category'
 import { flattenFolderKeywords } from '@/domain/category'
 import { CategoryNameEditor } from './CategoryNameEditor'
 import type { Category } from '@/domain/category'
+import type { AppLanguage } from '@/i18n/types'
+import { translate } from '@/i18n/useT'
 
 interface CategoryCardProps {
   category: Category
-  language: 'zh' | 'en'
+  language: AppLanguage
   onNameCommit: (id: CategoryId, name: string) => void
   onBudgetChange: (id: CategoryId, budget: number) => void
   onAddKeyword: (id: CategoryId, keyword: string) => void
@@ -193,8 +195,8 @@ export function CategoryCard({
             if (!addingKeyword) setAddingKeyword(true)
           }}
           placeholder={addingKeyword
-            ? (language === 'zh' ? '关键词...' : 'keyword...')
-            : (language === 'zh' ? '添加关键词...' : '+ Add keyword...')
+            ? translate('category.keywordShortPlaceholder', language)
+            : translate('category.addKeywordShort', language)
           }
           className={cn(
             'px-1 py-0.5 text-xs font-sans bg-transparent border-b transition-colors duration-150',

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useUIStore, type SettingsTab } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n/useT'
 import { SettingsCategories } from './SettingsCategories'
 import { SettingsHygiene } from './SettingsHygiene'
 import { SettingsAppearance } from './SettingsAppearance'
@@ -11,10 +12,12 @@ import { SettingsData } from './SettingsData'
 import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsAbout } from './SettingsAbout'
 import { SettingsSupport } from './SettingsSupport'
+import { SettingsAccount } from './SettingsAccount'
 import { isTauri } from '@/data/tauriFs'
 import { isSponsorConfigured } from '@/lib/sponsor'
 
 const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
+  { key: 'account', label: 'Account', labelZh: '账户' },
   { key: 'categories', label: 'Categories', labelZh: '分类' },
   { key: 'hygiene', label: 'Hygiene', labelZh: '卫生' },
   { key: 'appearance', label: 'Appearance', labelZh: '外观与语言' },
@@ -28,6 +31,7 @@ const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
 ]
 
 const MOBILE_TAB_CONTENT: Record<SettingsTab, React.FC> = {
+  account:     SettingsAccount,
   categories: SettingsCategories,
   hygiene: SettingsHygiene,
   appearance: SettingsAppearance,
@@ -43,6 +47,7 @@ export function MobileSettingsPage() {
   const activeSettingsTab = useUIStore((s) => s.activeSettingsTab)
   const setActiveSettingsTab = useUIStore((s) => s.setActiveSettingsTab)
   const language = useAppSettingsStore((s) => s.settings.language)
+  const t = useT()
   const ActiveTab = MOBILE_TAB_CONTENT[activeSettingsTab] ?? SettingsCategories
 
   return (
@@ -60,7 +65,7 @@ export function MobileSettingsPage() {
           <ArrowLeft size={20} strokeWidth={1.75} />
         </button>
         <h1 className="flex-1 text-center font-serif text-lg font-medium text-text-primary">
-          {language === 'zh' ? '设置' : 'Settings'}
+          {t('nav.settings')}
         </h1>
         <div className="w-10 flex-shrink-0" />
       </div>

@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { fireAndForget } from '@/lib/fireAndForget'
+import { useT } from '@/i18n/useT'
 import { cn } from '@/lib/utils'
 import {
   DEFAULT_HYGIENE_ACTIVITIES,
@@ -25,9 +26,8 @@ function colorVarOf(key: string): string {
 }
 
 export function SettingsHygiene() {
-  const language = useAppSettingsStore((s) => s.settings.language)
   const setHygieneActivities = useAppSettingsStore((s) => s.setHygieneActivities)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+  const t = useT()
 
   // 本地草稿（函数式更新，避免并发编辑相互覆盖）；初始化自当前设置
   const [draft, setDraft] = useState<HygieneActivityDef[]>(() => {

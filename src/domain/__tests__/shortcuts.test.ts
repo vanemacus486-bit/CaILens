@@ -143,9 +143,9 @@ describe('resolveBindings', () => {
     const r = resolveBindings({})
     expect(r.openCommandPalette).toEqual(kb('k', true))
     expect(r.copyFocusedEvent).toEqual(kb('c', true))
-    // actions with no default
-    expect(r.goToThisWeek).toBeNull()
-    expect(r.deleteFocusedEvent).toBeNull()
+    // actions now have defaults assigned
+    expect(r.goToThisWeek).toEqual(kb('Escape'))
+    expect(r.deleteFocusedEvent).toEqual(kb('Delete'))
   })
 
   it('applies partial overrides', () => {
@@ -204,8 +204,8 @@ describe('eventMatchesBinding', () => {
 // ── Registry completeness ──────────────────────────────
 
 describe('SHORTCUT_REGISTRY', () => {
-  it('has exactly 15 actions', () => {
-    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(15)
+  it('has exactly 18 actions', () => {
+    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(19)
   })
 
   it('all entries have a label string', () => {

@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useUIStore, type SettingsTab } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useT } from '@/i18n/useT'
 import { cn } from '@/lib/utils'
 import { MobileSettingsPage } from './MobileSettingsPage'
 import { SettingsCategories } from './SettingsCategories'
@@ -12,6 +13,7 @@ import { SettingsData } from './SettingsData'
 import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsAbout } from './SettingsAbout'
 import { SettingsSupport } from './SettingsSupport'
+import { SettingsAccount } from './SettingsAccount'
 import { isTauri } from '@/data/tauriFs'
 import { isSponsorConfigured } from '@/lib/sponsor'
 
@@ -35,6 +37,7 @@ const TAB_GROUPS: {
     labelZh: '偏好',
     labelEn: 'Preferences',
     tabs: [
+      { key: 'account', labelZh: '账户', labelEn: 'Account', descZh: '头像与名称', descEn: 'Avatar & name' },
       { key: 'categories', labelZh: '分类', labelEn: 'Categories', descZh: '分配每周168小时', descEn: 'Allocate 168h/week' },
       { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
       { key: 'appearance', labelZh: '外观', labelEn: 'Appearance', descZh: '主题、风格与字体', descEn: 'Theme, style & fonts' },
@@ -72,6 +75,7 @@ const TAB_GROUPS: {
 /* ── Tab → 组件映射 ── */
 
 const TAB_CONTENT: Record<SettingsTab, React.FC> = {
+  account:     SettingsAccount,
   categories: SettingsCategories,
   hygiene: SettingsHygiene,
   appearance: SettingsAppearance,
@@ -92,7 +96,8 @@ export function SettingsPage() {
   const setActiveSettingsTab = useUIStore((s) => s.setActiveSettingsTab)
   const language = useAppSettingsStore((s) => s.settings.language)
 
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+  const t = useT()
+  const tl = (zh: string, en: string): string => (language === 'zh' ? zh : en)
   const ActiveTab = TAB_CONTENT[activeSettingsTab] ?? SettingsCategories
 
   const handleKeyDown = useCallback(
@@ -123,11 +128,11 @@ export function SettingsPage() {
         onKeyDown={handleKeyDown}
         role="tablist"
         aria-orientation="vertical"
-        aria-label={t('设置导航', 'Settings navigation')}
+        aria-label={t('nav.settings')}
       >
         <div className="px-5 pt-7 pb-3">
           <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
-            {t('设置', 'Settings')}
+            {t('nav.settings')}
           </h1>
         </div>
 
@@ -156,7 +161,7 @@ export function SettingsPage() {
                     active ? 'text-text-primary' : 'text-text-secondary',
                   )}
                 >
-                  {t(tab.labelZh, tab.labelEn)}
+                  {tl(tab.labelZh, tab.labelEn)}
                 </span>
                 <span
                   className={cn(
@@ -164,7 +169,7 @@ export function SettingsPage() {
                     active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
                   )}
                 >
-                  {t(tab.descZh, tab.descEn)}
+                  {tl(tab.descZh, tab.descEn)}
                 </span>
               </button>
             )

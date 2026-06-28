@@ -4,6 +4,8 @@ import { useAppSettingsStore } from '@/stores/settingsStore'
 import { isTauri } from '@/data/tauriFs'
 import { openExternal } from '@/lib/platform'
 import { checkForUpdateVerbose, relaunchApp, type UpdateCheckResult } from '@/lib/appUpdate'
+import { useT } from '@/i18n/useT'
+import { LANGUAGE_LOCALE } from '@/i18n/types'
 
 // Import CHANGELOG.md as raw text — Vite handles this at build time
 import changelogRaw from '../../../CHANGELOG.md?raw'
@@ -53,7 +55,7 @@ function parseChangelog(raw: string): ChangelogEntry[] {
 
 export function SettingsAbout() {
   const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+  const t = useT()
 
   const [checking, setChecking] = useState(false)
   const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null)
@@ -97,7 +99,8 @@ export function SettingsAbout() {
   const buildTime = (() => {
     try {
       const d = new Date(__BUILD_TIME__)
-      return d.toLocaleString(language === 'zh' ? 'zh-CN' : 'en-US', {
+      const locale = LANGUAGE_LOCALE[language] ?? 'zh-CN'
+      return d.toLocaleString(locale, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -113,10 +116,10 @@ export function SettingsAbout() {
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
-          {language === 'zh' ? '关于' : 'About'}
+          {t('settings.about')}
         </h1>
         <p className="text-sm text-text-tertiary mt-1 font-sans">
-          {language === 'zh' ? '版本与变更记录' : 'Version & changelog'}
+          {t('settings.versionChangelog')}
         </p>
       </div>
 
@@ -124,7 +127,7 @@ export function SettingsAbout() {
       <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
         <div className="px-5 py-4">
           <h2 className="text-xs font-sans font-medium text-text-tertiary uppercase tracking-wider mb-3">
-            {language === 'zh' ? '当前版本' : 'Current Version'}
+            {t('settings.currentVersion')}
           </h2>
           <div className="flex items-baseline gap-3">
             <span className="font-mono text-2xl font-medium text-text-primary">
@@ -132,7 +135,7 @@ export function SettingsAbout() {
             </span>
           </div>
           <p className="text-xs text-text-tertiary mt-2 font-mono">
-            {language === 'zh' ? '构建时间：' : 'Built: '}
+            {t('settings.built')}
             {buildTime}
           </p>
 
@@ -144,37 +147,37 @@ export function SettingsAbout() {
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border-default px-3 py-1.5 text-xs font-sans font-medium text-text-secondary hover:text-text-primary hover:bg-surface-base transition-colors duration-200 cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw size={13} strokeWidth={1.75} className={checking ? 'animate-spin' : undefined} />
-                {checking ? t('检查中…', 'Checking…') : t('检查更新', 'Check for updates')}
+                {checking ? t('settings.update.checking') : t('settings.update.checkForUpdates')}
               </button>
               {updateResult?.status === 'available' && !downloading && !installing && (
                 <button
                   onClick={() => handleInstallUpdate(updateResult)}
                   className="inline-flex items-center gap-1 text-xs font-sans font-medium text-accent hover:text-accent-hover transition-colors duration-200 cursor-pointer"
                 >
-                  {t('发现新版本', 'New version')} v{updateResult.info.version}
+                  {t('settings.update.newVersion')} v{updateResult.info.version}
                   {' → '}
                   {updateResult.info.downloadAndInstall
-                    ? t('立即更新', 'Update Now')
-                    : t('下载', 'Download')}
+                    ? t('settings.update.updateNow')
+                    : t('settings.update.download')}
                 </button>
               )}
               {downloading && (
                 <span className="inline-flex items-center gap-1 text-xs font-sans text-text-secondary">
                   <Download size={12} strokeWidth={1.75} className="animate-pulse" />
-                  {t('下载中', 'Downloading')} {downloadProgress}%
+                  {t('settings.update.downloading')} {downloadProgress}%
                 </span>
               )}
               {installing && (
                 <span className="inline-flex items-center gap-1 text-xs font-sans text-text-secondary">
                   <Loader2 size={12} strokeWidth={1.75} className="animate-spin" />
-                  {t('正在安装，即将重启…', 'Installing, will restart…')}
+                  {t('settings.update.installing')}
                 </span>
               )}
               {updateResult?.status === 'latest' && (
-                <span className="text-xs font-sans text-text-tertiary">{t('已是最新版本', 'You’re up to date')}</span>
+                <span className="text-xs font-sans text-text-tertiary">{t('settings.update.upToDate')}</span>
               )}
               {updateResult?.status === 'error' && (
-                <span className="text-xs font-sans text-text-tertiary">{t('检查失败，请稍后再试', 'Check failed, try again later')}</span>
+                <span className="text-xs font-sans text-text-tertiary">{t('settings.update.checkFailed')}</span>
               )}
             </div>
           )}
@@ -185,12 +188,12 @@ export function SettingsAbout() {
       <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
         <div className="px-5 py-4">
           <h2 className="text-xs font-sans font-medium text-text-tertiary uppercase tracking-wider mb-4">
-            {language === 'zh' ? '最近变更' : 'Recent Changes'}
+            {t('settings.recentChanges')}
           </h2>
 
           {recentEntries.length === 0 ? (
             <p className="text-sm text-text-tertiary font-sans">
-              {language === 'zh' ? '暂无变更记录' : 'No changelog available'}
+              {t('settings.noChangelog')}
             </p>
           ) : (
             <div className="flex flex-col gap-5">
@@ -230,9 +233,7 @@ export function SettingsAbout() {
 
       {/* Footer note */}
       <p className="text-[11px] text-text-tertiary font-sans leading-relaxed">
-        {language === 'zh'
-          ? 'CaILens — 本地优先的时间记录工具。不依赖后端服务，所有数据存储在本地。'
-          : 'CaILens — A local-first time tracking tool. No backend, all data stored locally.'}
+        {t('settings.footer')}
       </p>
 
       {/* Privacy policy link */}
@@ -241,7 +242,7 @@ export function SettingsAbout() {
           onClick={() => openExternal('https://github.com/vanemacus486-bit/CaILens/blob/main/PRIVACY.md')}
           className="underline hover:text-text-secondary transition-colors cursor-pointer"
         >
-          {t('隐私政策', 'Privacy Policy')}
+          {t('settings.privacyPolicy')}
         </button>
       </p>
     </div>

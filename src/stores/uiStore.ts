@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { CreateEventInput } from '@/domain/event'
 
 export type SettingsTab =
+  | 'account'
   | 'categories'
   | 'hygiene'
   | 'appearance'

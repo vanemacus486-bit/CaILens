@@ -3,6 +3,10 @@ import { getSettingsRepo } from '@/data/getRepositories'
 import type { AppSettings, AppLanguage, AppTheme, UiFont, VisualStyle, FontScale } from '@/domain/settings'
 import type { HygieneActivityDef } from '@/domain/hygieneActivity'
 import type { HabitPlan } from '@/domain/habitPlan'
+import type { DayMark } from '@/domain/dayMark'
+import type { EventColor } from '@/domain/event'
+import type { SleepReminderSettings } from '@/domain/sleepReminder'
+import { DEFAULT_SLEEP_REMINDER } from '@/domain/sleepReminder'
 import { makePhase, startOfLocalDay } from '@/domain/habitPlan'
 import { DEFAULT_SETTINGS, resolveTheme } from '@/domain/settings'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
@@ -76,6 +80,10 @@ interface AppSettingsState {
   createHabitPlan: (title: string) => Promise<HabitPlan>
   updateHabitPlan: (plan: HabitPlan) => Promise<void>
   deleteHabitPlan: (id: string) => Promise<void>
+  addDayMark: (date: number, label: string, color?: EventColor | null) => Promise<DayMark>
+  updateDayMark: (mark: DayMark) => Promise<void>
+  deleteDayMark: (id: string) => Promise<void>
+  setSleepReminder: (patch: Partial<SleepReminderSettings>) => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
@@ -230,6 +238,42 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
   deleteHabitPlan: async (id) => {
     const current = (await getSettingsRepo().get()).habitPlans ?? []
     const settings = await getSettingsRepo().update({ habitPlans: current.filter((p) => p.id !== id) })
+    set({ settings })
+  },
+
+  addDayMark: async (date, label, color) => {
+    const now = Date.now()
+    const mark: DayMark = {
+      id: crypto.randomUUID(),
+      date,
+      label: label.trim(),
+      color: color ?? null,
+      createdAt: now,
+      updatedAt: now,
+    }
+    const current = (await getSettingsRepo().get()).dayMarks ?? []
+    const settings = await getSettingsRepo().update({ dayMarks: [...current, mark] })
+    set({ settings })
+    return mark
+  },
+
+  updateDayMark: async (mark) => {
+    const current = (await getSettingsRepo().get()).dayMarks ?? []
+    const next = current.map((m) => (m.id === mark.id ? { ...mark, updatedAt: Date.now() } : m))
+    const settings = await getSettingsRepo().update({ dayMarks: next })
+    set({ settings })
+  },
+
+  deleteDayMark: async (id) => {
+    const current = (await getSettingsRepo().get()).dayMarks ?? []
+    const settings = await getSettingsRepo().update({ dayMarks: current.filter((m) => m.id !== id) })
+    set({ settings })
+  },
+
+  setSleepReminder: async (patch) => {
+    const current = (await getSettingsRepo().get()).sleepReminder ?? DEFAULT_SLEEP_REMINDER
+    const next = { ...current, ...patch }
+    const settings = await getSettingsRepo().update({ sleepReminder: next })
     set({ settings })
   },
 }))

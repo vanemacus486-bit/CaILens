@@ -1,13 +1,15 @@
 import { useState, useRef } from 'react'
+import { translate } from '@/i18n/useT'
 import { cn } from '@/lib/utils'
 import type { CategoryId } from '@/domain/category'
 import { flattenFolderKeywords } from '@/domain/category'
 import { CategoryNameEditor } from './CategoryNameEditor'
 import type { Category } from '@/domain/category'
+import type { AppLanguage } from '@/i18n/types'
 
 interface CategorySettingItemProps {
   category: Category
-  language: 'zh' | 'en'
+  language: AppLanguage
   trackedHours: number
   onNameCommit: (id: CategoryId, name: string) => void
   onBudgetChange: (id: CategoryId, budget: number) => void
@@ -111,8 +113,8 @@ export function CategorySettingItem({
             onCommit={onNameCommit}
           />
           <p className="text-[11px] text-text-tertiary mt-0.5 font-sans leading-relaxed">
-            {language === 'zh' ? '关键词自动分类到此类别' : 'Keywords auto-classified here'}
-            {allKeywords.length > 0 && ` · ${allKeywords.length} ${language === 'zh' ? '个关键词' : 'keywords'}`}
+            {translate('category.autoClassify', language)}
+            {allKeywords.length > 0 && ` · ${allKeywords.length} ${translate('common.keywords', language)}`}
           </p>
         </div>
 
@@ -146,7 +148,7 @@ export function CategorySettingItem({
             <button
               onClick={handleBudgetClick}
               className="inline-flex items-center gap-0.5 px-2 py-1 rounded-lg text-xs font-mono text-text-secondary hover:text-text-primary bg-transparent hover:bg-surface-sunken transition-colors duration-150 cursor-pointer border-none"
-              title={language === 'zh' ? '点击编辑预算' : 'Click to edit budget'}
+              title={translate('category.editBudget', language)}
             >
               <span className="font-medium text-text-primary">{category.weeklyBudget}</span>
               <span className="text-[10px] text-text-tertiary">h</span>
@@ -160,7 +162,7 @@ export function CategorySettingItem({
             {fmtH(trackedHours)}h
           </span>
           <span className="block text-[10px] text-text-tertiary/60 font-sans">
-            {language === 'zh' ? '本周' : 'this wk'}
+            {translate('category.thisWeek', language)}
           </span>
         </div>
       </div>
@@ -180,7 +182,7 @@ export function CategorySettingItem({
           )}>
             ▶
           </span>
-          {language === 'zh' ? '管理关键词' : 'Manage keywords'}
+          {translate('category.manageKeywords', language)}
           {allKeywords.length > 0 && (
             <span className="text-text-tertiary/60">({allKeywords.length})</span>
           )}
@@ -224,7 +226,7 @@ export function CategorySettingItem({
               </div>
             ) : (
               <p className="text-[11px] text-text-tertiary font-sans mb-3">
-                {language === 'zh' ? '暂无关键词，添加后事件将自动分类' : 'No keywords yet. Add some to auto-classify events.'}
+                {translate('category.noKeywords', language)}
               </p>
             )}
 
@@ -237,7 +239,7 @@ export function CategorySettingItem({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') commitKeyword()
                 }}
-                placeholder={language === 'zh' ? '输入关键词后回车…' : 'Type keyword and Enter…'}
+                placeholder={translate('category.keywordPlaceholder', language)}
                 className="flex-1 max-w-[200px] px-2.5 py-1.5 text-xs font-sans text-text-primary bg-surface-sunken border border-border-subtle rounded-lg placeholder-text-tertiary focus:ring-2 focus:ring-accent/30 focus:outline-none transition-shadow duration-150"
               />
               <button
@@ -245,7 +247,7 @@ export function CategorySettingItem({
                 disabled={newKeyword.trim().length < 2}
                 className="px-3 py-1.5 rounded-lg text-xs font-sans font-medium bg-surface-sunken border border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-default disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 cursor-pointer"
               >
-                {language === 'zh' ? '添加' : 'Add'}
+                {translate('common.add', language)}
               </button>
             </div>
           </div>

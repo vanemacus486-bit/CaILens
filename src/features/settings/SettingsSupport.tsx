@@ -1,6 +1,6 @@
+import { useT } from '@/i18n/useT'
 import { useState } from 'react'
 import { Copy, Check, ExternalLink } from 'lucide-react'
-import { useAppSettingsStore } from '@/stores/settingsStore'
 import { openExternal } from '@/lib/platform'
 import { SPONSOR_CHANNELS, type SponsorChannel } from '@/lib/sponsor'
 import { cn } from '@/lib/utils'
@@ -88,17 +88,16 @@ function ChannelCard({ channel, t }: { channel: SponsorChannel; t: T }) {
 }
 
 export function SettingsSupport() {
-  const language = useAppSettingsStore((s) => s.settings.language)
-  const t: T = (zh, en) => (language === 'zh' ? zh : en)
+  const t = useT()
 
   return (
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
-          {t('支持作者', 'Support')}
+          {t('support.title')}
         </h1>
         <p className="text-sm text-text-tertiary mt-1 font-sans">
-          {t('CaILens 由个人开发并持续更新', 'Built and maintained by an indie developer')}
+          {t('support.description')}
         </p>
       </div>
 
@@ -107,10 +106,7 @@ export function SettingsSupport() {
       ))}
 
       <p className="text-[11px] text-text-tertiary font-sans leading-relaxed">
-        {t(
-          '你的支持会直接用于 CaILens 的持续维护与新功能开发。感谢 🙏',
-          'Your support goes directly toward maintaining CaILens and new features. Thank you 🙏',
-        )}
+        {t('support.footer')}
       </p>
     </div>
   )

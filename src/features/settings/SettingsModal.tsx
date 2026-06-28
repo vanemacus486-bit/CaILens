@@ -1,3 +1,4 @@
+import { useT } from '@/i18n/useT'
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Search } from 'lucide-react'
@@ -13,6 +14,7 @@ import { SettingsData } from './SettingsData'
 import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsAbout } from './SettingsAbout'
 import { SettingsSupport } from './SettingsSupport'
+import { SettingsAccount } from './SettingsAccount'
 import { isTauri } from '@/data/tauriFs'
 import { isSponsorConfigured } from '@/lib/sponsor'
 
@@ -34,6 +36,7 @@ const TAB_GROUPS: { labelZh: string; labelEn: string; tabs: TabDef[] }[] = [
     labelZh: '偏好',
     labelEn: 'Preferences',
     tabs: [
+      { key: 'account', labelZh: '账户', labelEn: 'Account', descZh: '头像与名称', descEn: 'Avatar & name' },
       { key: 'categories', labelZh: '分类', labelEn: 'Categories', descZh: '分配每周168小时', descEn: 'Allocate 168h/week' },
       { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
       { key: 'appearance', labelZh: '外观', labelEn: 'Appearance', descZh: '主题、字体与界面语言', descEn: 'Theme, font & language' },
@@ -71,6 +74,7 @@ const TAB_GROUPS: { labelZh: string; labelEn: string; tabs: TabDef[] }[] = [
 /* ── Tab → 组件映射 ── */
 
 const TAB_CONTENT: Record<SettingsTab, React.FC> = {
+  account:     SettingsAccount,
   categories: SettingsCategories,
   hygiene: SettingsHygiene,
   appearance: SettingsAppearance,
@@ -104,11 +108,17 @@ export function SettingsModal() {
   const language = useAppSettingsStore((s) => s.settings.language)
   const isMobile = useIsMobile()
 
+  const t = useT()
+  // For zh/en-paired labels (tab/group definitions in TAB_GROUPS)
+  const tl = (zh: string, en: string): string => {
+    if (language === 'zh') return zh
+    // For other languages, use English as fallback for tab labels
+    return en
+  }
+
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
-
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   // Filter tabs by search
   const filteredGroups = useMemo(() => {
@@ -196,7 +206,7 @@ export function SettingsModal() {
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
-      aria-label={t('设置', 'Settings')}
+      aria-label={t('nav.settings')}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-settings-fade-in pointer-events-none" />
@@ -245,7 +255,7 @@ export function SettingsModal() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('搜索设置…', 'Search settings…')}
+                placeholder={t('settings.searchPlaceholder')}
                 className="w-full pl-8 pr-3 py-1.5 text-xs font-sans text-text-primary bg-surface-base border border-border-subtle rounded-lg placeholder-text-tertiary focus:ring-2 focus:ring-accent/30 focus:outline-none focus:border-border-default transition-shadow duration-150"
               />
             </div>
@@ -279,7 +289,7 @@ export function SettingsModal() {
                       active ? 'text-text-primary' : 'text-text-secondary',
                     )}
                   >
-                    {t(tab.labelZh, tab.labelEn)}
+                    {tl(tab.labelZh, tab.labelEn)}
                   </span>
                   {!isMobile && (
                     <span
@@ -288,7 +298,7 @@ export function SettingsModal() {
                         active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
                       )}
                     >
-                      {t(tab.descZh, tab.descEn)}
+                      {tl(tab.descZh, tab.descEn)}
                     </span>
                   )}
                 </button>
@@ -299,7 +309,7 @@ export function SettingsModal() {
             {showNoResults && (
               <div className="px-3 py-6 text-center">
                 <p className="text-xs text-text-tertiary font-sans">
-                  {t('未找到匹配的设置项', 'No matching settings')}
+                  {t('common.noData')}
                 </p>
               </div>
             )}

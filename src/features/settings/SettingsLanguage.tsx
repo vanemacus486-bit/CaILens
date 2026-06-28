@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { LANGUAGE_LABELS, LANGUAGE_ORDER } from '@/i18n/types'
 
 export function SettingsLanguage() {
   const language = useAppSettingsStore((s) => s.settings.language)
@@ -22,8 +23,8 @@ export function SettingsLanguage() {
           <h2 className="text-xs font-sans font-medium text-text-secondary mb-3">
             界面语言
           </h2>
-          <div className="flex gap-0.5 bg-surface-sunken rounded-lg p-0.5 w-fit">
-            {(['zh', 'en'] as const).map((lang) => (
+          <div className="flex gap-0.5 bg-surface-sunken rounded-lg p-0.5 w-fit flex-wrap">
+            {LANGUAGE_ORDER.map((lang) => (
               <button
                 key={lang}
                 onClick={() => fireAndForget(setLanguage(lang), 'set language')}
@@ -34,7 +35,7 @@ export function SettingsLanguage() {
                     : 'text-text-secondary hover:text-text-primary',
                 )}
               >
-                {lang === 'zh' ? '中文' : 'English'}
+                {LANGUAGE_LABELS[lang]}
               </button>
             ))}
           </div>

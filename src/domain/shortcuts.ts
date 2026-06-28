@@ -7,6 +7,9 @@ export type ShortcutAction =
   | 'goToThisWeek'
   | 'goToDayView'
   | 'goToStats'
+  | 'goToCalendar'
+  | 'goToPlan'
+  | 'goToReview'
   | 'openSettings'
   | 'toggleTheme'
   | 'goToPreviousWeek'
@@ -16,6 +19,7 @@ export type ShortcutAction =
   | 'deleteFocusedEvent'
   | 'duplicateFocusedEvent'
   | 'quickCaptureTodo'
+  | 'toggleSidebar'
 
 export interface KeyBinding {
   key: string
@@ -40,18 +44,22 @@ export const SHORTCUT_REGISTRY: Record<ShortcutAction, ShortcutDefinition> = {
   openCommandPalette: { action: 'openCommandPalette', label: '打开命令面板', defaultBinding: { key: 'k', ctrl: true, alt: false, shift: false } },
   copyFocusedEvent:   { action: 'copyFocusedEvent',   label: '复制事件',     defaultBinding: { key: 'c', ctrl: true, alt: false, shift: false } },
   pasteEvent:         { action: 'pasteEvent',          label: '粘贴事件',    defaultBinding: { key: 'v', ctrl: true, alt: false, shift: false } },
-  goToThisWeek:       { action: 'goToThisWeek',        label: '前往本周',    defaultBinding: null },
-  goToDayView:        { action: 'goToDayView',         label: '前往日视图',  defaultBinding: null },
+  goToThisWeek:       { action: 'goToThisWeek',        label: '回到周视图',  defaultBinding: { key: 'Escape', ctrl: false, alt: false, shift: false } },
+  goToDayView:        { action: 'goToDayView',         label: '前往日视图',  defaultBinding: { key: 't', ctrl: false, alt: false, shift: false } },
   goToStats:          { action: 'goToStats',           label: '前往统计',    defaultBinding: null },
-  openSettings:       { action: 'openSettings',        label: '打开设置',    defaultBinding: null },
-  toggleTheme:        { action: 'toggleTheme',         label: '切换主题',    defaultBinding: null },
+  goToCalendar:       { action: 'goToCalendar',        label: '切换日历',    defaultBinding: { key: '1', ctrl: false, alt: true, shift: false } },
+  goToPlan:           { action: 'goToPlan',            label: '切换规划',    defaultBinding: { key: '2', ctrl: false, alt: true, shift: false } },
+  goToReview:         { action: 'goToReview',          label: '切换复盘',    defaultBinding: { key: '3', ctrl: false, alt: true, shift: false } },
+  openSettings:       { action: 'openSettings',        label: '打开设置',     defaultBinding: { key: ',', ctrl: true, alt: false, shift: false } },
+  toggleTheme:        { action: 'toggleTheme',         label: '切换主题',     defaultBinding: { key: 'T', ctrl: true, alt: false, shift: true } },
   goToPreviousWeek:   { action: 'goToPreviousWeek',    label: '上一周',      defaultBinding: { key: 'ArrowLeft', ctrl: true, alt: false, shift: false } },
   goToNextWeek:       { action: 'goToNextWeek',        label: '下一周',      defaultBinding: { key: 'ArrowRight', ctrl: true, alt: false, shift: false } },
   goToPreviousDay:    { action: 'goToPreviousDay',     label: '上一天',      defaultBinding: { key: 'ArrowLeft', ctrl: true, alt: false, shift: true } },
   goToNextDay:        { action: 'goToNextDay',         label: '下一天',      defaultBinding: { key: 'ArrowRight', ctrl: true, alt: false, shift: true } },
-  deleteFocusedEvent: { action: 'deleteFocusedEvent',  label: '删除事件',    defaultBinding: null },
-  duplicateFocusedEvent: { action: 'duplicateFocusedEvent', label: '复制并创建事件', defaultBinding: null },
+  deleteFocusedEvent: { action: 'deleteFocusedEvent',  label: '删除事件',    defaultBinding: { key: 'Delete', ctrl: false, alt: false, shift: false } },
+  duplicateFocusedEvent: { action: 'duplicateFocusedEvent', label: '复制并创建事件', defaultBinding: { key: 'd', ctrl: true, alt: false, shift: false } },
   quickCaptureTodo:     { action: 'quickCaptureTodo',      label: '快速录入待办', defaultBinding: { key: 'n', ctrl: true, alt: true, shift: false } },
+  toggleSidebar:       { action: 'toggleSidebar',        label: '切换侧栏',     defaultBinding: { key: 'b', ctrl: true, alt: false, shift: false } },
 }
 
 // ── Pure functions ─────────────────────────────────────

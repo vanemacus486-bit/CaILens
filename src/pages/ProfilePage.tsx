@@ -8,6 +8,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fireAndForget } from '@/lib/fireAndForget'
+import { translate } from '@/i18n/useT'
 import { useProfileStore } from '@/stores/profileStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 
@@ -31,7 +32,7 @@ export function ProfilePage() {
 
   // Title
   useEffect(() => {
-    document.title = language === 'zh' ? 'CaILens · 个人档案' : 'CaILens · Profile'
+    document.title = translate('profile.title', language)
   }, [language])
 
   // Esc → 回复盘

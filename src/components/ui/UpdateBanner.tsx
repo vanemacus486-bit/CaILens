@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { ArrowUpCircle, Download, Loader2, X } from 'lucide-react'
 import { checkForUpdate, type UpdateInfo, relaunchApp } from '@/lib/appUpdate'
 import { openExternal } from '@/lib/platform'
-import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useT } from '@/i18n/useT'
 
 const DISMISS_KEY = 'cailens.updateDismissed'
 
@@ -16,8 +16,7 @@ const DISMISS_KEY = 'cailens.updateDismissed'
  * Web / 移动端不会触发（checkForUpdate 返回 null）。
  */
 export function UpdateBanner() {
-  const language = useAppSettingsStore((s) => s.settings.language)
-  const t = (zh: string, en: string) => (language === 'zh' ? zh : en)
+  const t = useT()
   const [info, setInfo] = useState<UpdateInfo | null>(null)
   const [downloading, setDownloading] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -82,12 +81,12 @@ export function UpdateBanner() {
       )}
       <span>
         {installing
-          ? t('正在安装，即将重启…', 'Installing, will restart…')
+          ? t('settings.update.installing')
           : downloading
-            ? t('下载中', 'Downloading') + ` ${progress}%`
+            ? t('settings.update.downloading') + ` ${progress}%`
             : (
                 <>
-                  {t('发现新版本', 'New version')}{' '}
+                  {t('settings.update.newVersion')}{' '}
                   <span className="font-mono font-medium">v{info.version}</span>
                 </>
               )}
@@ -98,14 +97,14 @@ export function UpdateBanner() {
           className="font-medium text-accent hover:text-accent-hover transition-colors duration-200 cursor-pointer"
         >
           {info.downloadAndInstall
-            ? t('立即更新', 'Update')
-            : t('下载', 'Download')}
+            ? t('settings.update.updateNow')
+            : t('settings.update.download')}
         </button>
       )}
       {!installing && (
         <button
           onClick={dismiss}
-          aria-label={t('关闭', 'Dismiss')}
+          aria-label={t('common.close')}
           className="text-text-tertiary hover:text-text-secondary transition-colors duration-200 cursor-pointer"
         >
           <X size={14} strokeWidth={2} />

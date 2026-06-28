@@ -32,6 +32,10 @@ export interface BodyMetrics {
 
 export interface Profile {
   id: 'default'
+  /** 用户名称（空串时显示兜底文案） */
+  name: string
+  /** 头像（emoji 字符；空串时用名称首字母或 🐱 兜底） */
+  avatar: string
   body: BodyMetrics
   /** 最后更新时间 YYYY-MM-DD */
   updatedAt: string | null
@@ -53,6 +57,8 @@ export const DEFAULT_BODY_METRICS: BodyMetrics = {
 
 export const DEFAULT_PROFILE: Profile = {
   id: 'default',
+  name: '',
+  avatar: '',
   body: { ...DEFAULT_BODY_METRICS },
   updatedAt: null,
 }
