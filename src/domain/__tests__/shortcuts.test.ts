@@ -163,7 +163,43 @@ describe('findConflicts', () => {
     expect(findConflicts(r)).toHaveLength(0)
   })
 
-  it('detects no conflicts when default bindings', () => {
+  it('returns empty for expanded registry with new stats actions', () => {
+    const r = resolveBindings({})
+    expect(findConflicts(r)).toHaveLength(0)
+  })
+})
+
+// ── New stats actions ─────────────────────────────────
+
+describe('stats shortcut actions', () => {
+  it('statsTab1-7 default to keys 1-7', () => {
+    const r = resolveBindings({})
+    expect(r.statsTab1).toEqual(kb('1'))
+    expect(r.statsTab2).toEqual(kb('2'))
+    expect(r.statsTab3).toEqual(kb('3'))
+    expect(r.statsTab4).toEqual(kb('4'))
+    expect(r.statsTab5).toEqual(kb('5'))
+    expect(r.statsTab6).toEqual(kb('6'))
+    expect(r.statsTab7).toEqual(kb('7'))
+  })
+
+  it('statsColor1-6 default to a/s/d/f/g/h', () => {
+    const r = resolveBindings({})
+    expect(r.statsColor1).toEqual(kb('a'))
+    expect(r.statsColor2).toEqual(kb('s'))
+    expect(r.statsColor3).toEqual(kb('d'))
+    expect(r.statsColor4).toEqual(kb('f'))
+    expect(r.statsColor5).toEqual(kb('g'))
+    expect(r.statsColor6).toEqual(kb('h'))
+  })
+
+  it('statsPrevSeg/statsNextSeg default to [/]', () => {
+    const r = resolveBindings({})
+    expect(r.statsPrevSeg).toEqual(kb('['))
+    expect(r.statsNextSeg).toEqual(kb(']'))
+  })
+
+  it('all 14 new actions have no conflicts with existing', () => {
     const r = resolveBindings({})
     expect(findConflicts(r)).toHaveLength(0)
   })
@@ -204,8 +240,8 @@ describe('eventMatchesBinding', () => {
 // ── Registry completeness ──────────────────────────────
 
 describe('SHORTCUT_REGISTRY', () => {
-  it('has exactly 18 actions', () => {
-    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(19)
+  it('has exactly 35 actions', () => {
+    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(35)
   })
 
   it('all entries have a label string', () => {

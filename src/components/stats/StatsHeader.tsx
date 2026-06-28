@@ -21,7 +21,6 @@ interface StatsHeaderProps {
   segments?: SegmentedOption[]
   value?: string
   onChange?: (id: string) => void
-  onNavigate?: (dir: -1 | 1) => void
   /** 右上角分类色点横排（由 StatsPage 注入） */
   rail?: React.ReactNode
 }
@@ -44,8 +43,8 @@ function SegmentScrubber({ segments, value, onChange }: SegmentScrubberProps) {
   const [knobOffset, setKnobOffset] = useState(0)
   const [animated, setAnimated] = useState(false)
 
-  const TRACK_WIDTH = 130
-  const KNOB_DIAMETER = 12
+  const TRACK_WIDTH = 110
+  const KNOB_DIAMETER = 10
 
   useLayoutEffect(() => {
     const track = trackRef.current
@@ -115,7 +114,7 @@ const SCRUBBER_CSS = `
 .scrubber {
   position: relative;
   width: 130px;
-  height: 12px;
+  height: 10px;
   flex-shrink: 0;
 }
 
@@ -124,8 +123,8 @@ const SCRUBBER_CSS = `
   top: 3px;
   left: 0;
   right: 0;
-  height: 6px;
-  border-radius: 3px;
+  height: 4px;
+  border-radius: 2px;
   background: var(--surface-sunken, var(--heatmap-bg-card));
   pointer-events: none;
 }
@@ -134,8 +133,8 @@ const SCRUBBER_CSS = `
   position: absolute;
   top: 0;
   left: 0;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--accent, var(--heatmap-ink-1));
   pointer-events: none;
@@ -166,7 +165,7 @@ const SCRUBBER_CSS = `
 
 // ── 主组件 ──────────────────────────────────────────────────
 
-export function StatsHeader({ title, segments, value, onChange, onNavigate, rail }: StatsHeaderProps) {
+export function StatsHeader({ title, segments, value, onChange, rail }: StatsHeaderProps) {
   const hasSegments = segments && segments.length > 0
 
   return (
@@ -182,33 +181,11 @@ export function StatsHeader({ title, segments, value, onChange, onNavigate, rail
       {/* ── 第 2 行：‹ 滑块 › ──────────────────────────────── */}
       {hasSegments && (
         <div className="stats-header-row2">
-          {onNavigate && (
-            <button
-              onClick={() => onNavigate(-1)}
-              className="stats-header-arrow"
-              title="上一周期"
-              aria-label="上一周期"
-            >
-              ‹
-            </button>
-          )}
-
           <SegmentScrubber
             segments={segments!}
             value={value!}
             onChange={(id) => onChange?.(id)}
           />
-
-          {onNavigate && (
-            <button
-              onClick={() => onNavigate(1)}
-              className="stats-header-arrow"
-              title="下一周期"
-              aria-label="下一周期"
-            >
-              ›
-            </button>
-          )}
         </div>
       )}
     </div>
@@ -222,8 +199,8 @@ const STATS_HEADER_CSS = `
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 /* ── 第 1 行 ──────────────────────── */
@@ -236,7 +213,7 @@ const STATS_HEADER_CSS = `
 
 .stats-header-title {
   font-family: 'Noto Serif SC', serif;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--heatmap-ink-2);
   line-height: 1.3;
@@ -255,45 +232,15 @@ const STATS_HEADER_CSS = `
 .stats-header-row2 {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.stats-header-arrow {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 15px;
-  color: var(--heatmap-ink-3);
-  transition: color 0.2s ease, background-color 0.2s ease;
-  flex-shrink: 0;
-  line-height: 1;
-  user-select: none;
-  padding: 0;
-}
-
-.stats-header-arrow:hover {
-  color: var(--heatmap-ink-1);
-  background: var(--heatmap-bg-card);
 }
 
 @media (max-width: 719px) {
   .stats-header {
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 6px;
+    margin-bottom: 8px;
   }
   .stats-header-title {
-    font-size: 15px;
-  }
-  .stats-header-arrow {
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
+    font-size: 13px;
   }
 }
 `

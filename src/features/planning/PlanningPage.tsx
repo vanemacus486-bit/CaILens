@@ -6,7 +6,7 @@
  * 已加星标（filter=starred）：跨清单单列汇总。
  */
 
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTodoStore } from '@/stores/todoStore'
 import { useTodoListStore } from '@/stores/todoListStore'
@@ -55,30 +55,23 @@ export function PlanningPage() {
   const visibleListIds = useTodoListStore((s) => s.visibleListIds)
   const renameList = useTodoListStore((s) => s.renameList)
 
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const [sortMode, setSortMode] = useState<SortMode>('manual')
   const [composerOpen, setComposerOpen] = useState(false)
   const [composerFocusNonce, setComposerFocusNonce] = useState(0)
-  const filterMode = (searchParams.get('filter') as 'all' | 'starred' | null) ?? 'all'
+  const filterMode = (searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? 'all'
   const now = useMemo(() => Date.now(), [])
 
-  // ── 归档面板状态 ──
-  const archiveOpen = searchParams.get('archive') === '1'
-  const handleToggleArchive = useCallback(() => {
-    const next = new URLSearchParams(searchParams)
-    if (archiveOpen) {
-      next.delete('archive')
-    } else {
-      next.set('archive', '1')
-    }
-    setSearchParams(next, { replace: true })
-  }, [archiveOpen, searchParams, setSearchParams])
-
-  // Unconditional hook: visible lists for kanban (used below conditional return)
+  // Unconditional hook: visible lists for kanban (used below conditional returns)
   const visibleLists = useMemo(
     () => lists.filter((l) => visibleListIds.includes(l.id)).sort((a, b) => a.sortOrder - b.sortOrder),
     [lists, visibleListIds],
   )
+
+  // ── 归档视图（所有 hook 之后方可 early return）──
+  if (filterMode === 'archive') {
+    return <ArchivePanel />
+  }
 
   // ── 已加星标视图（跨清单单列） ──
   if (filterMode === 'starred') {
@@ -164,10 +157,7 @@ export function PlanningPage() {
             />
           ))}
         </div>
-        {/* 历史归档面板 */}
-        <div className="mx-auto max-w-[840px] w-full px-4 md:px-6 pb-6">
-          <ArchivePanel isOpen={archiveOpen} onToggle={handleToggleArchive} />
-        </div>
+
       </div>
     </div>
   )

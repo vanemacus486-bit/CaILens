@@ -120,9 +120,13 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
       next.set('date', formatISODate(prev))
       setSearchParams(next, { replace: true })
     } else if (isAction) {
-      // ← 切换到「所有任务」
+      // ← 循环：archive → starred → all
       const next = new URLSearchParams(searchParams)
-      next.delete('filter')
+      const current = searchParams.get('filter') ?? 'all'
+      if (current === 'archive') next.set('filter', 'starred')
+      else if (current === 'starred') next.delete('filter')
+      else next.set('filter', 'archive') // all → archive
+      next.delete('archiveDate')
       setSearchParams(next, { replace: true })
     }
   }, [isWeek, isStats, isAction, viewMode, searchParams, setSearchParams, navigate])
@@ -156,9 +160,13 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
       next.set('date', formatISODate(nextDate))
       setSearchParams(next, { replace: true })
     } else if (isAction) {
-      // → 切换到「已加星标」
+      // → 循环：all → starred → archive
       const next = new URLSearchParams(searchParams)
-      next.set('filter', 'starred')
+      const current = searchParams.get('filter') ?? 'all'
+      if (current === 'all') next.set('filter', 'starred')
+      else if (current === 'starred') next.set('filter', 'archive')
+      else next.delete('filter') // archive → all
+      next.delete('archiveDate')
       setSearchParams(next, { replace: true })
     }
   }, [isWeek, isStats, isAction, viewMode, searchParams, setSearchParams, navigate])

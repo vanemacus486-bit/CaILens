@@ -20,6 +20,23 @@ export type ShortcutAction =
   | 'duplicateFocusedEvent'
   | 'quickCaptureTodo'
   | 'toggleSidebar'
+  // ── Stats page ──
+  | 'statsTab1'
+  | 'statsTab2'
+  | 'statsTab3'
+  | 'statsTab4'
+  | 'statsTab5'
+  | 'statsTab6'
+  | 'statsTab7'
+  | 'statsColor1'
+  | 'statsColor2'
+  | 'statsColor3'
+  | 'statsColor4'
+  | 'statsColor5'
+  | 'statsColor6'
+  | 'statsPrevSeg'
+  | 'statsNextSeg'
+  | 'toggleWeekMonthView'
 
 export interface KeyBinding {
   key: string
@@ -60,6 +77,24 @@ export const SHORTCUT_REGISTRY: Record<ShortcutAction, ShortcutDefinition> = {
   duplicateFocusedEvent: { action: 'duplicateFocusedEvent', label: '复制并创建事件', defaultBinding: { key: 'd', ctrl: true, alt: false, shift: false } },
   quickCaptureTodo:     { action: 'quickCaptureTodo',      label: '快速录入待办', defaultBinding: { key: 'n', ctrl: true, alt: true, shift: false } },
   toggleSidebar:       { action: 'toggleSidebar',        label: '切换侧栏',     defaultBinding: { key: 'b', ctrl: true, alt: false, shift: false } },
+
+  // ── Stats page ──
+  statsTab1:     { action: 'statsTab1',     label: '复盘·趋势',    defaultBinding: { key: '1', ctrl: false, alt: false, shift: false } },
+  statsTab2:     { action: 'statsTab2',     label: '复盘·热力',    defaultBinding: { key: '2', ctrl: false, alt: false, shift: false } },
+  statsTab3:     { action: 'statsTab3',     label: '复盘·睡眠',    defaultBinding: { key: '3', ctrl: false, alt: false, shift: false } },
+  statsTab4:     { action: 'statsTab4',     label: '复盘·饮食',    defaultBinding: { key: '4', ctrl: false, alt: false, shift: false } },
+  statsTab5:     { action: 'statsTab5',     label: '复盘·卫生',    defaultBinding: { key: '5', ctrl: false, alt: false, shift: false } },
+  statsTab6:     { action: 'statsTab6',     label: '复盘·穿搭',    defaultBinding: { key: '6', ctrl: false, alt: false, shift: false } },
+  statsTab7:     { action: 'statsTab7',     label: '复盘·情绪',    defaultBinding: { key: '7', ctrl: false, alt: false, shift: false } },
+  statsColor1:   { action: 'statsColor1',   label: '复盘·分类色1', defaultBinding: { key: 'a', ctrl: false, alt: false, shift: false } },
+  statsColor2:   { action: 'statsColor2',   label: '复盘·分类色2', defaultBinding: { key: 's', ctrl: false, alt: false, shift: false } },
+  statsColor3:   { action: 'statsColor3',   label: '复盘·分类色3', defaultBinding: { key: 'd', ctrl: false, alt: false, shift: false } },
+  statsColor4:   { action: 'statsColor4',   label: '复盘·分类色4', defaultBinding: { key: 'f', ctrl: false, alt: false, shift: false } },
+  statsColor5:   { action: 'statsColor5',   label: '复盘·分类色5', defaultBinding: { key: 'g', ctrl: false, alt: false, shift: false } },
+  statsColor6:   { action: 'statsColor6',   label: '复盘·分类色6', defaultBinding: { key: 'h', ctrl: false, alt: false, shift: false } },
+  statsPrevSeg:  { action: 'statsPrevSeg',  label: '复盘·上一段',  defaultBinding: { key: '[', ctrl: false, alt: false, shift: false } },
+  statsNextSeg:  { action: 'statsNextSeg',  label: '复盘·下一段',  defaultBinding: { key: ']', ctrl: false, alt: false, shift: false } },
+  toggleWeekMonthView: { action: 'toggleWeekMonthView', label: '切换周/月视图', defaultBinding: { key: 'm', ctrl: false, alt: false, shift: false } },
 }
 
 // ── Pure functions ─────────────────────────────────────

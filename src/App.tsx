@@ -34,7 +34,7 @@ import { addWeeks, getWeekStart, formatISODate } from '@/domain/time'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
 import { useSleepReminderScheduler } from '@/hooks/useSleepReminderScheduler'
 import { useIsMobile } from '@/hooks/useMediaQuery'
-import { subDays, addDays, parseISO } from 'date-fns'
+import { subDays, addDays, addMonths, addYears, parseISO } from 'date-fns'
 import type { ShortcutAction } from '@/domain/shortcuts'
 import { isNativeMobile } from '@/lib/platform'
 const MobileLayout = lazy(() => import('@/features/mobile/MobileLayout').then((m) => ({ default: m.MobileLayout })))
@@ -54,7 +54,7 @@ function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const isMobile = useIsMobile()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // Hoisted: load categories + settings + profile once at the layout level
   useEffect(() => {
@@ -112,11 +112,57 @@ function Layout() {
       'toggle theme',
     ),
     goToPreviousWeek: () => {
+      if (location.pathname.startsWith('/stats')) {
+        const statsView = searchParams.get('view') ?? 'trend'
+        const period = searchParams.get('period') ?? 'week'
+        const dateParam = searchParams.get('date')
+        const base = dateParam ? parseISO(dateParam) : new Date()
+        let prev: Date
+        switch (statsView) {
+          case 'trend': {
+            const p = period === 'day' ? 'day' : period === 'month' ? 'month' : 'week'
+            if (p === 'day') prev = addDays(base, -1)
+            else if (p === 'week') prev = addWeeks(base, -1)
+            else prev = addMonths(base, -1)
+            break
+          }
+          case 'heatmap': prev = addYears(base, -1); break
+          case 'sleep':   prev = addMonths(base, -1); break
+          default:        prev = addWeeks(base, -1); break
+        }
+        const next = new URLSearchParams(searchParams)
+        next.set('date', formatISODate(prev))
+        setSearchParams(next, { replace: true })
+        return
+      }
       const weekParam = searchParams.get('week')
       const current = weekParam ? parseISO(weekParam) : getWeekStart(new Date(), 1)
       navigate(`/week?week=${formatISODate(addWeeks(current, -1))}`)
     },
     goToNextWeek: () => {
+      if (location.pathname.startsWith('/stats')) {
+        const statsView = searchParams.get('view') ?? 'trend'
+        const period = searchParams.get('period') ?? 'week'
+        const dateParam = searchParams.get('date')
+        const base = dateParam ? parseISO(dateParam) : new Date()
+        let nextDate: Date
+        switch (statsView) {
+          case 'trend': {
+            const p = period === 'day' ? 'day' : period === 'month' ? 'month' : 'week'
+            if (p === 'day') nextDate = addDays(base, 1)
+            else if (p === 'week') nextDate = addWeeks(base, 1)
+            else nextDate = addMonths(base, 1)
+            break
+          }
+          case 'heatmap': nextDate = addYears(base, 1); break
+          case 'sleep':   nextDate = addMonths(base, 1); break
+          default:        nextDate = addWeeks(base, 1); break
+        }
+        const next = new URLSearchParams(searchParams)
+        next.set('date', formatISODate(nextDate))
+        setSearchParams(next, { replace: true })
+        return
+      }
       const weekParam = searchParams.get('week')
       const current = weekParam ? parseISO(weekParam) : getWeekStart(new Date(), 1)
       navigate(`/week?week=${formatISODate(addWeeks(current, 1))}`)
@@ -147,7 +193,26 @@ function Layout() {
     },
     quickCaptureTodo: () => useUIStore.getState().setQuickCaptureInboxOpen(true),
     toggleSidebar: () => useUIStore.getState().toggleSidebar(),
-  }), [navigate, searchParams, setTheme, theme])
+    toggleWeekMonthView: () => {
+      if (!location.pathname.startsWith('/week')) return
+      const viewMode = (searchParams.get('view') as 'week' | 'month' | null) ?? 'week'
+      if (viewMode === 'month') {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev)
+          next.delete('view')
+          next.delete('date')
+          return next
+        }, { replace: true })
+      } else {
+        const weekParam = searchParams.get('week')
+        const base = weekParam ? parseISO(weekParam) : new Date()
+        setSearchParams(
+          { view: 'month', date: formatISODate(new Date(base.getFullYear(), base.getMonth(), 1)) },
+          { replace: true },
+        )
+      }
+    },
+  }), [navigate, searchParams, setTheme, theme, location, setSearchParams])
 
   useShortcutManager(shortcutHandlers)
 

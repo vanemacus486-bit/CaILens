@@ -37,7 +37,7 @@ const SHELL_CSS = `
 .shell-content {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 16px;
+  padding: 28px 16px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;

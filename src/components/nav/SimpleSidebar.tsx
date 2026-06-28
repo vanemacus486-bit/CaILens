@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'react'
-import { useLocation, useSearchParams, useNavigate } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { useTodoListStore } from '@/stores/todoListStore'
 import { useT } from '@/i18n/useT'
 import { useDomainNav } from './domainNav'
@@ -47,10 +47,9 @@ export function SimpleSidebar() {
 
   const isStats = location.pathname === '/stats'
   const isAction = location.pathname === '/action'
-  const isArchive = isAction && searchParams.get('archive') === '1'
-  const navigate = useNavigate()
+
   const routineView = (searchParams.get('view') as RoutineViewMode | null) ?? 'trend'
-  const todoFilter = (searchParams.get('filter') as 'all' | 'starred' | null) ?? 'all'
+  const todoFilter = (searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? 'all'
 
   // ── 任务列表区状态 ──
   const lists = useTodoListStore((s) => s.lists)
@@ -72,10 +71,11 @@ export function SimpleSidebar() {
     setSearchParams(next, { replace: true })
   }
 
-  const setTodoFilter = (v: 'all' | 'starred') => {
+  const setTodoFilter = (v: 'all' | 'starred' | 'archive') => {
     const next = new URLSearchParams(searchParams)
     if (v === 'all') next.delete('filter')
     else next.set('filter', v)
+    if (v !== 'archive') next.delete('archiveDate')
     setSearchParams(next, { replace: true })
   }
 
@@ -103,6 +103,7 @@ export function SimpleSidebar() {
             {([
               { id: 'all' as const, labelKey: 'sidebar.allTasks', icon: CheckCircle },
               { id: 'starred' as const, labelKey: 'sidebar.starred', icon: Star },
+              { id: 'archive' as const, labelKey: 'sidebar.archive', icon: Archive },
             ]).map((v) => {
               const Icon = v.icon
               const selected = v.id === todoFilter
@@ -284,24 +285,6 @@ export function SimpleSidebar() {
         )}
       </div>
 
-      {/* ── 历史归档入口（规划页内嵌面板）── */}
-      <div className="px-4 pb-2 flex-shrink-0">
-        <button
-          type="button"
-          onClick={() => navigate('/action?archive=1')}
-          className={`
-            w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] cursor-pointer border-none
-            transition-all duration-200 ease-out font-sans leading-none
-            ${isArchive
-              ? 'bg-accent text-white font-medium'
-              : 'text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/8'
-            }
-          `}
-        >
-          <Archive size={16} strokeWidth={1.75} className={isArchive ? 'text-white' : 'text-text-tertiary'} />
-          <span>{t('sidebar.archive')}</span>
-        </button>
-      </div>
 
       {/* ── 账户（底部固定）── */}
       <div className="px-4 pb-4 pt-2 border-t border-border-subtle flex-shrink-0">

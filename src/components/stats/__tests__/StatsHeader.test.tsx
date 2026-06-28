@@ -6,15 +6,13 @@ import { StatsRail } from '../StatsRail'
 // ── StatsHeader ──────────────────────────────────────────────
 
 describe('StatsHeader', () => {
-  it('renders title without segments or arrows', () => {
+  it('renders title without segments', () => {
     const { container } = render(<StatsHeader title="穿搭" />)
     const title = container.querySelector('.stats-header-title')
     expect(title).not.toBeNull()
     expect(title!.textContent).toBe('穿搭')
     // No row 2 when no segments
     expect(container.querySelector('.stats-header-row2')).toBeNull()
-    // No arrows
-    expect(container.querySelector('.stats-header-arrow')).toBeNull()
   })
 
   it('renders wordless slider with N hit zones and aria-labels', () => {
@@ -46,22 +44,6 @@ describe('StatsHeader', () => {
     expect(zones[2].getAttribute('aria-current')).toBeNull()
   })
 
-  it('renders navigation arrows when onNavigate is provided', () => {
-    const { container } = render(
-      <StatsHeader
-        title="热力图"
-        segments={[{ id: 'roll', label: '近一年' }, { id: 'year', label: '年度' }]}
-        value="roll"
-        onChange={() => {}}
-        onNavigate={() => {}}
-      />,
-    )
-    const arrows = container.querySelectorAll('.stats-header-arrow')
-    expect(arrows).toHaveLength(2)
-    expect(arrows[0].textContent).toBe('‹')
-    expect(arrows[1].textContent).toBe('›')
-  })
-
   it('calls onChange when a slider hit zone is clicked (by aria-label)', () => {
     const onChange = vi.fn()
     const { container } = render(
@@ -77,24 +59,6 @@ describe('StatsHeader', () => {
     expect(weekZone).not.toBeNull()
     fireEvent.click(weekZone)
     expect(onChange).toHaveBeenCalledWith('week')
-  })
-
-  it('calls onNavigate with -1/1 when arrows are clicked', () => {
-    const onNavigate = vi.fn()
-    const { container } = render(
-      <StatsHeader
-        title="睡眠"
-        segments={[{ id: 'month', label: '月' }]}
-        value="month"
-        onChange={() => {}}
-        onNavigate={onNavigate}
-      />,
-    )
-    const arrows = container.querySelectorAll('.stats-header-arrow')
-    fireEvent.click(arrows[0])
-    expect(onNavigate).toHaveBeenCalledWith(-1)
-    fireEvent.click(arrows[1])
-    expect(onNavigate).toHaveBeenCalledWith(1)
   })
 
   it('renders rail slot when provided', () => {

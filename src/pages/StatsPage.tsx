@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2, AlertCircle } from 'lucide-react'
-import { startOfDay, startOfWeek, startOfMonth, addDays, addMonths, addYears, addWeeks as dfnAddWeeks } from 'date-fns'
+import { startOfDay, startOfWeek, startOfMonth, addDays } from 'date-fns'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { formatISODate, parseISODate } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
@@ -23,7 +23,9 @@ import { DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { EasternStatsShell, type RoutineViewMode } from '@/components/stats/EasternStatsShell'
 import { StatsHeader, type SegmentedOption } from '@/components/stats/StatsHeader'
 import { StatsRail } from '@/components/stats/StatsRail'
+import { useShortcutManager } from '@/hooks/useShortcutManager'
 import type { CategoryId } from '@/domain/category'
+import type { ShortcutAction } from '@/domain/shortcuts'
 
 // ── Constants ──────────────────────────────────────────────────
 
@@ -58,6 +60,7 @@ function getViewTitle(
         case 'week':  return '周趋势'
         case 'month': return '月趋势'
       }
+      break
     }
     case 'heatmap': {
       if (segValue === 'year') return `${anchor.getFullYear()}年热力图`
@@ -108,14 +111,6 @@ function getAnchor(period: Granularity, date: Date): Date {
   }
 }
 
-function shiftAnchor(anchor: Date, period: Granularity, dir: -1 | 1): Date {
-  switch (period) {
-    case 'day':   return addDays(anchor, dir)
-    case 'week':  return addDays(anchor, dir * 7)
-    case 'month': return addMonths(anchor, dir)
-  }
-}
-
 /** 每个复盘视图的时间步长（用于顶栏 ← → 箭头导航） */
 const VIEW_STEP: Record<RoutineViewMode, 'period' | 'year' | 'month' | 'week'> = {
   trend:   'period',
@@ -138,14 +133,7 @@ function getViewAnchor(view: RoutineViewMode, period: Granularity, date: Date): 
 }
 
 /** 按视图步长偏移 date，返回新的 Date（写入 URL） */
-function shiftViewDate(view: RoutineViewMode, period: Granularity, date: Date, dir: -1 | 1): Date {
-  switch (VIEW_STEP[view]) {
-    case 'period': return shiftAnchor(date, period, dir)
-    case 'year':   return addYears(date, dir)
-    case 'month':  return addMonths(date, dir)
-    case 'week':   return dfnAddWeeks(date, dir)
-  }
-}
+// (delegate to AppHeader/App.tsx keyboard handlers)
 
 // ── 主组件 ────────────────────────────────────────────────
 
@@ -225,7 +213,6 @@ export function StatsPage() {
   }
 
   const setPeriod = (p: Granularity) => updateParams({ period: p === 'week' ? undefined : p })
-  const navigateRoutine = (dir: -1 | 1) => updateParams({ date: formatISODate(shiftViewDate(routineView, period, date, dir)) })
 
   // ── Segment change handler ─────────────────────────────────
 
@@ -286,6 +273,50 @@ export function StatsPage() {
     setHeatmapSelectedId(id)
   }, [])
 
+  // ── Keyboard shortcuts ─────────────────────────────────────
+
+  const setRoutineView = useCallback((v: RoutineViewMode) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (v === 'trend') next.delete('view')
+      else next.set('view', v)
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
+
+  const handleColorShortcut = useCallback((id: CategoryId) => {
+    if (railMode === 'multi') handleRailToggle(id)
+    else if (railMode === 'single') handleRailSelect(id)
+  }, [railMode, handleRailToggle, handleRailSelect])
+
+  const handleSegCycle = useCallback((dir: 1 | -1) => {
+    if (!segments || segments.length === 0) return
+    const idx = segments.findIndex((s) => s.id === segValue)
+    if (idx < 0) return
+    const nextIdx = (idx + dir + segments.length) % segments.length
+    handleSegmentChange(segments[nextIdx].id)
+  }, [segments, segValue, handleSegmentChange])
+
+  const shortcutHandlers = useMemo<Partial<Record<ShortcutAction, () => void>>>(() => ({
+    statsTab1:      () => setRoutineView('trend'),
+    statsTab2:      () => setRoutineView('heatmap'),
+    statsTab3:      () => setRoutineView('sleep'),
+    statsTab4:      () => setRoutineView('diet'),
+    statsTab5:      () => setRoutineView('hygiene'),
+    statsTab6:      () => setRoutineView('outfit'),
+    statsTab7:      () => setRoutineView('mood'),
+    statsColor1:    () => handleColorShortcut(CATEGORY_IDS[0]),
+    statsColor2:    () => handleColorShortcut(CATEGORY_IDS[1]),
+    statsColor3:    () => handleColorShortcut(CATEGORY_IDS[2]),
+    statsColor4:    () => handleColorShortcut(CATEGORY_IDS[3]),
+    statsColor5:    () => handleColorShortcut(CATEGORY_IDS[4]),
+    statsColor6:    () => handleColorShortcut(CATEGORY_IDS[5]),
+    statsPrevSeg:   () => handleSegCycle(-1),
+    statsNextSeg:   () => handleSegCycle(1),
+  }), [setRoutineView, handleColorShortcut, handleSegCycle])
+
+  useShortcutManager(shortcutHandlers)
+
   // ── Render ────────────────────────────────────────────────
 
   return (
@@ -321,7 +352,6 @@ export function StatsPage() {
             segments={segments}
             value={segValue}
             onChange={handleSegmentChange}
-            onNavigate={navigateRoutine}
             rail={
               railMode !== 'empty' ? (
                 <StatsRail
@@ -404,7 +434,7 @@ export function StatsPage() {
 const STATS_PAGE_CSS = `
 .routine-container {
   width: 100%;
-  max-width: 1100px;
+  max-width: 900px;
   margin: 0 auto;
 }
 `

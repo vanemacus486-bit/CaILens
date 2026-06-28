@@ -53,12 +53,12 @@ const STATS_RAIL_CSS = `
 .stats-rail-horizontal {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .stats-rail-dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   border: 2px solid;
   cursor: pointer;

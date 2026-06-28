@@ -239,12 +239,7 @@ function TodoArchiveCard({ todo, listName }: TodoArchiveCardProps) {
 
 // ── ArchivePanel 主组件 ────────────────────────────────────
 
-interface ArchivePanelProps {
-  isOpen: boolean
-  onToggle: () => void
-}
-
-export function ArchivePanel({ isOpen, onToggle }: ArchivePanelProps) {
+export function ArchivePanel() {
   const todos = useTodoStore((s) => s.todos)
   const lists = useTodoListStore((s) => s.lists)
   const t = useT()
@@ -311,60 +306,49 @@ export function ArchivePanel({ isOpen, onToggle }: ArchivePanelProps) {
   const isEmpty = groups.length === 0
 
   return (
-    <div className="border-t border-border-subtle">
-      {/* 折叠开关 */}
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer border-none bg-transparent hover:bg-surface-sunken/50 transition-colors"
-      >
-        {isOpen ? (
-          <ChevronDown size={18} strokeWidth={1.75} className="text-text-tertiary shrink-0" />
-        ) : (
-          <ChevronRight size={18} strokeWidth={1.75} className="text-text-tertiary shrink-0" />
-        )}
-        <Archive size={18} strokeWidth={1.75} className="text-text-tertiary shrink-0" />
-        <span className="font-serif text-base font-medium text-text-primary">
-          {t('archive.title')}
-        </span>
-        <span className="text-xs text-text-tertiary font-sans">
-          ({doneTodos.length})
-        </span>
-      </button>
+    <div className="flex-1 h-full overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-[680px] w-full px-4 py-6">
+          {/* 静态标题行 */}
+          <div className="flex items-center gap-3 mb-5">
+            <Archive size={18} strokeWidth={1.75} className="text-text-tertiary shrink-0" />
+            <span className="font-serif text-base font-medium text-text-primary">
+              {t('archive.title')}
+            </span>
+            <span className="text-xs text-text-tertiary font-sans">
+              ({doneTodos.length})
+            </span>
+          </div>
 
-      {/* 归档内容 */}
-      {isOpen && (
-        <div className="px-4 pb-6">
-          <div className="mx-auto max-w-[680px] w-full">
-            {/* 内联月历 */}
-            <MiniCalendar
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              daysWithData={daysWithData}
-            />
+          {/* 内联月历 */}
+          <MiniCalendar
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            daysWithData={daysWithData}
+          />
 
-            {/* 时间线列表 */}
-            <div className="mt-5 flex flex-col gap-3">
-              {isEmpty ? (
-                <div className="text-center py-12">
-                  <Archive size={40} strokeWidth={1} className="mx-auto text-text-quaternary/40 mb-3" />
-                  <p className="text-sm font-sans text-text-tertiary">
-                    {t('archive.empty')}
-                  </p>
-                </div>
-              ) : (
-                groups.map((group) => (
-                  <DayGroupCard
-                    key={group.dateTs}
-                    group={group}
-                    listNames={listNames}
-                    defaultExpanded={selectedDate !== null}
-                  />
-                ))
-              )}
-            </div>
+          {/* 时间线列表 */}
+          <div className="mt-5 flex flex-col gap-3">
+            {isEmpty ? (
+              <div className="text-center py-12">
+                <Archive size={40} strokeWidth={1} className="mx-auto text-text-quaternary/40 mb-3" />
+                <p className="text-sm font-sans text-text-tertiary">
+                  {t('archive.empty')}
+                </p>
+              </div>
+            ) : (
+              groups.map((group) => (
+                <DayGroupCard
+                  key={group.dateTs}
+                  group={group}
+                  listNames={listNames}
+                  defaultExpanded={selectedDate !== null}
+                />
+              ))
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
