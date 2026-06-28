@@ -1,8 +1,14 @@
 import { Capacitor } from '@capacitor/core'
+import { isTauri } from '@tauri-apps/api/core'
 
 /** True when running inside a native Capacitor shell (Android / iOS). */
 export function isNativeMobile(): boolean {
   return Capacitor.isNativePlatform()
+}
+
+/** True when running as a Tauri desktop app (not mobile). */
+export function isTauriDesktop(): boolean {
+  return isTauri() && !isNativeMobile()
 }
 
 /**

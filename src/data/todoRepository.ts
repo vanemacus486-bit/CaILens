@@ -12,11 +12,14 @@ export class TodoRepository {
 
   async getAll(): Promise<Todo[]> {
     const todos = await this.adapter.todos.getAll()
-    return todos.sort((a, b) => a.sortOrder - b.sortOrder)
+    return todos
+      .map((t) => ({ ...t, isStarred: t.isStarred ?? false }))
+      .sort((a, b) => a.sortOrder - b.sortOrder)
   }
 
   async getById(id: string): Promise<Todo | undefined> {
-    return this.adapter.todos.get(id)
+    const t = await this.adapter.todos.get(id)
+    return t ? { ...t, isStarred: t.isStarred ?? false } : undefined
   }
 
   async queryByStatus(status: TodoStatus): Promise<Todo[]> {
@@ -30,6 +33,14 @@ export class TodoRepository {
   async getByProject(projectId: string): Promise<Todo[]> {
     return this.adapter.todos.query({
       where: { key: 'projectId', op: 'equals', value: projectId },
+      orderBy: 'sortOrder',
+      orderDir: 'asc',
+    })
+  }
+
+  async getByListId(listId: string): Promise<Todo[]> {
+    return this.adapter.todos.query({
+      where: { key: 'listId', op: 'equals', value: listId },
       orderBy: 'sortOrder',
       orderDir: 'asc',
     })
@@ -58,6 +69,7 @@ export class TodoRepository {
 
     const todo: Todo = {
       id: crypto.randomUUID(),
+      listId: input.listId ?? 'default',
       title: input.title,
       description: input.description ?? '',
       status: 'todo',
@@ -72,6 +84,7 @@ export class TodoRepository {
       completedAt: null,
       repeatPattern: input.repeatPattern ?? null,
       goalId: input.goalId ?? null,
+      isStarred: input.isStarred ?? false,
     }
     await this.adapter.todos.put(todo)
     return todo

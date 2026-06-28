@@ -1,5 +1,5 @@
 import type { Profile } from '@/domain/profile'
-import { DEFAULT_PROFILE } from '@/domain/profile'
+import { DEFAULT_PROFILE, DEFAULT_BODY_METRICS } from '@/domain/profile'
 import type { StorageAdapter } from './adapters/StorageAdapter'
 
 export class ProfileRepository {
@@ -9,10 +9,16 @@ export class ProfileRepository {
     this.adapter = adapter
   }
 
-  /** Returns DEFAULT_PROFILE if the record does not exist yet. */
+  /** Returns DEFAULT_PROFILE if the record does not exist yet.
+   *  Defensively merges with DEFAULT_PROFILE to handle old records missing newly-added fields. */
   async get(): Promise<Profile> {
-    const profile = await this.adapter.profile.get('default')
-    return profile ?? { ...DEFAULT_PROFILE }
+    const stored = await this.adapter.profile.get('default')
+    if (!stored) return { ...DEFAULT_PROFILE }
+    return {
+      ...DEFAULT_PROFILE,
+      ...stored,
+      body: { ...DEFAULT_BODY_METRICS, ...(stored.body ?? {}) },
+    }
   }
 
   async update(updates: Partial<Omit<Profile, 'id'>>): Promise<Profile> {

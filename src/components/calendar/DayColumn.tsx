@@ -21,6 +21,7 @@ interface DayColumnProps {
   events:            CalendarEvent[]
   selectedEventId:   string | null
   highlightedEventId: string | null
+  highlightedDayMs?: number | null
   weekDays:        Date[]
   gridRef:         React.RefObject<HTMLElement | null>
   onSlotClick:     (startTime: number, slotEl: HTMLElement) => void
@@ -38,11 +39,11 @@ interface DayColumnProps {
 }
 
 function slotToTimestamp(slotIndex: number, dayStart: number): number {
-  return dayStart + slotIndex * 30 * 60_000
+  return dayStart + slotIndex * 15 * 60_000
 }
 
 function DayColumnInner({
-  date, events, selectedEventId, highlightedEventId, weekDays, gridRef,
+  date, events, selectedEventId, highlightedEventId, highlightedDayMs, weekDays, gridRef,
   onSlotClick, onEventClick, onColorChange, onEdit, onDuplicate, onDelete,
   onDragMove, onDragToEdge, onDragStart, onDragStateChange, onResize,
   onTypedEdit,
@@ -55,9 +56,11 @@ function DayColumnInner({
     [events, date],
   )
 
+  const isHighlighted = highlightedDayMs != null && date.getTime() === highlightedDayMs
+
   return (
     <div
-      className="h-full border-r relative"
+      className={`h-full border-r relative transition-shadow duration-300 ${isHighlighted ? 'ring-2 ring-accent ring-inset' : ''}`}
       style={{
         borderRightColor: 'var(--line)',
         borderRightStyle: 'solid',
@@ -70,7 +73,7 @@ function DayColumnInner({
       <div className="absolute inset-0 grid" style={GRID_STYLE}>
         {SLOT_INDICES.map((i) => {
           const ts = slotToTimestamp(i, dayStart)
-          const nextTs = ts + 30 * 60_000
+          const nextTs = ts + 15 * 60_000
           const label = `${String(new Date(ts).getHours()).padStart(2, '0')}:${String(new Date(ts).getMinutes()).padStart(2, '0')} – ${String(new Date(nextTs).getHours()).padStart(2, '0')}:${String(new Date(nextTs).getMinutes()).padStart(2, '0')}`
           return (
             <div
@@ -78,11 +81,19 @@ function DayColumnInner({
               role="button"
               tabIndex={0}
               aria-label={label}
-              className={i % 2 === 0 ? SLOT_STYLE_HOUR : SLOT_STYLE_HALF}
+              className={
+                i % 4 === 0 ? SLOT_STYLE_HOUR
+                : i % 4 === 2 ? SLOT_STYLE_HALF
+                : SLOT_STYLE_HALF
+              }
               style={{
                 gridColumn: `1 / ${MAX_OVERLAP_COLUMNS + 1}`,
                 gridRow: i + 1,
-                ...(i % 2 === 0 ? { borderTop: '1px solid var(--line)' } : undefined),
+                ...(i % 4 === 0
+                  ? { borderTop: '1px solid var(--line)' }
+                  : i % 4 === 2
+                    ? { borderTop: '1px solid color-mix(in srgb, var(--line) 50%, transparent)' }
+                    : undefined),
               }}
               onClick={(e) => onSlotClick(ts, e.currentTarget as HTMLElement)}
               onKeyDown={(e) => {
@@ -127,6 +138,7 @@ export const DayColumn = React.memo(DayColumnInner, (prev, next) =>
   prev.events              === next.events               &&
   prev.selectedEventId     === next.selectedEventId      &&
   prev.highlightedEventId  === next.highlightedEventId   &&
+  prev.highlightedDayMs   === next.highlightedDayMs    &&
   prev.weekDays            === next.weekDays              &&
   prev.gridRef             === next.gridRef               &&
   prev.onSlotClick       === next.onSlotClick        &&

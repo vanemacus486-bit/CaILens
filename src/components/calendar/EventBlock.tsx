@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 import type { PositionedEvent } from '@/domain/layout'
@@ -19,6 +19,10 @@ export function colSpan(columnIndex: number, totalColumns: number) {
     gridColumnEnd:   Math.min(columnIndex * colsPerEvent + colsPerEvent + 1, MAX_OVERLAP_COLUMNS + 1),
   }
 }
+
+/** Minimum readable height for any event block (px). Short blocks overflow
+ *  into adjacent grid rows — accepted "slight overlap". */
+const MIN_BLOCK_PX = 22
 
 // ── Category color mapping (EventColor → tokens) ───────────
 
@@ -77,6 +81,22 @@ export const EventBlock = React.memo(function EventBlock({
   const { gridColumnStart, gridColumnEnd } = colSpan(columnIndex, totalColumns)
 
   const divRef = useRef<HTMLDivElement>(null)
+  const [blockH, setBlockH] = useState(0)
+
+  // Measure actual rendered height; short blocks get min-height so they're
+  // always at least MIN_BLOCK_PX tall (even if grid row is ~9px).
+  useEffect(() => {
+    const el = divRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const h = entry.contentBoxSize?.[0]?.blockSize ?? entry.contentRect.height
+        if (h !== blockH) setBlockH(h)
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  })
 
   const { onPointerDown: onDragPointerDown, dragState, isDragging, wasDragging } = useEventDrag({
     event,
@@ -91,7 +111,9 @@ export const EventBlock = React.memo(function EventBlock({
     onDragStateChange?.(dragState)
   }, [dragState, onDragStateChange])
 
-  const showResizeHandles = (event.endTime - event.startTime) >= 60 * 60_000
+  // Resize handles: only when measured height >= 40px (avoids short blocks
+  // being mostly handle, which leads to accidental resize triggers).
+  const showResizeHandles = blockH >= 40
 
   const bottomResize = useDragToResize({
     eventId: event.id,
@@ -110,10 +132,6 @@ export const EventBlock = React.memo(function EventBlock({
   const dayEndMs = dayStartMs + 24 * 60 * 60 * 1000
   const segStart = Math.max(event.startTime, dayStartMs)
   const segEnd = Math.min(event.endTime, dayEndMs)
-  const segMinutes = (segEnd - segStart) / 60_000
-  const isShort = segMinutes < 45
-  const segTooSmall = segMinutes < 20
-  const showTime = (event.endTime - event.startTime) > 60 * 60_000
 
   const roundedClass = !startsBeforeDay && !endsAfterDay ? ''
     : !startsBeforeDay ? 'rounded-t-md'
@@ -122,6 +140,34 @@ export const EventBlock = React.memo(function EventBlock({
 
   const catFill = CAT_FILL[event.color]
   const catBg   = CAT_BG[event.color]
+
+  // Adaptive content visibility by measured block height
+  const showFull = blockH >= 40
+  const showDescription = blockH >= 50
+  const showCompact = blockH >= 28 && blockH < 40
+
+  // Shared icon for meal/sleep typed events
+  const typedIcon = event.typedData?.type === 'meal'
+    ? '🍚'
+    : event.typedData?.type === 'sleep'
+      ? '🌙'
+      : null
+
+  const iconHandler = typedIcon
+    ? {
+        onClick: (e: React.MouseEvent) => {
+          e.stopPropagation()
+          onTypedEdit?.(event, e.currentTarget as HTMLElement)
+        },
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            e.stopPropagation()
+            onTypedEdit?.(event, e.currentTarget as HTMLElement)
+          }
+        },
+      }
+    : null
 
   return (
     <ContextMenu>
@@ -147,8 +193,8 @@ export const EventBlock = React.memo(function EventBlock({
             }
           }}
           className={cn(
-            'relative overflow-hidden select-none my-[2px]',
-            'transition-colors duration-200 z-10',
+            'relative overflow-hidden select-none my-[1px]',
+            'transition-colors duration-200 z-10 hover:z-30',
             roundedClass,
             isDragging
               ? 'cursor-grabbing'
@@ -163,9 +209,10 @@ export const EventBlock = React.memo(function EventBlock({
             gridRowEnd:   rowEnd,
             gridColumnStart,
             gridColumnEnd,
+            minHeight: MIN_BLOCK_PX,
             borderLeft:       `3px solid ${catFill}`,
             backgroundColor:  catBg,
-            padding:          '6px 8px',
+            padding:          '4px 6px',
             borderRadius:     'var(--radius-s)',
             opacity:          isDragging ? 0.85 : 1,
             zIndex:           isDragging ? 50   : undefined,
@@ -180,103 +227,107 @@ export const EventBlock = React.memo(function EventBlock({
             onClick(event, e.currentTarget as HTMLElement)
           }}
         >
-          {/* Event content */}
-          {segTooSmall ? null : isShort ? (
-            /* ── Short event (<45 min): single row, title left + time right ── */
-            <div className="flex items-center gap-1 min-w-0">
-              {event.typedData?.type === 'meal' && (
-                <span
-                  className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
-                  title="点击编辑饮食详情"
-                  onClick={(e) => { e.stopPropagation(); onTypedEdit?.(event, e.currentTarget as HTMLElement) }}
-                  role="button" tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onTypedEdit?.(event, e.currentTarget as HTMLElement) } }}
-                >🍚</span>
-              )}
-              {event.typedData?.type === 'sleep' && (
-                <span
-                  className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
-                  title="点击编辑睡眠详情"
-                  onClick={(e) => { e.stopPropagation(); onTypedEdit?.(event, e.currentTarget as HTMLElement) }}
-                  role="button" tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onTypedEdit?.(event, e.currentTarget as HTMLElement) } }}
-                >🌙</span>
-              )}
-              <p
-                className="flex-1 font-ui truncate min-w-0 leading-tight"
-                style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}
-              >
-                {event.title || <span className="opacity-50 italic">Untitled</span>}
-              </p>
-              {showTime && !startsBeforeDay && !endsAfterDay && (
-                <span
-                  className="flex-shrink-0 leading-tight whitespace-nowrap"
-                  style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)' }}
-                >
-                  {`${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
-                </span>
-              )}
-            </div>
-          ) : (
-            <>
-              {/* ── Full event: title row ── */}
-              <div className="flex items-center gap-1 min-w-0">
-                {event.typedData?.type === 'meal' && (
-                  <span
-                    className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
-                    title="点击编辑饮食详情"
-                    onClick={(e) => { e.stopPropagation(); onTypedEdit?.(event, e.currentTarget as HTMLElement) }}
-                    role="button" tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onTypedEdit?.(event, e.currentTarget as HTMLElement) } }}
-                  >🍚</span>
-                )}
-                {event.typedData?.type === 'sleep' && (
-                  <span
-                    className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
-                    title="点击编辑睡眠详情"
-                    onClick={(e) => { e.stopPropagation(); onTypedEdit?.(event, e.currentTarget as HTMLElement) }}
-                    role="button" tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onTypedEdit?.(event, e.currentTarget as HTMLElement) } }}
-                  >🌙</span>
-                )}
-                <p
-                  className="flex-1 truncate min-w-0 leading-tight"
-                  style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-ui)' }}
-                >
-                  {event.title || <span className="opacity-50 italic">Untitled</span>}
-                </p>
-              </div>
-
-              {/* ── Time row ── */}
-              {showTime && !startsBeforeDay && !endsAfterDay && (
-                <p
-                  className="leading-tight"
-                  style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', marginTop: 2 }}
-                >
-                  {`${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
-                </p>
-              )}
-
-              {/* ── Description (if any) ── */}
-              {event.description && (
-                <div
-                  className="leading-tight truncate"
-                  style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}
-                >
-                  {event.description}
+          {/* ── Content: adaptive by measured height ── */}
+          {(() => {
+            // Not yet measured, or very short block: title only
+            if (blockH === 0 || !showCompact && !showFull) {
+              return (
+                <div className="flex items-center gap-1 min-w-0 h-full">
+                  {iconHandler && (
+                    <span
+                      className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
+                      title={`点击编辑${event.typedData?.type === 'meal' ? '饮食' : '睡眠'}详情`}
+                      {...iconHandler}
+                    >{typedIcon}</span>
+                  )}
+                  <p
+                    className="flex-1 font-ui truncate min-w-0 leading-tight"
+                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}
+                  >
+                    {event.title || <span className="opacity-50 italic">Untitled</span>}
+                  </p>
                 </div>
-              )}
-            </>
-          )}
+              )
+            }
 
-          {/* Bottom resize handle */}
-          {showResizeHandles && (
-            <div
-              className="absolute bottom-0 left-0 right-0 h-5 cursor-ns-resize z-20"
-              onPointerDown={bottomResize.onPointerDown}
-              onClick={(e) => e.stopPropagation()}
-            />
-          )}
+            // Compact: single row, title left + time right (28–40px)
+            if (showCompact) {
+              return (
+                <div className="flex items-center gap-1 min-w-0">
+                  {iconHandler && (
+                    <span
+                      className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
+                      title={`点击编辑${event.typedData?.type === 'meal' ? '饮食' : '睡眠'}详情`}
+                      {...iconHandler}
+                    >{typedIcon}</span>
+                  )}
+                  <p
+                    className="flex-1 font-ui truncate min-w-0 leading-tight"
+                    style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}
+                  >
+                    {event.title || <span className="opacity-50 italic">Untitled</span>}
+                  </p>
+                  {!startsBeforeDay && !endsAfterDay && (
+                    <span
+                      className="flex-shrink-0 leading-tight whitespace-nowrap"
+                      style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)' }}
+                    >
+                      {`${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
+                    </span>
+                  )}
+                </div>
+              )
+            }
+
+            // Full: title row + time row + optional description (≥40px)
+            return (
+              <>
+                <div className="flex items-center gap-1 min-w-0">
+                  {iconHandler && (
+                    <span
+                      className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
+                      title={`点击编辑${event.typedData?.type === 'meal' ? '饮食' : '睡眠'}详情`}
+                      {...iconHandler}
+                    >{typedIcon}</span>
+                  )}
+                  <p
+                    className="flex-1 truncate min-w-0 leading-tight"
+                    style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-ui)' }}
+                  >
+                    {event.title || <span className="opacity-50 italic">Untitled</span>}
+                  </p>
+                </div>
+
+                {showFull && !startsBeforeDay && !endsAfterDay && (
+                  <p
+                    className="leading-tight"
+                    style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', marginTop: 2 }}
+                  >
+                    {`${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
+                  </p>
+                )}
+
+                {showDescription && event.description && (
+                  <div
+                    className="leading-tight truncate"
+                    style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}
+                  >
+                    {event.description}
+                  </div>
+                )}
+
+                {/* Bottom resize handle — shorter (h-3 = 12px) to avoid
+                    taking over short blocks. */}
+                {showResizeHandles && (
+                  <div
+                    className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize z-20"
+                    onPointerDown={bottomResize.onPointerDown}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
+              </>
+            )
+          })()}
         </div>
       </ContextMenuTrigger>
 

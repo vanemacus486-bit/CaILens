@@ -6,8 +6,7 @@ import type { Profile } from '@/domain/profile'
 import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit } from '@/domain/dailyContext'
-import type { Todo } from '@/domain/todo'
-import type { Goal } from '@/domain/goal'
+import type { Todo, TodoList } from '@/domain/todo'
 import type { StorageAdapter, StorageTable, QueryOptions, HygieneLogRecord } from './StorageAdapter'
 import {
   isTauri,
@@ -78,7 +77,7 @@ interface MemoryIndex {
   outfitLogs: Map<string, DailyOutfit>
   hygieneLogs: Map<string, HygieneLogRecord>
   todos: Map<string, Todo>
-  goals: Map<string, Goal>
+  todoLists: Map<string, TodoList>
 }
 
 function binarySearchLeft(arr: { ts: number }[], value: number): number {
@@ -720,82 +719,7 @@ class TodosFsTable implements StorageTable<Todo> {
 
 // ── Goals table (single file: goals.json) ───────────────────
 
-class GoalsFsTable implements StorageTable<Goal> {
-  private index: MemoryIndex
-  private filePath: string
 
-  constructor(index: MemoryIndex, rootPath: string) {
-    this.index = index
-    this.filePath = joinPath(rootPath, 'goals.json')
-  }
-
-  async get(id: string): Promise<Goal | undefined> {
-    return this.index.goals.get(id)
-  }
-
-  async getAll(): Promise<Goal[]> {
-    return Array.from(this.index.goals.values())
-  }
-
-  async put(item: Goal): Promise<void> {
-    this.index.goals.set(item.id, item)
-    await this.flush()
-  }
-
-  async update(id: string, changes: Partial<Goal>): Promise<void> {
-    const existing = this.index.goals.get(id)
-    if (!existing) return
-    await this.put({ ...existing, ...changes, id: existing.id })
-  }
-
-  async delete(id: string): Promise<void> {
-    this.index.goals.delete(id)
-    await this.flush()
-  }
-
-  async bulkGet(ids: string[]): Promise<(Goal | undefined)[]> {
-    return ids.map((id) => this.index.goals.get(id))
-  }
-
-  async bulkPut(items: Goal[]): Promise<void> {
-    for (const item of items) {
-      this.index.goals.set(item.id, item)
-    }
-    await this.flush()
-  }
-
-  async query(opts: QueryOptions<Goal>): Promise<Goal[]> {
-    let results = Array.from(this.index.goals.values())
-    if (opts.filter) results = results.filter(opts.filter)
-    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
-    return results
-  }
-
-  async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
-    return fn()
-  }
-
-  private async flush(): Promise<void> {
-    const data = Array.from(this.index.goals.values())
-    const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'goals', data }, null, 2)
-    await writeTextFile(this.filePath, content)
-  }
-
-  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
-    const file = entries.find((e) => e.path.endsWith('goals.json'))
-    if (!file) return // 文件缺失:保留现有内存,避免误清空
-    try {
-      const parsed = JSON.parse(file.content)
-      if (parsed.type === 'goals' && Array.isArray(parsed.data)) {
-        // 权威重载:内存严格反映磁盘
-        this.index.goals.clear()
-        for (const item of parsed.data as Goal[]) {
-          this.index.goals.set(item.id, item)
-        }
-      }
-    } catch { /* ignore */ }
-  }
-}
 
 /**
  * 简化的内存表（无文件持久化），用于 SOP、灵感等次要实体。
@@ -909,7 +833,7 @@ export class FileSystemAdapter implements StorageAdapter {
   outfitLogs: StorageTable<DailyOutfit>
   hygieneLogs: StorageTable<HygieneLogRecord>
   todos: StorageTable<Todo>
-  goals: StorageTable<Goal>
+  todoLists: StorageTable<TodoList>
 
   private index: MemoryIndex = {
     events: new Map(),
@@ -926,7 +850,7 @@ export class FileSystemAdapter implements StorageAdapter {
     outfitLogs: new Map(),
     hygieneLogs: new Map(),
     todos: new Map(),
-    goals: new Map(),
+    todoLists: new Map(),
   }
 
   private rootPath: string | null = null
@@ -950,7 +874,7 @@ export class FileSystemAdapter implements StorageAdapter {
     this.outfitLogs = new GenericFsTable(this.index, 'outfitLogs')
     this.hygieneLogs = new GenericFsTable(this.index, 'hygieneLogs')
     this.todos = new TodosFsTable(this.index, '')
-    this.goals = new GoalsFsTable(this.index, '')
+    this.todoLists = new GenericFsTable(this.index, 'todoLists')
   }
 
   get initialized(): boolean {
@@ -975,7 +899,6 @@ export class FileSystemAdapter implements StorageAdapter {
     this.outfitLogs = new GenericFsTable(this.index, 'outfitLogs')
     this.hygieneLogs = new GenericFsTable(this.index, 'hygieneLogs')
     this.todos = new TodosFsTable(this.index, this.rootPath)
-    this.goals = new GoalsFsTable(this.index, this.rootPath)
   }
 
   async initialize(): Promise<void> {
@@ -1040,7 +963,6 @@ export class FileSystemAdapter implements StorageAdapter {
     await (this.weeklyEstimates as EstimatesFsTable).loadFromScan(metaEntries)
     await (this.projects as ProjectsFsTable).loadFromScan(metaEntries)
     await (this.todos as TodosFsTable).loadFromScan(metaEntries)
-    await (this.goals as GoalsFsTable).loadFromScan(metaEntries)
 
     // 2) 最近两个月事件(当前月 + 上月,自动跨年),以「部分加载」标记(markInitialized=false)
     const recent = await this.readRecentEventEntries(2)
@@ -1084,7 +1006,6 @@ export class FileSystemAdapter implements StorageAdapter {
     await (this.weeklyEstimates as EstimatesFsTable).loadFromScan(entries)
     await (this.projects as ProjectsFsTable).loadFromScan(entries)
     await (this.todos as TodosFsTable).loadFromScan(entries)
-    await (this.goals as GoalsFsTable).loadFromScan(entries)
     await (this.events as EventsFsTable).loadFromScan(entries)
   }
 

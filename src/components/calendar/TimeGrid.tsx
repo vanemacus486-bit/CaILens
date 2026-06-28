@@ -20,7 +20,7 @@ export function TimeGrid({
 
   return (
     <div
-      className="h-full grid bg-surface-sunken"
+      className="h-full grid bg-surface-base"
       style={{
         gridTemplateRows: `repeat(${hourEnd - hourStart}, 1fr)`,
         borderLeft: '1px solid var(--line)',

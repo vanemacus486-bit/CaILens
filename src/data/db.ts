@@ -1,4 +1,4 @@
-import Dexie, { type Table } from 'dexie'
+﻿import Dexie, { type Table } from 'dexie'
 import type { CalendarEvent } from '@/domain/event'
 import type { Category, CategoryId } from '@/domain/category'
 import { DEFAULT_CATEGORIES } from '@/domain/category'
@@ -8,11 +8,11 @@ import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { Profile } from '@/domain/profile'
 import type { Todo } from '@/domain/todo'
-import type { Goal } from '@/domain/goal'
+import type { TodoList } from '@/domain/todo'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import { upgradeV3, upgradeV4, upgradeV5, upgradeV16, upgradeV21, upgradeV24 } from './migrations/upgrades'
 
-// ── Database ──────────────────────────────────────────────
+// 鈹€鈹€ Database 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 export class CailensDB extends Dexie {
   events!:          Table<CalendarEvent, string>
@@ -27,42 +27,42 @@ export class CailensDB extends Dexie {
   outfitLogs!:      Table<import('@/domain/dailyContext').DailyOutfit, string>
   hygieneLogs!:     Table<import('./adapters/StorageAdapter').HygieneLogRecord, string>
   todos!: Table<Todo, string>
-  goals!: Table<Goal, string>
+  todoLists!: Table<TodoList, string>
 
   constructor(name = 'cailens') {
     super(name)
 
-    // v1：只有 events 表
+    // v1锛氬彧鏈?events 琛?
     this.version(1).stores({ events: 'id, startTime' })
 
-    // v3：新增 categories + settings 表
+    // v3锛氭柊澧?categories + settings 琛?
     this.version(3)
       .stores({ events: 'id, startTime', categories: 'id', settings: 'id' })
       .upgrade(upgradeV3)
 
-    // v4：keywords → folders
+    // v4锛歬eywords 鈫?folders
     this.version(4)
       .stores({ events: 'id, startTime', categories: 'id', settings: 'id' })
       .upgrade(upgradeV4)
 
-    // v5：补 weeklyBudget 默认值
+    // v5锛氳ˉ weeklyBudget 榛樿鍊?
     this.version(5)
       .stores({ events: 'id, startTime', categories: 'id', settings: 'id' })
       .upgrade(upgradeV5)
 
-    // v6：新增 weeklyEstimates 表
+    // v6锛氭柊澧?weeklyEstimates 琛?
     this.version(6).stores({
       events: 'id, startTime', categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
     })
 
-    // v7：events 表新增 endTime 索引
+    // v7锛歟vents 琛ㄦ柊澧?endTime 绱㈠紩
     this.version(7).stores({
       events: 'id, startTime, endTime', categories: 'id', settings: 'id',
       weeklyEstimates: 'id, weekStart, categoryId',
     })
 
-    // v13：新增 projects 表 + events 新增 projectId 索引
+    // v13锛氭柊澧?projects 琛?+ events 鏂板 projectId 绱㈠紩
     this.version(13).stores({
       events: 'id, startTime, endTime, projectId',
       categories: 'id', settings: 'id',
@@ -70,7 +70,7 @@ export class CailensDB extends Dexie {
       projects: 'id, categoryId, name, status',
     })
 
-    // v14：新增 inspirations
+    // v14锛氭柊澧?inspirations
     this.version(14).stores({
       events: 'id, startTime, endTime, projectId',
       categories: 'id', settings: 'id',
@@ -79,7 +79,7 @@ export class CailensDB extends Dexie {
       inspirations: 'id, projectId, eventId',
     })
 
-    // v16：projects 新增 useCount/lastUsedAt；新增 mealRecords + sleepRecords
+    // v16锛歱rojects 鏂板 useCount/lastUsedAt锛涙柊澧?mealRecords + sleepRecords
     this.version(16).stores({
       events: 'id, startTime, endTime, projectId',
       categories: 'id', settings: 'id',
@@ -89,7 +89,7 @@ export class CailensDB extends Dexie {
       mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
     }).upgrade(upgradeV16)
 
-    // v17：新增 profiles 表
+    // v17锛氭柊澧?profiles 琛?
     this.version(17).stores({
       events: 'id, startTime, endTime, projectId',
       categories: 'id', settings: 'id',
@@ -100,7 +100,7 @@ export class CailensDB extends Dexie {
       profiles: 'id',
     })
 
-    // v18：新增穿搭/卫生/娱乐/身体指标时序表
+    // v18锛氭柊澧炵┛鎼?鍗敓/濞变箰/韬綋鎸囨爣鏃跺簭琛?
     this.version(18).stores({
       events: 'id, startTime, endTime, projectId',
       categories: 'id', settings: 'id',
@@ -113,7 +113,7 @@ export class CailensDB extends Dexie {
       hygieneLogs: 'id, date',
     })
 
-    // v19：新增 todos 表
+    // v19锛氭柊澧?todos 琛?
     this.version(19).stores({
       events: 'id, startTime, endTime, projectId',
       categories: 'id', settings: 'id',
@@ -127,7 +127,7 @@ export class CailensDB extends Dexie {
       todos: 'id, status, dueDate, sortOrder',
     })
 
-    // v21：合并项目概念 — taskGroups/taskGroupItems → projects/todos
+    // v21锛氬悎骞堕」鐩蹇?鈥?taskGroups/taskGroupItems 鈫?projects/todos
     this.version(21).stores({
       events: 'id, startTime, endTime, projectId',
       categories: 'id', settings: 'id',
@@ -141,7 +141,7 @@ export class CailensDB extends Dexie {
       todos: 'id, status, dueDate, sortOrder, projectId',
     }).upgrade(upgradeV21)
 
-    // v22：todos 新增 categoryId 索引（独立待办分类归属）
+    // v22锛歵odos 鏂板 categoryId 绱㈠紩锛堢嫭绔嬪緟鍔炲垎绫诲綊灞烇級
     this.version(22).stores({
       events: 'id, startTime, endTime, projectId',
       categories: 'id', settings: 'id',
@@ -155,12 +155,12 @@ export class CailensDB extends Dexie {
       todos: 'id, status, dueDate, sortOrder, projectId, categoryId',
     })
 
-    // v23：todos 新增 repeatPattern 字段（每日重复待办）
+    // v23锛歵odos 鏂板 repeatPattern 瀛楁锛堟瘡鏃ラ噸澶嶅緟鍔烇級
     this.version(23).stores({
       todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern',
     })
 
-    // v25：todos 新增 priority（可空）和 domain 字段（收件箱任务支持）
+    // v25锛歵odos 鏂板 priority锛堝彲绌猴級鍜?domain 瀛楁锛堟敹浠剁浠诲姟鏀寔锛?
     this.version(25).stores({
       todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern, priority, domain',
     }).upgrade((tx) => tx.table('todos').toCollection().modify(
@@ -170,7 +170,7 @@ export class CailensDB extends Dexie {
       if (todo.domain === undefined) todo.domain = null
     }))
 
-    // v24：projects 新增 dailyRepeat 字段（项目级每日重复）
+    // v24锛歱rojects 鏂板 dailyRepeat 瀛楁锛堥」鐩骇姣忔棩閲嶅锛?
     this.version(24).stores({
       events: 'id, startTime, endTime, projectId',
       categories: 'id', settings: 'id',
@@ -184,7 +184,7 @@ export class CailensDB extends Dexie {
       todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern',
     }).upgrade(upgradeV24)
 
-    // v26：新增 goals 表；todos/events 增 goalId 索引
+    // v26锛氭柊澧?goals 琛紱todos/events 澧?goalId 绱㈠紩
     this.version(26).stores({
       events: 'id, startTime, endTime, projectId, goalId',
       categories: 'id', settings: 'id',
@@ -203,7 +203,7 @@ export class CailensDB extends Dexie {
       await tx.table('events').toCollection().modify((e: any) => { if (e.goalId === undefined) e.goalId = null })
     })
 
-    // v27：卫生改为类型化事件 — 旧 hygieneLogs 勾选记录迁移为 hygiene 事件
+    // v27锛氬崼鐢熸敼涓虹被鍨嬪寲浜嬩欢 鈥?鏃?hygieneLogs 鍕鹃€夎褰曡縼绉讳负 hygiene 浜嬩欢
     this.version(27).stores({
       events: 'id, startTime, endTime, projectId, goalId',
     }).upgrade(async (tx) => {
@@ -211,7 +211,7 @@ export class CailensDB extends Dexie {
       const logs = (await tx.table('hygieneLogs').toArray()) as any[]
       if (logs.length === 0) return
       const now = Date.now()
-      // 旧 HygieneActivity → 中文标题（内联，避免依赖已删除的 domain 常量）
+      // 鏃?HygieneActivity 鈫?涓枃鏍囬锛堝唴鑱旓紝閬垮厤渚濊禆宸插垹闄ょ殑 domain 甯搁噺锛?
       const HYGIENE_LABELS: Record<string, string> = {
         shower: '洗澡', brush_teeth: '刷牙', skincare: '护肤',
         shave: '刮胡子', hair_wash: '洗头', nail_care: '修剪指甲',
@@ -226,7 +226,7 @@ export class CailensDB extends Dexie {
         for (const activity of log.activities) {
           const label = HYGIENE_LABELS[activity as string]
           if (!label) continue
-          // 旧记录无时刻，默认落在当日 08:00 起、每项间隔 10 分钟
+          // 鏃ц褰曟棤鏃跺埢锛岄粯璁よ惤鍦ㄥ綋鏃?08:00 璧枫€佹瘡椤归棿闅?10 鍒嗛挓
           const start = new Date(y, m - 1, d, 8, i * 10).getTime()
           newEvents.push({
             id: crypto.randomUUID(),
@@ -248,7 +248,7 @@ export class CailensDB extends Dexie {
       await tx.table('hygieneLogs').clear()
     })
 
-    // v28：events 新增 deletedAt 索引（软删除 tombstone，为二期同步预留）
+    // v28锛歟vents 鏂板 deletedAt 绱㈠紩锛堣蒋鍒犻櫎 tombstone锛屼负浜屾湡鍚屾棰勭暀锛?
     this.version(28).stores({
       events: 'id, startTime, endTime, projectId, goalId, deletedAt',
     }).upgrade((tx) =>
@@ -258,7 +258,35 @@ export class CailensDB extends Dexie {
       })
     )
 
-    // 全新 DB 首次创建时触发（version 0 → any）
+    // v29锛氭柊澧?todoLists 琛紱todos 鍔?listId 绱㈠紩
+    this.version(29).stores({
+      events: 'id, startTime, endTime, projectId, goalId, deletedAt',
+      categories: 'id', settings: 'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+      projects: 'id, categoryId, name, status, sortOrder, useCount, lastUsedAt, dailyRepeat',
+      inspirations: 'id, projectId, eventId',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+      profiles: 'id',
+      outfitLogs: 'id, date', hygieneLogs: 'id, date',
+      todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern, priority, domain, goalId, listId',
+      goals: 'id, parentId, status, sortOrder',
+      todoLists: 'id, sortOrder',
+    }).upgrade(async (tx) => {
+      // 鍒涘缓榛樿娓呭崟
+      const now = Date.now()
+      const defaultListId = 'default'
+      await tx.table('todoLists').put({
+        id: defaultListId, name: '榛樿', sortOrder: 0,
+        createdAt: now, updatedAt: now,
+      })
+      // 涓虹幇鏈?todos 鍥炲～ listId
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await tx.table('todos').toCollection().modify((t: any) => {
+        if (t.listId === undefined) t.listId = defaultListId
+      })
+    })
+
+    // 鍏ㄦ柊 DB 棣栨鍒涘缓鏃惰Е鍙戯紙version 0 鈫?any锛?
     this.on('populate', () =>
       Promise.all([
         this.categories.bulkPut([...DEFAULT_CATEGORIES]),
@@ -266,7 +294,7 @@ export class CailensDB extends Dexie {
       ])
     )
 
-    // v1→v3 upgrade 后 categories 可能为空，在此补种
+    // v1鈫抳3 upgrade 鍚?categories 鍙兘涓虹┖锛屽湪姝よˉ绉?
     this.on('ready', async () => {
       const catCount = await this.categories.count()
       if (catCount === 0) {
@@ -277,3 +305,6 @@ export class CailensDB extends Dexie {
 }
 
 export const db = new CailensDB()
+
+
+

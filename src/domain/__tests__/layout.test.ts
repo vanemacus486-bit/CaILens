@@ -54,10 +54,10 @@ describe('single event', () => {
     const result = layoutDayEvents([makeEvent('a', 8, 9)], DAY)
     expect(result).toHaveLength(1)
     const { rowStart, rowEnd } = result[0]
-    // slot 0 = 0:00-0:30 → rowStart 1; 8:00 = slot 16 → rowStart 17
-    expect(rowStart).toBe(17)
-    // 9:00 = slot 18 → rowEnd 19
-    expect(rowEnd).toBe(19)
+    // slot 0 = 0:00-0:15 → rowStart 1; 8:00 = slot 32 → rowStart 33
+    expect(rowStart).toBe(33)
+    // 9:00 = slot 36 → rowEnd 37
+    expect(rowEnd).toBe(37)
   })
 
   it('assigns columnIndex=0 and totalColumns=1 for a lone event', () => {
@@ -81,6 +81,18 @@ describe('single event', () => {
     }
     const result = layoutDayEvents([event], DAY)
     expect(result[0].rowEnd).toBeGreaterThan(result[0].rowStart)
+  })
+
+  it('two adjacent 15-minute events do not overlap', () => {
+    // A: 9:00-9:15, B: 9:15-9:30 — half-open, each fits in its own 15min slot
+    const a = makeEvent('a', 9, 9, 0, 15)
+    const b = makeEvent('b', 9, 9, 15, 30)
+    const result = layoutDayEvents([a, b], DAY)
+    expect(result).toHaveLength(2)
+    expect(result[0].columnIndex).toBe(0)
+    expect(result[1].columnIndex).toBe(0)
+    expect(result[0].totalColumns).toBe(1)
+    expect(result[1].totalColumns).toBe(1)
   })
 })
 
@@ -171,20 +183,20 @@ describe('row calculation', () => {
     expect(result[0].rowStart).toBe(1)
   })
 
-  it('11:30 start → rowStart=24 (slot 23 + 1)', () => {
-    // 11:30 = 690 minutes / 30 = 23 → rowStart 24
+  it('11:30 start → rowStart=47 (slot 46 + 1)', () => {
+    // 11:30 = 690 minutes / 15 = 46 → rowStart 47
     const event: CalendarEvent = {
       id: 'x', title: 'x',
       startTime: ts(11, 30), endTime: ts(12, 30),
       color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0,
     }
     const result = layoutDayEvents([event], DAY)
-    expect(result[0].rowStart).toBe(24)
+    expect(result[0].rowStart).toBe(47)
   })
 
   it('event ending at 23:30 has rowEnd within grid bounds', () => {
     const result = layoutDayEvents([makeEvent('a', 22, 23, 0, 30)], DAY)
-    expect(result[0].rowEnd).toBeLessThanOrEqual(49)
+    expect(result[0].rowEnd).toBeLessThanOrEqual(97)
   })
 })
 
@@ -245,12 +257,12 @@ describe('cross-day events', () => {
     expect(result[0].rowStart).toBe(1)
   })
 
-  it('clamp rowEnd past slot 48 for event continuing to next day', () => {
-    // Mon 23:00 – Tue 07:00, viewed on Monday: ends at 24:00 → rowEnd should be 49
+  it('clamp rowEnd past slot 96 for event continuing to next day', () => {
+    // Mon 23:00 – Tue 07:00, viewed on Monday: ends at 24:00 → rowEnd should be 97
     const result = layoutDayEvents([makeCrossDayEvent('sleep', 23, 7)], DAY)
-    // 23:00 = 1380 min / 30 = 46 → rowStart 47. 24:00 = 1440 min / 30 = 48 → rowEnd 49.
-    expect(result[0].rowStart).toBe(47)
-    expect(result[0].rowEnd).toBe(49)
+    // 23:00 = 1380 min / 15 = 92 → rowStart 93. 24:00 = 1440 min / 15 = 96 → rowEnd 97.
+    expect(result[0].rowStart).toBe(93)
+    expect(result[0].rowEnd).toBe(97)
   })
 })
 
@@ -328,10 +340,10 @@ describe('layoutDaySegments', () => {
     const seg = makeSeg('a', 0, 8, 9)
     const eventMap = makeEventMap([makeEvent('a', 8, 9)])
     const result = layoutDaySegments([seg], eventMap)
-    // 8:00 = 480 min / 30 = 16 → rowStart 17
-    expect(result[0].rowStart).toBe(17)
-    // 9:00 = 540 min / 30 = 18 → rowEnd 19
-    expect(result[0].rowEnd).toBe(19)
+    // 8:00 = 480 min / 15 = 32 → rowStart 33
+    expect(result[0].rowStart).toBe(33)
+    // 9:00 = 540 min / 15 = 36 → rowEnd 37
+    expect(result[0].rowEnd).toBe(37)
   })
 
   it('sorts segments by segmentStart', () => {

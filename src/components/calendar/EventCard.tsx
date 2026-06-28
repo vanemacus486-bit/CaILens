@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import type { CalendarEvent } from '@/domain/event'
 import type { Category } from '@/domain/category'
+import type { AppLanguage } from '@/i18n/types'
 
 export interface EventCardProps {
   event: CalendarEvent
@@ -30,7 +31,7 @@ function catFill(cat: Category | undefined): string {
 }
 
 /** Shared event card — desktop or compact mobile variant */
-export function EventCard({ event, category, compact, hovered, onNotes }: { event: CalendarEvent; category?: Category; language?: 'zh' | 'en'; compact?: boolean; hovered?: boolean; onNotes?: () => void }) {
+export function EventCard({ event, category, compact, hovered, onNotes }: { event: CalendarEvent; category?: Category; language?: AppLanguage; compact?: boolean; hovered?: boolean; onNotes?: () => void }) {
   const hasNotes = !!event.description?.trim()
   const displayStart = event.startTime
   const displayEnd = Math.min(event.endTime, event.startTime + 86_400_000)

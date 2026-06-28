@@ -1,7 +1,7 @@
 // Layout algorithm constants — kept in domain layer because layout.ts
 // (a domain pure function) depends on these values.
-export const SLOTS_PER_HOUR = 2            // 30-minute granularity
-export const TOTAL_SLOTS = 24 * SLOTS_PER_HOUR  // 48
+export const SLOTS_PER_HOUR = 4            // 15-minute granularity
+export const TOTAL_SLOTS = 24 * SLOTS_PER_HOUR  // 96
 
 // Fixed number of overlap columns inside each DayColumn grid.
 // Supports up to 6 simultaneous overlapping events; extras are clipped.
