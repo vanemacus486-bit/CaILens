@@ -114,12 +114,8 @@ export const useTodoListStore = create<TodoListState>()((set) => ({
     set({ activeListId: id })
   },
 
-  clearCompleted: async (listId) => {
-    // import todo repo lazily to avoid circular dependency
-    const { getTodoRepo } = await import('@/data/getRepositories')
-    const todos = await getTodoRepo().getByListId(listId)
-    const doneTodos = todos.filter((t) => t.status === 'done')
-    await Promise.all(doneTodos.map((t) => getTodoRepo().delete(t.id)))
+  clearCompleted: async (_listId) => {
+    // 已完成待办保留在数据库中（归档面板可读取），无需额外操作
   },
 
   toggleListVisibility: (id) => {

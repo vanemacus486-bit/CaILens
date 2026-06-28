@@ -22,7 +22,7 @@ import { HabitTrendCard } from '@/components/stats/HabitTrendCard'
 import { DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { EasternStatsShell, type RoutineViewMode } from '@/components/stats/EasternStatsShell'
 import { StatsHeader, type SegmentedOption } from '@/components/stats/StatsHeader'
-import { StatsRail, StatsRailCompact } from '@/components/stats/StatsRail'
+import { StatsRail } from '@/components/stats/StatsRail'
 import type { CategoryId } from '@/domain/category'
 
 // ── Constants ──────────────────────────────────────────────────
@@ -162,16 +162,6 @@ export function StatsPage() {
   const outfits         = useDailyContextStore((s) => s.outfits)
   const loadOutfits     = useDailyContextStore((s) => s.loadOutfits)
 
-  // ── Responsive ────────────────────────────────────────────
-
-  const [isCompact, setIsCompact] = useState(false)
-  useEffect(() => {
-    const check = () => setIsCompact(window.innerWidth < 720)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
-
   // ── URL state ────────────────────────────────────────────
 
   const routineView = (searchParams.get('view') as RoutineViewMode | null) ?? 'trend'
@@ -299,16 +289,7 @@ export function StatsPage() {
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <EasternStatsShell
-      rail={
-        <StatsRail
-          mode={railMode}
-          selected={railSelected}
-          onToggle={railMode === 'multi' ? handleRailToggle : undefined}
-          onSelect={railMode === 'single' ? handleRailSelect : undefined}
-        />
-      }
-    >
+    <EasternStatsShell>
       <style>{STATS_PAGE_CSS}</style>
 
       {isLoading && rangeEvents.length === 0 && (
@@ -341,17 +322,17 @@ export function StatsPage() {
             value={segValue}
             onChange={handleSegmentChange}
             onNavigate={navigateRoutine}
+            rail={
+              railMode !== 'empty' ? (
+                <StatsRail
+                  mode={railMode}
+                  selected={railSelected}
+                  onToggle={railMode === 'multi' ? handleRailToggle : undefined}
+                  onSelect={railMode === 'single' ? handleRailSelect : undefined}
+                />
+              ) : undefined
+            }
           />
-
-          {/* Compact rail dots (<720px) — only for views with category selection */}
-          {isCompact && railMode !== 'empty' && (
-            <StatsRailCompact
-              mode={railMode}
-              selected={railSelected}
-              onToggle={railMode === 'multi' ? handleRailToggle : undefined}
-              onSelect={railMode === 'single' ? handleRailSelect : undefined}
-            />
-          )}
 
           {/* View body */}
           <div>

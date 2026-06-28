@@ -9,6 +9,7 @@ import {
   TODO_PRIORITY_ORDER,
   isRepeatingTodo,
   spawnNextRepeat,
+  filterDoneTodosByDay,
 } from '../todo'
 import type { Todo } from '../todo'
 
@@ -437,6 +438,47 @@ describe('isRepeatingTodo', () => {
   it('returns false for null repeat pattern', () => {
     const todo = makeTodo({ repeatPattern: null })
     expect(isRepeatingTodo(todo)).toBe(false)
+  })
+})
+
+describe('filterDoneTodosByDay', () => {
+  const DAY = 86400000
+  const day1 = new Date(2025, 2, 19).getTime() // Wednesday
+
+  it('returns done todos on the given day sorted by completedAt desc', () => {
+    const earlier = makeTodo({ id: '1', status: 'done', completedAt: day1 + 10 * 3_600_000 })
+    const later = makeTodo({ id: '2', status: 'done', completedAt: day1 + 14 * 3_600_000 })
+    const result = filterDoneTodosByDay([earlier, later], day1)
+    expect(result).toHaveLength(2)
+    expect(result[0].id).toBe('2') // later first
+    expect(result[1].id).toBe('1')
+  })
+
+  it('excludes non-done todos', () => {
+    const todo = makeTodo({ id: '1', status: 'todo', completedAt: day1 + 10 * 3_600_000 })
+    const done = makeTodo({ id: '2', status: 'done', completedAt: day1 + 10 * 3_600_000 })
+    const result = filterDoneTodosByDay([todo, done], day1)
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('2')
+  })
+
+  it('excludes done todos from other days', () => {
+    const todayTodo = makeTodo({ id: '1', status: 'done', completedAt: day1 + 10 * 3_600_000 })
+    const yesterdayTodo = makeTodo({ id: '2', status: 'done', completedAt: day1 - DAY + 10 * 3_600_000 })
+    const tomorrowTodo = makeTodo({ id: '3', status: 'done', completedAt: day1 + DAY + 10 * 3_600_000 })
+    const result = filterDoneTodosByDay([todayTodo, yesterdayTodo, tomorrowTodo], day1)
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('1')
+  })
+
+  it('excludes done todos with null completedAt', () => {
+    const badTodo = makeTodo({ id: '1', status: 'done', completedAt: null })
+    const result = filterDoneTodosByDay([badTodo], day1)
+    expect(result).toHaveLength(0)
+  })
+
+  it('returns empty array for empty input', () => {
+    expect(filterDoneTodosByDay([], day1)).toEqual([])
   })
 })
 

@@ -1501,6 +1501,48 @@ export const translations: TranslationDict = {
     fr: 'Renommer',
     ru: 'Переименовать',
   },
+  'sidebar.archive': {
+    zh: '历史归档',
+    en: 'Archive',
+    es: 'Archivo',
+    ar: 'الأرشيف',
+    fr: 'Archive',
+    ru: 'Архив',
+  },
+
+  // ── 历史归档页 ─────────────────────────────────────────
+  'archive.title': {
+    zh: '历史归档',
+    en: 'Archive',
+    es: 'Archivo',
+    ar: 'الأرشيف',
+    fr: 'Archive',
+    ru: 'Архив',
+  },
+  'archive.empty': {
+    zh: '暂无已完成任务',
+    en: 'No completed tasks yet',
+    es: 'Aún no hay tareas completadas',
+    ar: 'لا توجد مهام مكتملة بعد',
+    fr: 'Pas encore de tâches terminées',
+    ru: 'Пока нет выполненных задач',
+  },
+  'archive.completedCount': {
+    zh: '{0} 条已完成',
+    en: '{0} completed',
+    es: '{0} completadas',
+    ar: '{0} مكتملة',
+    fr: '{0} terminée(s)',
+    ru: '{0} выполнено',
+  },
+  'archive.listLabel': {
+    zh: '{0} 列表',
+    en: '{0} list',
+    es: 'lista {0}',
+    ar: 'قائمة {0}',
+    fr: 'liste {0}',
+    ru: 'список {0}',
+  },
 
   // ── 日标记 ─────────────────────────────────────────────
   'dayMark.today': {

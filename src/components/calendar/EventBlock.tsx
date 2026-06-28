@@ -111,9 +111,7 @@ export const EventBlock = React.memo(function EventBlock({
     onDragStateChange?.(dragState)
   }, [dragState, onDragStateChange])
 
-  // Resize handles: only when measured height >= 40px (avoids short blocks
-  // being mostly handle, which leads to accidental resize triggers).
-  const showResizeHandles = blockH >= 40
+  const showResizeHandles = blockH >= 18
 
   const bottomResize = useDragToResize({
     eventId: event.id,
@@ -316,18 +314,23 @@ export const EventBlock = React.memo(function EventBlock({
                   </div>
                 )}
 
-                {/* Bottom resize handle — shorter (h-3 = 12px) to avoid
-                    taking over short blocks. */}
-                {showResizeHandles && (
-                  <div
-                    className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize z-20"
-                    onPointerDown={bottomResize.onPointerDown}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                )}
+
               </>
             )
           })()}
+
+          {/* Bottom resize handle — adaptive height; thinner on short blocks
+              so it doesn't swallow click-to-open. */}
+          {showResizeHandles && (
+            <div
+              className={cn(
+                'absolute bottom-0 left-0 right-0 cursor-ns-resize z-20',
+                blockH >= 40 ? 'h-3' : 'h-1.5',
+              )}
+              onPointerDown={bottomResize.onPointerDown}
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
         </div>
       </ContextMenuTrigger>
 

@@ -235,6 +235,20 @@ export function groupTodosByCompletionDate(todos: Todo[]): CompletionGroup[] {
   return result
 }
 
+/** 过滤某一天完成的待办，按 completedAt 降序 */
+export function filterDoneTodosByDay(todos: Todo[], dayStartMs: number): Todo[] {
+  const dayEndMs = dayStartMs + 86400000
+  return todos
+    .filter(
+      (t) =>
+        t.status === 'done' &&
+        t.completedAt !== null &&
+        t.completedAt >= dayStartMs &&
+        t.completedAt < dayEndMs,
+    )
+    .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+}
+
 /** 计算项目完成进度（基于 status === 'done' 的待办比例） */
 export function calcProjectProgress(todos: Todo[]): {
   done: number

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, fireEvent } from '@testing-library/react'
 import { StatsHeader } from '../StatsHeader'
-import { StatsRail, StatsRailCompact } from '../StatsRail'
+import { StatsRail } from '../StatsRail'
 
 // ── StatsHeader ──────────────────────────────────────────────
 
@@ -11,11 +11,13 @@ describe('StatsHeader', () => {
     const title = container.querySelector('.stats-header-title')
     expect(title).not.toBeNull()
     expect(title!.textContent).toBe('穿搭')
-    // No bar row when no segments
-    expect(container.querySelector('.stats-header-bar-row')).toBeNull()
+    // No row 2 when no segments
+    expect(container.querySelector('.stats-header-row2')).toBeNull()
+    // No arrows
+    expect(container.querySelector('.stats-header-arrow')).toBeNull()
   })
 
-  it('renders segments bar with equal-width items', () => {
+  it('renders wordless slider with N hit zones and aria-labels', () => {
     const { container } = render(
       <StatsHeader
         title="趋势"
@@ -26,16 +28,22 @@ describe('StatsHeader', () => {
     )
     // Title present
     expect(container.querySelector('.stats-header-title')!.textContent).toBe('趋势')
-    // Bar row present
-    const bar = container.querySelector('.stats-header-bar')
-    expect(bar).not.toBeNull()
-    // Three segment buttons
-    const segs = bar!.querySelectorAll('.stats-header-seg')
-    expect(segs).toHaveLength(3)
-    // Active segment has active class
-    expect(segs[1].classList.contains('stats-header-seg-active')).toBe(true)
-    expect(segs[0].classList.contains('stats-header-seg-active')).toBe(false)
-    expect(segs[2].classList.contains('stats-header-seg-active')).toBe(false)
+    // Row 2 present
+    const row2 = container.querySelector('.stats-header-row2')
+    expect(row2).not.toBeNull()
+    // Scrubber present
+    const scrubber = container.querySelector('.scrubber')
+    expect(scrubber).not.toBeNull()
+    // 3 hit zone buttons with aria-labels
+    const zones = scrubber!.querySelectorAll('.scrubber-zone')
+    expect(zones).toHaveLength(3)
+    expect(zones[0].getAttribute('aria-label')).toBe('日')
+    expect(zones[1].getAttribute('aria-label')).toBe('周')
+    expect(zones[2].getAttribute('aria-label')).toBe('月')
+    // Active zone (week, index 1) has aria-current
+    expect(zones[1].getAttribute('aria-current')).toBe('true')
+    expect(zones[0].getAttribute('aria-current')).toBeNull()
+    expect(zones[2].getAttribute('aria-current')).toBeNull()
   })
 
   it('renders navigation arrows when onNavigate is provided', () => {
@@ -54,7 +62,7 @@ describe('StatsHeader', () => {
     expect(arrows[1].textContent).toBe('›')
   })
 
-  it('calls onChange when a segment is clicked', () => {
+  it('calls onChange when a slider hit zone is clicked (by aria-label)', () => {
     const onChange = vi.fn()
     const { container } = render(
       <StatsHeader
@@ -64,8 +72,10 @@ describe('StatsHeader', () => {
         onChange={onChange}
       />,
     )
-    const segs = container.querySelectorAll('.stats-header-seg')
-    fireEvent.click(segs[1])
+    // Find zone by aria-label
+    const weekZone = container.querySelector('[aria-label="周"]') as HTMLButtonElement
+    expect(weekZone).not.toBeNull()
+    fireEvent.click(weekZone)
     expect(onChange).toHaveBeenCalledWith('week')
   })
 
@@ -86,18 +96,29 @@ describe('StatsHeader', () => {
     fireEvent.click(arrows[1])
     expect(onNavigate).toHaveBeenCalledWith(1)
   })
+
+  it('renders rail slot when provided', () => {
+    const { container } = render(
+      <StatsHeader
+        title="趋势"
+        rail={<div data-testid="test-rail">dots</div>}
+      />,
+    )
+    const rail = container.querySelector('.stats-header-rail')
+    expect(rail).not.toBeNull()
+    expect(rail!.textContent).toBe('dots')
+  })
 })
 
-// ── StatsRail ────────────────────────────────────────────────
+// ── StatsRail (horizontal) ───────────────────────────────────
 
 describe('StatsRail', () => {
-  it('renders empty mode as an empty column', () => {
+  it('returns null in empty mode', () => {
     const { container } = render(<StatsRail mode="empty" selected="accent" />)
-    const dots = container.querySelectorAll('.stats-rail-dot')
-    expect(dots).toHaveLength(0)
+    expect(container.innerHTML).toBe('')
   })
 
-  it('renders 6 dots in multi mode', () => {
+  it('renders 6 horizontal dots in multi mode', () => {
     const { container } = render(
       <StatsRail mode="multi" selected={['accent', 'sage']} />,
     )
@@ -140,25 +161,5 @@ describe('StatsRail', () => {
     const dots = container.querySelectorAll('.stats-rail-dot')
     fireEvent.click(dots[3]) // sky, index 3
     expect(onSelect).toHaveBeenCalledWith('sky')
-  })
-})
-
-// ── StatsRailCompact ─────────────────────────────────────────
-
-describe('StatsRailCompact', () => {
-  it('returns null in empty mode', () => {
-    const { container } = render(
-      <StatsRailCompact mode="empty" selected="accent" />,
-    )
-    expect(container.innerHTML).toBe('')
-  })
-
-  it('renders 6 horizontal dots in multi mode', () => {
-    const { container } = render(
-      <StatsRailCompact mode="multi" selected={['sage']} />,
-    )
-    const dots = container.querySelectorAll('.stats-rail-dot')
-    expect(dots).toHaveLength(6)
-    expect(dots[1].classList.contains('stats-rail-dot-active')).toBe(true)
   })
 })

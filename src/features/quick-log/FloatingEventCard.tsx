@@ -9,7 +9,6 @@ import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, Typ
 import type { CategoryId } from '@/domain/category'
 import { inferHygieneActivity, findHygieneActivity, DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { RecentPills } from './RecentPills'
 import { AutocompleteDropdown, type AutocompleteSuggestion } from './AutocompleteDropdown'
 
 // ── Types ───────────────────────────────────────────────
@@ -47,8 +46,8 @@ const CATEGORY_BY_ALT_KEY: Record<string, CategoryId> = {
   '6': 'stone',
 }
 
-// 底部分类点的顺序与 Alt 数字键一一对应
-const CATEGORY_DOTS: { id: CategoryId; altKey: string }[] = [
+// 底部分类条的顺序与 Alt 数字键一一对应
+const CATEGORY_BARS: { id: CategoryId; altKey: string }[] = [
   { id: 'accent', altKey: '1' },
   { id: 'sage',   altKey: '2' },
   { id: 'sand',   altKey: '3' },
@@ -658,9 +657,9 @@ export function FloatingEventCard({
             onKeyDown={handleKeyDown}
             placeholder={placeholderText}
             className={cn(
-              'w-full font-sans text-sm text-text-primary',
+              'w-full font-sans text-base text-text-primary',
               'bg-transparent border-0',
-              'pl-2 pr-2 py-2 h-[36px]',
+              'pl-2 pr-2 py-2.5 h-[40px]',
               'focus:outline-none focus:ring-0',
               'placeholder:text-text-tertiary',
             )}
@@ -680,14 +679,6 @@ export function FloatingEventCard({
           />
         )}
 
-        {/* Recent pills (empty input) */}
-        {showRecent && !showList && (
-          <RecentPills
-            categoryId={categoryId}
-            onSelect={(t) => { setTitle(t); inputRef.current?.focus() }}
-            max={5}
-          />
-        )}
 
         {/* Keyboard hint (first few uses) */}
         {showHint && showRecent && !showList && (
@@ -699,9 +690,9 @@ export function FloatingEventCard({
         {/* Error */}
         {error && <p className="text-xs text-color-text-danger mt-1 font-sans">{error}</p>}
 
-        {/* Category dots */}
-        <div className="flex items-center gap-2 mt-3">
-          {CATEGORY_DOTS.map(({ id, altKey }) => {
+        {/* Category bars — equal-width; selected one floats up + brightens */}
+        <div className="flex items-end gap-1.5 mt-3 h-4">
+          {CATEGORY_BARS.map(({ id, altKey }) => {
             const name = categories.find((c) => c.id === id)?.name ?? id
             const active = id === categoryId
             return (
@@ -713,10 +704,10 @@ export function FloatingEventCard({
                 aria-label={name}
                 aria-pressed={active}
                 className={cn(
-                  'w-5 h-5 rounded-full transition-all duration-150 cursor-pointer',
+                  'flex-1 rounded-full transition-all duration-150 cursor-pointer',
                   active
-                    ? 'ring-2 ring-text-secondary scale-110'
-                    : 'opacity-50 hover:opacity-100',
+                    ? 'h-3 -translate-y-1 opacity-100 shadow-sm'
+                    : 'h-2 opacity-45 hover:opacity-80',
                 )}
                 style={{ backgroundColor: `var(--event-${id}-fill)` }}
               />
@@ -767,7 +758,7 @@ export function FloatingEventCard({
         side="right"
         sideOffset={8}
         collisionPadding={16}
-        className="w-72 p-4 rounded-xl border-border-default max-md:!w-[calc(100vw-1rem)] max-md:max-w-72"
+        className="w-[336px] p-5 rounded-xl border-border-default max-md:!w-[calc(100vw-1rem)] max-md:max-w-[336px]"
         style={{ backgroundColor: `var(--event-${categoryId}-bg)` }}
         onPointerDownOutside={onClose}
         onEscapeKeyDown={onClose}

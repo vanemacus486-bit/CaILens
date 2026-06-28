@@ -1,7 +1,7 @@
 /**
  * # ListHeader — 清单头部
  *
- * 左：当前清单名（点击→切换菜单）+ 右：⋮ 溢出菜单（重命名/删除/清除已完成/排序）
+ * 左：当前清单名（点击→切换菜单）+ 右：⋮ 溢出菜单（重命名/删除/归档已完成/排序）
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
@@ -207,7 +207,7 @@ export function ListHeader({
             className="w-full flex items-center gap-2 px-3 py-1.5 text-sm font-sans text-text-primary hover:bg-surface-sunken rounded transition-colors"
           >
             <Eraser size={14} />
-            <span>清除已完成</span>
+            <span>归档已完成</span>
           </button>
           <div className="border-t border-border-subtle my-1" />
           <button

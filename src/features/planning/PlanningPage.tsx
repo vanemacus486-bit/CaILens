@@ -6,7 +6,7 @@
  * 已加星标（filter=starred）：跨清单单列汇总。
  */
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTodoStore } from '@/stores/todoStore'
 import { useTodoListStore } from '@/stores/todoListStore'
@@ -17,6 +17,7 @@ import { TaskRow } from './TaskRow'
 import { CompletedSection } from './CompletedSection'
 import { EmptyState } from './EmptyState'
 import { TodoListColumn } from './TodoListColumn'
+import { ArchivePanel } from './ArchivePanel'
 
 function sortTodos(todos: Todo[], sortMode: SortMode, now: number): { active: Todo[]; done: Todo[] } {
   const active: Todo[] = []
@@ -54,12 +55,24 @@ export function PlanningPage() {
   const visibleListIds = useTodoListStore((s) => s.visibleListIds)
   const renameList = useTodoListStore((s) => s.renameList)
 
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [sortMode, setSortMode] = useState<SortMode>('manual')
   const [composerOpen, setComposerOpen] = useState(false)
   const [composerFocusNonce, setComposerFocusNonce] = useState(0)
   const filterMode = (searchParams.get('filter') as 'all' | 'starred' | null) ?? 'all'
   const now = useMemo(() => Date.now(), [])
+
+  // ── 归档面板状态 ──
+  const archiveOpen = searchParams.get('archive') === '1'
+  const handleToggleArchive = useCallback(() => {
+    const next = new URLSearchParams(searchParams)
+    if (archiveOpen) {
+      next.delete('archive')
+    } else {
+      next.set('archive', '1')
+    }
+    setSearchParams(next, { replace: true })
+  }, [archiveOpen, searchParams, setSearchParams])
 
   // Unconditional hook: visible lists for kanban (used below conditional return)
   const visibleLists = useMemo(
@@ -141,7 +154,7 @@ export function PlanningPage() {
 
   return (
     <div className="flex-1 h-full overflow-hidden flex flex-col">
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-y-auto">
         <div className="flex gap-4 p-4 md:p-6 justify-center items-start">
           {visibleLists.map((list) => (
             <TodoListColumn
@@ -150,6 +163,10 @@ export function PlanningPage() {
               now={now}
             />
           ))}
+        </div>
+        {/* 历史归档面板 */}
+        <div className="mx-auto max-w-[840px] w-full px-4 md:px-6 pb-6">
+          <ArchivePanel isOpen={archiveOpen} onToggle={handleToggleArchive} />
         </div>
       </div>
     </div>
