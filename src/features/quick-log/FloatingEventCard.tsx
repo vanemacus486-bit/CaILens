@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { X } from 'lucide-react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
@@ -9,7 +9,7 @@ import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, Typ
 import type { CategoryId } from '@/domain/category'
 import { inferHygieneActivity, findHygieneActivity, DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { AutocompleteDropdown, type AutocompleteSuggestion } from './AutocompleteDropdown'
+import type { AutocompleteSuggestion } from './AutocompleteDropdown'
 
 // ── Types ───────────────────────────────────────────────
 
@@ -162,9 +162,17 @@ export function FloatingEventCard({
   })()
   const durationMin = Math.max(0, Math.round((effectiveEndTs - effectiveStartTs) / 60_000))
 
-  // Autocomplete suggestions below input
+  // Autocomplete suggestions + inline completion
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([])
-  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const topSuggestion = suggestions.length > 0 ? suggestions[0] : null
+  const completionSuffix = useMemo(() => {
+    if (!topSuggestion || !title.trim()) return ''
+    const typed = title.trim().toLowerCase()
+    const full = topSuggestion.title.toLowerCase()
+    if (full === typed || !full.startsWith(typed)) return ''
+    return topSuggestion.title.slice(typed.length)
+  }, [topSuggestion, title])
+  const showInlineCompletion = completionSuffix.length > 0
 
   // 键位提示行：只在前几次使用时出现，老用户自动消失
   const [showHint] = useState(() => {
@@ -219,7 +227,6 @@ export function FloatingEventCard({
     const q = title.trim().toLowerCase()
     if (q.length < 2) {
       setSuggestions([])
-      setSelectedIndex(-1)
       return
     }
 
@@ -240,7 +247,6 @@ export function FloatingEventCard({
           .slice(0, 6)
           .map(([t, count]) => ({ title: t, count }))
         setSuggestions(matches)
-        setSelectedIndex(-1)
       } catch {
         setSuggestions([])
       }
@@ -260,36 +266,21 @@ export function FloatingEventCard({
     setMode(modeFromCategory(newCatId))
     setError(null)
     setSuggestions([])
-    setSelectedIndex(-1)
   }, [])
 
   const acceptSuggestion = useCallback((s: AutocompleteSuggestion) => {
     setTitle(s.title)
     setSuggestions([])
-    setSelectedIndex(-1)
   }, [])
 
   // ── Keyboard handler ────────────────────────────────
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const hasList = suggestions.length > 0
-
-    // ↑↓ → navigate suggestions (-1 = back to typed text)
-    if (hasList && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-      e.preventDefault()
-      setSelectedIndex((i) =>
-        e.key === 'ArrowDown'
-          ? Math.min(suggestions.length - 1, i + 1)
-          : Math.max(-1, i - 1),
-      )
-      return
-    }
-
-    // Tab → accept highlighted (or top) suggestion
+    // Tab → accept inline completion
     if (e.key === 'Tab' && !e.shiftKey) {
-      if (hasList) {
+      if (topSuggestion) {
         e.preventDefault()
-        acceptSuggestion(suggestions[selectedIndex >= 0 ? selectedIndex : 0])
+        acceptSuggestion(topSuggestion)
       }
       return
     }
@@ -301,24 +292,21 @@ export function FloatingEventCard({
       return
     }
 
-    // Enter → 两段式：候选高亮时先采用，否则保存（⇧⏎ 记录并继续）
+    // Enter → 两段式：候选高亮时先采纳，否则保存（⇧⏎ 记录并继续）
     if (e.key === 'Enter') {
       e.preventDefault()
-      if (hasList && selectedIndex >= 0) {
-        acceptSuggestion(suggestions[selectedIndex])
+      if (topSuggestion) {
+        acceptSuggestion(topSuggestion)
         return
       }
       handleSaveRef.current(e.shiftKey)
       return
     }
 
-    // Escape → 先收候选，再退吃饭子模式，最后关卡片
+    // Escape → 先退吃饭子模式，再关卡片
     if (e.key === 'Escape') {
       e.preventDefault()
-      if (hasList) {
-        setSuggestions([])
-        setSelectedIndex(-1)
-      } else if (mode === 'meal-food') {
+      if (mode === 'meal-food') {
         setMode('chores')
         setTitle('')
       } else {
@@ -326,7 +314,7 @@ export function FloatingEventCard({
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [suggestions, selectedIndex, mode, selectCategory, acceptSuggestion])
+  }, [topSuggestion, mode, selectCategory, acceptSuggestion])
 
   // ── Save logic ──────────────────────────────────────
 
@@ -618,7 +606,6 @@ export function FloatingEventCard({
 
   function renderDefaultMode() {
     const showRecent = !isEditing && title.trim().length === 0
-    const showList = suggestions.length > 0
     return (
       <>
         {/* Header */}
@@ -704,41 +691,46 @@ export function FloatingEventCard({
           </div>
         )}
 
-        {/* Main input */}
+        {/* Main input with inline autocomplete */}
         <div className="relative mb-1">
+          {/* Ghost layer: typed text + inline completion in gray italic */}
+          {showInlineCompletion && (
+            <div
+              className="absolute inset-0 pl-2 pr-2 py-2.5 h-[40px] pointer-events-none overflow-hidden whitespace-nowrap z-0 leading-none flex items-center"
+              style={{ borderLeft: `2px solid ${catColor}` }}
+              aria-hidden="true"
+            >
+              <span className="text-text-primary">{title}</span>
+              <span className="italic text-text-quaternary text-sm">{completionSuffix}</span>
+              <span className="italic text-text-quaternary text-xs ml-0.5">{topSuggestion!.count}</span>
+            </div>
+          )}
           <input
             ref={inputRef}
             type="text"
             value={title}
-            onChange={(e) => { setTitle(e.target.value); setSelectedIndex(-1) }}
+            onChange={(e) => { setTitle(e.target.value) }}
             onKeyDown={handleKeyDown}
             placeholder={placeholderText}
             className={cn(
-              'w-full font-sans text-base text-text-primary',
+              'w-full font-sans text-base',
               'bg-transparent border-0',
               'pl-2 pr-2 py-2.5 h-[40px]',
               'focus:outline-none focus:ring-0',
               'placeholder:text-text-tertiary',
+              showInlineCompletion ? 'text-transparent' : 'text-text-primary',
             )}
             style={{
-              borderLeft: `2px solid ${catColor}`,
+              borderLeft: `2px solid ${showInlineCompletion ? 'transparent' : catColor}`,
               caretColor: 'var(--text-primary)',
+              position: 'relative',
+              zIndex: 10,
             }}
           />
         </div>
 
-        {/* Autocomplete dropdown (while typing) */}
-        {showList && (
-          <AutocompleteDropdown
-            suggestions={suggestions}
-            selectedIndex={selectedIndex}
-            onSelect={(t) => { setTitle(t); setSuggestions([]); setSelectedIndex(-1); inputRef.current?.focus() }}
-          />
-        )}
-
-
         {/* Keyboard hint (first few uses) */}
-        {showHint && showRecent && !showList && (
+        {showHint && showRecent && (
           <div className="px-2 mt-1.5 text-[10px] leading-tight text-text-tertiary/70 font-sans">
             ⇥ 补全 · ⌥1–6 选分类 · ⇧⏎ 记录并继续
           </div>

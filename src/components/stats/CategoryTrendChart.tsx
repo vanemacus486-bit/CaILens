@@ -257,7 +257,7 @@ export function CategoryTrendChart({
       {/* ── Chart ───────────────────────────────────────── */}
       <div className="trend-chart-container">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 56, left: 0, bottom: 8 }}>
+          <ComposedChart data={chartData} margin={{ top: 8, right: 96, left: 0, bottom: 8 }}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--line)"
@@ -463,7 +463,7 @@ const TREND_CSS = `
 .trend-root {
   width: 100%;
   max-width: 1100px;
-  margin: 0 auto;
+  margin: 28px auto 0;
   font-family: 'Source Serif 4', 'Noto Serif SC', serif;
   color: var(--heatmap-ink-1);
 }
