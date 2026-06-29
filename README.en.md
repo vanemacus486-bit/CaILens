@@ -15,7 +15,7 @@ No account, no server, no telemetry.
 ![tests](https://img.shields.io/badge/tests-744_passing-2D7D46?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-Windows_·_Android_·_Web-3A5A80?style=flat-square)
 ![typescript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square)
-![license](https://img.shields.io/badge/license-EULA-B53535?style=flat-square)
+![license](https://img.shields.io/badge/license-AGPL--3.0-3A5A80?style=flat-square)
 
 </div>
 
@@ -40,7 +40,7 @@ One command runs the latest build (pulled from npm, no install, needs Node 20+).
 
 </div>
 
-> ⚠️ The prebuilt exe / apk lag behind the latest code. For the newest features use `npx cailens` or build from source.
+> **Note:** the prebuilt exe / apk lag behind the latest code. For the newest features use `npx cailens` or build from source.
 > **Platform maturity:** the Windows desktop build is complete and polished; the Android build is early — usable, but still being refined.
 
 ---
@@ -51,10 +51,10 @@ Almost every calendar tool solves the same problem: *fitting the future into box
 
 Alexander Lyubishchev logged every hour of every day for 56 years, until his death. Not as a productivity performance, but as a tool for genuinely seeing how a life is spent. CaILens is an attempt at that tool for today.
 
-- **🪞 Record, don't plan.** There is no schedule here. You log what already happened — not promises about tomorrow. See first, judge later.
-- **🔒 Local-first.** All data lives in your device's IndexedDB. No account, no server, no network, no telemetry. Your time diary is yours alone.
-- **🤫 Quiet by design.** Warm neutrals, serif headings, a restrained rust accent. The app never nags, rates, or interrupts — the only thing that keeps moving is the "now" line.
-- **🧪 Code quality over feature count.** TypeScript strict mode, 744 tests, one-way layered dependencies.
+- **Record, don't plan.** There is no schedule here. You log what already happened — not promises about tomorrow. See first, judge later.
+- **Local-first.** All data lives in your device's IndexedDB. No account, no server, no network, no telemetry. Your time diary is yours alone.
+- **Quiet by design.** Warm neutrals, serif headings, a restrained rust accent. The app never nags, rates, or interrupts — the only thing that keeps moving is the "now" line.
+- **Code quality over feature count.** TypeScript strict mode, 744 tests, one-way layered dependencies.
 
 ---
 
@@ -76,44 +76,44 @@ Alexander Lyubishchev logged every hour of every day for 56 years, until his dea
 
 ## Features
 
-### 📅 Week view
+### Week view
 - **24 hours × 7 days on one screen** — a week across, a day down, no scrolling.
 - **Click empty space to create** — the event expands into an inline edit card; no modal, no focus stealing. Type the title, press Enter, and focus flows into the description.
 - **Dragging is editing** — a hand-written continuous minute-axis on native Pointer Events; drag across midnight, grab an edge to resize, 60fps ghost overlay.
 - **Cross-midnight events** render as one continuous block; hover ~400ms for a quick-read preview.
 
-### ⚡ Quick log
+### Quick log
 - **Press `N` anywhere** for a minimal flow: name, category, note — Tab between fields, Enter to save.
 - **Time auto-continues** from the end of your previous entry — no manual time setting.
 - Autocomplete + recents, with a 3-second undo after saving.
 
-### 📖 Day diary
+### Day diary
 - Serif headings and body paragraphs; descriptions render **Markdown** (bold / italic / lists / links).
 - Subtle dividers appear where the activity type changes — logs read like a narrative, not a report.
 
-### 📊 Review dashboard
+### Review dashboard
 - **Year heatmap** — GitHub-contribution style, switchable across 6 categories.
 - **Sleep rhythm** — calendar-format Y axis, month / quarter / year, bedtime + wake scatter.
 - **Category trends** — daily / weekly / monthly multi-line charts with weekly-budget baselines.
 - **Standard week** — 168 (weekday, hour) buckets weighted by minutes: "what am I usually doing at 9am Monday?"
 - **Steady-state metrics** — sleep median, std-dev, drift velocity, drift projection, consistency index — shifting from "streaks" to "long-term stability".
 
-### 🔗 Daily context + correlation insights
+### Daily context + correlation insights
 - Lightly log the variables that shape your rhythm (last meal, social, outdoors, exercise, mood, screen) in 20 seconds.
 - Correlate them with sleep/routine into plain-language cards: "A later last meal: bedtime pushed back 34 min."
 - Every insight carries a "correlation ≠ causation" disclaimer; an optional **Restraint mode** logs without analyzing, so the tool never becomes a new source of anxiety.
 
-### 🗂️ Planning · projects · profile
+### Planning · projects · profile
 - **Planning page** — TODOs with four states, priority, and due-date grouping, cleanly separated from "logging".
 - **Projects & SOPs** — events belong to projects (event → project → category), each project carrying a versioned standard operating procedure.
 - **Profile** — height / weight / body-fat / heart-rate / blood-pressure over time, against a sleep baseline.
 
-### 🎨 Experience details
+### Experience details
 - **6 fixed categories** (Core Focus / Support / Chores / Growth / Rest / Sleep) with editable names and weekly budgets.
 - **6 visual styles** plus light / dark mode; event colors pass a WCAG AA contrast audit.
 - **Global search** (`Ctrl+K`), **full keyboard control** (16 rebindable actions), **English / Chinese i18n**.
 
-### 🔓 Your data, free
+### Your data, free
 - Export **CSV / JSON / encrypted `.cailens`** (age encryption + gzip); import CSV / JSON.
 - **ICS import** — parses RFC 5545, aggregates by event name, smart-prefills categories.
 - Everything stays local. Take it anywhere, never locked in.
@@ -156,10 +156,10 @@ use-cases/  ──→  domain/  ──→  data/  ──→  stores/  ──→ 
 
 The core is largely done; what's next is expansion outward:
 
-- [ ] **🤖 AI time assistant** — multi-provider streaming chat, `@`-mentions that inject structured time data, analyses you can pin to a given day's diary.
-- [ ] **📈 Deeper charts** — more correlation dimensions, customizable review views.
-- [ ] **📱 Mobile polish** — bring the Android experience up to par with desktop.
-- [ ] **🔄 End-to-end sync** — local-first sync between desktop ↔ mobile (still no central server).
+- [ ] **AI time assistant** — multi-provider streaming chat, `@`-mentions that inject structured time data, analyses you can pin to a given day's diary.
+- [ ] **Deeper charts** — more correlation dimensions, customizable review views.
+- [ ] **Mobile polish** — bring the Android experience up to par with desktop.
+- [ ] **End-to-end sync** — local-first sync between desktop ↔ mobile (still no central server).
 
 Completed milestones are in the [Changelog](./CHANGELOG.md).
 
@@ -189,7 +189,7 @@ npm run dev          # dev server (http://localhost:5173 by default)
 
 ## Support the project
 
-CaILens is free forever, local-first, with no ads or tracking. If it helped you see your time clearly, you're welcome to buy the author a coffee:
+CaILens is free forever, local-first, with no ads or tracking. If it helped you see your time clearly, you're welcome to buy the author a coffee — **Afdian** (China) or **Gumroad** (international):
 
 <!-- TODO: replace the two placeholder links with your real sponsor pages (see src/lib/sponsor.ts) -->
 [![Afdian](https://img.shields.io/badge/Afdian-Sponsor-946ce6?style=flat-square)](https://afdian.com/a/REPLACE_ME)
@@ -199,9 +199,9 @@ CaILens is free forever, local-first, with no ads or tracking. If it helped you 
 
 ## License
 
-[End-User License Agreement (EULA)](./LICENSE) — Copyright © 2025–2026 vanemacus486-bit. All rights reserved.
+[GNU AGPL-3.0](./LICENSE) — Copyright © 2025–2026 vanemacus486-bit.
 
-A license to use the software on a single device for personal use. Redistribution, resale, commercial use, and reverse engineering are prohibited. See LICENSE for full terms.
+Free to use, study, modify, and redistribute; but **any derivative work, or network service offered on top of this project, must release its complete source under AGPL-3.0**. To integrate it into a closed-source / commercial product, contact the author for a commercial license. See LICENSE for full terms.
 
 <div align="center">
 <sub>A book you write one hour at a time.</sub>

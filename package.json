@@ -2,7 +2,7 @@
   "name": "cailens",
   "version": "3.23.0",
   "description": "本地优先的时间记录工具 — 记录你每一小时的去向",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "bin": {
     "cailens": "./bin/cailens.js"

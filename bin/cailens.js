@@ -13,7 +13,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = resolve(__dirname, '..')
 
 // Read version from package.json
-let version = '3.21.0'
+let version = '3.23.0'
 try {
   const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf-8'))
   version = pkg.version ?? version
