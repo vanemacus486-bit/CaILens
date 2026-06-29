@@ -483,11 +483,19 @@ export function FloatingEventCard({
     return (
       <>
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: catColor }} />
-            <span className="font-mono text-xs text-text-secondary">{timeRange}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: catColor }} />
+            <button
+              onClick={() => setShowTimeEdit(!showTimeEdit)}
+              className="font-mono text-xs text-text-secondary cursor-pointer hover:text-text-primary transition-colors truncate"
+            >
+              {timeRange}
+              {durationMin > 0 && (
+                <span className="text-text-tertiary">{` · ${formatDuration(durationMin)}`}</span>
+              )}
+            </button>
           </div>
-          <button onClick={onClose} className="text-text-tertiary hover:text-text-primary cursor-pointer p-1" aria-label="关闭">
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-primary cursor-pointer p-1 flex-shrink-0" aria-label="关闭">
             <X size={16} />
           </button>
         </div>
@@ -529,7 +537,7 @@ export function FloatingEventCard({
                     : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
                 )}
               >
-                <span className="text-base leading-none">{q <= 2 ? '😩' : q <= 3 ? '🙂' : '😌'}</span>
+                <span className="text-base leading-none">{q === 1 ? '😫' : q === 2 ? '😞' : q === 3 ? '😐' : q === 4 ? '🙂' : '😊'}</span>
                 <span className="text-[10px] leading-tight">
                   {quality === q ? ['', '较差', '不好', '一般', '良好', '很好'][q] : ''}
                 </span>
@@ -537,6 +545,55 @@ export function FloatingEventCard({
             ))}
           </div>
         </div>
+
+        {/* Collapsible time editor */}
+        {showTimeEdit && (
+          <div className="mb-4 animate-slide-down">
+            <div className="flex items-center gap-1.5">
+              <input
+                type="time"
+                value={startStr}
+                onChange={(e) => { setStartStr(e.target.value); setError(null) }}
+                className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded px-2 py-1.5 focus:border-border-default focus-visible:outline-none"
+              />
+              <button
+                onClick={() => { setCrossDay(!crossDay); setError(null) }}
+                className={cn(
+                  'px-2 py-1.5 rounded text-xs font-sans border transition-colors cursor-pointer flex-shrink-0',
+                  crossDay
+                    ? 'bg-accent/10 border-accent/40 text-accent'
+                    : 'bg-surface-sunken border-border-subtle text-text-tertiary hover:bg-surface-base',
+                )}
+                title="次日"
+              >
+                次日
+              </button>
+              <input
+                type="time"
+                value={endStr}
+                onChange={(e) => { setEndStr(e.target.value); setError(null) }}
+                className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded px-2 py-1.5 focus:border-border-default focus-visible:outline-none"
+              />
+            </div>
+            {/* Duration quick chips */}
+            <div className="flex gap-1.5 mt-1.5">
+              {[15, 30, 60, 120].map((min) => (
+                <button
+                  key={min}
+                  onClick={() => applyDuration(min)}
+                  className={cn(
+                    'flex-1 py-1 rounded text-xs font-sans border transition-colors cursor-pointer',
+                    durationMin === min
+                      ? 'bg-accent/10 border-accent/40 text-accent'
+                      : 'bg-surface-sunken border-border-subtle text-text-tertiary hover:bg-surface-base',
+                  )}
+                >
+                  {min < 60 ? `${min}分` : `${min / 60}时`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && <p className="text-xs text-color-text-danger mt-1 font-sans">{error}</p>}
 
