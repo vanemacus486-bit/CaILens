@@ -1,367 +1,208 @@
+<div align="center">
+
+<img src="docs/logo.png" width="96" alt="CaILens logo">
+
 # CaILens
 
-[中文](./README.md)
+**Record the hour, not the second.**
 
-CaILens is a local-first time-logging tool inspired by Alexander Lyubishchev's lifelong time accounting practice, as told in Daniil Granin's *This Strange Life*. It records, categorises, and visualises how your hours are actually spent — no accounts, no servers, no telemetry.
+A local-first time tracker — not a calendar, not a to-do list, but a book you write one hour at a time.
+No account, no server, no telemetry.
 
-> **Status:** v3.23.0 — Three-mode navigation, project-SOP-todo system, 4-tab statistics dashboard. 498 tests.
-> 📋 [Changelog](./CHANGELOG.md) — Full version history with detailed changes.
+[中文](./README.md) · [Changelog](./CHANGELOG.md) · [Privacy](./PRIVACY.md)
 
-## Downloads
+![version](https://img.shields.io/badge/version-3.23.0-c47a5a?style=flat-square)
+![tests](https://img.shields.io/badge/tests-744_passing-2D7D46?style=flat-square)
+![platform](https://img.shields.io/badge/platform-Windows_·_Android_·_Web-3A5A80?style=flat-square)
+![typescript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square)
+![license](https://img.shields.io/badge/license-EULA-B53535?style=flat-square)
 
-### Latest (recommended)
+</div>
+
+<!-- Screenshot placeholder ① — the week view, the single most representative screen. See checklist at the bottom. -->
+<p align="center">
+  <img src="docs/screenshots/hero-week.png" alt="CaILens week view: 24 hours × 7 days on one screen" width="860">
+</p>
+
+<div align="center">
+
+### Get started
 
 ```bash
 npx cailens
 ```
 
-One command — always the latest version. Requires **Node 20+**.
+One command runs the latest build (pulled from npm, no install, needs Node 20+).
 
-Or install globally:
+[![Windows](https://img.shields.io/badge/Windows-.exe-c47a5a?style=for-the-badge)](https://github.com/vanemacus486-bit/CaILens/releases/latest)
+[![Android](https://img.shields.io/badge/Android-.apk-6B7A4F?style=for-the-badge)](https://github.com/vanemacus486-bit/CaILens/releases/latest)
+[![Source](https://img.shields.io/badge/GitHub-source-1C1814?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vanemacus486-bit/CaILens)
 
-```bash
-npm install -g cailens
-cailens
-```
+</div>
 
-> npm always delivers the latest code. Run `npm update -g cailens` to upgrade.
-
-### Pre-built packages
-
-| Platform | File | Notes |
-|----------|------|-------|
-| Windows (x64) | [CaILens.exe](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Portable, no install needed. Windows 10 1803+ |
-| Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
-
-> ⚠️ **Pre-built packages lag behind the latest code.** Due to release cadence, the exe / apk on GitHub Releases may be outdated. Use `npx cailens` for the newest features.
+> ⚠️ The prebuilt exe / apk lag behind the latest code. For the newest features use `npx cailens` or build from source.
+> **Platform maturity:** the Windows desktop build is complete and polished; the Android build is early — usable, but still being refined.
 
 ---
 
-## Philosophy
+## Why CaILens
 
-Most calendar tools optimise for scheduling: future events, invites, reminders. That solves a different problem than understanding your own time.
+Almost every calendar tool solves the same problem: *fitting the future into boxes* — reminding you of meetings, invites, alarms. But **understanding where your time actually goes** is a fundamentally different question.
 
-Lyubishchev kept a time log for 56 years. Every hour accounted for. Every category tallied. It was not productivity theatre — it was an instrument for thinking about how a life is actually spent.
+Alexander Lyubishchev logged every hour of every day for 56 years, until his death. Not as a productivity performance, but as a tool for genuinely seeing how a life is spent. CaILens is an attempt at that tool for today.
 
-CaILens is a small attempt at that instrument, for the browser.
+- **🪞 Record, don't plan.** There is no schedule here. You log what already happened — not promises about tomorrow. See first, judge later.
+- **🔒 Local-first.** All data lives in your device's IndexedDB. No account, no server, no network, no telemetry. Your time diary is yours alone.
+- **🤫 Quiet by design.** Warm neutrals, serif headings, a restrained rust accent. The app never nags, rates, or interrupts — the only thing that keeps moving is the "now" line.
+- **🧪 Code quality over feature count.** TypeScript strict mode, 744 tests, one-way layered dependencies.
 
-- **Record, don't plan.** There is no scheduling. You log what happened, not what you hope will happen.
-- **Local-first.** Your data lives in IndexedDB. No accounts, no servers, no telemetry. Your time diary is yours alone.
-- **Quiet design.** Warm neutral palette, serif headings, restrained accents. The app gets out of the way. No nudges, no gamification, no judgment.
-- **Code quality over feature quantity.** Strict TypeScript, 498 tests, one-way dependency layers. The codebase should age well.
+---
+
+## A look inside
+
+<!-- Screenshot placeholders ②③④ — see checklist at the bottom. -->
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/stats-dashboard.png" alt="Review dashboard"><br><sub><b>Review dashboard</b> · Routine / Lifestyle / Body / Correlation</sub></td>
+    <td width="50%"><img src="docs/screenshots/day-view.png" alt="Day diary"><br><sub><b>Day diary</b> · serif typography turns logs into a page you can read</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/standard-week.png" alt="Standard week"><br><sub><b>Standard week</b> · all past weeks overlaid into your "typical week"</sub></td>
+    <td width="50%"><img src="docs/screenshots/dark-mode.png" alt="Dark mode"><br><sub><b>Dark mode</b> · 6 visual styles, light / dark at will</sub></td>
+  </tr>
+</table>
 
 ---
 
 ## Features
 
-### Three-Mode Navigation (v3.23)
+### 📅 Week view
+- **24 hours × 7 days on one screen** — a week across, a day down, no scrolling.
+- **Click empty space to create** — the event expands into an inline edit card; no modal, no focus stealing. Type the title, press Enter, and focus flows into the description.
+- **Dragging is editing** — a hand-written continuous minute-axis on native Pointer Events; drag across midnight, grab an edge to resize, 60fps ghost overlay.
+- **Cross-midnight events** render as one continuous block; hover ~400ms for a quick-read preview.
 
-The top navigation bar provides three work modes, switchable via `1` `2` `3`:
+### ⚡ Quick log
+- **Press `N` anywhere** for a minimal flow: name, category, note — Tab between fields, Enter to save.
+- **Time auto-continues** from the end of your previous entry — no manual time setting.
+- Autocomplete + recents, with a 3-second undo after saving.
 
-| Mode | Key | Purpose |
-|------|-----|---------|
-| 📅 Calendar | `1` | Week / Day / Month views |
-| 📋 Plan | `2` | Todo management |
-| 📊 Review | `3` | Statistics: routine / lifestyle / body / correlation |
+### 📖 Day diary
+- Serif headings and body paragraphs; descriptions render **Markdown** (bold / italic / lists / links).
+- Subtle dividers appear where the activity type changes — logs read like a narrative, not a report.
 
-All three modes share the same top bar. URL-driven state, browser back/forward works.
+### 📊 Review dashboard
+- **Year heatmap** — GitHub-contribution style, switchable across 6 categories.
+- **Sleep rhythm** — calendar-format Y axis, month / quarter / year, bedtime + wake scatter.
+- **Category trends** — daily / weekly / monthly multi-line charts with weekly-budget baselines.
+- **Standard week** — 168 (weekday, hour) buckets weighted by minutes: "what am I usually doing at 9am Monday?"
+- **Steady-state metrics** — sleep median, std-dev, drift velocity, drift projection, consistency index — shifting from "streaks" to "long-term stability".
 
-### Week Calendar
+### 🔗 Daily context + correlation insights
+- Lightly log the variables that shape your rhythm (last meal, social, outdoors, exercise, mood, screen) in 20 seconds.
+- Correlate them with sleep/routine into plain-language cards: "A later last meal: bedtime pushed back 34 min."
+- Every insight carries a "correlation ≠ causation" disclaimer; an optional **Restraint mode** logs without analyzing, so the tool never becomes a new source of anxiety.
 
-- **24-hour, single-screen week view** (Mon–Sun, with time gutter).
-- **Click-to-create** — inline edit card with title + description.
-- **Drag to move** — continuous minute-axis coordinate system, seamless cross-day. Raw Pointer Events, 60fps ghost overlay.
-- **Drag edges to resize** — handles; drag past midnight for cross-day events.
-- **Cross-day events** — sleep spanning midnight, arrow indicators.
-- **Live preview at 60fps**.
-- **Right-click menu** — delete, change colour (6 categories).
-- **Overlap layout** — automatic side-by-side.
-- **Current time line** — 1px solid + 3px dot + 2s breathing animation.
-- **Light / dark mode** — manual toggle, auto-detects system preference. WCAG AA contrast.
-- **Tri-view** — W / D / M pills for Week/Day/Month. URL-driven.
+### 🗂️ Planning · projects · profile
+- **Planning page** — TODOs with four states, priority, and due-date grouping, cleanly separated from "logging".
+- **Projects & SOPs** — events belong to projects (event → project → category), each project carrying a versioned standard operating procedure.
+- **Profile** — height / weight / body-fat / heart-rate / blood-pressure over time, against a sleep baseline.
 
-### Day Diary (DayEventStream)
+### 🎨 Experience details
+- **6 fixed categories** (Core Focus / Support / Chores / Growth / Rest / Sleep) with editable names and weekly budgets.
+- **6 visual styles** plus light / dark mode; event colors pass a WCAG AA contrast audit.
+- **Global search** (`Ctrl+K`), **full keyboard control** (16 rebindable actions), **English / Chinese i18n**.
 
-Embedded via `?view=day&date=YYYY-MM-DD`, sharing URL space with Week/Month.
-
-- **Serif reading layout** — heading (600), paragraph (description), smaller footer.
-- **Markdown descriptions** — **bold**, *italic*, inline code, lists, links.
-- **Category transition dividers**.
-- **Prev/next day navigation**.
-
-### Month View (MonthView)
-
-- **Monthly aggregation grid**.
-- **Double-click to Day View**.
-- `‹` `›` month navigation.
-- URL param `?view=month&date=2026-05-01`.
-
-### QuickLog
-
-- **`N` global shortcut** — quick entry from any page.
-- **Minimal input** — event name, category, notes. Autofocus title, **Tab** to switch, **Enter** to save.
-- **Alt+number** — `Alt+1..6` for categories.
-- **Autocomplete dropdown** — recent matches.
-- **Recent pills** — quick-repeat recent events.
-- **Auto time** — inherits from previous event or `now - 1h` → `now`.
-- **Undo** — 3-second snackbar.
-- **Floating card** — attached below the week view.
-
-### Todos / Action Page (v3.23)
-
-The `/action` page separates planning from recording.
-
-- **4-state todo** — `todo / in_progress / done / cancelled`.
-- **Priority** — high / medium / low. Sortable.
-- **Due-date grouping** — overdue / today / upcoming / none.
-- **`sortTodos()`** — pure function: undone first → sortOrder → priority → createdAt.
-- **Quick add** — top input + Enter.
-- **Zustand store** — `todoStore`.
-
-### Projects & SOP (v3.23)
-
-New project dimension: event → project → category. Each project can have a Standard Operating Procedure (SOP).
-
-- **Project detail** — `/projects/:projectId`, with event overview + SOP editor.
-- **SOP editor** — title / step / note / warning sections.
-- **Version management** — each edit creates a version; history + rollback.
-- **Zustand stores** — `projectStore` + `sopStore`.
-
-### Profile (v3.23)
-
-`/profile` page manages personal info and body metrics.
-
-- **Body metrics** — height / weight / body fat / resting heart rate / blood pressure.
-- **Sleep baseline** — personal sleep requirement for steady metrics comparison.
-- **Data persistence** — `profileStore` + `profileRepository`.
-
-### Daily Context (v3.22)
-
-Capture the "why" behind your time.
-
-- **Quick log** — 5 sliders + 2 numeric inputs + notes: last meal, social, outdoor, exercise, mood, screen.
-- **All fields optional** — ~20 seconds.
-- **Status indicator**.
-- **Restrained Mode** — suppress insights while keeping recording.
-
-### Insights (v3.22)
-
-Correlate context with sleep metrics.
-
-- **Group comparison** — split history into high/low groups per variable.
-- **Plain-language cards** — "Late last meal: bedtime delayed by 34 min."
-- **Correlation ≠ causation**.
-- **Actionable suggestions**.
-- **Stats page entry** — 「Correlation」tab.
-
-### Steady Metrics (v3.22)
-
-From streak anxiety to steady-state perspective.
-
-- **Median bedtime & wake time**.
-- **Standard deviation**.
-- **Drift velocity** (min/week).
-- **Drift projection** — "In 4 weeks, bedtime will reach 23:45."
-- **Consistency index**.
-
-### Restrained Mode (v3.22)
-
-Record without being analyzed.
-
-- **Toggle** — Settings → Data → Restrained Mode.
-- **Hides** — insight entry points.
-- **Design goal** — causality without scrutiny.
-
-### Standard Week View
-
-"What does a typical week look like?"
-
-- **7×24 grid** — 168 (weekday, hour) buckets by minute weight.
-- **Habit visualization** — darker = stronger. Category colours.
-- **<30% grey** — low-ratio cells fade.
-- **Hover distribution** — full activity breakdown.
-- **Range selector** — all / last 12 weeks / last 4 weeks.
-- **Hide sleep toggle**.
-- **≤8 weeks shows absolute counts** — `"3/4 weeks"`.
-
-### Search
-
-- **Ctrl+K / Cmd+K global shortcut**.
-- **Keyword search** — titles + descriptions, case-insensitive.
-- **Description snippets** — ±20 chars context + highlight.
-- **Instant navigation** — jump to week, open detail.
-- **Toolbar entry** — search icon.
-
-### Sidebar
-
-- **Icon rail with hover expansion** — 200ms delay, bilingual labels. Pin to keep expanded.
-- **Week navigation** — prev / next / today.
-- **ICS import** and **Stats dashboard** buttons.
-
-### Keyboard Shortcuts
-
-**All bindings user-customizable**:
-
-| Shortcut | Action |
-|----------|--------|
-| `1` / `2` / `3` | Calendar / Plan / Review mode |
-| `Ctrl+K` | Open search panel |
-| `N` | Quick log |
-| `Ctrl+C` | Copy focused event |
-| `Ctrl+V` | Paste event |
-| `Ctrl+←` / `Ctrl+→` | Previous / Next week |
-| `Ctrl+Shift+←` / `Ctrl+Shift+→` | Previous / Next day |
-| `M` | Switch to Month View |
-
-- **16 bindable actions**.
-- **Settings → Shortcuts** — click to record, conflict detection.
-- **Reset** — per-action or all.
-- Auto-disabled in input fields.
-
-### Categories (6 fixed)
-
-| Colour | Name | Type |
-|---|---|---|
-| Terracotta | Core Focus | Type I — creative core |
-| Sage | Support Tasks | Type II — auxiliary |
-| Sand | Chores & Admin | Type II — auxiliary |
-| Warm gray | Personal Growth | Type I — creative core |
-| Rose | Rest & Leisure | Type II — auxiliary |
-| Stone | Sleep | Type II — auxiliary |
-
-Editable names (CN/EN). Configurable weekly budget per category.
-
-### Settings Page
-
-Tabbed sub-route layout:
-
-- **Categories** — inline name edit, budget, keyword folders, auto-reclassify.
-- **Appearance** — language (CN/EN), theme (light/dark), accent (rust/ocean/forest/plum), font (Inter/LXGW WenKai).
-- **Shortcuts** — view and customise all bindings.
-- **Data** — restrained mode toggle, export/import.
-- **Storage** — IndexedDB info.
-- **About** — version & license.
-
-### Statistics Dashboard (v3.23 4-Tab)
-
-Upgraded from 3 views to **4 primary tabs**:
-
-**📊 Routine**
-- Trend chart (day/week/month granularity, multi-line, budget baseline)
-- Yearly heatmap (GitHub contribution graph, 6-category pill, percentile thresholds)
-- Sleep rhythm chart (calendar Y-axis, month/quarter/year views)
-- Steady metrics (median, stddev, drift, projection, consistency)
-
-**🥗 Lifestyle**
-- Diet nutrition card — daily meal type stats
-- Outfit card — daily outfit tracking
-- Hygiene card — hygiene score trends
-- Leisure card — leisure distribution
-
-**💪 Body**
-- Body metrics panel — weight / body fat / heart rate / blood pressure trends
-- Sleep baseline comparison
-
-**🔗 Correlation**
-- Context variable vs routine metric analysis
-- Group comparison + plain-language insight cards
-- Correlation ≠ causation disclaimer
-- Data maturity: Cold / Warming / Mature
-
-### ICS Import
-
-- **Parse RFC 5545** (ical.js). Skips all-day and recurring events.
-- **Name aggregation** — inline 6-colour category buttons (1-6 keys).
-- **Smart suggestions** — keyword matching, one-click apply.
-- **Coverage progress bar**.
-- **Search filter + per-instance override**.
-- **Auto-reclassify on keyword change**.
-
-### Data
-
-- **Persistent local storage** — IndexedDB (Dexie v4), Schema 9+, auto-migration.
-- **Export** — CSV / JSON / **encrypted .cailens** (age + gzip).
-- **Import** — CSV / JSON restore.
-- **Encrypted backup** — full round-trip.
+### 🔓 Your data, free
+- Export **CSV / JSON / encrypted `.cailens`** (age encryption + gzip); import CSV / JSON.
+- **ICS import** — parses RFC 5545, aggregates by event name, smart-prefills categories.
+- Everything stays local. Take it anywhere, never locked in.
 
 ---
 
-## Architecture
+## Engineering highlights
+
+> A **pure front-end, local-first, backend-free** app that still has to carry calendar interaction, a stats engine, and cross-platform packaging. A few decisions worth noting:
+
+- **One-way layered architecture** — `use-cases → domain → data → stores → features`, no reverse dependencies. The `domain/` layer is side-effect-free (no React, no IndexedDB), so it's fully covered by 744 unit tests.
+- **Hand-written week view, no calendar library** — overlap layout, drag-to-move and drag-to-resize are all custom. The core is a **minute-axis coordinate system** (0..7×1440), so cross-day dragging is just arithmetic; the ghost overlay drives the DOM via `requestAnimationFrame` at 60fps.
+- **Pure-function stats engine** — weekly stats, time-slot aggregation, standard week, steady-state metrics (drift via linear regression), correlation analysis, data-maturity gating — all testable pure functions.
+- **One codebase, three targets** — the same React app ships as a Web bundle (Vite), a Windows desktop exe (Tauri), and an Android apk (Capacitor).
+- **Engineering discipline** — TypeScript strict, no `any` / `as unknown as` / `@ts-ignore`; components reach data only through Zustand stores, never a Repository directly.
+
+### Stack
+
+| Layer | Choice |
+|---|---|
+| UI | React 19 + TypeScript 6 (strict), Tailwind CSS v4, Radix UI |
+| State / storage | Zustand v5 · Dexie v4 (IndexedDB), local-first, no backend |
+| Routing / charts / time | react-router-dom v7 (HashRouter) · Recharts 3 · date-fns v4 |
+| Build / test | Vite 8 · Vitest 4 + Testing Library + fake-indexeddb (744 tests / 50 files) |
+| Desktop / mobile | Tauri v2 (Windows exe) · Capacitor v8 (Android apk) |
+| Crypto / fonts / icons | age-encryption · Inter / Source Serif 4 / JetBrains Mono / LXGW WenKai · lucide-react |
+
+### Architecture
 
 ```
-use-cases/ ──→ domain/  ──→  data/  ──→  stores/  ──→  features/ + components/
- (orchestration)  (pure logic)  (Repository)  (Zustand)      (UI)
+use-cases/  ──→  domain/  ──→  data/  ──→  stores/  ──→  features/ + components/ + pages/
+(orchestration) (pure logic)  (Repo+Dexie)  (Zustand)      (UI)
 ```
 
-- **`use-cases/`** — orchestration layer. Pure DI functions for cross-repository operations (e.g. auto-learn keywords on event creation).
-- **`domain/`** — pure types and business logic. No React, no IndexedDB, no side effects. All unit-tested.
-- **`data/`** — Dexie schema + repositories + migrations. Only layer touching IndexedDB.
-- **`stores/`** — Zustand stores wrapping data layer. Components never call repositories directly.
-- **`features/` + `components/`** — React UI.
-
-Notable details:
-
-- **Drag system** — minute-axis coordinates (0..7×1440), cross-day is arithmetic. Ghost via rAF direct DOM.
-- **Render performance** — `React.memo`, stable callbacks, Zustand sliced subscriptions.
-- **Stats engine** — pure functions: weekly stats, interval merging, Type I/II split, maturity, steady metrics, correlation.
-- **Keyword learning** — `use-cases/classifyAndLearnKeyword.ts`.
+`domain/` must not import React / Dexie / browser APIs. Data flows one way: components go through stores, stores wrap repositories, and repositories are the only place that touches IndexedDB.
 
 ---
 
-## Getting Started
+## Roadmap
 
-Requires **Node 20+** and **npm**.
+The core is largely done; what's next is expansion outward:
+
+- [ ] **🤖 AI time assistant** — multi-provider streaming chat, `@`-mentions that inject structured time data, analyses you can pin to a given day's diary.
+- [ ] **📈 Deeper charts** — more correlation dimensions, customizable review views.
+- [ ] **📱 Mobile polish** — bring the Android experience up to par with desktop.
+- [ ] **🔄 End-to-end sync** — local-first sync between desktop ↔ mobile (still no central server).
+
+Completed milestones are in the [Changelog](./CHANGELOG.md).
+
+---
+
+## Run locally
+
+Needs **Node 20+** and npm.
 
 ```bash
 git clone https://github.com/vanemacus486-bit/CaILens.git
 cd CaILens
 npm install
-npm run dev
+npm run dev          # dev server (http://localhost:5173 by default)
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
-
-### Scripts
-
-```bash
-npm run dev          # start dev server
-npm run build        # type-check (tsc) + production build (vite)
-npm run preview      # preview production build locally
-npm run test         # run unit tests once (498 tests)
-npm run test:watch   # run tests in watch mode
-npm run lint         # run ESLint
-npm run tauri:build  # Tauri production build (Windows exe)
-npm run android:build# Android APK build
-```
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev server (HMR) |
+| `npm run build` | Type-check + production build (web bundle → `dist/`) |
+| `npm run test` | Run unit tests once (744) |
+| `npm run lint` | ESLint |
+| `npm run tauri:build` | Build the Windows desktop exe → `release/` |
+| `npm run android:build` | Build the Android apk |
 
 ---
 
-## Tech Stack
+## Support the project
 
-| Layer | Choice | Notes |
-|---|---|---|
-| UI | React 19 + TypeScript 6 (strict) | Functional components, hooks, no `any` |
-| Build | Vite 8 | |
-| Styling | Tailwind CSS v4 + CSS custom properties | shadcn-style primitives on Radix UI |
-| State | Zustand v5 | Sliced selectors |
-| Storage | IndexedDB via Dexie v4 | Local-first, no backend |
-| Router | react-router-dom v7 | HashRouter |
-| Charts | Recharts 3 | |
-| Dates | date-fns v4 | No dayjs / moment |
-| Testing | Vitest 4 + RTL + fake-indexeddb | 498 tests, 28 test files |
-| Fonts | Inter, Source Serif 4, JetBrains Mono, Noto Serif SC, Noto Sans SC, **LXGW WenKai** | Fontsource, local |
-| Icons | lucide-react | |
-| Desktop | Tauri v2 | Windows portable exe |
-| Mobile | Capacitor v8 | Android |
+CaILens is free forever, local-first, with no ads or tracking. If it helped you see your time clearly, you're welcome to buy the author a coffee:
+
+<!-- TODO: replace the two placeholder links with your real sponsor pages (see src/lib/sponsor.ts) -->
+[![Afdian](https://img.shields.io/badge/Afdian-Sponsor-946ce6?style=flat-square)](https://afdian.com/a/REPLACE_ME)
+[![Gumroad](https://img.shields.io/badge/Gumroad-Sponsor-ff90e8?style=flat-square)](https://REPLACE_ME.gumroad.com)
 
 ---
 
 ## License
 
-[Proprietary EULA](./LICENSE) — Copyright (c) 2025–2026 vanemacus486-bit. All rights reserved.
+[End-User License Agreement (EULA)](./LICENSE) — Copyright © 2025–2026 vanemacus486-bit. All rights reserved.
 
-Personal use on a single device. Redistribution, resale, and reverse engineering are prohibited. See the full license for terms.
+A license to use the software on a single device for personal use. Redistribution, resale, commercial use, and reverse engineering are prohibited. See LICENSE for full terms.
 
----
-
-[中文版 →](./README.md)
+<div align="center">
+<sub>A book you write one hour at a time.</sub>
+</div>

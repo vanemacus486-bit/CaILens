@@ -1,372 +1,208 @@
+<div align="center">
+
+<img src="docs/logo.png" width="96" alt="CaILens logo">
+
 # CaILens
 
-[English Version](./README.en.md)
+**记录每一小时，而非每一秒。**
 
-CaILens 是一个本地优先的时间记录工具，灵感来自《奇特的一生》中柳比歇夫坚持了 56 年的"时间统计法"。它记录、分类、可视化你的时间去向——没有账号、没有服务器、没有数据上报。
+本地优先的时间统计工具 —— 不是日历，不是待办，而是一本你一小时一小时写出来的书。
+没有账号，没有服务器，没有数据上报。
 
-> **状态：** v3.24.0 界面视觉打磨：日历对比度、事件块信息密度、设置弹窗交互优化。498 个测试。
-> 📋 [更新日志](./CHANGELOG.md) — 各版本的完整变更记录。
+[English](./README.en.md) · [更新日志](./CHANGELOG.md) · [隐私政策](./PRIVACY.md)
 
-## 下载
+![version](https://img.shields.io/badge/version-3.23.0-c47a5a?style=flat-square)
+![tests](https://img.shields.io/badge/tests-744_passing-2D7D46?style=flat-square)
+![platform](https://img.shields.io/badge/platform-Windows_·_Android_·_Web-3A5A80?style=flat-square)
+![typescript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square)
+![license](https://img.shields.io/badge/license-EULA-B53535?style=flat-square)
 
-### 最新版（推荐）
+</div>
+
+<!-- 截图占位 ① —— 周视图主图（最有代表性的一屏）。截图清单见文末。 -->
+<p align="center">
+  <img src="docs/screenshots/hero-week.png" alt="CaILens 周视图：24 小时 × 7 天一屏可见" width="860">
+</p>
+
+<div align="center">
+
+### 立即开始
 
 ```bash
 npx cailens
 ```
 
-一行命令即启动最新版本（无需安装，自动从 npm 拉取并运行）。需要 **Node 20+**。
+一行命令启动最新版（自动从 npm 拉取，无需安装，需 Node 20+）。
 
-或全局安装后使用：
+[![Windows](https://img.shields.io/badge/Windows-.exe-c47a5a?style=for-the-badge)](https://github.com/vanemacus486-bit/CaILens/releases/latest)
+[![Android](https://img.shields.io/badge/Android-.apk-6B7A4F?style=for-the-badge)](https://github.com/vanemacus486-bit/CaILens/releases/latest)
+[![GitHub](https://img.shields.io/badge/GitHub-source-1C1814?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vanemacus486-bit/CaILens)
 
-```bash
-npm install -g cailens
-cailens
-```
+</div>
 
-> 通过 npm 运行的始终是最新代码。后续 `npm update -g cailens` 即可升级。
-
-### 预构建安装包
-
-| 平台 | 下载 | 说明 |
-|------|------|------|
-| Windows (x64) | [CaILens.exe](https://github.com/vanemacus486-bit/CaILens/releases/latest) | 便携免安装，Windows 10 1803+ |
-| Android | [CaILens-android-debug.apk](https://github.com/vanemacus486-bit/CaILens/releases/latest) | Android 7.0+ |
-
-> ⚠️ **预构建安装包落后于最新代码。** 发布周期原因，GitHub Releases 中的 exe / apk 可能不是最新的。如需体验最新功能，请使用 `npx cailens` 或从源码构建。
-
-> **平台成熟度：** Windows 桌面版功能完整、体验成熟。Android 移动端尚处于早期阶段——基本可用但交互和视觉仍有大量打磨空间。欢迎反馈和贡献。
+> ⚠️ 预构建的 exe / apk 会滞后于最新代码。想体验最新功能请用 `npx cailens` 或从源码构建。
+> **平台成熟度：** Windows 桌面版功能完整、体验成熟；Android 移动端尚处早期，基本可用但仍在打磨。
 
 ---
 
-## 设计哲学
+## 为什么是它
 
-市面上几乎所有日历工具都在解决"把未来安排进格子里"——提醒你开会、收邀请、设闹钟。但理解自己的时间去向是完全不同的命题。
+市面上几乎所有日历工具都在解决「把未来安排进格子里」——提醒你开会、收邀请、设闹钟。但**理解自己的时间去向**，是完全不同的命题。
 
-柳比歇夫从 26 岁开始记录每天每一小时，持续 56 年直至去世。这不是"效率表演"——而是一种真正看清楚生命如何被度过的工具。
+柳比歇夫从 26 岁起记录每天的每一小时，持续 56 年直至去世。这不是效率表演，而是一种真正看清生命如何被度过的工具。CaILens 是这个工具在今天的一次尝试。
 
-CaILens 就是这个工具在浏览器里的一个尝试。
-
-- **记录，不规划。** 这里没有日程。你记录的是已经发生的事，不是对明天的承诺。
-- **本地优先。** 数据存在 IndexedDB 里。没有账号、没有服务器、没有数据上报。你的时间日记只属于你。
-- **安静的设计。** 暖中性色调，衬线标题，克制的主色。应用不催促、不评价、不打扰。
-- **代码质量优先于功能数量。** TypeScript 严格模式，498 个测试，单向依赖分层。代码库应该经得起时间考验。
+- **🪞 记录，不规划。** 这里没有日程。你记录的是已经发生的事，不是对明天的承诺。先看见，再判断。
+- **🔒 本地优先。** 数据全部存在你设备的 IndexedDB 里。没有账号、没有服务器、不联网、不上报。你的时间日记只属于你。
+- **🤫 安静的设计。** 暖中性色调，衬线标题，克制的焦橙主色。应用不催促、不评价、不打扰——唯一持续动起来的，是代表「现在」的当前时间红线。
+- **🧪 代码质量优先于功能数量。** TypeScript 严格模式，744 个测试，单向依赖分层。
 
 ---
 
-## 功能
+## 界面速览
 
-### 三模式导航（v3.23）
-
-顶层导航栏提供三种工作模式，快捷键 `1` `2` `3` 一键切换：
-
-| 模式 | 快捷键 | 用途 |
-|------|--------|------|
-| 📅 日历 | `1` | 周/日/月视图记录与回顾 |
-| 📋 规划 | `2` | 待办事项管理 |
-| 📊 复盘 | `3` | 统计看板——作息/日常/身体/关联 |
-
-三种视图共享同一个顶部栏，导航状态由 URL 参数驱动，浏览器前进/后退可恢复。
-
-### 周视图日历
-
-- **24 小时一屏可见**（周一至周日，带时间刻度栏）。
-- **点击空白创建**——事件就地展开为内联编辑卡片（不弹窗、不抢焦点），title / description 直接可编辑。再点或点空白处收起，编辑摩擦降到最低。
-- **创建后焦点自然流入描述**——标题填完按 Enter 保存，焦点自动落入 description 框；按 Esc 才彻底关闭。写描述是自然的下一步，不是额外的负担。
-- **写了描述的事件有视觉重量**——含 description 的事件块左侧色条加厚一档（5px vs 3px）。
-- **悬浮快读预览**——hover 事件 ~400ms 后浮现 floating card，显示完整标题 + 描述前两行，移开即消失。
-- **拖拽移动**——分钟轴连续坐标系统，跨天无缝。基于原生 Pointer Events 手写，ghost 浮层 60fps 渲染。
-- **拖拽边缘改时长**——上下手柄调整起止时间，可拖过午夜变为跨天事件。
-- **跨天事件**——睡眠等跨越午夜的记录自动跨天显示，连续圆角，延续块只保留色彩，不显示重复信息。
-- **实时预览 60fps**——编辑或拖动时，草稿事件即时渲染。
-- **右键菜单**——删除、换颜色（6 种颜色，每种对应一个分类）。
-- **重叠事件并排**——自动水平排列。
-- **当前时间红线**——1px 实线 + 左侧 3px 圆点 + 2 秒周期呼吸动画（opacity 90%→100%）。
-- **浅色 / 深色模式**——手动切换，首次自动检测系统偏好。6 色事件背景/文字经过 WCAG AA 对比度审计。
-- **三视图导航**——工具栏 W / D / M 三颗 pill 一键切换周/日/月视图。视图状态由 URL 参数驱动，浏览器前进/后退按键恢复视图和位置。
-
-### 日视图日记（DayEventStream）
-
-日视图通过 `?view=day&date=YYYY-MM-DD` URL 参数嵌入主视图，与周/月视图共享 URL 空间。
-
-- **竖排阅读区块**——Serif 小标题（600 weight）、Serif 正文段落（描述）、更小的 sans-serif 脚注。
-- **描述 Markdown 渲染**——输入纯文本，渲染层支持 **加粗** / *斜体* / 行内代码 / 无序列表 / 行内链接。
-- **分类切换分隔线**——活动类型变化时出现微妙的分割线。
-- **前后日导航**——一天一天翻阅日记。周视图日期头点击日期直接跳转。
-
-### 月视图（MonthView）
-
-- **月度聚合网格**——显示当月每日事件汇总。
-- **双击跳转日视图**——双击任意日期格，自动切换到日视图。
-- **前后月导航**——工具栏 `‹` `›` 箭头切换月份。
-- **三视图统一切换**——W / D / M pills。URL 参数 `?view=month&date=2026-05-01`。
-
-### 快速记录
-
-- **`n` 键全局快捷键**——任意页面打开快速记录入口。
-- **极简输入流**——事件名、分类、备注三个字段。autofocus 标题框，**Tab** 切换字段，**Enter** 保存关闭。
-- **Alt+数字选分类**——`Alt+1..6` 快速切换分类。颜色按钮标注数字快捷键。
-- **自动补全下拉**——输入事件名时显示近期匹配项，一键复用。
-- **最近使用列表**——快速记录入口显示最近使用的事件类别。
-- **自动时间推导**——无需手动设时间，继承上一事件或回退到 `now - 1h` → `now`。
-- **保存后撤销**——3 秒 snackbar，点击撤销删除事件。
-- **浮动事件卡片**——快速记录入口以浮动形式附着在周视图下方，即开即用。
-
-### 待办事项 / 规划页面（v3.23）
-
-全新的 `/action` 页面，将待办与时间记录分离，实现"规划"与"记录"的清晰分工。
-
-- **TODO 四态管理**——`todo / in_progress / done / cancelled`。
-- **优先级标签**——高 / 中 / 低，支持按优先级和截止日期排序。
-- **截止日期分组**——逾期 / 今天 / 近期 / 无期限。
-- **排序算法**——`sortTodos()` 纯函数：未完成优先 → sortOrder → 优先级 → 创建时间。
-- **快速添加**——顶栏输入框 + Enter 即创建。
-- **Store 驱动**——`todoStore` 封装数据层，Zustand 切片订阅。
-
-### 项目与 SOP（v3.23）
-
-新增「项目」维度，事件可归属到项目下，形成「事件 → 项目 → 分类」三层归属模型。每个项目可关联标准操作流程（SOP）。
-
-- **项目详情页**——`/projects/:projectId`，展示项目内事件概览 + SOP 编辑器。
-- **SOP 编辑器**——支持四种节类型：title / step / note / warning。
-- **版本管理**——每次编辑生成新版本，支持历史查看和回退。
-- **Store 驱动**——`projectStore` + `sopStore`，repository 层持久化。
-
-### 个人档案（v3.23）
-
-`/profile` 页面管理个人基础信息和身体指标。
-
-- **身体指标**——身高 / 体重 / 体脂率 / 静息心率 / 血压。
-- **睡眠基线**——记录个人睡眠需求基线，用于稳态指标对比。
-- **数据持久化**——`profileStore` + `profileRepository`。
-
-### 每日生活上下文（v3.22）
-
-CaILens 捕捉"为什么"——记录影响作息的生活变量。
-
-- **轻量每日记录**——5 个滑条 + 2 个数字输入 + 1 个备注字段：最后一餐时间与类型、社交强度、户外时长、运动强度、情绪基调、屏幕使用。
-- **全字段可选**——20 秒完成。
-- **状态提示**——已记录当天显示"已记"。
-- **克制模式**——设置中开启"只记录不分析"模式，隐藏洞察入口。
-
-### 生活洞察（v3.22）
-
-将每日上下文和作息数据关联，回答"是什么影响了我"。
-
-- **分组对比分析**——按变量将历史分高值/低值组，对比作息指标均值差异。
-- **自然语言洞察卡片**——"较晚的最后一餐：就寝时间推迟了 34 分钟"。
-- **相关性 ≠ 因果**——每条洞察附带免责声明。
-- **建议方向**——对显著关联提供可操作建议。
-- **统计页入口**——Stats 页面「关联」Tab 展示全部洞察卡片。
-
-### 稳态指标（v3.22）
-
-从连续天数的冲刺心态转向长期稳定的稳态视角。
-
-- **睡眠中位数**——抗异常值。
-- **标准差**——作息波动幅度。
-- **漂移速度**——线性回归计算每周变化量（分钟/周）。
-- **漂移投影**——"若不干预，4 周后就寝时间将到达 XX:XX"。
-- **一致性指数**——衡量作息规律性的综合指标。
-
-### 克制模式（v3.22）
-
-防止工具异化为新的焦虑源。
-
-- **一键开关**——设置 → 数据 → 克制模式。
-- **生效范围**——隐藏洞察入口和分析功能。
-- **设计定位**——帮助看见因果链，而非持续审视用户。
-
-### 标准周视图
-
-把历史上所有周叠加为"典型的一周长什么样"。
-
-- **7×24 聚合网格**——168 个 (weekday, hour) 桶按分钟权重切片。
-- **时段习惯可视化**——背景色深 = 习惯强，浅 = 混杂。颜色继承分类配色。
-- **＜30% 无规律归灰**——低占比格子退至透明背景。
-- **悬停分布列表**——显示完整活动分布。
-- **数据范围选择**——全部 / 最近 12 周 / 最近 4 周。
-- **隐藏睡眠开关**——排除 stone 分类。
-- **≤8 周显示绝对次数**——`"3/4 周"` 替代百分比。
-
-### 搜索
-
-- **Ctrl+K / Cmd+K 全局快捷键**——任意页面唤出搜索面板。
-- **关键词搜索**——匹配事件标题、描述，大小写不敏感。
-- **描述命中显示片段**——前后 ±20 字上下文 + 高亮关键词。
-- **即时导航**——点击搜索结果跳转并打开事件详情。
-- **工具栏入口**——周视图工具栏搜索图标。
-
-### 侧边栏
-
-- **图标栏 hover 展开**——200ms 延迟，中/英文标签。可固定展开，状态持久化。
-- **周导航**——上一周、下一周、跳回本周。
-- **ICS 导入**和**统计看板**入口。
-
-### 键盘快捷键
-
-CaILens 内置全局快捷键系统，支持**自定义所有绑定**：
-
-| 快捷键 | 操作 |
-|--------|------|
-| `1` / `2` / `3` | 日历 / 规划 / 复盘模式 |
-| `Ctrl+K` | 打开搜索面板 |
-| `N` | 快速记录 |
-| `Ctrl+C` | 复制焦点事件 |
-| `Ctrl+V` | 粘贴事件 |
-| `Ctrl+←` / `Ctrl+→` | 上一周 / 下一周 |
-| `Ctrl+Shift+←` / `Ctrl+Shift+→` | 上一天 / 下一天 |
-| `M` | 切换月视图 |
-
-- **16 个可绑定操作**——导航、视图切换、主题/语言切换、事件操作等
-- **设置页「快捷键」标签页**——点击绑定 pill 录制新快捷键，冲突检测自动警告
-- **重置**——单操作重置或一键重置全部
-- 输入框/文本域中自动禁用快捷键
-
-### 分类系统（6 个固定分类）
-
-| 颜色 | 中文名 | 英文名 | 归类 |
-|---|---|---|---|
-| 焦橙色 | 主要矛盾 | Core Focus | Type I — 创造性核心 |
-| 鼠尾草绿 | 次要矛盾 | Support Tasks | Type II — 辅助 |
-| 沙色 | 庶务时间 | Chores & Admin | Type II — 辅助 |
-| 暖灰蓝 | 个人提升 | Personal Growth | Type I — 创造性核心 |
-| 玫瑰色 | 休息娱乐 | Rest & Leisure | Type II — 辅助 |
-| 石灰色 | 睡眠时长 | Sleep | Type II — 辅助 |
-
-中英文名称可分别修改。每个分类可设置**每周预算**（小时数）。每个事件必须属于一个分类。
-
-### 设置页
-
-弹窗式布局，点击卡片外部关闭，支持 Esc 键和键盘导航；左侧选项卡平铺展示，无分组：
-
-- **分类**——分类名称行内编辑、每周预算、关键词文件夹管理、关键词变更后自动重归类全库事件。
-- **外观**——语言切换（中文 / English）、主题切换（浅色 / 深色）、主题色四选一（rust / ocean / forest / plum）、字体选择（Inter / 霞鹜文楷）。
-- **快捷**——查看和自定义所有键盘快捷键。
-- **数据**——克制模式开关、数据导出与导入。
-- **存储**——IndexedDB 存储信息概览。
-- **关于**——版本与许可信息。
-
-### 统计看板（v3.23 四 Tab 重构）
-
-统计页面从三视图升级为**四个一级 Tab**，每个 Tab 包含子视图：
-
-**📊 作息（Routine）**
-- 分类趋势图（日/周/月粒度，多线折线图 + 核心投入组聚合 + 预算基准线）
-- 年度热力图（GitHub 贡献图范式，6 分类 pill 切换，百分位动态阈值）
-- 睡眠节律图（日历格式 Y 轴，月/季/年三级视图，就寝+起床散点 + 垂直线段）
-- 稳态指标（中位数、标准差、漂移速度、漂移投影、一致性指数）
-
-**🥗 日常（Lifestyle）**
-- 饮食营养卡片——每日饮食类型统计与营养状态聚合
-- 穿搭记录卡片——每日穿搭项统计
-- 卫生习惯卡片——卫生习惯评分趋势
-- 娱乐放松卡片——娱乐活动分布
-
-**💪 身体（Body）**
-- 身体指标面板——体重 / 体脂率 / 心率 / 血压 时序趋势
-- 睡眠基线对照
-
-**🔗 关联（Correlation）**
-- 生活上下文变量与作息指标的关联分析
-- 分组对比 + 自然语言洞察卡片
-- 相关性 ≠ 因果 免责声明
-- 数据成熟度：Cold / Warming / Mature 三级生效
-
-### ICS 导入
-
-- **解析 RFC 5545 文件**（ical.js）。自动跳过全天事件和重复事件。
-- **事件名聚合**——按事件名聚合，行内 6 色分类按钮（键盘 1-6 快速分配）。
-- **智能预填建议**——关键词匹配自动猜分类，一键应用。
-- **事件覆盖度进度条**——"已覆盖 743 / 1369"。
-- **搜索过滤 + 同名单例覆盖**。
-- **关键词修改自动重归类**。
-
-### 数据
-
-- **本地持久存储**——IndexedDB（Dexie v4），Schema version 9+，迁移自动执行。
-- **数据导出**——CSV / JSON / **加密 .cailens 导出**（age 加密 + gzip 压缩）。
-- **数据导入**——CSV / JSON 事件恢复。
-- **加密备份**——完整的导入/导出双向流程。
+<!-- 截图占位 ②③④ —— 见文末截图清单。 -->
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/stats-dashboard.png" alt="复盘看板"><br><sub><b>复盘看板</b> · 作息 / 日常 / 身体 / 关联 四个维度</sub></td>
+    <td width="50%"><img src="docs/screenshots/day-view.png" alt="日视图日记"><br><sub><b>日视图日记</b> · 衬线排版，把记录变成可朗读的一页</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/standard-week.png" alt="标准周视图"><br><sub><b>标准周</b> · 所有历史周叠加，看清你「典型的一周」</sub></td>
+    <td width="50%"><img src="docs/screenshots/dark-mode.png" alt="深色模式"><br><sub><b>深色模式</b> · 6 套视觉风格，浅 / 深自由切换</sub></td>
+  </tr>
+</table>
 
 ---
 
-## 架构
+## 核心功能
+
+### 📅 周视图记录
+- **24 小时 × 7 天一屏可见**，横轴一周、纵轴一天，不滚动。
+- **点击空白即创建**——事件就地展开为内联编辑卡片，不弹窗、不抢焦点；填完标题按 Enter，焦点自然流入描述。
+- **拖拽就是编辑**——基于原生 Pointer Events 手写的连续分钟轴坐标系，拖动可跨越午夜，拽住边缘即改时长，ghost 浮层 60fps。
+- **跨天事件**——睡眠等跨午夜记录自动连续显示；悬浮 ~400ms 浮现快读预览。
+
+### ⚡ 快速记录
+- **任意页面按 `N`** 唤出极简输入流：事件名、分类、备注，Tab 切字段、Enter 保存。
+- **自动接续时间**——开始时间自动接上一段的结束，无需手动设。
+- **自动补全 + 最近使用**，保存后 3 秒内可一键撤销。
+
+### 📖 日视图日记
+- 衬线小标题 + 正文段落，描述支持 **Markdown** 渲染（加粗 / 斜体 / 列表 / 链接）。
+- 活动类型切换处自动出现分隔线——记录读起来像叙事，而非报表。
+
+### 📊 复盘看板
+- **年度热力图**——GitHub 贡献图范式，6 分类切换，看全年节律。
+- **睡眠节律图**——日历格式 Y 轴，月 / 季 / 年三级，就寝 + 起床散点。
+- **分类趋势**——日 / 周 / 月粒度多线折线，叠加每周预算基准线。
+- **标准周**——168 个 (星期, 小时) 桶按分钟权重聚合，回答「周一上午九点我通常在做什么」。
+- **稳态指标**——睡眠中位数、标准差、漂移速度、漂移投影、一致性指数，从「连续打卡」转向「长期稳定」。
+
+### 🔗 生活上下文 + 关联洞察
+- 轻量记录影响作息的生活变量（最后一餐、社交、户外、运动、情绪、屏幕），20 秒完成。
+- 把变量与作息关联，输出自然语言洞察卡片：「较晚的最后一餐：就寝推迟了 34 分钟」。
+- 每条洞察附「相关性 ≠ 因果」免责声明；可开启**克制模式**，只记录不分析，防止工具异化为焦虑源。
+
+### 🗂️ 规划 · 项目 · 档案
+- **规划页**——TODO 四态管理（待办 / 进行中 / 完成 / 取消）、优先级、截止日期分组，与「记录」清晰分工。
+- **项目与 SOP**——事件可归属到项目，形成「事件 → 项目 → 分类」三层模型；每个项目可附带版本化的标准操作流程。
+- **个人档案**——身高 / 体重 / 体脂 / 心率 / 血压时序，与睡眠基线对照。
+
+### 🎨 体验细节
+- **6 个固定分类**（主要矛盾 / 次要矛盾 / 庶务 / 个人提升 / 休息娱乐 / 睡眠），名称与每周预算可改。
+- **6 套视觉风格** + 浅 / 深模式，事件色经 WCAG AA 对比度审计。
+- **全局搜索**（`Ctrl+K`）、**全键盘操作**（16 个可自定义绑定）、**中 / 英 i18n**。
+
+### 🔓 数据自由
+- 导出 **CSV / JSON / 加密 `.cailens`**（age 加密 + gzip），导入 CSV / JSON。
+- **ICS 导入**——解析 RFC 5545，按事件名聚合并智能预填分类。
+- 一切都在本地，随时带走，永不锁定。
+
+---
+
+## 技术亮点
+
+> 这是一个**纯前端、本地优先、无后端**的应用，却要承载日历交互、统计引擎和跨端打包。几个有意思的工程决策：
+
+- **单向依赖分层架构** —— `use-cases → domain → data → stores → features`，严禁反向依赖。`domain/` 层零副作用（不碰 React、不碰 IndexedDB），因此可被 744 个单元测试完整覆盖。
+- **手写周视图，不用日历库** —— 重叠事件并排布局、拖拽移动 / 改时长全部自实现。核心是一个**分钟轴坐标系**（0..7×1440），跨天拖拽退化为简单加减法，ghost 浮层用 `requestAnimationFrame` 直接操作 DOM 跑满 60fps。
+- **纯函数统计引擎** —— 周统计、时段聚合、标准周、稳态指标（线性回归算漂移）、关联分析、数据成熟度判定，全部是可测试的纯函数。
+- **一套代码，三端交付** —— 同一份 React 应用通过 Vite 出 Web 包、Tauri 打 Windows 桌面 exe、Capacitor 打 Android apk。
+- **工程纪律** —— TypeScript strict，禁用 `any` / `as unknown as` / `@ts-ignore`；组件只通过 Zustand store 访问数据，从不直接调 Repository。
+
+### 技术栈
+
+| 层 | 选型 |
+|---|---|
+| UI | React 19 + TypeScript 6（strict）、Tailwind CSS v4、Radix UI |
+| 状态 / 存储 | Zustand v5 · Dexie v4 (IndexedDB)，本地优先无后端 |
+| 路由 / 图表 / 时间 | react-router-dom v7（HashRouter）· Recharts 3 · date-fns v4 |
+| 构建 / 测试 | Vite 8 · Vitest 4 + Testing Library + fake-indexeddb（744 测试 / 50 文件） |
+| 桌面 / 移动 | Tauri v2（Windows exe）· Capacitor v8（Android apk） |
+| 加密 / 字体 / 图标 | age-encryption · Inter / Source Serif 4 / JetBrains Mono / LXGW 文楷 · lucide-react |
+
+### 架构
 
 ```
-use-cases/ ──→ domain/  ──→  data/  ──→  stores/  ──→  features/ + components/
- (orchestration)  (pure logic)  (Repository)  (Zustand)      (UI)
+use-cases/  ──→  domain/  ──→  data/  ──→  stores/  ──→  features/ + components/ + pages/
+(编排)         (纯逻辑)       (Repo+Dexie)  (Zustand)      (UI)
 ```
 
-- **`use-cases/`** —— 编排层。纯函数依赖注入，处理跨 Repository 的操作（如"创建事件时自动学习关键词"）。
-- **`domain/`** —— 纯类型和业务逻辑。不依赖 React、不依赖 IndexedDB、无副作用。全单元测试覆盖。
-- **`data/`** —— Dexie schema 和 repository。唯一直接碰 IndexedDB 的地方。新增 migrations 子目录管理 schema 升级。
-- **`stores/`** —— Zustand store，包装数据层。组件永远不直接调 repository。
-- **`features/` + `components/`** —— React UI。
-
-几个值得一提的实现：
-
-- **拖拽系统**——分钟轴坐标系（0..7×1440），跨天拖拽只是加减法。ghost 浮层基于 rAF 直接操作 DOM。
-- **渲染性能**——`React.memo`、稳定 callback、Zustand 切片订阅。
-- **统计引擎**——纯函数构成的周统计、时段聚合、区间合并、Type I/II 分离、数据成熟度、稳态指标、关联分析。
-- **关键词学习**——`use-cases/classifyAndLearnKeyword.ts`，事件创建时自动提取关键词到对应分类。
+`domain/` 不得 import React / Dexie / 浏览器 API。数据流单向，组件经 store 读写，store 包装 Repository，Repository 是唯一触碰 IndexedDB 的地方。
 
 ---
 
-## 怎么跑起来
+## Roadmap
 
-需要 **Node 20 以上** 和 **npm**。
+项目核心功能已基本完成，后续重心是向外拓展：
+
+- [ ] **🤖 AI 时间助手** —— 多提供商流式对话，`@` 提及注入结构化时间数据，分析可钉在某一天的日记上。
+- [ ] **📈 图表深化** —— 更多关联维度、可自定义的复盘视图。
+- [ ] **📱 移动端打磨** —— 把 Android 端的交互与视觉做到与桌面端齐平。
+- [ ] **🔄 端到端同步** —— 桌面 ↔ 移动 的本地优先同步（仍坚持无中心服务器的隐私原则）。
+
+已完成的里程碑见 [CHANGELOG](./CHANGELOG.md)。
+
+---
+
+## 本地运行
+
+需要 **Node 20+** 和 npm。
 
 ```bash
 git clone https://github.com/vanemacus486-bit/CaILens.git
 cd CaILens
 npm install
-npm run dev
+npm run dev          # 启动开发服务器（默认 http://localhost:5173）
 ```
 
-打开 Vite 打印的地址（通常是 `http://localhost:5173`）。
-
-### 常用命令
-
-```bash
-npm run dev          # 启动开发服务器
-npm run build        # 类型检查 (tsc) + 生产构建 (vite)
-npm run preview      # 本地预览构建结果
-npm run test         # 跑一次单元测试（498 个测试）
-npm run test:watch   # 监听模式
-npm run lint         # 跑 ESLint
-npm run tauri:build  # Tauri 生产构建（Windows exe）
-npm run android:build# Android APK 构建
-```
+| 命令 | 作用 |
+|---|---|
+| `npm run dev` | 开发服务器（热更新） |
+| `npm run build` | 类型检查 + 生产构建（输出 `dist/` 网页包） |
+| `npm run test` | 跑一次单元测试（744 个） |
+| `npm run lint` | ESLint |
+| `npm run tauri:build` | 打包 Windows 桌面 exe → `release/` |
+| `npm run android:build` | 打包 Android apk |
 
 ---
 
-## 技术栈
+## 支持这个项目
 
-| 层 | 选型 | 备注 |
-|---|---|---|
-| UI | React 19 + TypeScript 6（strict） | 函数组件、hooks、不允许 `any` |
-| 构建 | Vite 8 | |
-| 样式 | Tailwind CSS v4 + CSS 自定义属性 | shadcn 风格组件基于 Radix UI |
-| 状态 | Zustand v5 | 切片订阅 |
-| 存储 | IndexedDB（Dexie v4） | 本地优先，无后端 |
-| 路由 | react-router-dom v7 | HashRouter |
-| 图表 | Recharts 3 | |
-| 时间 | date-fns v4 | 不引入 dayjs / moment |
-| 测试 | Vitest 4 + React Testing Library + fake-indexeddb | 498 个测试，28 个测试文件 |
-| 字体 | Inter、Source Serif 4、JetBrains Mono、Noto Serif SC、Noto Sans SC、**LXGW WenKai** | Fontsource 本地托管 |
-| 图标 | lucide-react | |
-| 桌面 | Tauri v2 | Windows 便携 exe |
-| 移动 | Capacitor v8 | Android |
+CaILens 永久免费、本地优先、不含任何广告或追踪。如果它帮你看清了时间，欢迎请作者喝杯咖啡 —— 国内可用 **爱发电**，海外可用 **Gumroad**：
+
+<!-- TODO: 把下面两个占位链接换成你真实的赞助主页（见 src/lib/sponsor.ts） -->
+[![Afdian](https://img.shields.io/badge/Afdian-Sponsor-946ce6?style=flat-square)](https://afdian.com/a/REPLACE_ME)
+[![Gumroad](https://img.shields.io/badge/Gumroad-Sponsor-ff90e8?style=flat-square)](https://REPLACE_ME.gumroad.com)
 
 ---
 
-## 开源协议
+## 许可
 
-[专有 EULA](./LICENSE) — Copyright (c) 2025–2026 vanemacus486-bit. 保留所有权利。
+[最终用户许可协议（EULA）](./LICENSE) — Copyright © 2025–2026 vanemacus486-bit. 保留所有权利。
 
-授予个人在单一设备上使用的许可。禁止再分发、转售及反向工程。完整条款见 LICENSE 文件。
+授予个人在单一设备上使用的许可。禁止再分发、转售、商用及反向工程，完整条款见 LICENSE。
 
----
-
-[English version →](./README.en.md)
+<div align="center">
+<sub>一本你一小时一小时写出来的书。</sub>
+</div>
