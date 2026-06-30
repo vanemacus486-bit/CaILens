@@ -14,62 +14,34 @@ import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsAbout } from './SettingsAbout'
 import { SettingsSupport } from './SettingsSupport'
 import { SettingsAccount } from './SettingsAccount'
-import { isTauri } from '@/data/tauriFs'
 import { isSponsorConfigured } from '@/lib/sponsor'
 
 /* ── Tab 分组定义 ── */
 
-// 「支持」入口：配置了真实收款 URL 才在正式构建显示；开发模式始终显示便于预览
-const SHOW_SUPPORT = isSponsorConfigured() || import.meta.env.DEV
-
-const TAB_GROUPS: {
+interface TabDef {
+  key: SettingsTab
   labelZh: string
   labelEn: string
-  tabs: {
-    key: SettingsTab
-    labelZh: string
-    labelEn: string
-    descZh: string
-    descEn: string
-  }[]
-}[] = [
-  {
-    labelZh: '偏好',
-    labelEn: 'Preferences',
-    tabs: [
-      { key: 'account', labelZh: '账户', labelEn: 'Account', descZh: '头像与名称', descEn: 'Avatar & name' },
-      { key: 'categories', labelZh: '分类', labelEn: 'Categories', descZh: '分配每周168小时', descEn: 'Allocate 168h/week' },
-      { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
-      { key: 'appearance', labelZh: '外观', labelEn: 'Appearance', descZh: '主题、风格与字体', descEn: 'Theme, style & fonts' },
-    ],
-  },
-  {
-    labelZh: '高级',
-    labelEn: 'Advanced',
-    tabs: [
-      { key: 'shortcuts', labelZh: '快捷', labelEn: 'Shortcuts', descZh: '键盘操作绑定', descEn: 'Keyboard bindings' },
-    ],
-  },
-  {
-    labelZh: '数据',
-    labelEn: 'Data',
-    tabs: [
-      { key: 'data', labelZh: '数据', labelEn: 'Data', descZh: '导入导出与身体数据', descEn: 'Import, export & body metrics' },
-    ],
-  },
-  {
-    labelZh: '其他',
-    labelEn: 'Other',
-    tabs: [
-      ...(isTauri()
-        ? [{ key: 'storage' as SettingsTab, labelZh: '存储', labelEn: 'Storage', descZh: '文件存储路径', descEn: 'File storage path' }]
-        : []),
-      { key: 'about' as SettingsTab, labelZh: '关于', labelEn: 'About', descZh: '版本与变更记录', descEn: 'Version & changelog' },
-      ...(SHOW_SUPPORT
-        ? [{ key: 'support' as SettingsTab, labelZh: '支持', labelEn: 'Support', descZh: '赞助与持续更新', descEn: 'Sponsor & updates' }]
-        : []),
-    ],
-  },
+  descZh: string
+  descEn: string
+}
+
+const SHOW_SUPPORT = isSponsorConfigured() || import.meta.env.DEV
+
+const SETTINGS_TABS: TabDef[] = [
+  { key: 'account',     labelZh: '账户',     labelEn: 'Account',     descZh: '头像与名称',                  descEn: 'Avatar & name' },
+  { key: 'categories',  labelZh: '分类',     labelEn: 'Categories',  descZh: '分配每周168小时',              descEn: 'Allocate 168h/week' },
+  { key: 'appearance',  labelZh: '外观',     labelEn: 'Appearance',  descZh: '主题、字体与界面语言',          descEn: 'Theme, font & language' },
+  { key: 'shortcuts',   labelZh: '快捷',     labelEn: 'Shortcuts',   descZh: '键盘操作绑定',                descEn: 'Keyboard bindings' },
+  { key: 'data',        labelZh: '数据',     labelEn: 'Data',        descZh: '导入导出与存储',              descEn: 'Import, export & storage' },
+  { key: 'about',       labelZh: '关于',     labelEn: 'About',       descZh: '版本与更新',                  descEn: 'Version & updates' },
+  ...(SHOW_SUPPORT
+    ? [{ key: 'support' as SettingsTab, labelZh: '支持', labelEn: 'Support', descZh: '赞助与持续更新', descEn: 'Sponsor & updates' }]
+    : []),
+]
+
+const EXTENSION_TABS: TabDef[] = [
+  { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
 ]
 
 /* ── Tab → 组件映射 ── */
@@ -86,9 +58,9 @@ const TAB_CONTENT: Record<SettingsTab, React.FC> = {
   support:     SettingsSupport,
 }
 
-/* ── 扁平化所有 tab（用于键盘导航） ── */
+/* ── 全部 tab（用于键盘导航） ── */
 
-const ALL_TABS = TAB_GROUPS.flatMap((g) => g.tabs)
+const ALL_TABS = [...SETTINGS_TABS, ...EXTENSION_TABS]
 
 export function SettingsPage() {
   const isMobile = useIsMobile()
@@ -130,14 +102,54 @@ export function SettingsPage() {
         aria-orientation="vertical"
         aria-label={t('nav.settings')}
       >
-        <div className="px-5 pt-7 pb-3">
-          <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
-            {t('nav.settings')}
-          </h1>
-        </div>
+        <div className="flex flex-col gap-0.5 px-2.5 pt-7 pb-6">
+          {/* ── 设置区 ── */}
+          <span className="px-3 pb-0.5 text-[10px] font-sans font-medium uppercase tracking-wider text-text-quaternary">
+            {tl('设置', 'Settings')}
+          </span>
+          {SETTINGS_TABS.map((tab) => {
+            const active = activeSettingsTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                id={`settings-tab-${tab.key}`}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveSettingsTab(tab.key)}
+                className={cn(
+                  'w-full text-left rounded-lg transition-colors duration-200 cursor-pointer border-none',
+                  'flex flex-col items-start gap-0.5',
+                  'pl-3 pr-2 py-1.5',
+                  active
+                    ? 'bg-surface-sunken shadow-pill'
+                    : 'hover:bg-surface-raised',
+                )}
+              >
+                <span
+                  className={cn(
+                    'text-sm font-sans font-medium transition-colors duration-200',
+                    active ? 'text-text-primary' : 'text-text-secondary',
+                  )}
+                >
+                  {tl(tab.labelZh, tab.labelEn)}
+                </span>
+                <span
+                  className={cn(
+                    'text-[11px] font-sans transition-colors duration-200',
+                    active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
+                  )}
+                >
+                  {tl(tab.descZh, tab.descEn)}
+                </span>
+              </button>
+            )
+          })}
 
-        <div className="flex flex-col gap-0.5 px-2.5 pb-6">
-          {TAB_GROUPS.flatMap((group) => group.tabs).map((tab) => {
+          {/* ── 拓展区 ── */}
+          <span className="px-3 pt-2 pb-0.5 text-[10px] font-sans font-medium uppercase tracking-wider text-text-quaternary">
+            {tl('拓展', 'Extensions')}
+          </span>
+          {EXTENSION_TABS.map((tab) => {
             const active = activeSettingsTab === tab.key
             return (
               <button

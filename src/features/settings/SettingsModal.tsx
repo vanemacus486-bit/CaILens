@@ -15,10 +15,9 @@ import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsAbout } from './SettingsAbout'
 import { SettingsSupport } from './SettingsSupport'
 import { SettingsAccount } from './SettingsAccount'
-import { isTauri } from '@/data/tauriFs'
 import { isSponsorConfigured } from '@/lib/sponsor'
 
-/* ── Tab 分组定义（新结构：合并后 6 项） ── */
+/* ── Tab 分组定义 ── */
 
 interface TabDef {
   key: SettingsTab
@@ -31,44 +30,20 @@ interface TabDef {
 // 「支持」入口：配置了真实收款 URL 才在正式构建显示；开发模式始终显示便于预览
 const SHOW_SUPPORT = isSponsorConfigured() || import.meta.env.DEV
 
-const TAB_GROUPS: { labelZh: string; labelEn: string; tabs: TabDef[] }[] = [
-  {
-    labelZh: '偏好',
-    labelEn: 'Preferences',
-    tabs: [
-      { key: 'account', labelZh: '账户', labelEn: 'Account', descZh: '头像与名称', descEn: 'Avatar & name' },
-      { key: 'categories', labelZh: '分类', labelEn: 'Categories', descZh: '分配每周168小时', descEn: 'Allocate 168h/week' },
-      { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
-      { key: 'appearance', labelZh: '外观', labelEn: 'Appearance', descZh: '主题、字体与界面语言', descEn: 'Theme, font & language' },
-    ],
-  },
-  {
-    labelZh: '高级',
-    labelEn: 'Advanced',
-    tabs: [
-      { key: 'shortcuts', labelZh: '快捷', labelEn: 'Shortcuts', descZh: '键盘操作绑定', descEn: 'Keyboard bindings' },
-    ],
-  },
-  {
-    labelZh: '数据',
-    labelEn: 'Data',
-    tabs: [
-      { key: 'data', labelZh: '数据', labelEn: 'Data', descZh: '导入导出与身体数据', descEn: 'Import, export & body metrics' },
-    ],
-  },
-  {
-    labelZh: '其他',
-    labelEn: 'Other',
-    tabs: [
-      ...(isTauri()
-        ? [{ key: 'storage' as SettingsTab, labelZh: '存储', labelEn: 'Storage', descZh: '文件存储路径', descEn: 'File storage path' }]
-        : []),
-      { key: 'about' as SettingsTab, labelZh: '关于', labelEn: 'About', descZh: '版本与变更记录', descEn: 'Version & changelog' },
-      ...(SHOW_SUPPORT
-        ? [{ key: 'support' as SettingsTab, labelZh: '支持', labelEn: 'Support', descZh: '赞助与持续更新', descEn: 'Sponsor & updates' }]
-        : []),
-    ],
-  },
+const SETTINGS_TABS: TabDef[] = [
+  { key: 'account',     labelZh: '账户',     labelEn: 'Account',     descZh: '头像与名称',                  descEn: 'Avatar & name' },
+  { key: 'categories',  labelZh: '分类',     labelEn: 'Categories',  descZh: '分配每周168小时',              descEn: 'Allocate 168h/week' },
+  { key: 'appearance',  labelZh: '外观',     labelEn: 'Appearance',  descZh: '主题、字体与界面语言',          descEn: 'Theme, font & language' },
+  { key: 'shortcuts',   labelZh: '快捷',     labelEn: 'Shortcuts',   descZh: '键盘操作绑定',                descEn: 'Keyboard bindings' },
+  { key: 'data',        labelZh: '数据',     labelEn: 'Data',        descZh: '导入导出与存储',              descEn: 'Import, export & storage' },
+  { key: 'about',       labelZh: '关于',     labelEn: 'About',       descZh: '版本与更新',                  descEn: 'Version & updates' },
+  ...(SHOW_SUPPORT
+    ? [{ key: 'support' as SettingsTab, labelZh: '支持', labelEn: 'Support', descZh: '赞助与持续更新', descEn: 'Sponsor & updates' }]
+    : []),
+]
+
+const EXTENSION_TABS: TabDef[] = [
+  { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
 ]
 
 /* ── Tab → 组件映射 ── */
@@ -85,19 +60,33 @@ const TAB_CONTENT: Record<SettingsTab, React.FC> = {
   support:     SettingsSupport,
 }
 
+/* ── 全部 tab（用于键盘导航） ── */
+
+const ALL_TABS = [...SETTINGS_TABS, ...EXTENSION_TABS]
+
 /* ── 简单模糊搜索 ── */
 
 function fuzzyMatch(query: string, text: string): boolean {
   const q = query.toLowerCase().replace(/\s+/g, '')
   const t = text.toLowerCase().replace(/\s+/g, '')
   if (t.includes(q)) return true
-  // 全拼首字母匹配
   if (q.length >= 2) {
     try {
       if (new RegExp(q.split('').join('.*')).test(t)) return true
     } catch { /* ignore */ }
   }
   return false
+}
+
+function filterTabs(tabs: TabDef[], query: string): TabDef[] {
+  if (!query.trim()) return tabs
+  return tabs.filter(
+    (tab) =>
+      fuzzyMatch(query, tab.labelZh) ||
+      fuzzyMatch(query, tab.labelEn) ||
+      fuzzyMatch(query, tab.descZh) ||
+      fuzzyMatch(query, tab.descEn),
+  )
 }
 
 export function SettingsModal() {
@@ -109,39 +98,21 @@ export function SettingsModal() {
   const isMobile = useIsMobile()
 
   const t = useT()
-  // For zh/en-paired labels (tab/group definitions in TAB_GROUPS)
-  const tl = (zh: string, en: string): string => {
-    if (language === 'zh') return zh
-    // For other languages, use English as fallback for tab labels
-    return en
-  }
+  const tl = (zh: string, en: string): string => (language === 'zh' ? zh : en)
 
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
 
   // Filter tabs by search
-  const filteredGroups = useMemo(() => {
-    if (!searchQuery.trim()) return TAB_GROUPS
-    return TAB_GROUPS
-      .map((group) => ({
-        ...group,
-        tabs: group.tabs.filter(
-          (tab) =>
-            fuzzyMatch(searchQuery, tab.labelZh) ||
-            fuzzyMatch(searchQuery, tab.labelEn) ||
-            fuzzyMatch(searchQuery, tab.descZh) ||
-            fuzzyMatch(searchQuery, tab.descEn),
-        ),
-      }))
-      .filter((g) => g.tabs.length > 0)
-  }, [searchQuery])
+  const filteredSettings = useMemo(() => filterTabs(SETTINGS_TABS, searchQuery), [searchQuery])
+  const filteredExtensions = useMemo(() => filterTabs(EXTENSION_TABS, searchQuery), [searchQuery])
+  const showNoResults = searchQuery.trim() && filteredSettings.length === 0 && filteredExtensions.length === 0
 
   // Focus search on open
   useEffect(() => {
     if (open) {
       setSearchQuery('')
-      // Small delay for the portal to mount
       const id = setTimeout(() => searchInputRef.current?.focus(), 50)
       return () => clearTimeout(id)
     }
@@ -152,7 +123,6 @@ export function SettingsModal() {
     if (!open) return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        // If search is focused, clear it first
         if (document.activeElement === searchInputRef.current && searchQuery) {
           setSearchQuery('')
           e.preventDefault()
@@ -168,7 +138,7 @@ export function SettingsModal() {
   // Arrow key navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      const tabs = filteredGroups.flatMap((g) => g.tabs)
+      const tabs = ALL_TABS
       if (tabs.length === 0) return
       const idx = tabs.findIndex((t) => t.key === activeTab)
       let nextIdx = idx
@@ -183,7 +153,7 @@ export function SettingsModal() {
         setActiveTab(tabs[nextIdx].key)
       }
     },
-    [filteredGroups, activeTab, setActiveTab],
+    [activeTab, setActiveTab],
   )
 
   // Backdrop click to close
@@ -197,8 +167,6 @@ export function SettingsModal() {
   if (!open) return null
 
   const ActiveComponent = TAB_CONTENT[activeTab] ?? SettingsCategories
-
-  const showNoResults = searchQuery.trim() && filteredGroups.flatMap((g) => g.tabs).length === 0
 
   return createPortal(
     <div
@@ -232,18 +200,8 @@ export function SettingsModal() {
           role="tablist"
           aria-orientation="vertical"
         >
-          {/* Header */}
-          <div className={cn(
-            'flex items-center',
-            isMobile ? 'px-4 pt-3 pb-2' : 'px-5 pt-6 pb-3',
-          )}>
-            <h2 className="font-serif text-lg font-medium text-text-primary tracking-tight">
-              {t('设置', 'Settings')}
-            </h2>
-          </div>
-
-          {/* Search */}
-          <div className={cn('flex-shrink-0', isMobile ? 'px-4 pb-3' : 'px-3 pb-3')}>
+          {/* Search — 最上面 */}
+          <div className={cn('flex-shrink-0', isMobile ? 'px-4 pt-3 pb-2' : 'px-3 pt-4 pb-2')}>
             <div className="relative">
               <Search
                 size={13}
@@ -263,47 +221,109 @@ export function SettingsModal() {
 
           {/* Tabs */}
           <div className={cn('flex-1 overflow-y-auto', isMobile ? 'flex gap-1 px-4 pb-2' : 'flex flex-col gap-0.5 px-2.5 pb-5')}>
-            {filteredGroups.flatMap((group) => group.tabs).map((tab) => {
-              const active = activeTab === tab.key
-              return (
-                <button
-                  key={tab.key}
-                  id={`settings-tab-${tab.key}`}
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={cn(
-                    'text-left rounded-lg transition-colors duration-200 cursor-pointer border-none',
-                    isMobile
-                      ? 'px-3 py-1 text-xs font-sans font-medium whitespace-nowrap flex-shrink-0'
-                      : 'w-full flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5',
-                    active
-                      ? 'bg-surface-raised shadow-pill'
-                      : 'hover:bg-surface-base',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'font-sans font-medium transition-colors duration-200',
-                      isMobile ? 'text-xs' : 'text-sm',
-                      active ? 'text-text-primary' : 'text-text-secondary',
-                    )}
-                  >
-                    {tl(tab.labelZh, tab.labelEn)}
+            {/* ── 设置区 ── */}
+            {filteredSettings.length > 0 && (
+              <div className="flex flex-col gap-0.5">
+                {!isMobile && (
+                  <span className="px-3 pt-1 pb-0.5 text-[10px] font-sans font-medium uppercase tracking-wider text-text-quaternary">
+                    {tl('设置', 'Settings')}
                   </span>
-                  {!isMobile && (
-                    <span
+                )}
+                {filteredSettings.map((tab) => {
+                  const active = activeTab === tab.key
+                  return (
+                    <button
+                      key={tab.key}
+                      id={`settings-tab-${tab.key}`}
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setActiveTab(tab.key)}
                       className={cn(
-                        'text-[11px] font-sans transition-colors duration-200',
-                        active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
+                        'text-left rounded-lg transition-colors duration-200 cursor-pointer border-none',
+                        isMobile
+                          ? 'px-3 py-1 text-xs font-sans font-medium whitespace-nowrap flex-shrink-0'
+                          : 'w-full flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5',
+                        active
+                          ? 'bg-surface-raised shadow-pill'
+                          : 'hover:bg-surface-base',
                       )}
                     >
-                      {tl(tab.descZh, tab.descEn)}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
+                      <span
+                        className={cn(
+                          'font-sans font-medium transition-colors duration-200',
+                          isMobile ? 'text-xs' : 'text-sm',
+                          active ? 'text-text-primary' : 'text-text-secondary',
+                        )}
+                      >
+                        {tl(tab.labelZh, tab.labelEn)}
+                      </span>
+                      {!isMobile && (
+                        <span
+                          className={cn(
+                            'text-[11px] font-sans transition-colors duration-200',
+                            active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
+                          )}
+                        >
+                          {tl(tab.descZh, tab.descEn)}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* ── 拓展区 ── */}
+            {filteredExtensions.length > 0 && (
+              <div className="flex flex-col gap-0.5 mt-0.5">
+                {!isMobile && (
+                  <span className="px-3 pt-1 pb-0.5 text-[10px] font-sans font-medium uppercase tracking-wider text-text-quaternary">
+                    {tl('拓展', 'Extensions')}
+                  </span>
+                )}
+                {filteredExtensions.map((tab) => {
+                  const active = activeTab === tab.key
+                  return (
+                    <button
+                      key={tab.key}
+                      id={`settings-tab-${tab.key}`}
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={cn(
+                        'text-left rounded-lg transition-colors duration-200 cursor-pointer border-none',
+                        isMobile
+                          ? 'px-3 py-1 text-xs font-sans font-medium whitespace-nowrap flex-shrink-0'
+                          : 'w-full flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5',
+                        active
+                          ? 'bg-surface-raised shadow-pill'
+                          : 'hover:bg-surface-base',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'font-sans font-medium transition-colors duration-200',
+                          isMobile ? 'text-xs' : 'text-sm',
+                          active ? 'text-text-primary' : 'text-text-secondary',
+                        )}
+                      >
+                        {tl(tab.labelZh, tab.labelEn)}
+                      </span>
+                      {!isMobile && (
+                        <span
+                          className={cn(
+                            'text-[11px] font-sans transition-colors duration-200',
+                            active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
+                          )}
+                        >
+                          {tl(tab.descZh, tab.descEn)}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
 
             {/* No results */}
             {showNoResults && (

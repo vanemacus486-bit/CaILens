@@ -5,8 +5,6 @@ import type { HygieneActivityDef } from '@/domain/hygieneActivity'
 import type { HabitPlan } from '@/domain/habitPlan'
 import type { DayMark } from '@/domain/dayMark'
 import type { EventColor } from '@/domain/event'
-import type { SleepReminderSettings } from '@/domain/sleepReminder'
-import { DEFAULT_SLEEP_REMINDER } from '@/domain/sleepReminder'
 import { makePhase, startOfLocalDay } from '@/domain/habitPlan'
 import { DEFAULT_SETTINGS, resolveTheme } from '@/domain/settings'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
@@ -23,6 +21,12 @@ function applyTheme(theme: AppTheme) {
 
 function applyFont(font: UiFont) {
   document.documentElement.setAttribute('data-font', font)
+}
+
+const VALID_VISUAL_STYLES: VisualStyle[] = ['graphite', 'nocturne', 'carbon']
+
+function isValidVisualStyle(value: string): value is VisualStyle {
+  return VALID_VISUAL_STYLES.includes(value as VisualStyle)
 }
 
 function applyVisualStyle(style: VisualStyle) {
@@ -83,7 +87,7 @@ interface AppSettingsState {
   addDayMark: (date: number, label: string, color?: EventColor | null) => Promise<DayMark>
   updateDayMark: (mark: DayMark) => Promise<void>
   deleteDayMark: (id: string) => Promise<void>
-  setSleepReminder: (patch: Partial<SleepReminderSettings>) => Promise<void>
+
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
@@ -127,8 +131,14 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
 
     const theme = themeResult.value
     const font = fontResult.value
-    const style = styleResult.value
+    let style = styleResult.value
     const scale = scaleResult.value
+
+    // 回退已废弃的视觉风格（aurora/slate/amber → graphite）
+    if (!isValidVisualStyle(style)) {
+      style = 'graphite'
+      settings = await getSettingsRepo().update({ visualStyle: style })
+    }
 
     localStorage.setItem(THEME_KEY, theme)
     localStorage.setItem(FONT_KEY, font)
@@ -270,10 +280,4 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     set({ settings })
   },
 
-  setSleepReminder: async (patch) => {
-    const current = (await getSettingsRepo().get()).sleepReminder ?? DEFAULT_SLEEP_REMINDER
-    const next = { ...current, ...patch }
-    const settings = await getSettingsRepo().update({ sleepReminder: next })
-    set({ settings })
-  },
 }))

@@ -23,20 +23,12 @@ const STYLES: StyleDef[] = [
     descZh: '纸面白配石墨文字与橙色强调，利落、克制，贴近编辑器工作台。',
   },
   {
-    key: 'aurora',
-    name: 'Aurora',
-    nameZh: '柔雾极光',
-    badge: '温润',
-    swatches: ['#EFEDF7', '#FBFAFE', '#7C6FE0'],
-    descZh: '柔紫底色融合极光蓝绿，半透明面板与弹性圆角，更轻盈、有呼吸感。',
-  },
-  {
-    key: 'slate',
-    name: 'Slate',
-    nameZh: '精炼',
-    badge: '原生',
-    swatches: ['#ECEEF1', '#FBFCFD', '#3B6EF5'],
-    descZh: '冷灰工作台配品牌蓝，发丝边框清晰，适合高密度扫描与专业操作。',
+    key: 'nocturne',
+    name: 'Nocturne',
+    nameZh: '柔和',
+    badge: '呼吸',
+    swatches: ['#EFEEF6', '#FCFBFE', '#6B6FE8'],
+    descZh: '柔紫夜色与云白表面配大圆角留白，阅读更安静，节奏更舒缓。',
   },
   {
     key: 'carbon',
@@ -46,22 +38,6 @@ const STYLES: StyleDef[] = [
     swatches: ['#ECEAE4', '#F8F7F4', '#1F9E8E'],
     descZh: '暖炭黑与米灰表面配青绿强调，质感更厚、对比更足，适合长时间专注。',
   },
-  {
-    key: 'nocturne',
-    name: 'Nocturne',
-    nameZh: '柔和',
-    badge: '呼吸',
-    swatches: ['#EFEEF6', '#FCFBFE', '#6B6FE8'],
-    descZh: '柔紫夜色与云白表面配大圆角留白，阅读更安静，节奏更舒缓。',
-  },
-  {
-    key: 'amber',
-    name: 'Amber',
-    nameZh: '琥珀',
-    badge: '暖阳',
-    swatches: ['#F3ECE0', '#FCF9F3', '#E0892F'],
-    descZh: '暖橙强调色，明亮亲和（含深色变体）。',
-  },
 ]
 
 export function VisualStyleGrid() {
@@ -69,7 +45,7 @@ export function VisualStyleGrid() {
   const setVisualStyle = useAppSettingsStore((s) => s.setVisualStyle)
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       {STYLES.map((style) => {
         const selected = visualStyle === style.key
         return (

@@ -35,6 +35,15 @@ export interface MonthNode {
   ts: number              // UTC ms, start of month
 }
 
+/** A year-aligned node on the timeline axis (year granularity mode) */
+export interface YearNode {
+  ts: number              // UTC ms, start of year (Jan 1)
+  year: number            // e.g. 2024
+}
+
+/** Supported timeline granularities */
+export type ChronicleGranularity = 'month' | 'year'
+
 /** Layout result for a single phase block */
 export interface PhaseTrackLayout {
   phase: ChroniclePhase
@@ -90,6 +99,39 @@ export function generateMonthNodes(rangeStart: number, rangeEnd: number): MonthN
     nodes.push({ ts: addMonths(start, i).getTime() })
   }
   return nodes
+}
+
+/**
+ * Generate year-start timestamps covering [rangeStart, rangeEnd].
+ */
+export function generateYearNodes(rangeStart: number, rangeEnd: number): YearNode[] {
+  const startYear = new Date(rangeStart).getFullYear()
+  const endYear = new Date(rangeEnd).getFullYear()
+  const count = endYear - startYear + 1
+  if (count <= 0) return []
+  const nodes: YearNode[] = []
+  for (let i = 0; i < count; i++) {
+    const y = startYear + i
+    nodes.push({ ts: new Date(y, 0, 1).getTime(), year: y })
+  }
+  return nodes
+}
+
+/**
+ * Snap a timestamp to the nearest year-start node.
+ */
+export function snapToYearNode(ts: number, nodes: YearNode[]): number {
+  if (nodes.length === 0) return ts
+  let best = nodes[0].ts
+  let bestDist = Math.abs(ts - best)
+  for (let i = 1; i < nodes.length; i++) {
+    const dist = Math.abs(ts - nodes[i].ts)
+    if (dist < bestDist) {
+      bestDist = dist
+      best = nodes[i].ts
+    }
+  }
+  return best
 }
 
 /**
@@ -175,6 +217,38 @@ export function layoutTasksIntoRows(
   const result: TaskRowLayout[] = []
   for (const [, group] of groups) {
     // Sort by startDate so multi-month tasks come first
+    group.sort((a, b) => (a.startDate ?? a.date) - (b.startDate ?? b.date))
+    group.forEach((task, i) => {
+      result.push({ task, row: i })
+    })
+  }
+
+  return result
+}
+
+/**
+ * Layout tasks into rows above timeline for year granularity.
+ *
+ * Groups tasks by their nearest year node instead of month.
+ * Otherwise identical to layoutTasksIntoRows.
+ */
+export function layoutTasksIntoYearRows(
+  tasks: ChronicleTask[],
+  nodes: YearNode[],
+): TaskRowLayout[] {
+  const groups = new Map<number, ChronicleTask[]>()
+  for (const task of tasks) {
+    const nodeTs = snapToYearNode(task.date, nodes)
+    let group = groups.get(nodeTs)
+    if (!group) {
+      group = []
+      groups.set(nodeTs, group)
+    }
+    group.push(task)
+  }
+
+  const result: TaskRowLayout[] = []
+  for (const [, group] of groups) {
     group.sort((a, b) => (a.startDate ?? a.date) - (b.startDate ?? b.date))
     group.forEach((task, i) => {
       result.push({ task, row: i })

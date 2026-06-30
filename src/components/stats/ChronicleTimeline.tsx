@@ -6,16 +6,21 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Navigation } from 'lucide-react'
 import { useChronicleStore } from '@/stores/chronicleStore'
 import {
   generateMonthNodes,
+  generateYearNodes,
   layoutPhasesIntoTracks,
   layoutTasksIntoRows,
+  layoutTasksIntoYearRows,
   resolveColorHex,
   snapToMonthNode,
+  snapToYearNode,
   type ChroniclePhase,
   type ChronicleTask,
+  type ChronicleGranularity,
+  type YearNode,
 } from '@/domain/chronicle'
 import { ChronicleFormModal } from './ChronicleFormModal'
 import { ChronicleTooltip } from './ChronicleTooltip'
@@ -23,11 +28,12 @@ import { ChronicleTooltip } from './ChronicleTooltip'
 // ── Constants ──────────────────────────────────────────────
 
 const MONTH_WIDTH = 80
-const AXIS_Y = 300
-const PHASE_TRACK_HEIGHT = 34
-const PHASE_TRACK_GAP = 6
-const TASK_ROW_HEIGHT = 30
-const TASK_ROW_GAP = 6
+const YEAR_WIDTH = 140
+const AXIS_Y = 180
+const PHASE_TRACK_HEIGHT = 32
+const PHASE_TRACK_GAP = 4
+const TASK_ROW_HEIGHT = 28
+const TASK_ROW_GAP = 4
 const NODE_RADIUS = 3
 const MIN_SCALE = 0.15
 const MAX_SCALE = 4
@@ -49,7 +55,7 @@ function isJanuary(ts: number): boolean {
 
 // ── Main component ──────────────────────────────────────────
 
-export function ChronicleTimeline() {
+export function ChronicleTimeline({ mode }: { mode: ChronicleGranularity }) {
   const phases = useChronicleStore((s) => s.phases)
   const tasks = useChronicleStore((s) => s.tasks)
   const isLoading = useChronicleStore((s) => s.isLoading)
@@ -59,9 +65,10 @@ export function ChronicleTimeline() {
   const updateTaskFromStore = useChronicleStore((s) => s.updateTask)
 
   const containerRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(0.5)
+  const [scale, setScale] = useState(mode === 'year' ? 0.8 : 0.5)
   const [panX, setPanX] = useState(0)
   const [panY, setPanY] = useState(0)
+  const [initialCentered, setInitialCentered] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
@@ -92,26 +99,37 @@ export function ChronicleTimeline() {
   // Visual offset for live drag preview (pixels in content space)
   const [dragVisual, setDragVisual] = useState<{ id: string; offsetPx: number } | null>(null)
 
-  // ── Date range ────────────────────────────────────────────
+  // ── Date range (load range vs view range) ──────────────────
 
-  const currentYear = new Date().getFullYear()
-  const [rangeStart] = useState(() => new Date(currentYear - 5, 0, 1).getTime())
-  const [rangeEnd] = useState(() => new Date(currentYear + 5, 11, 31).getTime())
+  // ── Date range: fixed 1900–2100 ────────────────────────────
+
+  const RANGE_START = new Date(1900, 0, 1).getTime()
+  const RANGE_END   = new Date(2100, 11, 31).getTime()
 
   // ── Load data ─────────────────────────────────────────────
 
   useEffect(() => {
-    loadRange(rangeStart, rangeEnd)
-  }, [loadRange, rangeStart, rangeEnd])
+    loadRange(RANGE_START, RANGE_END)
+  }, [loadRange])
 
-  // ── Compute month nodes ───────────────────────────────────
+  // ── Compute nodes from fixed range (mode-dependent) ────────
 
-  const nodes = useMemo(() => generateMonthNodes(rangeStart, rangeEnd), [rangeStart, rangeEnd])
+  const nodeWidth = mode === 'year' ? YEAR_WIDTH : MONTH_WIDTH
+
+  const monthNodes = useMemo(() => generateMonthNodes(RANGE_START, RANGE_END), [])
+  const yearNodes  = useMemo(() => generateYearNodes(RANGE_START, RANGE_END), [])
+
+  // Unified node array for position helpers (both modes)
+  const nodes = mode === 'year' ? yearNodes : monthNodes
+  const nodeCount = nodes.length
 
   // ── Layout ─────────────────────────────────────────────────
 
   const phaseLayouts = useMemo(() => layoutPhasesIntoTracks(phases), [phases])
-  const taskLayouts = useMemo(() => layoutTasksIntoRows(tasks, nodes), [tasks, nodes])
+  const taskLayouts = useMemo(() => {
+    if (mode === 'year') return layoutTasksIntoYearRows(tasks, yearNodes)
+    return layoutTasksIntoRows(tasks, monthNodes)
+  }, [tasks, monthNodes, yearNodes, mode])
 
   const maxPhaseTrack = useMemo(
     () => phaseLayouts.reduce((max, l) => Math.max(max, l.track), 0),
@@ -125,14 +143,33 @@ export function ChronicleTimeline() {
 
   // ── Content dimensions ────────────────────────────────────
 
-  const contentWidth = nodes.length * MONTH_WIDTH
+  const contentWidth = nodeCount * nodeWidth
   const contentHeight =
     AXIS_Y +
-    30 +
+    20 +
     (maxPhaseTrack + 1) * (PHASE_TRACK_HEIGHT + PHASE_TRACK_GAP) +
-    60 +
+    40 +
     (maxTaskRow + 1) * (TASK_ROW_HEIGHT + TASK_ROW_GAP) +
-    60
+    40
+
+  // ── Scale reset on mode switch ─────────────────────────────
+
+  useEffect(() => {
+    setScale(mode === 'year' ? 0.8 : 0.5)
+  }, [mode])
+
+  // ── Initial centering on "today" ───────────────────────────
+
+  useEffect(() => {
+    if (initialCentered || nodeCount === 0 || !containerRef.current) return
+    const todayIdx = nodes.findIndex((n) => n.ts > Date.now())
+    const idx = todayIdx >= 0 ? Math.max(0, todayIdx - 1) : Math.floor(nodeCount / 2)
+    const contentX = idx * nodeWidth + nodeWidth / 2
+    const rect = containerRef.current.getBoundingClientRect()
+    const viewportCenter = rect.width / 2
+    setPanX(viewportCenter - contentX * (mode === 'year' ? 0.8 : 0.5))
+    setInitialCentered(true)
+  }, [nodeCount, nodeWidth, nodes, mode, initialCentered])
 
   // ── Node position helpers ─────────────────────────────────
 
@@ -142,15 +179,16 @@ export function ChronicleTimeline() {
   )
 
   const nodeX = useCallback(
-    (idx: number) => idx * MONTH_WIDTH + MONTH_WIDTH / 2,
-    [],
+    (idx: number) => idx * nodeWidth + nodeWidth / 2,
+    [nodeWidth],
   )
 
-  // ── Snap helper ─────────────────────────────────────────────
+  // ── Snap helper (mode-dependent) ───────────────────────────
 
   const snapTsToNode = useCallback((ts: number): number => {
-    return snapToMonthNode(ts, nodes)
-  }, [nodes])
+    if (mode === 'year') return snapToYearNode(ts, yearNodes)
+    return snapToMonthNode(ts, monthNodes)
+  }, [mode, monthNodes, yearNodes])
 
   // ── Wheel zoom ────────────────────────────────────────────
 
@@ -234,24 +272,26 @@ export function ChronicleTimeline() {
       const d = dragRef.current
       const offsetPx = dragVisual?.offsetPx ?? 0
       if (Math.abs(offsetPx) > 2) {
-        const monthDelta = Math.round(offsetPx / MONTH_WIDTH)
+        const nodeDelta = Math.round(offsetPx / nodeWidth)
+        // ms per unit: ~30 days for month mode, ~365 days for year mode
+        const msPerUnit = mode === 'year' ? 365 * 24 * 60 * 60_000 : 30 * 24 * 60 * 60_000
         if (d.type === 'phase') {
           const phase = phases.find((p) => p.id === d.id)
           if (phase) {
             if (d.edge === 'move') {
               const duration = d.startEndDate - d.startDate
-              const newStart = snapTsToNode(d.startDate + monthDelta * 30 * 24 * 60 * 60_000)
+              const newStart = snapTsToNode(d.startDate + nodeDelta * msPerUnit)
               updatePhaseFromStore(d.id, { startDate: newStart, endDate: newStart + duration })
             } else if (d.edge === 'left') {
-              const newStart = snapTsToNode(d.startDate + monthDelta * 30 * 24 * 60 * 60_000)
+              const newStart = snapTsToNode(d.startDate + nodeDelta * msPerUnit)
               if (newStart < d.startEndDate) updatePhaseFromStore(d.id, { startDate: newStart })
             } else if (d.edge === 'right') {
-              const newEnd = snapTsToNode(d.startEndDate + monthDelta * 30 * 24 * 60 * 60_000)
+              const newEnd = snapTsToNode(d.startEndDate + nodeDelta * msPerUnit)
               if (newEnd > d.startDate) updatePhaseFromStore(d.id, { endDate: newEnd })
             }
           }
         } else if (d.type === 'task') {
-          const newDate = snapTsToNode(d.startDate2 + monthDelta * 30 * 24 * 60 * 60_000)
+          const newDate = snapTsToNode(d.startDate2 + nodeDelta * msPerUnit)
           updateTaskFromStore(d.id, { date: newDate })
         }
       }
@@ -260,7 +300,7 @@ export function ChronicleTimeline() {
     setDragging(false)
     setDragVisual(null)
     dragRef.current = null
-  }, [dragVisual, phases, updatePhaseFromStore, updateTaskFromStore, snapTsToNode])
+  }, [dragVisual, phases, updatePhaseFromStore, updateTaskFromStore, snapTsToNode, nodeWidth, mode])
 
   // ── Modal helpers ──────────────────────────────────────────
 
@@ -268,6 +308,16 @@ export function ChronicleTimeline() {
   const openAddTask = () => { setEditingItem(null); setModalMode('task'); setModalOpen(true) }
   const openEditPhase = (phase: ChroniclePhase) => { setEditingItem(phase); setModalMode('phase'); setModalOpen(true) }
   const openEditTask = (task: ChronicleTask) => { setEditingItem(task); setModalMode('task'); setModalOpen(true) }
+
+  const goToToday = useCallback(() => {
+    if (!containerRef.current || nodeCount === 0) return
+    const todayIdx = nodes.findIndex((n) => n.ts > Date.now())
+    const idx = todayIdx >= 0 ? Math.max(0, todayIdx - 1) : Math.floor(nodeCount / 2)
+    const contentX = idx * nodeWidth + nodeWidth / 2
+    const rect = containerRef.current.getBoundingClientRect()
+    const viewportCenter = rect.width / 2
+    setPanX(viewportCenter - contentX * scale)
+  }, [nodeCount, nodeWidth, nodes, scale])
 
   // ── Tooltip ────────────────────────────────────────────────
 
@@ -279,10 +329,17 @@ export function ChronicleTimeline() {
   }
   const hideTooltip = () => setTooltipItem(null)
 
+  // ── Today marker position ───────────────────────────────────
+
+  const todayX = useMemo(() => {
+    const idx = nodeIndex(Date.now())
+    return idx >= 0 ? nodeX(idx) : -1
+  }, [nodeIndex, nodeX])
+
   // ── Visibility ─────────────────────────────────────────────
 
-  const showYearLabels = scale >= 0.2
-  const showMonthLabels = scale >= 0.6
+  const showYearLabels = mode === 'year' || scale >= 0.2
+  const showMonthLabels = mode === 'month' && scale >= 0.6
   const isEmpty = !isLoading && phases.length === 0 && tasks.length === 0
 
   // ── Render helper: resolve card position with drag offset ──
@@ -303,6 +360,10 @@ export function ChronicleTimeline() {
         </button>
         <button className="chronicle-toolbar-btn" onClick={openAddTask} title="添加任务">
           <Plus size={14} /> 任务
+        </button>
+        <div className="chronicle-toolbar-spacer" />
+        <button className="chronicle-toolbar-btn" onClick={goToToday} title="回到今天">
+          <Navigation size={14} /> 今天
         </button>
       </div>
 
@@ -352,19 +413,37 @@ export function ChronicleTimeline() {
               strokeWidth={1}
             />
 
-            {/* Month nodes & labels */}
+            {/* Today marker — dashed vertical line */}
+            {todayX >= 0 && (
+              <line
+                x1={todayX}
+                y1={AXIS_Y - 120}
+                x2={todayX}
+                y2={AXIS_Y + 120}
+                stroke="var(--accent, #c47a5a)"
+                strokeWidth={1}
+                strokeDasharray="4 6"
+                opacity={0.45}
+              />
+            )}
+
+            {/* Nodes & labels */}
             {nodes.map((node, i) => {
               const x = nodeX(i)
-              const showYear = showYearLabels && isJanuary(node.ts)
-              const showMonth = showMonthLabels
-              const { year, month } = formatYearMonth(node.ts)
+              const isYearNode = mode === 'year'
+              const showYear = isYearNode || (showYearLabels && isJanuary(node.ts))
+              const showMonth = !isYearNode && showMonthLabels
+              const yearLabel = isYearNode
+                ? `${(node as YearNode).year}`
+                : formatYearMonth(node.ts).year
+              const monthLabel = isYearNode ? '' : formatYearMonth(node.ts).month
 
               return (
                 <g key={node.ts}>
                   <circle
                     cx={x}
                     cy={AXIS_Y}
-                    r={NODE_RADIUS}
+                    r={isYearNode ? NODE_RADIUS + 1 : NODE_RADIUS}
                     fill="var(--chronicle-node, #c4bfb6)"
                     stroke="none"
                     className="chronicle-node"
@@ -375,11 +454,11 @@ export function ChronicleTimeline() {
                       y={AXIS_Y - 24}
                       textAnchor="middle"
                       fill="var(--chronicle-label, #6b6460)"
-                      fontSize={15}
-                      fontWeight={700}
+                      fontSize={isYearNode ? 16 : 15}
+                      fontWeight={isYearNode ? 800 : 700}
                       fontFamily="'Inter', 'Noto Sans SC', sans-serif"
                     >
-                      {year}
+                      {yearLabel}
                     </text>
                   )}
                   {showMonth && (
@@ -391,7 +470,7 @@ export function ChronicleTimeline() {
                       fontSize={10}
                       fontFamily="'Inter', 'Noto Sans SC', sans-serif"
                     >
-                      {month}
+                      {monthLabel}
                     </text>
                   )}
                 </g>
@@ -403,7 +482,7 @@ export function ChronicleTimeline() {
               const anchorIdx = nodeIndex(task.date)
               if (anchorIdx < 0) return null
               const anchorX = nodeX(anchorIdx)
-              const bubbleY = AXIS_Y - 35 - row * (TASK_ROW_HEIGHT + TASK_ROW_GAP)
+              const bubbleY = AXIS_Y - 22 - row * (TASK_ROW_HEIGHT + TASK_ROW_GAP)
 
               return (
                 <line
@@ -429,7 +508,7 @@ export function ChronicleTimeline() {
             const baseX = nodeX(startIdx)
             const x2 = nodeX(endIdx)
             const blockWidth = Math.max(x2 - baseX, 24)
-            const trackY = AXIS_Y + 28 + track * (PHASE_TRACK_HEIGHT + PHASE_TRACK_GAP)
+            const trackY = AXIS_Y + 20 + track * (PHASE_TRACK_HEIGHT + PHASE_TRACK_GAP)
             const hex = resolveColorHex(phase.color)
             const offset = getCardOffset(phase.id)
 
@@ -445,7 +524,7 @@ export function ChronicleTimeline() {
                   height: PHASE_TRACK_HEIGHT,
                   backgroundColor: hex,
                   borderRadius: `${PHASE_TRACK_HEIGHT / 2}px`,
-                  opacity: dragVisual?.id === phase.id ? 0.95 : 0.88,
+                  opacity: dragVisual?.id === phase.id ? 0.97 : 0.92,
                   cursor: dragVisual?.id === phase.id ? 'grabbing' : 'grab',
                   zIndex: dragVisual?.id === phase.id ? 10 : 1,
                 }}
@@ -512,7 +591,7 @@ export function ChronicleTimeline() {
                   height: TASK_ROW_HEIGHT,
                   backgroundColor: hex,
                   borderRadius: `${TASK_ROW_HEIGHT / 2}px`,
-                  opacity: dragVisual?.id === task.id ? 0.95 : 0.88,
+                  opacity: dragVisual?.id === task.id ? 0.97 : 0.92,
                   cursor: dragVisual?.id === task.id ? 'grabbing' : 'grab',
                   zIndex: dragVisual?.id === task.id ? 10 : 1,
                 }}
@@ -587,7 +666,9 @@ const CHRONICLE_CSS = `
   z-index: 10;
 }
 
-.chronicle-toolbar-btn {
+.chronicle-toolbar-spacer {
+  flex: 1;
+}.chronicle-toolbar-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;

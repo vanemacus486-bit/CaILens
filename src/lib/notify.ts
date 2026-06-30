@@ -46,17 +46,9 @@ export async function requestNotifyPermission(): Promise<boolean> {
 
 // ── 立即弹通知 ──────────────────────────────────────────────
 
-/** 应用内降级回调：可被 hook 注册，当通知因权限不足无法弹出时调用 */
-let _fallbackBanner: ((title: string, body: string) => void) | null = null
-
-/** 注册降级横幅回调（由 BedtimeBannerHost 调用） */
-export function setFallbackBanner(fn: (title: string, body: string) => void): void {
-  _fallbackBanner = fn
-}
-
 /**
  * 立即弹系统通知。
- * 失败时若 _fallbackBanner 已注册则调它降级。
+ * 失败时静默降级。
  */
 export async function fireNotificationNow(title: string, body: string): Promise<void> {
   try {
@@ -86,58 +78,7 @@ export async function fireNotificationNow(title: string, body: string): Promise<
       new Notification(title, { body })
       return
     }
-
-    // 降级
-    _fallbackBanner?.(title, body)
-  } catch {
-    _fallbackBanner?.(title, body)
-  }
-}
-
-// ── 手机定时通知（scheduleDailyBedtime / cancelScheduledBedtime）─────
-
-/** 手机端每日就寝提醒用的固定 notification ID */
-const BEDTIME_NOTIFICATION_ID = 999001
-
-/**
- * 安排每日定时就寝通知（仅手机有效，桌面/网页为 no-op）。
- */
-export async function scheduleDailyBedtime(hour: number, minute: number): Promise<void> {
-  if (!isNativeMobile()) return // 桌面/网页 no-op
-
-  try {
-    const { LocalNotifications } = await import('@capacitor/local-notifications')
-    // 先取消旧的
-    await LocalNotifications.cancel({ notifications: [{ id: BEDTIME_NOTIFICATION_ID }] })
-    // 安排新定时
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          id: BEDTIME_NOTIFICATION_ID,
-          title: '该睡了',
-          body: '到了设定的就寝时间，准备休息吧',
-          schedule: {
-            on: { hour, minute },
-            repeats: true,
-          },
-        },
-      ],
-    })
   } catch {
     // 静默降级
-  }
-}
-
-/**
- * 取消每日定时就寝通知（仅手机有效）。
- */
-export async function cancelScheduledBedtime(): Promise<void> {
-  if (!isNativeMobile()) return
-
-  try {
-    const { LocalNotifications } = await import('@capacitor/local-notifications')
-    await LocalNotifications.cancel({ notifications: [{ id: BEDTIME_NOTIFICATION_ID }] })
-  } catch {
-    // 静默
   }
 }

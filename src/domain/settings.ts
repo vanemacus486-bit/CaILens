@@ -3,12 +3,11 @@ import type { HygieneActivityDef } from './hygieneActivity'
 import { DEFAULT_HYGIENE_ACTIVITIES } from './hygieneActivity'
 import type { HabitPlan } from './habitPlan'
 import type { DayMark } from './dayMark'
-import type { SleepReminderSettings } from './sleepReminder'
 
 export type AppLanguage = 'zh' | 'en' | 'es' | 'ar' | 'fr' | 'ru'
 export type AppTheme = 'light' | 'dark' | 'auto'
 export type UiFont = 'default' | 'sourcehan' | 'wenkai'
-export type VisualStyle = 'graphite' | 'aurora' | 'slate' | 'carbon' | 'nocturne' | 'amber'
+export type VisualStyle = 'graphite' | 'nocturne' | 'carbon'
 export type FontScale = 'sm' | 'default' | 'lg' | 'xl'
 
 export interface AppSettings {
@@ -27,8 +26,7 @@ export interface AppSettings {
   habitPlans?: HabitPlan[]
   /** 日期标记（右键迷你月历某天打的标记 + 备注） */
   dayMarks?: DayMark[]
-  /** 就寝提醒设置 */
-  sleepReminder?: SleepReminderSettings
+
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {

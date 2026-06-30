@@ -1,5 +1,5 @@
 import type { Profile } from '@/domain/profile'
-import { DEFAULT_PROFILE, DEFAULT_BODY_METRICS } from '@/domain/profile'
+import { DEFAULT_PROFILE } from '@/domain/profile'
 import type { StorageAdapter } from './adapters/StorageAdapter'
 
 export class ProfileRepository {
@@ -17,7 +17,6 @@ export class ProfileRepository {
     return {
       ...DEFAULT_PROFILE,
       ...stored,
-      body: { ...DEFAULT_BODY_METRICS, ...(stored.body ?? {}) },
     }
   }
 

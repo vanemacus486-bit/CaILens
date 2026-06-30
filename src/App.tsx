@@ -28,11 +28,9 @@ import { useTodoListStore } from '@/stores/todoListStore'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { SnackbarHost } from '@/components/ui/snackbar'
 import { UpdateBanner } from '@/components/ui/UpdateBanner'
-import { BedtimeBannerHost } from '@/components/ui/BedtimeBannerHost'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { addWeeks, getWeekStart, formatISODate } from '@/domain/time'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
-import { useSleepReminderScheduler } from '@/hooks/useSleepReminderScheduler'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { subDays, addDays, addMonths, addYears, parseISO } from 'date-fns'
 import type { ShortcutAction } from '@/domain/shortcuts'
@@ -216,9 +214,6 @@ function Layout() {
 
   useShortcutManager(shortcutHandlers)
 
-  // 就寝提醒调度
-  useSleepReminderScheduler()
-
   const sidebarExpanded = useUIStore((s) => s.sidebarExpanded)
   const isWeek = location.pathname.startsWith('/week')
   const isActionOrStats = location.pathname.startsWith('/action') || location.pathname.startsWith('/stats')
@@ -259,7 +254,6 @@ function Layout() {
         </Suspense>
       )}
       <SnackbarHost />
-      <BedtimeBannerHost />
       <UpdateBanner />
     </div>
   )

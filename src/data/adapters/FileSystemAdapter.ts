@@ -2,7 +2,7 @@ import type { CalendarEvent } from '@/domain/event'
 import type { Category, CategoryId } from '@/domain/category'
 import type { AppSettings } from '@/domain/settings'
 import type { WeeklyEstimate } from '@/domain/estimate'
-import type { Profile } from '@/domain/profile'
+import { DEFAULT_PROFILE, type Profile } from '@/domain/profile'
 import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit } from '@/domain/dailyContext'
@@ -859,7 +859,7 @@ class ProfileFsTable implements StorageTable<Profile> {
   }
 
   async update(_id: string, changes: Partial<Profile>): Promise<void> {
-    const current = this.index.profile ?? { id: 'default' as const, body: {} as Profile['body'], updatedAt: null } as Profile
+    const current = this.index.profile ?? { ...DEFAULT_PROFILE }
     const updated = { ...current, ...changes } as Profile
     await this.put(updated)
   }

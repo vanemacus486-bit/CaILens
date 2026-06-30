@@ -43,7 +43,7 @@ const VIEW_SEGMENTS: Record<RoutineViewMode, SegmentedOption[] | undefined> = {
   hygiene: [{ id: 'timeline', label: '时间线' }, { id: 'frequency', label: '活动次数' }],
   outfit:  undefined,
   mood:    undefined,
-  chronicle: undefined,
+  chronicle: [{ id: 'month', label: '月' }, { id: 'year', label: '年' }],
 }
 
 /** ════════════════════════════════════════════════════════════
@@ -181,6 +181,7 @@ export function StatsPage() {
   const [sleepViewMode, setSleepViewMode] = useState<'month' | 'quarter' | 'year'>('month')
   const [dietMode, setDietMode] = useState<'timeline' | 'frequency'>('timeline')
   const [hygieneMode, setHygieneMode] = useState<'timeline' | 'frequency'>('timeline')
+  const [chronicleMode, setChronicleMode] = useState<'month' | 'year'>('month')
 
   // ── Data loading ─────────────────────────────────────────
 
@@ -237,6 +238,9 @@ export function StatsPage() {
       case 'hygiene':
         setHygieneMode(id as 'timeline' | 'frequency')
         break
+      case 'chronicle':
+        setChronicleMode(id as 'month' | 'year')
+        break
     }
   }, [routineView, setPeriod])
 
@@ -251,9 +255,10 @@ export function StatsPage() {
       case 'sleep':   return sleepViewMode
       case 'diet':    return dietMode
       case 'hygiene': return hygieneMode
+      case 'chronicle': return chronicleMode
       default:        return undefined
     }
-  }, [routineView, period, heatmapViewMode, sleepViewMode, dietMode, hygieneMode])
+  }, [routineView, period, heatmapViewMode, sleepViewMode, dietMode, hygieneMode, chronicleMode])
 
   const title = useMemo(
     () => getViewTitle(routineView, period, segValue, viewAnchor),
@@ -428,7 +433,7 @@ export function StatsPage() {
               <MoodCard />
             )}
             {routineView === 'chronicle' && (
-              <ChronicleTimeline />
+              <ChronicleTimeline mode={chronicleMode} />
             )}
           </div>
         </div>

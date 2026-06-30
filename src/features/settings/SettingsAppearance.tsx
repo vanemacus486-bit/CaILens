@@ -7,7 +7,6 @@ import { LANGUAGE_LABELS, LANGUAGE_ORDER } from '@/i18n/types'
 import { useT } from '@/i18n/useT'
 import { SlideSegmented } from '@/components/nav/SlideSegmented'
 import { VisualStyleGrid } from './VisualStyleGrid'
-import { SettingsSleepReminder } from './SettingsSleepReminder'
 
 function SettingsRow({
   label,
@@ -123,11 +122,6 @@ export function SettingsAppearance() {
             ))}
           </div>
         </SettingsRow>
-      </div>
-
-      {/* 就寝提醒 */}
-      <div className="mt-5">
-        <SettingsSleepReminder />
       </div>
     </div>
   )

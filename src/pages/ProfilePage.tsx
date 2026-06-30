@@ -12,13 +12,6 @@ import { translate } from '@/i18n/useT'
 import { useProfileStore } from '@/stores/profileStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 
-interface ProfileRow {
-  labelZh: string
-  labelEn: string
-  value: string
-  change?: string
-}
-
 export function ProfilePage() {
   const navigate = useNavigate()
   const profile = useProfileStore((s) => s.profile)
@@ -47,41 +40,6 @@ export function ProfilePage() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [navigate])
 
-  // 身体数据
-  const body = profile.body
-
-  const bodyRows: ProfileRow[] = [
-    {
-      labelZh: '身高', labelEn: 'Height',
-      value: body.height !== null ? `${body.height} cm` : '—',
-    },
-    {
-      labelZh: '体重', labelEn: 'Weight',
-      value: body.weight !== null ? `${body.weight} kg` : '—',
-    },
-    {
-      labelZh: '体脂率', labelEn: 'Body Fat',
-      value: body.bodyFat !== null ? `${body.bodyFat} %` : '—',
-    },
-    {
-      labelZh: '静息心率', labelEn: 'Resting HR',
-      value: body.restingHR !== null ? `${body.restingHR} bpm` : '—',
-    },
-    {
-      labelZh: '血压', labelEn: 'Blood Pressure',
-      value: body.bloodPressureSystolic !== null && body.bloodPressureDiastolic !== null
-        ? `${body.bloodPressureSystolic} / ${body.bloodPressureDiastolic} mmHg`
-        : '—',
-    },
-    {
-      labelZh: '近视', labelEn: 'Vision',
-      value: body.visionLeft !== null && body.visionRight !== null
-        ? `${body.visionLeft >= 0 ? '+' : ''}${body.visionLeft} / ${body.visionRight >= 0 ? '+' : ''}${body.visionRight}`
-        : '—',
-      change: body.visionLastCheck ? `最近: ${body.visionLastCheck}` : undefined,
-    },
-  ]
-
   return (
     <div className="flex-1 h-full overflow-y-auto" style={{ backgroundColor: 'var(--paper)' }}>
       <div className="mx-auto" style={{ maxWidth: 640, paddingTop: 64, paddingLeft: 24, paddingRight: 24, paddingBottom: 64 }}>
@@ -99,13 +57,6 @@ export function ProfilePage() {
         {/* 分隔线 */}
         <div className="mb-8" style={{ height: '0.5px', backgroundColor: 'var(--line)', width: '100%' }} />
 
-        {/* 身体段 */}
-        <Section title={'身体'}>
-          {bodyRows.map((row, i) => (
-            <DataRow key={i} row={row} />
-          ))}
-        </Section>
-
         {/* 编辑入口 — 指向设置页 */}
         <div className="flex justify-center" style={{ marginTop: 48 }}>
           <button
@@ -119,59 +70,6 @@ export function ProfilePage() {
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-// ── 段落子组件 ──────────────────────────────────────
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-8">
-      <h2
-        className="font-sans font-medium mb-3"
-        style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}
-      >
-        {title}
-      </h2>
-      {children}
-    </div>
-  )
-}
-
-// ── 数据行子组件 ────────────────────────────────────
-
-function DataRow({ row }: { row: ProfileRow }) {
-  return (
-    <div
-      className="flex items-center transition-colors duration-100"
-      style={{ height: 32 }}
-    >
-      {/* 左列：指标名 */}
-      <span
-        className="flex-shrink-0 font-sans"
-        style={{ width: 120, fontSize: 13, color: 'var(--ink-2)' }}
-      >
-        {row.labelZh}
-      </span>
-
-      {/* 中列：数值 */}
-      <span
-        className="flex-1 font-sans font-medium"
-        style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}
-      >
-        {row.value}
-      </span>
-
-      {/* 右列：变化或说明 */}
-      {row.change && (
-        <span
-          className="flex-shrink-0 font-sans"
-          style={{ fontSize: 11, color: 'var(--ink-3)', textAlign: 'right' }}
-        >
-          {row.change}
-        </span>
-      )}
     </div>
   )
 }
