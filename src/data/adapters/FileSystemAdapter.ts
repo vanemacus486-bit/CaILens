@@ -7,6 +7,7 @@ import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit } from '@/domain/dailyContext'
 import type { Todo, TodoList } from '@/domain/todo'
+import type { ChroniclePhase, ChronicleTask } from '@/domain/chronicle'
 import type { StorageAdapter, StorageTable, QueryOptions, HygieneLogRecord } from './StorageAdapter'
 import {
   isTauri,
@@ -78,6 +79,8 @@ interface MemoryIndex {
   hygieneLogs: Map<string, HygieneLogRecord>
   todos: Map<string, Todo>
   todoLists: Map<string, TodoList>
+  chroniclePhases: Map<string, ChroniclePhase>
+  chronicleTasks: Map<string, ChronicleTask>
 }
 
 function binarySearchLeft(arr: { ts: number }[], value: number): number {
@@ -717,6 +720,84 @@ class TodosFsTable implements StorageTable<Todo> {
   }
 }
 
+// ── TodoLists table (single file: todoLists.json) ──────────
+
+class TodoListsFsTable implements StorageTable<TodoList> {
+  private index: MemoryIndex
+  private filePath: string
+
+  constructor(index: MemoryIndex, rootPath: string) {
+    this.index = index
+    this.filePath = joinPath(rootPath, 'todoLists.json')
+  }
+
+  async get(id: string): Promise<TodoList | undefined> {
+    return this.index.todoLists.get(id)
+  }
+
+  async getAll(): Promise<TodoList[]> {
+    return Array.from(this.index.todoLists.values())
+  }
+
+  async put(item: TodoList): Promise<void> {
+    this.index.todoLists.set(item.id, item)
+    await this.flush()
+  }
+
+  async update(id: string, changes: Partial<TodoList>): Promise<void> {
+    const existing = this.index.todoLists.get(id)
+    if (!existing) return
+    await this.put({ ...existing, ...changes, id: existing.id })
+  }
+
+  async delete(id: string): Promise<void> {
+    this.index.todoLists.delete(id)
+    await this.flush()
+  }
+
+  async bulkGet(ids: string[]): Promise<(TodoList | undefined)[]> {
+    return ids.map((id) => this.index.todoLists.get(id))
+  }
+
+  async bulkPut(items: TodoList[]): Promise<void> {
+    for (const item of items) {
+      this.index.todoLists.set(item.id, item)
+    }
+    await this.flush()
+  }
+
+  async query(opts: QueryOptions<TodoList>): Promise<TodoList[]> {
+    let results = Array.from(this.index.todoLists.values())
+    if (opts.filter) results = results.filter(opts.filter)
+    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
+    return results
+  }
+
+  async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
+    return fn()
+  }
+
+  private async flush(): Promise<void> {
+    const data = Array.from(this.index.todoLists.values())
+    const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'todoLists', data }, null, 2)
+    await writeTextFile(this.filePath, content)
+  }
+
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    const file = entries.find((e) => e.path.endsWith('todoLists.json'))
+    if (!file) return
+    try {
+      const parsed = JSON.parse(file.content)
+      if (parsed.type === 'todoLists' && Array.isArray(parsed.data)) {
+        this.index.todoLists.clear()
+        for (const item of parsed.data as TodoList[]) {
+          this.index.todoLists.set(item.id, item)
+        }
+      }
+    } catch { /* ignore */ }
+  }
+}
+
 // ── Goals table (single file: goals.json) ───────────────────
 
 
@@ -834,6 +915,8 @@ export class FileSystemAdapter implements StorageAdapter {
   hygieneLogs: StorageTable<HygieneLogRecord>
   todos: StorageTable<Todo>
   todoLists: StorageTable<TodoList>
+  chroniclePhases: StorageTable<ChroniclePhase>
+  chronicleTasks: StorageTable<ChronicleTask>
 
   private index: MemoryIndex = {
     events: new Map(),
@@ -851,6 +934,8 @@ export class FileSystemAdapter implements StorageAdapter {
     hygieneLogs: new Map(),
     todos: new Map(),
     todoLists: new Map(),
+    chroniclePhases: new Map(),
+    chronicleTasks: new Map(),
   }
 
   private rootPath: string | null = null
@@ -874,7 +959,9 @@ export class FileSystemAdapter implements StorageAdapter {
     this.outfitLogs = new GenericFsTable(this.index, 'outfitLogs')
     this.hygieneLogs = new GenericFsTable(this.index, 'hygieneLogs')
     this.todos = new TodosFsTable(this.index, '')
-    this.todoLists = new GenericFsTable(this.index, 'todoLists')
+    this.todoLists = new TodoListsFsTable(this.index, '')
+    this.chroniclePhases = new GenericFsTable(this.index, 'chroniclePhases')
+    this.chronicleTasks = new GenericFsTable(this.index, 'chronicleTasks')
   }
 
   get initialized(): boolean {
@@ -899,6 +986,9 @@ export class FileSystemAdapter implements StorageAdapter {
     this.outfitLogs = new GenericFsTable(this.index, 'outfitLogs')
     this.hygieneLogs = new GenericFsTable(this.index, 'hygieneLogs')
     this.todos = new TodosFsTable(this.index, this.rootPath)
+    this.todoLists = new TodoListsFsTable(this.index, this.rootPath)
+    this.chroniclePhases = new GenericFsTable(this.index, 'chroniclePhases')
+    this.chronicleTasks = new GenericFsTable(this.index, 'chronicleTasks')
   }
 
   async initialize(): Promise<void> {
@@ -944,7 +1034,7 @@ export class FileSystemAdapter implements StorageAdapter {
     const root = this.rootPath
 
     // 1) 单文件表 + estimates(体积小,直接读)
-    const SINGLE_FILES = ['categories.json', 'settings.json', 'profile.json', 'todos.json', 'goals.json', 'projects.json']
+    const SINGLE_FILES = ['categories.json', 'settings.json', 'profile.json', 'todos.json', 'todoLists.json', 'goals.json', 'projects.json']
     const metaEntries: FileEntryWithContent[] = []
     await Promise.all(SINGLE_FILES.map(async (name) => {
       try {
@@ -963,6 +1053,7 @@ export class FileSystemAdapter implements StorageAdapter {
     await (this.weeklyEstimates as EstimatesFsTable).loadFromScan(metaEntries)
     await (this.projects as ProjectsFsTable).loadFromScan(metaEntries)
     await (this.todos as TodosFsTable).loadFromScan(metaEntries)
+    await (this.todoLists as TodoListsFsTable).loadFromScan(metaEntries)
 
     // 2) 最近两个月事件(当前月 + 上月,自动跨年),以「部分加载」标记(markInitialized=false)
     const recent = await this.readRecentEventEntries(2)
@@ -1006,6 +1097,7 @@ export class FileSystemAdapter implements StorageAdapter {
     await (this.weeklyEstimates as EstimatesFsTable).loadFromScan(entries)
     await (this.projects as ProjectsFsTable).loadFromScan(entries)
     await (this.todos as TodosFsTable).loadFromScan(entries)
+    await (this.todoLists as TodoListsFsTable).loadFromScan(entries)
     await (this.events as EventsFsTable).loadFromScan(entries)
   }
 

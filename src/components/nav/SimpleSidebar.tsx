@@ -9,6 +9,7 @@
 import { useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { useTodoListStore } from '@/stores/todoListStore'
+import { DragSortableList } from '@/components/ui/DragSortableList'
 import { useT } from '@/i18n/useT'
 import { useDomainNav } from './domainNav'
 import { SlideSegmented } from './SlideSegmented'
@@ -16,7 +17,7 @@ import type { RoutineViewMode } from '@/components/stats/EasternStatsShell'
 import type { LucideIcon } from 'lucide-react'
 import {
   CheckCircle, Star, TrendingUp, LayoutGrid, Moon, Utensils, Droplets, Shirt, Smile,
-  Plus, Trash2, Edit3, Archive,
+  Plus, Trash2, Edit3, Archive, BookOpen,
 } from 'lucide-react'
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu'
 import {
@@ -37,6 +38,7 @@ const STATS_VIEWS: { id: RoutineViewMode; labelKey: string; icon: LucideIcon }[]
   { id: 'hygiene', labelKey: 'stats.hygiene', icon: Droplets },
   { id: 'outfit',  labelKey: 'stats.outfit',  icon: Shirt },
   { id: 'mood',    labelKey: 'stats.mood',    icon: Smile },
+  { id: 'chronicle', labelKey: 'stats.chronicle', icon: BookOpen },
 ]
 
 export function SimpleSidebar() {
@@ -58,6 +60,7 @@ export function SimpleSidebar() {
   const renameListStore = useTodoListStore((s) => s.renameList)
   const deleteListStore = useTodoListStore((s) => s.deleteList)
   const createList = useTodoListStore((s) => s.createList)
+  const reorderLists = useTodoListStore((s) => s.reorderLists)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
   const [creating, setCreating] = useState(false)
@@ -135,87 +138,107 @@ export function SimpleSidebar() {
             <div className="px-3 py-1 text-[11px] font-sans font-medium text-text-tertiary uppercase tracking-wider">
               {t('sidebar.lists')}
             </div>
-            {lists.map((list) => {
-              const checked = visibleListIds.includes(list.id)
-              const isDefault = list.id === 'default'
-              return (
-                <ContextMenu key={list.id}>
-                  <ContextMenuTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => toggleVisibility(list.id)}
-                      className={`
-                        w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] cursor-pointer border-none
-                        transition-all duration-200 ease-out font-sans leading-none
-                        ${checked
-                          ? 'text-text-primary font-medium'
-                          : 'text-text-tertiary'
-                        }
-                        hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/8
-                      `}
-                    >
-                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors
-                        ${checked
-                          ? 'bg-accent border-accent text-white'
-                          : 'border-text-tertiary/40'
-                        }`}
-                      >
-                        {checked && (
-                          <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-current">
-                            <path d="M3 6l2 2 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                          </svg>
-                        )}
-                      </div>
-                      {renamingId === list.id ? (
-                        <input
-                          value={renameDraft}
-                          onChange={(e) => setRenameDraft(e.target.value)}
-                          onBlur={() => {
-                            const trimmed = renameDraft.trim()
-                            if (trimmed && trimmed !== list.name) renameListStore(list.id, trimmed)
-                            setRenamingId(null)
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              const trimmed = renameDraft.trim()
-                              if (trimmed && trimmed !== list.name) renameListStore(list.id, trimmed)
-                              setRenamingId(null)
-                              ;(e.target as HTMLInputElement).blur()
+            <DragSortableList
+              items={lists}
+              keyExtractor={(list) => list.id}
+              onReorder={reorderLists}
+            >
+              {(list, _index, { isDragging, dropPosition, dragEventHandlers }) => {
+                const checked = visibleListIds.includes(list.id)
+                const isDefault = list.id === 'default'
+                return (
+                  <div key={list.id} className="relative">
+                    {/* 插入指示线：before */}
+                    {dropPosition === 'before' && (
+                      <div className="absolute top-0 left-2 right-2 h-0.5 bg-accent rounded-full -translate-y-1/2 z-10 pointer-events-none" />
+                    )}
+
+                    <ContextMenu>
+                      <ContextMenuTrigger asChild>
+                        <button
+                          type="button"
+                          {...dragEventHandlers}
+                          onClick={() => toggleVisibility(list.id)}
+                          className={`
+                            w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] cursor-pointer border-none
+                            transition-all duration-200 ease-out font-sans leading-none select-none
+                            ${isDragging ? 'opacity-40' : ''}
+                            ${checked
+                              ? 'text-text-primary font-medium'
+                              : 'text-text-tertiary'
                             }
-                            if (e.key === 'Escape') setRenamingId(null)
-                          }}
-                          className="flex-1 bg-surface-sunken border border-border-subtle rounded px-1 py-0.5 text-[13px] font-sans text-text-primary outline-none focus-visible:ring-1 focus-visible:ring-accent"
-                          autoFocus
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        <span className="truncate">{list.name}</span>
+                            hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/8
+                          `}
+                        >
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors
+                            ${checked
+                              ? 'bg-accent border-accent text-white'
+                              : 'border-text-tertiary/40'
+                            }`}
+                          >
+                            {checked && (
+                              <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-current">
+                                <path d="M3 6l2 2 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                              </svg>
+                            )}
+                          </div>
+                          {renamingId === list.id ? (
+                            <input
+                              value={renameDraft}
+                              onChange={(e) => setRenameDraft(e.target.value)}
+                              onBlur={() => {
+                                const trimmed = renameDraft.trim()
+                                if (trimmed && trimmed !== list.name) renameListStore(list.id, trimmed)
+                                setRenamingId(null)
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  const trimmed = renameDraft.trim()
+                                  if (trimmed && trimmed !== list.name) renameListStore(list.id, trimmed)
+                                  setRenamingId(null)
+                                  ;(e.target as HTMLInputElement).blur()
+                                }
+                                if (e.key === 'Escape') setRenamingId(null)
+                              }}
+                              className="flex-1 bg-surface-sunken border border-border-subtle rounded px-1 py-0.5 text-[13px] font-sans text-text-primary outline-none focus-visible:ring-1 focus-visible:ring-accent"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <span className="truncate">{list.name}</span>
+                          )}
+                        </button>
+                      </ContextMenuTrigger>
+                      {!isDefault && (
+                        <ContextMenuContent className="w-40">
+                          <ContextMenuItem
+                            onSelect={() => {
+                              setRenamingId(list.id)
+                              setRenameDraft(list.name)
+                            }}
+                          >
+                            <Edit3 size={14} />
+                            <span>{t('sidebar.rename')}</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onSelect={() => setDeleteConfirmId(list.id)}
+                            className="text-danger focus:text-danger"
+                          >
+                            <Trash2 size={14} />
+                            <span>{t('sidebar.deleteList')}</span>
+                          </ContextMenuItem>
+                        </ContextMenuContent>
                       )}
-                    </button>
-                  </ContextMenuTrigger>
-                  {!isDefault && (
-                    <ContextMenuContent className="w-40">
-                      <ContextMenuItem
-                        onSelect={() => {
-                          setRenamingId(list.id)
-                          setRenameDraft(list.name)
-                        }}
-                      >
-                        <Edit3 size={14} />
-                        <span>{t('sidebar.rename')}</span>
-                      </ContextMenuItem>
-                      <ContextMenuItem
-                        onSelect={() => setDeleteConfirmId(list.id)}
-                        className="text-danger focus:text-danger"
-                      >
-                        <Trash2 size={14} />
-                        <span>{t('sidebar.deleteList')}</span>
-                      </ContextMenuItem>
-                    </ContextMenuContent>
-                  )}
-                </ContextMenu>
-              )
-            })}
+                    </ContextMenu>
+
+                    {/* 插入指示线：after */}
+                    {dropPosition === 'after' && (
+                      <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full translate-y-1/2 z-10 pointer-events-none" />
+                    )}
+                  </div>
+                )
+              }}
+            </DragSortableList>
 
             {/* 新建清单 */}
             {creating ? (

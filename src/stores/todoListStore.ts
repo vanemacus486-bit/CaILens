@@ -27,6 +27,8 @@ interface TodoListState {
   setActiveList: (id: string) => void
   clearCompleted: (listId: string) => Promise<void>
   toggleListVisibility: (id: string) => void
+  /** 拖拽排序：传入新的 ID 有序数组，更新 sortOrder 并持久化 */
+  reorderLists: (orderedIds: string[]) => Promise<void>
 }
 
 export const useTodoListStore = create<TodoListState>()((set) => ({
@@ -72,7 +74,14 @@ export const useTodoListStore = create<TodoListState>()((set) => ({
 
       set({ lists, activeListId: activeId, visibleListIds: visibleIds, isLoading: false, isLoaded: true })
     } catch (e) {
-      set({ isLoading: false })
+      // 即使持久层失败也确保 UI 可用：至少有一个默认清单列
+      const now = Date.now()
+      set({
+        lists: [{ id: 'default', name: '默认', sortOrder: -1, createdAt: now, updatedAt: now }],
+        visibleListIds: ['default'],
+        isLoading: false,
+        isLoaded: true,
+      })
       console.error('Failed to load todo lists:', e)
     }
   },
@@ -125,6 +134,22 @@ export const useTodoListStore = create<TodoListState>()((set) => ({
         : [...state.visibleListIds, id]
       localStorage.setItem(VISIBLE_LS_KEY, JSON.stringify(next))
       return { visibleListIds: next }
+    })
+  },
+
+  reorderLists: async (orderedIds) => {
+    const repo = getTodoListRepo()
+    // 批量更新 sortOrder
+    await Promise.all(
+      orderedIds.map((id, index) => repo.update(id, { sortOrder: index })),
+    )
+    // 更新本地状态
+    set((state) => {
+      const idToOrder = new Map(orderedIds.map((id, i) => [id, i]))
+      const reordered = [...state.lists].sort(
+        (a, b) => (idToOrder.get(a.id) ?? Infinity) - (idToOrder.get(b.id) ?? Infinity),
+      )
+      return { lists: reordered }
     })
   },
 }))

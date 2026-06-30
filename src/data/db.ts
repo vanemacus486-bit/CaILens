@@ -9,6 +9,7 @@ import type { InspirationLog } from '@/domain/inspiration'
 import type { Profile } from '@/domain/profile'
 import type { Todo } from '@/domain/todo'
 import type { TodoList } from '@/domain/todo'
+import type { ChroniclePhase, ChronicleTask } from '@/domain/chronicle'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import { upgradeV3, upgradeV4, upgradeV5, upgradeV16, upgradeV21, upgradeV24 } from './migrations/upgrades'
 
@@ -28,6 +29,8 @@ export class CailensDB extends Dexie {
   hygieneLogs!:     Table<import('./adapters/StorageAdapter').HygieneLogRecord, string>
   todos!: Table<Todo, string>
   todoLists!: Table<TodoList, string>
+  chroniclePhases!: Table<ChroniclePhase, string>
+  chronicleTasks!: Table<ChronicleTask, string>
 
   constructor(name = 'cailens') {
     super(name)
@@ -284,6 +287,23 @@ export class CailensDB extends Dexie {
       await tx.table('todos').toCollection().modify((t: any) => {
         if (t.listId === undefined) t.listId = defaultListId
       })
+    })
+
+    // v30：新增 chroniclePhases / chronicleTasks 表（编年时间轴）
+    this.version(30).stores({
+      events: 'id, startTime, endTime, projectId, goalId, deletedAt',
+      categories: 'id', settings: 'id',
+      weeklyEstimates: 'id, weekStart, categoryId',
+      projects: 'id, categoryId, name, status, sortOrder, useCount, lastUsedAt, dailyRepeat',
+      inspirations: 'id, projectId, eventId',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+      profiles: 'id',
+      outfitLogs: 'id, date', hygieneLogs: 'id, date',
+      todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern, priority, domain, goalId, listId',
+      goals: 'id, parentId, status, sortOrder',
+      todoLists: 'id, sortOrder',
+      chroniclePhases: 'id, startDate, endDate',
+      chronicleTasks: 'id, date',
     })
 
     // 鍏ㄦ柊 DB 棣栨鍒涘缓鏃惰Е鍙戯紙version 0 鈫?any锛?

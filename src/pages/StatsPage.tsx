@@ -18,6 +18,7 @@ import { DietView } from '@/components/stats/DietView'
 import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneView } from '@/components/stats/HygieneView'
 import { MoodCard } from '@/components/stats/MoodCard'
+import { ChronicleTimeline } from '@/components/stats/ChronicleTimeline'
 import { HabitTrendCard } from '@/components/stats/HabitTrendCard'
 import { DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { EasternStatsShell, type RoutineViewMode } from '@/components/stats/EasternStatsShell'
@@ -42,6 +43,7 @@ const VIEW_SEGMENTS: Record<RoutineViewMode, SegmentedOption[] | undefined> = {
   hygiene: [{ id: 'timeline', label: '时间线' }, { id: 'frequency', label: '活动次数' }],
   outfit:  undefined,
   mood:    undefined,
+  chronicle: undefined,
 }
 
 /** ════════════════════════════════════════════════════════════
@@ -77,6 +79,7 @@ function getViewTitle(
     case 'hygiene': return '卫生'
     case 'outfit':  return '穿搭'
     case 'mood':    return '情绪'
+    case 'chronicle': return '编年'
   }
 }
 
@@ -120,6 +123,7 @@ const VIEW_STEP: Record<RoutineViewMode, 'period' | 'year' | 'month' | 'week'> =
   hygiene: 'week',
   outfit:  'week',
   mood:    'week',
+  chronicle: 'month',
 }
 
 /** 按视图计算当前锚点日期（从 URL date 参数解读） */
@@ -305,6 +309,7 @@ export function StatsPage() {
     statsTab5:      () => setRoutineView('hygiene'),
     statsTab6:      () => setRoutineView('outfit'),
     statsTab7:      () => setRoutineView('mood'),
+    statsTab8:      () => setRoutineView('chronicle'),
     statsColor1:    () => handleColorShortcut(CATEGORY_IDS[0]),
     statsColor2:    () => handleColorShortcut(CATEGORY_IDS[1]),
     statsColor3:    () => handleColorShortcut(CATEGORY_IDS[2]),
@@ -421,6 +426,9 @@ export function StatsPage() {
             )}
             {routineView === 'mood' && (
               <MoodCard />
+            )}
+            {routineView === 'chronicle' && (
+              <ChronicleTimeline />
             )}
           </div>
         </div>

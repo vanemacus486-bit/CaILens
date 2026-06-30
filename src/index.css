@@ -270,20 +270,118 @@
   transform: translateX(0);
 }
 
-/* ── Todo complete (fade + slide left) ──────────────────── */
+/* ── Todo completion animation (4-phase) ────────────────── */
 @media (prefers-reduced-motion: no-preference) {
-  @keyframes todo-complete {
-    from { opacity: 1; transform: translateX(0); }
-    to   { opacity: 0; transform: translateX(-6px); }
+  /* Phase 1: checkbox morph — scale bounce */
+  @keyframes todo-checkbox-bounce {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.25); }
+    65%  { transform: scale(0.92); }
+    100% { transform: scale(1); }
   }
-  .animate-todo-complete {
-    animation: todo-complete 280ms ease-out forwards;
-    pointer-events: none;
+
+  /* Fill layer — scale from 0 to 1 with slight overshoot */
+  @keyframes todo-fill-grow {
+    0%   { transform: scale(0); opacity: 0; }
+    60%  { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Checkmark stroke draw */
+  @keyframes todo-checkmark-draw {
+    0%   { stroke-dashoffset: 20; opacity: 0; }
+    50%  { opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 1; }
+  }
+
+  /* Phase 2: strikethrough draw left→right (done via pseudo-element width) */
+  @keyframes todo-strikethrough-draw {
+    0%   { width: 0%; }
+    100% { width: 100%; }
+  }
+
+  /* Phase 4: counter number bounce */
+  @keyframes counter-bounce {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(1.35); }
+    60%  { transform: scale(0.88); }
+    100% { transform: scale(1); }
+  }
+
+  /* Phase 4: slide-in from above for completed list items */
+  @keyframes todo-slide-in-done {
+    0%   { opacity: 0; transform: translateY(-16px); max-height: 0; }
+    60%  { opacity: 0.6; }
+    100% { opacity: 1; transform: translateY(0); max-height: 60px; }
+  }
+
+  /* ── Applied classes ── */
+
+  /* Checkbox icon gets the bounce */
+  .todo-completing .todo-checkbox-icon {
+    animation: todo-checkbox-bounce 400ms var(--ease-spring) forwards;
+  }
+
+  /* Fill circle grows from center */
+  .todo-completing .todo-checkbox-fill {
+    animation: todo-fill-grow 280ms ease-out 20ms both;
+    transform-origin: center;
+  }
+
+  /* Checkmark draws in after fill */
+  .todo-completing .todo-checkmark {
+    stroke-dasharray: 20;
+    stroke-dashoffset: 20;
+    animation: todo-checkmark-draw 200ms ease-out 130ms both;
+  }
+
+  /* Title text color fades to tertiary */
+  .todo-completing .todo-title {
+    transition: color 250ms ease-out 20ms;
+    color: var(--text-tertiary) !important;
+  }
+
+  /* Strikethrough pseudo-element draws left→right */
+  .todo-completing .todo-strikethrough::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 1.5px;
+    background: var(--text-tertiary);
+    border-radius: 1px;
+    animation: todo-strikethrough-draw 260ms ease-out 30ms forwards;
+  }
+
+  /* Star + expand icons fade out */
+  .todo-completing .todo-star-icon,
+  .todo-completing .todo-expand-icon {
+    transition: opacity 220ms ease-out;
+    opacity: 0 !important;
+  }
+
+  /* Inner row has transition properties for FLIP collapse */
+  .todo-completing .todo-row-inner {
+    transition: height 350ms ease-out, opacity 350ms ease-out,
+                padding-top 350ms ease-out, padding-bottom 350ms ease-out,
+                margin-top 350ms ease-out, margin-bottom 350ms ease-out !important;
+    overflow: hidden;
+  }
+
+  /* Counter bounce */
+  .todo-counter-bounce {
+    animation: counter-bounce 360ms var(--ease-spring) forwards;
+    display: inline-block;
+  }
+
+  /* Slide-in for new items in expanded completed section */
+  .todo-done-slide-in {
+    animation: todo-slide-in-done 350ms ease-out forwards;
+    overflow: hidden;
   }
 }
+/* Fallback for prefers-reduced-motion */
 .animate-todo-complete {
-  opacity: 1;
-  transform: translateX(0);
   pointer-events: none;
 }
 

@@ -292,6 +292,14 @@ export const translations: TranslationDict = {
     fr: 'Humeur',
     ru: 'Настроение',
   },
+  'stats.chronicle': {
+    zh: '编年',
+    en: 'Chronicle',
+    es: 'Crónica',
+    ar: 'تأريخ',
+    fr: 'Chronique',
+    ru: 'Хроника',
+  },
 
   // ── 热力图 ──────────────────────────────────────────────
   'heatmap.hit': {

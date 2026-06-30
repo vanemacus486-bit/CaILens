@@ -28,6 +28,7 @@ export type ShortcutAction =
   | 'statsTab5'
   | 'statsTab6'
   | 'statsTab7'
+  | 'statsTab8'
   | 'statsColor1'
   | 'statsColor2'
   | 'statsColor3'
@@ -86,6 +87,7 @@ export const SHORTCUT_REGISTRY: Record<ShortcutAction, ShortcutDefinition> = {
   statsTab5:     { action: 'statsTab5',     label: '复盘·卫生',    defaultBinding: { key: '5', ctrl: false, alt: false, shift: false } },
   statsTab6:     { action: 'statsTab6',     label: '复盘·穿搭',    defaultBinding: { key: '6', ctrl: false, alt: false, shift: false } },
   statsTab7:     { action: 'statsTab7',     label: '复盘·情绪',    defaultBinding: { key: '7', ctrl: false, alt: false, shift: false } },
+  statsTab8:     { action: 'statsTab8',     label: '复盘·编年',    defaultBinding: { key: '8', ctrl: false, alt: false, shift: false } },
   statsColor1:   { action: 'statsColor1',   label: '复盘·分类色1', defaultBinding: { key: 'a', ctrl: false, alt: false, shift: false } },
   statsColor2:   { action: 'statsColor2',   label: '复盘·分类色2', defaultBinding: { key: 's', ctrl: false, alt: false, shift: false } },
   statsColor3:   { action: 'statsColor3',   label: '复盘·分类色3', defaultBinding: { key: 'd', ctrl: false, alt: false, shift: false } },

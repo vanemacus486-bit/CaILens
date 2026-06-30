@@ -8,6 +8,7 @@ import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit } from '@/domain/dailyContext'
 import type { Todo, TodoList } from '@/domain/todo'
+import type { ChroniclePhase, ChronicleTask } from '@/domain/chronicle'
 import type { StorageAdapter, StorageTable, QueryOptions, HygieneLogRecord } from './StorageAdapter'
 import { CailensDB, db as dexieDb } from '../db'
 
@@ -125,6 +126,8 @@ export class IndexedDBAdapter implements StorageAdapter {
   hygieneLogs: StorageTable<HygieneLogRecord>
   todos: StorageTable<Todo>
   todoLists: StorageTable<TodoList>
+  chroniclePhases: StorageTable<ChroniclePhase>
+  chronicleTasks: StorageTable<ChronicleTask>
 
   private db: CailensDB
 
@@ -143,6 +146,8 @@ export class IndexedDBAdapter implements StorageAdapter {
     this.hygieneLogs = new IndexedDBTable(db.hygieneLogs)
     this.todos = new IndexedDBTable(db.todos)
     this.todoLists = new IndexedDBTable(db.todoLists)
+    this.chroniclePhases = new IndexedDBTable(db.chroniclePhases)
+    this.chronicleTasks = new IndexedDBTable(db.chronicleTasks)
   }
 
   readonly storagePath: string | null = null

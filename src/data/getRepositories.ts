@@ -8,6 +8,7 @@ import { ProfileRepository } from './profileRepository'
 import { DailyContextRepository } from './dailyContextRepository'
 import { TodoRepository } from './todoRepository'
 import { TodoListRepository } from './todoListRepository'
+import { ChronicleRepository } from './chronicleRepository'
 import type { StorageAdapter } from './adapters/StorageAdapter'
 
 let _eventRepo: EventRepository
@@ -20,6 +21,7 @@ let _profileRepo: ProfileRepository
 let _dailyContextRepo: DailyContextRepository
 let _todoRepo: TodoRepository
 let _todoListRepo: TodoListRepository
+let _chronicleRepo: ChronicleRepository
 
 export function initRepositories(adapter: StorageAdapter) {
   _eventRepo = new EventRepository(adapter)
@@ -32,6 +34,7 @@ export function initRepositories(adapter: StorageAdapter) {
   _dailyContextRepo = new DailyContextRepository(adapter)
   _todoRepo = new TodoRepository(adapter)
   _todoListRepo = new TodoListRepository(adapter)
+  _chronicleRepo = new ChronicleRepository(adapter)
 }
 
 export function getEventRepo(): EventRepository {
@@ -82,4 +85,9 @@ export function getTodoRepo(): TodoRepository {
 export function getTodoListRepo(): TodoListRepository {
   if (!_todoListRepo) throw new Error('TodoListRepository not initialized. Call initRepositories() first.')
   return _todoListRepo
+}
+
+export function getChronicleRepo(): ChronicleRepository {
+  if (!_chronicleRepo) throw new Error('ChronicleRepository not initialized. Call initRepositories() first.')
+  return _chronicleRepo
 }

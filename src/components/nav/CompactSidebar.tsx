@@ -7,7 +7,7 @@
 
 import { useMemo } from 'react'
 import { useLocation, useSearchParams, useNavigate } from 'react-router-dom'
-import { Settings, CheckCircle, Star, TrendingUp, LayoutGrid, Moon, Utensils, Droplets, Shirt, Smile, Archive } from 'lucide-react'
+import { Settings, CheckCircle, Star, TrendingUp, LayoutGrid, Moon, Utensils, Droplets, Shirt, Smile, Archive, BookOpen } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useT } from '@/i18n/useT'
 import { useDomainNav } from '@/components/nav/domainNav'
@@ -25,6 +25,7 @@ const STATS_VIEWS: { id: RoutineViewMode; labelKey: string; icon: LucideIcon }[]
   { id: 'hygiene', labelKey: 'stats.hygiene', icon: Droplets },
   { id: 'outfit',  labelKey: 'stats.outfit',  icon: Shirt },
   { id: 'mood',    labelKey: 'stats.mood',    icon: Smile },
+  { id: 'chronicle', labelKey: 'stats.chronicle', icon: BookOpen },
 ]
 
 export function CompactSidebar() {

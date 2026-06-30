@@ -7,6 +7,7 @@ import type { InspirationLog } from '@/domain/inspiration'
 import type { Profile } from '@/domain/profile'
 import type { DailyOutfit } from '@/domain/dailyContext'
 import type { Todo, TodoList } from '@/domain/todo'
+import type { ChroniclePhase, ChronicleTask } from '@/domain/chronicle'
 
 /**
  * 旧卫生勾选记录类型。hygieneLogs 表已于 schema v27 清空并停用
@@ -56,6 +57,8 @@ export interface StorageAdapter {
   hygieneLogs: StorageTable<HygieneLogRecord>
   todos: StorageTable<Todo>
   todoLists: StorageTable<TodoList>
+  chroniclePhases: StorageTable<ChroniclePhase>
+  chronicleTasks: StorageTable<ChronicleTask>
   initialize(): Promise<void>
   /** Path to the storage root, or null if not configured (e.g. in-memory / IndexedDB). */
   readonly storagePath: string | null

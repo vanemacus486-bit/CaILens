@@ -16,6 +16,7 @@ const STATS_PILLS: { id: RoutineViewMode; label: string }[] = [
   { id: 'hygiene', label: '卫生' },
   { id: 'outfit',  label: '穿搭' },
   { id: 'mood',    label: '情绪' },
+  { id: 'chronicle', label: '编年' },
 ]
 
 export function TopNavBar() {
