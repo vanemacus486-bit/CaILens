@@ -75,7 +75,7 @@ function Layout() {
     return subscribeCrossWindowWrites((table) => {
       if (table === 'events') {
         const { reloadVisible } = useEventStore.getState()
-        reloadVisible()
+        void reloadVisible()
       }
     })
   }, [])
