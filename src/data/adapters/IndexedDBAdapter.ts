@@ -68,6 +68,11 @@ class IndexedDBTable<T extends { id: string }> implements StorageTable<T> {
         case 'anyOf':
           collection = this.table.where(key).anyOf(value as never[])
           break
+        case 'between': {
+          const [lo, hi] = value as [never, never]
+          collection = this.table.where(key).between(lo, hi, true, false)
+          break
+        }
         default:
           collection = this.table.toCollection() as Dexie.Collection<T, string>
       }

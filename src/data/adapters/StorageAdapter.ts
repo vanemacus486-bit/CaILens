@@ -21,7 +21,7 @@ export interface HygieneLogRecord {
 
 export interface WhereCondition {
   key: string
-  op: 'equals' | 'below' | 'above' | 'anyOf'
+  op: 'equals' | 'below' | 'above' | 'anyOf' | 'between'
   value: unknown
 }
 

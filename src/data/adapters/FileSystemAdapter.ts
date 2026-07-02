@@ -180,6 +180,14 @@ class EventsFsTable implements StorageTable<CalendarEvent> {
       if (opts.filter) {
         results = results.filter(opts.filter)
       }
+    } else if (opts.where?.key === 'startTime' && opts.where.op === 'between') {
+      const [lo, hi] = opts.where.value as [number, number]
+      const loIdx = binarySearchLeft(this.index.eventsByStartTime, lo)
+      const hiIdx = binarySearchLeft(this.index.eventsByStartTime, hi)
+      results = this.index.eventsByStartTime.slice(loIdx, hiIdx).map((e) => this.index.events.get(e.id)!.event)
+      if (opts.filter) {
+        results = results.filter(opts.filter)
+      }
     } else if (opts.filter) {
       results = Array.from(this.index.events.values())
         .map((e) => e.event)

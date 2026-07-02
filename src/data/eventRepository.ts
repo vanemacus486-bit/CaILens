@@ -26,11 +26,42 @@ export class EventRepository {
   }
 
   async getByTimeRange(start: number, end: number): Promise<CalendarEvent[]> {
-    const results = await this.adapter.events.query({
-      where: { key: 'startTime', op: 'below', value: end },
-      filter: (e) => !e.deletedAt && e.endTime > start,
-    })
-    return results.sort((a, b) => a.startTime - b.startTime)
+    // 两段查询并集，避免扫描全部历史。
+    //
+    // Q1（主查询）：startTime between [start − MAX_SPAN, end)
+    //   → 过滤 endTime > start && !deletedAt
+    //   覆盖当天、跨天睡眠等绝大多数事件（MAX_SPAN = 14 天）
+    //
+    // Q2（兜尾）：endTime above start
+    //   → 过滤 startTime < start − MAX_SPAN && !deletedAt
+    //   捕获罕见的超长事件（如 ICS 导入的多周条目）
+    const MAX_SPAN = 14 * 86_400_000
+
+    const [q1, q2] = await Promise.all([
+      this.adapter.events.query({
+        where: { key: 'startTime', op: 'between', value: [start - MAX_SPAN, end] },
+        filter: (e) => !e.deletedAt && e.endTime > start,
+      }),
+      // 仅当查询窗口比 MAX_SPAN 更早时才需兜尾
+      start > MAX_SPAN
+        ? this.adapter.events.query({
+            where: { key: 'endTime', op: 'above', value: start },
+            filter: (e) => !e.deletedAt && e.startTime < start - MAX_SPAN,
+          })
+        : Promise.resolve([] as CalendarEvent[]),
+    ])
+
+    // 按 id 去重合并
+    const seen = new Set<string>()
+    const merged: CalendarEvent[] = []
+    for (const e of [...q1, ...q2]) {
+      if (!seen.has(e.id)) {
+        seen.add(e.id)
+        merged.push(e)
+      }
+    }
+    merged.sort((a, b) => a.startTime - b.startTime)
+    return merged
   }
 
   async getById(id: string): Promise<CalendarEvent | undefined> {
