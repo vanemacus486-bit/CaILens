@@ -1,7 +1,7 @@
 ﻿import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 import type { CalendarEvent } from '@/domain/event'
 import type { Category, CategoryId } from '@/domain/category'
-import { computeDayStats } from '@/domain/stats'
+import { computeDayStats, bucketEventsByLocalDay } from '@/domain/stats'
 import { COLOR } from '@/styles/tokens'
 import type { AppLanguage } from '@/i18n/types'
 import { LANGUAGE_LOCALE } from '@/i18n/types'
@@ -53,20 +53,19 @@ export function computeDailyGrid(
   rangeStart: number,
   rangeEnd: number,
 ): DayCell[] {
-  const filtered = events.filter(
-    (e) => e.startTime < rangeEnd && e.endTime > rangeStart,
-  )
-
   const budgetMap = new Map<CategoryId, number>()
   for (const c of categories) {
     budgetMap.set(c.id, c.weeklyBudget)
   }
 
+  // 单遍分桶：O(N) 替代原来的 365 × O(N)
+  const dayBuckets = bucketEventsByLocalDay(events, rangeStart, rangeEnd)
+
   const days: DayCell[] = []
-  let cursor = rangeStart
-  while (cursor < rangeEnd) {
-    const dayEnd = cursor + DAY_MS
-    const dayStats = computeDayStats(filtered, categories, { start: cursor, end: dayEnd })
+  for (let d = 0; d < dayBuckets.length; d++) {
+    const dayStart = rangeStart + d * DAY_MS
+    const dayEnd = dayStart + DAY_MS
+    const dayStats = computeDayStats(dayBuckets[d], categories, { start: dayStart, end: dayEnd })
 
     const byCategory: Record<string, number> = {}
     const byRatio: Record<string, number> = {}
@@ -87,7 +86,6 @@ export function computeDailyGrid(
       byCategory: byCategory as Record<CategoryId, number>,
       byRatio: byRatio as Record<CategoryId, number>,
     })
-    cursor = dayEnd
   }
 
   return days

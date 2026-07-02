@@ -167,3 +167,48 @@ export function computeTypeSplit(byCategory: Record<CategoryId, number>): TypeSp
     typeII: { hours: typeII, pct: total > 0 ? Math.round((typeII / total) * 100) : 0 },
   }
 }
+
+// ── 单遍天分桶 ──────────────────────────────────────────
+
+const DAY_MS = 86_400_000
+
+/**
+ * 单遍扫描 events，将每个事件按天裁开（跨天事件拆分到多个天桶）。
+ * 返回按时间升序排列的天数组，每桶包含已 clip 到该天边界的事件副本。
+ *
+ * 语义与现状 `computeDayStats` 中的 clip 逻辑一致，确保逐位不变量。
+ * 无本地时区转换——天边界为简单的 `rangeStart + N * DAY_MS`（同现有实现）。
+ */
+export function bucketEventsByLocalDay(
+  events: readonly CalendarEvent[],
+  rangeStart: number,
+  rangeEnd: number,
+): CalendarEvent[][] {
+  const dayCount = Math.ceil((rangeEnd - rangeStart) / DAY_MS)
+  if (dayCount <= 0) return []
+
+  // 初始化 bucket 数组
+  const buckets: CalendarEvent[][] = new Array(dayCount)
+  for (let i = 0; i < dayCount; i++) buckets[i] = []
+
+  // 先过滤出与范围重叠的事件
+  for (const event of events) {
+    if (event.startTime >= rangeEnd || event.endTime <= rangeStart) continue
+
+    // 计算事件覆盖的天范围
+    const firstDay = Math.max(0, Math.floor((event.startTime - rangeStart) / DAY_MS))
+    const lastDay = Math.min(dayCount - 1, Math.floor((event.endTime - rangeStart - 1) / DAY_MS))
+
+    for (let d = firstDay; d <= lastDay; d++) {
+      const dayStart = rangeStart + d * DAY_MS
+      const dayEnd = dayStart + DAY_MS
+      const clippedStart = Math.max(event.startTime, dayStart)
+      const clippedEnd = Math.min(event.endTime, dayEnd)
+      if (clippedEnd > clippedStart) {
+        buckets[d].push({ ...event, startTime: clippedStart, endTime: clippedEnd })
+      }
+    }
+  }
+
+  return buckets
+}
