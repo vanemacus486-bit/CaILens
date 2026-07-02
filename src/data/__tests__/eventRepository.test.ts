@@ -219,6 +219,46 @@ describe('getByTimeRange', () => {
   })
 })
 
+// ── getByTimeRange 兜尾查询（超长事件，两条索引路径必须等价） ──
+
+describe('getByTimeRange tail query (ultra-long events)', () => {
+  const DAY = 86_400_000
+  const NOW = 1_000 * DAY
+
+  // 30 天超长事件跨越窗口下界之前 14 天以上（只能靠兜尾查询命中）
+  async function seedLongEvents() {
+    await db.events.bulkAdd([
+      { id: 'long', title: 'Long', startTime: NOW - 40 * DAY, endTime: NOW - 10 * DAY, color: 'accent', categoryId: 'accent', createdAt: 0, updatedAt: 0 },
+      { id: 'in', title: 'In range', startTime: NOW - 15 * DAY, endTime: NOW - 15 * DAY + 3_600_000, color: 'sage', categoryId: 'sage', createdAt: 0, updatedAt: 0 },
+      { id: 'del', title: 'Deleted long', startTime: NOW - 50 * DAY, endTime: NOW - 5 * DAY, color: 'sky', categoryId: 'sky', createdAt: 0, updatedAt: 0, deletedAt: 1 },
+      { id: 'old', title: 'Ended long ago', startTime: NOW - 200 * DAY, endTime: NOW - 199 * DAY, color: 'rose', categoryId: 'rose', createdAt: 0, updatedAt: 0 },
+    ])
+  }
+
+  it('近期窗口（endTime 索引路径）：捕获超长事件，排除已删/已结束', async () => {
+    await seedLongEvents()
+    // now − start = 20 天 ≤ 90 天阈值 → 走 endTime above 分支
+    const recentRepo = new EventRepository(adapter, { now: () => NOW }, fixedIdGen)
+    const results = await recentRepo.getByTimeRange(NOW - 20 * DAY, NOW)
+    expect(results.map((e) => e.id)).toEqual(['long', 'in'])
+  })
+
+  it('久远窗口（startTime 索引路径）：同一窗口结果与另一路径完全一致', async () => {
+    await seedLongEvents()
+    // now − start = 140 天 > 90 天阈值 → 走 startTime below 分支
+    const oldClockRepo = new EventRepository(adapter, { now: () => NOW + 120 * DAY }, fixedIdGen)
+    const results = await oldClockRepo.getByTimeRange(NOW - 20 * DAY, NOW)
+    expect(results.map((e) => e.id)).toEqual(['long', 'in'])
+  })
+
+  it('复盘式宽范围（3 年）：包含全部未删除事件', async () => {
+    await seedLongEvents()
+    const recentRepo = new EventRepository(adapter, { now: () => NOW }, fixedIdGen)
+    const results = await recentRepo.getByTimeRange(NOW - 3 * 365 * DAY, NOW)
+    expect(results.map((e) => e.id)).toEqual(['old', 'long', 'in'])
+  })
+})
+
 // ── update ────────────────────────────────────────────────
 
 describe('update', () => {

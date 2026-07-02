@@ -101,7 +101,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
       // 缓存命中：无须 loading，直接返回
       const cached = _eventCache.get(key)
       if (cached) {
-        set({ events: cached })
+        set({ events: cached, isLoading: false, loadError: null })
         return
       }
 
@@ -112,11 +112,11 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
       _eventCache.set(key, events)
       evictCache()
-      set({ events, isFetching: false })
+      set({ events, isLoading: false, isFetching: false, loadError: null })
     } catch (err) {
       if (seq !== _weekLoadSeq) return
       const message = err instanceof Error ? err.message : 'Failed to load events'
-      set({ isFetching: false, loadError: message })
+      set({ isLoading: false, isFetching: false, loadError: message })
     }
   },
 
@@ -128,7 +128,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
       const cached = _eventCache.get(key)
       if (cached) {
-        set({ rangeEvents: cached })
+        set({ rangeEvents: cached, isLoading: false, loadError: null })
         return
       }
 
@@ -138,11 +138,11 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
       _eventCache.set(key, rangeEvents)
       evictCache()
-      set({ rangeEvents, isFetching: false })
+      set({ rangeEvents, isLoading: false, isFetching: false, loadError: null })
     } catch (err) {
       if (seq !== _rangeLoadSeq) return
       const message = err instanceof Error ? err.message : 'Failed to load events'
-      set({ isFetching: false, loadError: message })
+      set({ isLoading: false, isFetching: false, loadError: message })
     }
   },
 

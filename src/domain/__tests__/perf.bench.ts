@@ -70,3 +70,10 @@ describe('EventRepository.getByTimeRange (current week)', () => {
     await repoForBench.getByTimeRange(weekStart, weekEnd)
   })
 })
+
+// ── 基准 4: EventRepository.getByTimeRange（复盘 3 年宽范围） ──
+describe('EventRepository.getByTimeRange (3-year stats range)', () => {
+  bench('getByTimeRange for 3-year window', async () => {
+    await repoForBench.getByTimeRange(now - 3 * 365 * oneDayMs, now)
+  })
+})

@@ -70,14 +70,22 @@ function Layout() {
     fireAndForget(loadLists(), 'load lists')
   }, [])
 
-  // 跨窗口同步：QuickCapture 等独立 WebView 写入后，主窗口无感刷新
+  // 跨窗口同步：QuickCapture 等独立 WebView 写入后，主窗口无感刷新。
+  // 200ms 合并连续写入（浮窗「记录并继续」会连发多条），避免每条都全量重读。
   useEffect(() => {
-    return subscribeCrossWindowWrites((table) => {
-      if (table === 'events') {
-        const { reloadVisible } = useEventStore.getState()
-        void reloadVisible()
-      }
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const unsubscribe = subscribeCrossWindowWrites((table) => {
+      if (table !== 'events') return
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        timer = null
+        void useEventStore.getState().reloadVisible()
+      }, 200)
     })
+    return () => {
+      if (timer) clearTimeout(timer)
+      unsubscribe()
+    }
   }, [])
 
   const shortcutHandlers = useMemo<Partial<Record<ShortcutAction, () => void>>>(() => ({
