@@ -100,7 +100,7 @@ export function HoverCard({
       ? `translateY(-50%) translateY(${phase === 'entering' ? '2px' : '0px'})`
       : `translateX(-50%) translateY(${phase === 'entering' ? '2px' : '0px'})`,
     borderRadius: '6px',
-    padding: '6px 12px',
+    padding: '8px 16px',
     display: isOpen ? 'flex' : 'none',
     alignItems: 'center',
     gap: '16px',

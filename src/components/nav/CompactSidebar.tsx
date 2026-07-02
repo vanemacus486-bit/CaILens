@@ -82,7 +82,7 @@ export function CompactSidebar() {
   const btnUnselected = 'text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/8'
 
   return (
-    <div className="flex flex-col gap-1 w-56">
+    <div className="flex flex-col gap-1 w-64">
       {/* ── 域导航 ── */}
       <SlideSegmented
         items={navItems}

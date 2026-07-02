@@ -54,7 +54,8 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
   const [entry, setEntry] = useState<{ left: number; width: number } | null>(null)
   const [animated, setAnimated] = useState(false)
 
-  const itemsKey = items.map((it) => it.id).join('|')
+  // 含 label：语言切换只改文字不改 id，靠 id-only key 测不出按钮宽度已变，滑块会卡在旧位置
+  const itemsKey = items.map((it) => `${it.id}:${it.label}`).join('|')
 
   // 测量激活按钮位置 → 定位滑块；ResizeObserver 处理字体/断点变化后的重对齐
   useLayoutEffect(() => {
@@ -149,12 +150,18 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
             onClick={() => onChange(it.id)}
             title={showLabel ? undefined : it.label}
             aria-label={it.label}
-            className={`relative z-[1] inline-flex items-center justify-center h-8 rounded-md cursor-pointer border-none bg-transparent font-sans text-[13px] font-medium transition-colors duration-200 ${stretch ? 'flex-1 gap-1 px-1.5' : 'gap-1.5 px-3'} ${
+            className={`relative z-[1] flex items-center justify-center rounded-md cursor-pointer border-none bg-transparent font-sans font-medium transition-colors duration-200 ${
+              stretch ? 'flex-1 min-w-0 flex-col gap-0.5 py-1.5 px-1 text-[11px]' : 'inline-flex h-8 gap-1.5 px-3 text-[13px]'
+            } ${
               isActive ? 'text-accent' : 'text-text-tertiary hover:text-text-secondary'
             }`}
           >
-            {Icon && <Icon size={stretch ? 15 : 18} strokeWidth={1.75} />}
-            {showLabel && <span className="whitespace-nowrap">{it.label}</span>}
+            {Icon && <Icon size={stretch ? 15 : 18} strokeWidth={1.75} className="flex-shrink-0" />}
+            {showLabel && (
+              <span className={stretch ? 'break-words text-center leading-tight line-clamp-2' : 'whitespace-nowrap'}>
+                {it.label}
+              </span>
+            )}
           </button>
         )
         if (!showLabel) {

@@ -292,13 +292,9 @@ export function FloatingEventCard({
       return
     }
 
-    // Enter → 两段式：候选高亮时先采纳，否则保存（⇧⏎ 记录并继续）
+    // Enter → 直接保存当前文字（Tab 才用来采纳推荐）
     if (e.key === 'Enter') {
       e.preventDefault()
-      if (topSuggestion) {
-        acceptSuggestion(topSuggestion)
-        return
-      }
       handleSaveRef.current(e.shiftKey)
       return
     }

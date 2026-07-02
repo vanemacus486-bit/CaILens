@@ -22,6 +22,7 @@ import { LANGUAGE_LOCALE } from '@/i18n/types'
 import { WindowControls } from './WindowControls'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { HoverMenu } from '@/components/ui/hover-menu'
+import { cycleActionFilter } from '@/lib/actionFilterCycle'
 import { CompactSidebar } from './CompactSidebar'
 
 function formatYearMonth(date: Date, language: AppLanguage): string {
@@ -55,10 +56,10 @@ export function AppHeader() {
         if (!isNaN(parsed.getTime())) return formatYearMonth(parsed, language)
       }
     }
-    // week 模式：从 week 参数取
+    // week 模式：从 week 参数取该周周四所在月（跨月周按多数天所在月标注，而非固定周一）
     const weekParam = searchParams.get('week')
     const base = weekParam ? parseISODate(weekParam) : getWeekStart(new Date(), 1)
-    return formatYearMonth(base, language)
+    return formatYearMonth(addDays(base, 3), language)
   }, [isWeek, viewMode, searchParams, language])
 
 // ── 导航处理 ──
@@ -122,10 +123,9 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
     } else if (isAction) {
       // ← 循环：archive → starred → all
       const next = new URLSearchParams(searchParams)
-      const current = searchParams.get('filter') ?? 'all'
-      if (current === 'archive') next.set('filter', 'starred')
-      else if (current === 'starred') next.delete('filter')
-      else next.set('filter', 'archive') // all → archive
+      const nextFilter = cycleActionFilter((searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? null, -1)
+      if (nextFilter) next.set('filter', nextFilter)
+      else next.delete('filter')
       next.delete('archiveDate')
       setSearchParams(next, { replace: true })
     }
@@ -162,10 +162,9 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
     } else if (isAction) {
       // → 循环：all → starred → archive
       const next = new URLSearchParams(searchParams)
-      const current = searchParams.get('filter') ?? 'all'
-      if (current === 'all') next.set('filter', 'starred')
-      else if (current === 'starred') next.set('filter', 'archive')
-      else next.delete('filter') // archive → all
+      const nextFilter = cycleActionFilter((searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? null, 1)
+      if (nextFilter) next.set('filter', nextFilter)
+      else next.delete('filter')
       next.delete('archiveDate')
       setSearchParams(next, { replace: true })
     }

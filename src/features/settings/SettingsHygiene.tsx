@@ -49,7 +49,7 @@ export function SettingsHygiene() {
   const addRow = () =>
     setDraft((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), name: t('新活动', 'New activity'), icon: '✨', color: HYGIENE_PALETTE[0].key, keywords: [] },
+      { id: crypto.randomUUID(), name: t('hygiene.newActivity'), icon: '✨', color: HYGIENE_PALETTE[0].key, keywords: [] },
     ])
 
   return (
@@ -57,13 +57,10 @@ export function SettingsHygiene() {
       {/* Header */}
       <div>
         <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
-          {t('卫生活动', 'Hygiene Activities')}
+          {t('hygiene.activities')}
         </h1>
         <p className="text-sm text-text-tertiary mt-1 font-sans">
-          {t(
-            '自定义哪些事件计入卫生、染成什么颜色。在日历里记一笔标题含「匹配词」的事件，就会自动计入对应活动。',
-            'Define which events count as hygiene and their colors. Logging an event whose title contains a keyword auto-tracks it.',
-          )}
+          {t('hygiene.description')}
         </p>
       </div>
 
@@ -77,14 +74,14 @@ export function SettingsHygiene() {
                 defaultValue={a.icon}
                 maxLength={2}
                 onBlur={(e) => updateRow(a.id, { icon: e.target.value.trim() || '·' })}
-                aria-label={t('图标', 'Icon')}
+                aria-label={t('hygiene.icon')}
                 className="w-9 h-9 text-center text-lg rounded-md bg-surface-sunken border border-border-subtle focus:border-border-default focus-visible:outline-none"
               />
               <input
                 defaultValue={a.name}
-                onBlur={(e) => updateRow(a.id, { name: e.target.value.trim() || t('未命名', 'Untitled') })}
+                onBlur={(e) => updateRow(a.id, { name: e.target.value.trim() || t('hygiene.untitled') })}
                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-                aria-label={t('名称', 'Name')}
+                aria-label={t('hygiene.name')}
                 className="flex-1 min-w-0 text-sm font-sans text-text-primary bg-surface-sunken border border-border-subtle rounded-md px-2.5 py-1.5 focus:border-border-default focus-visible:outline-none"
               />
               <span
@@ -93,7 +90,7 @@ export function SettingsHygiene() {
               />
               <button
                 onClick={() => removeRow(a.id)}
-                aria-label={t('删除', 'Delete')}
+                aria-label={t('hygiene.delete')}
                 className="w-8 h-8 flex items-center justify-center rounded-md text-text-tertiary hover:text-color-text-danger hover:bg-surface-sunken transition-colors flex-shrink-0 cursor-pointer border-none bg-transparent"
               >
                 <Trash2 size={15} />
@@ -104,8 +101,8 @@ export function SettingsHygiene() {
             <input
               defaultValue={a.keywords.join('、')}
               onBlur={(e) => updateRow(a.id, { keywords: parseKeywords(e.target.value) })}
-              placeholder={t('匹配词，逗号分隔（例：洗澡、shower）', 'Keywords, comma-separated')}
-              aria-label={t('匹配词', 'Keywords')}
+              placeholder={t('hygiene.keywordsPlaceholder')}
+              aria-label={t('hygiene.keywords')}
               className="w-full text-xs font-sans text-text-secondary bg-surface-sunken border border-border-subtle rounded-md px-2.5 py-1.5 focus:border-border-default focus-visible:outline-none placeholder:text-text-tertiary"
             />
 
@@ -136,7 +133,7 @@ export function SettingsHygiene() {
         className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-default text-text-secondary hover:text-text-primary hover:bg-surface-raised transition-colors py-2.5 text-sm font-sans cursor-pointer bg-transparent"
       >
         <Plus size={16} />
-        {t('新增活动', 'Add activity')}
+        {t('hygiene.addActivity')}
       </button>
     </div>
   )

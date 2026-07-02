@@ -124,6 +124,7 @@ export const useTodoListStore = create<TodoListState>()((set) => ({
   },
 
   clearCompleted: async (_listId) => {
+    void _listId
     // 已完成待办保留在数据库中（归档面板可读取），无需额外操作
   },
 

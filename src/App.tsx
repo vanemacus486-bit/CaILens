@@ -33,6 +33,7 @@ import { addWeeks, getWeekStart, formatISODate } from '@/domain/time'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { subDays, addDays, addMonths, addYears, parseISO } from 'date-fns'
+import { cycleActionFilter } from '@/lib/actionFilterCycle'
 import type { ShortcutAction } from '@/domain/shortcuts'
 import { isNativeMobile } from '@/lib/platform'
 const MobileLayout = lazy(() => import('@/features/mobile/MobileLayout').then((m) => ({ default: m.MobileLayout })))
@@ -110,6 +111,17 @@ function Layout() {
       'toggle theme',
     ),
     goToPreviousWeek: () => {
+      // Only active on navigable pages; arrow keys scroll normally elsewhere
+      if (!location.pathname.startsWith('/week') && !location.pathname.startsWith('/action') && !location.pathname.startsWith('/stats')) return
+      if (location.pathname.startsWith('/action')) {
+        const next = new URLSearchParams(searchParams)
+        const nextFilter = cycleActionFilter((searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? null, -1)
+        if (nextFilter) next.set('filter', nextFilter)
+        else next.delete('filter')
+        next.delete('archiveDate')
+        setSearchParams(next, { replace: true })
+        return
+      }
       if (location.pathname.startsWith('/stats')) {
         const statsView = searchParams.get('view') ?? 'trend'
         const period = searchParams.get('period') ?? 'week'
@@ -138,6 +150,16 @@ function Layout() {
       navigate(`/week?week=${formatISODate(addWeeks(current, -1))}`)
     },
     goToNextWeek: () => {
+      if (!location.pathname.startsWith('/week') && !location.pathname.startsWith('/action') && !location.pathname.startsWith('/stats')) return
+      if (location.pathname.startsWith('/action')) {
+        const next = new URLSearchParams(searchParams)
+        const nextFilter = cycleActionFilter((searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? null, 1)
+        if (nextFilter) next.set('filter', nextFilter)
+        else next.delete('filter')
+        next.delete('archiveDate')
+        setSearchParams(next, { replace: true })
+        return
+      }
       if (location.pathname.startsWith('/stats')) {
         const statsView = searchParams.get('view') ?? 'trend'
         const period = searchParams.get('period') ?? 'week'

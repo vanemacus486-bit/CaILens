@@ -84,7 +84,7 @@ export function SimpleSidebar() {
 
   return (
     <>
-      <aside className="w-56 flex-shrink-0 flex flex-col bg-surface-raised border border-border-subtle rounded-2xl shadow-lg overflow-hidden m-3 max-md:hidden">
+      <aside className="w-64 flex-shrink-0 flex flex-col bg-surface-raised border border-border-subtle rounded-2xl shadow-lg overflow-hidden m-3 max-md:hidden">
       {/* ── 滚动内容区 ── */}
       <div className="flex-1 flex flex-col px-4 pt-4 pb-3 overflow-y-auto">
         {/* ── 域导航：日历 / 规划 / 复盘 ── */}

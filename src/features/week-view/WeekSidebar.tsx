@@ -17,6 +17,7 @@ import {
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
+  addDays,
   addMonths,
   subMonths,
   isSameMonth,
@@ -31,6 +32,7 @@ import { EVENT_COLORS } from '@/domain/event'
 import { formatISODate, getWeekStart, parseISODate } from '@/domain/time'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useT } from '@/i18n/useT'
+import type { TranslationKey } from '@/i18n/translations'
 import { LANGUAGE_LOCALE } from '@/i18n/types'
 import { useDomainNav } from '@/components/nav/domainNav'
 import { SlideSegmented } from '@/components/nav/SlideSegmented'
@@ -144,13 +146,13 @@ function DayMarkEditor({
   onUpdate: (mark: DayMark) => void
   onDelete: (id: string) => void
   onClose: () => void
-  t: (zh: string, en: string) => string
+  t: (key: TranslationKey, ...args: (string | number)[]) => string
 }) {
   const [label, setLabel] = useState('')
   const [color, setColor] = useState<EventColor | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const dayLabel = format(day, t('M月d日', 'MMM d'))
+  const dayLabel = format(day, t('dayMark.dateFormat'))
 
   const editingMark = editingId ? existingMarks.find((m) => m.id === editingId) : null
 
@@ -210,13 +212,13 @@ function DayMarkEditor({
   return (
     <DialogContent className="max-w-sm">
       <DialogTitle>
-        {t('这天是干嘛的？', 'What is this day for?')}
+        {t('dayMark.whatIsThisDayFor')}
       </DialogTitle>
       <DialogDescription className="text-text-tertiary text-xs mt-1">
         {dayLabel}
         {existingMarks.length > 0 && (
           <span className="ml-2">
-            {t(`（已有 ${existingMarks.length} 条）`, `(${existingMarks.length} mark(s))`)}
+            {t('dayMark.countSuffix', existingMarks.length)}
           </span>
         )}
       </DialogDescription>
@@ -240,20 +242,20 @@ function DayMarkEditor({
               <span className="flex-1 truncate text-text-primary">{m.label}</span>
               {editingId === m.id ? (
                 <span className="text-xs text-text-tertiary italic">
-                  {t('编辑中…', 'editing…')}
+                  {t('dayMark.editing')}
                 </span>
               ) : (
                 <button
                   onClick={() => startEditing(m)}
                   className="text-xs text-text-tertiary hover:text-text-primary transition-colors cursor-pointer border-none bg-transparent p-0.5"
                 >
-                  {t('编辑', 'Edit')}
+                  {t('dayMark.edit')}
                 </button>
               )}
               <button
                 onClick={() => onDelete(m.id)}
                 className="text-text-quaternary hover:text-text-danger transition-colors cursor-pointer border-none bg-transparent p-0.5"
-                aria-label={t('删除标记', 'Delete mark')}
+                aria-label={t('dayMark.deleteMark')}
               >
                 <X size={12} strokeWidth={2} />
               </button>
@@ -272,8 +274,8 @@ function DayMarkEditor({
             onKeyDown={handleKeyDown}
             placeholder={
               editingMark
-                ? t('编辑备注…', 'Edit note…')
-                : t('交房租 / 体检 / DDL…', 'Rent / Checkup / Deadline…')
+                ? t('dayMark.editNote')
+                : t('dayMark.placeholder')
             }
             className="flex-1 h-9 px-3 rounded-lg border border-border-subtle bg-surface-base text-sm text-text-primary outline-none placeholder:text-text-quaternary focus:border-accent transition-colors"
           />
@@ -282,7 +284,7 @@ function DayMarkEditor({
         {/* 颜色选择 */}
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs text-text-tertiary flex-shrink-0">
-            {t('颜色', 'Color')}:
+            {t('dayMark.color')}:
           </span>
           <div className="flex gap-1.5">
             {EVENT_COLORS.map((ec) => {
@@ -309,8 +311,8 @@ function DayMarkEditor({
                   ? 'border-text-primary scale-110'
                   : 'border-border-subtle hover:scale-110'
               }`}
-              title={t('默认', 'Default')}
-              aria-label={t('默认色', 'Default color')}
+              title={t('settings.default')}
+              aria-label={t('dayMark.defaultColor')}
             />
           </div>
         </div>
@@ -323,20 +325,20 @@ function DayMarkEditor({
               className="flex items-center gap-1 h-8 px-3 rounded-lg text-xs text-text-danger hover:bg-surface-base transition-colors cursor-pointer border-none bg-transparent"
             >
               <Trash2 size={12} />
-              {t('删除', 'Delete')}
+              {t('common.delete')}
             </button>
           )}
           <button
             onClick={handleSave}
             className="h-8 px-4 rounded-lg bg-accent text-white text-xs font-medium hover:brightness-105 active:brightness-95 transition-[filter] cursor-pointer border-none"
           >
-            {editingMark ? t('更新', 'Update') : t('保存', 'Save')}
+            {editingMark ? t('dayMark.update') : t('common.save')}
           </button>
           <button
             onClick={onClose}
             className="h-8 px-3 rounded-lg text-xs text-text-tertiary hover:bg-surface-base transition-colors cursor-pointer border-none bg-transparent"
           >
-            {t('取消', 'Cancel')}
+            {t('common.cancel')}
           </button>
         </div>
       </div>
@@ -415,8 +417,8 @@ export function WeekSidebar() {
     return weekStart
   })()
 
-  // 决定高亮基准日：周模式看 weekStart，月模式看 selectedDay
-  const anchorDate = viewMode === 'week' ? weekStart : selectedDay
+  // 决定高亮基准日：周模式取该周周四（多数天所在月，跨月周不会偏向周一所在的月），月模式看 selectedDay
+  const anchorDate = viewMode === 'week' ? addDays(weekStart, 3) : selectedDay
   const anchorMonthKey = format(anchorDate, 'yyyy-MM')
 
   // 迷你月历当前显示的月份；主视图跨月时自动跟随
@@ -456,7 +458,7 @@ export function WeekSidebar() {
   })()
 
   return (
-    <aside className="w-56 flex-shrink-0 flex flex-col bg-surface-raised border border-border-subtle rounded-2xl shadow-lg overflow-hidden m-3 max-md:hidden">
+    <aside className="w-64 flex-shrink-0 flex flex-col bg-surface-raised border border-border-subtle rounded-2xl shadow-lg overflow-hidden m-3 max-md:hidden">
       {/* ── 滚动内容区 ── */}
       <div className="flex-1 flex flex-col gap-4 px-4 pt-4 pb-3 overflow-y-auto">
         {/* ── 域导航：日历 / 规划 / 复盘 ── */}
@@ -547,14 +549,14 @@ export function WeekSidebar() {
                       <ContextMenuItem
                         onSelect={() => openEditor(day)}
                       >
-                        {t('标记此日…', 'Mark this day…')}
+                        {t('dayMark.markThisDay')}
                       </ContextMenuItem>
                     ) : (
                       <>
                         <ContextMenuItem
                           onSelect={() => openEditor(day)}
                         >
-                          {t('编辑标记…', 'Edit mark…')}
+                          {t('dayMark.editMark')}
                         </ContextMenuItem>
                         <ContextMenuSeparator />
                         {marksForDay.map((m) => (
@@ -563,7 +565,7 @@ export function WeekSidebar() {
                             onSelect={() => deleteDayMark(m.id)}
                             className="text-text-danger"
                           >
-                            {t(`清除「${m.label}」`, `Remove "${m.label}"`)}
+                            {t('dayMark.removeLabel', m.label)}
                           </ContextMenuItem>
                         ))}
                       </>
@@ -579,7 +581,7 @@ export function WeekSidebar() {
         {reminders.length > 0 && (
           <div>
             <div className="text-[11px] font-sans font-medium text-text-secondary mb-1.5 tracking-wide">
-              {t('提醒', 'Reminders')}
+              {t('dayMark.reminders')}
             </div>
             <div className="flex flex-col gap-0.5 max-h-[180px] overflow-y-auto">
               {reminders.map((mark) => {
@@ -616,7 +618,7 @@ export function WeekSidebar() {
                         deleteDayMark(mark.id)
                       }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-text-quaternary hover:text-text-danger cursor-pointer border-none bg-transparent p-0.5 flex-shrink-0"
-                      aria-label={t('删除', 'Delete')}
+                      aria-label={t('common.delete')}
                     >
                       <X size={10} strokeWidth={2} />
                     </button>

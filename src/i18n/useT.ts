@@ -9,6 +9,7 @@
  * 也可直接调用 translate(key, language, ...args) 在非 React 上下文中使用。
  */
 
+import { useCallback } from 'react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { translations, type TranslationKey } from './translations'
 import type { AppLanguage } from './types'
@@ -45,6 +46,8 @@ export function translate(key: TranslationKey, language: AppLanguage, ...args: (
  */
 export function useT() {
   const language = useAppSettingsStore((s) => s.settings.language)
-  return (key: TranslationKey, ...args: (string | number)[]) =>
-    translate(key, language, ...args)
+  return useCallback(
+    (key: TranslationKey, ...args: (string | number)[]) => translate(key, language, ...args),
+    [language],
+  )
 }

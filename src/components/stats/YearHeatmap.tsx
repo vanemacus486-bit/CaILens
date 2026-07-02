@@ -3,7 +3,6 @@ import type { CalendarEvent } from '@/domain/event'
 import type { Category, CategoryId } from '@/domain/category'
 import { computeDayStats } from '@/domain/stats'
 import { COLOR } from '@/styles/tokens'
-import { useT } from '@/i18n/useT'
 import type { AppLanguage } from '@/i18n/types'
 import { LANGUAGE_LOCALE } from '@/i18n/types'
 
@@ -262,6 +261,13 @@ export function buildRollingGrid(
   return { grid, monthLabels, numWeeks }
 }
 
+/** Rolling-mode end date: "now" when `y` is the current year, else Dec 31 of `y` (frozen snapshot for past/future years). */
+export function computeRollingEnd(y: number, now: number): Date {
+  const nowDate = new Date(now)
+  if (y === nowDate.getFullYear()) return nowDate
+  return new Date(y, 11, 31, 23, 59, 59, 999)
+}
+
 export function getIntensityLevel(ratio: number, thresholds: readonly [number, number, number, number] = [0.1, 0.25, 0.5, 0.8]): 0 | 1 | 2 | 3 | 4 {
   if (ratio <= 0) return 0
   if (ratio < thresholds[0]) return 1
@@ -346,36 +352,41 @@ interface YearHeatmapProps {
 }
 
 export function YearHeatmap({ rangeEvents, categories, language, now: _now, anchorYear, selectedId, onCategoryChange: _onCategoryChange, viewMode, onViewModeChange: _onViewModeChange }: YearHeatmapProps) {
-  const [year, setYear] = useState(() => anchorYear ?? new Date().getFullYear())
-  const [rollingEnd, setRollingEnd] = useState(() => {
-    const d = new Date()
-    d.setHours(23, 59, 59, 999)
-    return d
-  })
+  void _onCategoryChange
+  void _onViewModeChange
+  const now = _now ?? Date.now()
+  const [year, setYear] = useState(() => anchorYear ?? new Date(now).getFullYear())
+  const [rollingEnd, setRollingEnd] = useState(() => computeRollingEnd(anchorYear ?? new Date(now).getFullYear(), now))
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const now = _now ?? Date.now()
+  const viewModeMounted = useRef(false)
 
   // 外部 anchorYear 变化时同步内部状态
   useEffect(() => {
     if (anchorYear === undefined) return
     setYear(anchorYear)
-    setRollingEnd(new Date(anchorYear, 11, 31, 23, 59, 59, 999))
-  }, [anchorYear])
+    setRollingEnd(computeRollingEnd(anchorYear, _now ?? Date.now()))
+  }, [anchorYear, _now])
 
-  // viewMode 变化时重置到当前日期
+  // viewMode 变化时重置到当前日期（skip initial mount — anchorYear effect handles init）
   useEffect(() => {
-    const now = new Date()
-    if (viewMode === 'year') {
-      setYear(now.getFullYear())
-    } else {
-      setRollingEnd(new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999))
+    if (!viewModeMounted.current) {
+      viewModeMounted.current = true
+      return
     }
-  }, [viewMode])
+    const nowVal = _now ?? Date.now()
+    const currentYear = new Date(nowVal).getFullYear()
+    if (viewMode === 'year') {
+      setYear(currentYear)
+    } else {
+      setRollingEnd(computeRollingEnd(currentYear, nowVal))
+    }
+  }, [viewMode, _now])
 
   const isCurrentYear = year === new Date(now).getFullYear()
 
-  const t = useT()
+  // language 已是直接 prop；用简单三元代替 useT()，避免把中文原文当 i18n key 查表(必 miss)
+  const tt = (zh: string, en: string) => (language === 'zh' ? zh : en)
 
   const days = useMemo(
     () => {
@@ -598,19 +609,19 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, anch
 
       {/* ── Legend ──────────────────────────────────────────── */}
       <div className="heatmap-legend">
-        <span>{t('更少', 'Less')}</span>
+        <span>{tt('更少', 'Less')}</span>
         <div className="heatmap-legend-swatch" style={{ backgroundColor: 'var(--heatmap-bg-cell-empty)' }} />
         {COLOR.heatmapOpacityRamp.slice(1).map((opacity) => (
           <div key={opacity} className="heatmap-legend-swatch" style={{ backgroundColor: 'var(--heatmap-bg-cell-empty)' }}>
             <span className="heatmap-cell-fill" style={{ opacity }} />
           </div>
         ))}
-        <span>{t('更多', 'More')}</span>
+        <span>{tt('更多', 'More')}</span>
       </div>
 
       {/* ── Legend text ──────────────────────────────────────── */}
       <div className="heatmap-legend-text">
-        {t('由浅至深：0 → 超额完成', 'Light to dark: 0 → Over target')}
+        {tt('由浅至深：0 → 超额完成', 'Light to dark: 0 → Over target')}
       </div>
 
 
@@ -619,19 +630,19 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, anch
       <div className={`heatmap-stats-bar${isCompact ? ' heatmap-stats-compact' : ''}`}>
         {/* Cumulative */}
         <div className="heatmap-stat">
-          <div className="heatmap-stat-label">{t('累 计', 'Total')}</div>
+          <div className="heatmap-stat-label">{tt('累 计', 'Total')}</div>
           <div className="heatmap-stat-value">
             {stats.cumulative.toFixed(1)}
             <span className="heatmap-stat-unit">h</span>
           </div>
           <div className="heatmap-stat-detail">
-            {t(`共 ${stats.cumulative > 0 ? Math.ceil(stats.cumulative / (stats.dailyAvg || 1)) : 0} 天有记录`, `${stats.cumulative > 0 ? Math.ceil(stats.cumulative / (stats.dailyAvg || 1)) : 0} days recorded`)}
+            {tt(`共 ${stats.cumulative > 0 ? Math.ceil(stats.cumulative / (stats.dailyAvg || 1)) : 0} 天有记录`, `${stats.cumulative > 0 ? Math.ceil(stats.cumulative / (stats.dailyAvg || 1)) : 0} days recorded`)}
           </div>
         </div>
 
         {/* Daily avg */}
         <div className="heatmap-stat">
-          <div className="heatmap-stat-label">{t('日 均', 'Daily')}</div>
+          <div className="heatmap-stat-label">{tt('日 均', 'Daily')}</div>
           <div className="heatmap-stat-value">
             {stats.dailyAvg.toFixed(1)}
             <span className="heatmap-stat-unit">h</span>
@@ -639,29 +650,29 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, anch
           <div className="heatmap-stat-detail">
             {(() => {
               const pct = targetHours > 0 ? Math.round((stats.dailyAvg / targetHours) * 100) : 0
-              return t(`达成 ${pct}%`, `${pct}% achieved`)
+              return tt(`达成 ${pct}%`, `${pct}% achieved`)
             })()}
           </div>
         </div>
 
         {/* Streak */}
         <div className="heatmap-stat">
-          <div className="heatmap-stat-label">{t('连 续', 'Streak')}</div>
+          <div className="heatmap-stat-label">{tt('连 续', 'Streak')}</div>
           <div className="heatmap-stat-value">
             {isCurrentYear ? (
-              <>{stats.streak}<span className="heatmap-stat-unit">{t('天', 'd')}</span></>
+              <>{stats.streak}<span className="heatmap-stat-unit">{tt('天', 'd')}</span></>
             ) : (
               <span style={{ opacity: 0.3 }}>—</span>
             )}
           </div>
           <div className="heatmap-stat-detail">
             {!isCurrentYear ? (
-              t('仅当年有效', 'Current year only')
+              tt('仅当年有效', 'Current year only')
             ) : stats.streak === 0 ? (
               <>
-                <div>{t('再记一天即重启', 'One more day to restart')}</div>
+                <div>{tt('再记一天即重启', 'One more day to restart')}</div>
                 {bestStreak > 0 && (
-                  <div style={{ marginTop: 2 }}>{t(`上次连续 ${bestStreak} 天`, `Last streak: ${bestStreak} days`)}</div>
+                  <div style={{ marginTop: 2 }}>{tt(`上次连续 ${bestStreak} 天`, `Last streak: ${bestStreak} days`)}</div>
                 )}
               </>
             ) : (
@@ -674,7 +685,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, anch
                   />
                 ))}
                 {streakExtra > 0 && (
-                  <span className="heatmap-streak-extra">+{streakExtra} {t('保持中', 'going')}</span>
+                  <span className="heatmap-streak-extra">+{streakExtra} {tt('保持中', 'going')}</span>
                 )}
               </span>
             )}
@@ -683,7 +694,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, anch
 
         {/* Best day */}
         <div className="heatmap-stat">
-          <div className="heatmap-stat-label">{t('最 佳', 'Best')}</div>
+          <div className="heatmap-stat-label">{tt('最 佳', 'Best')}</div>
           <div className="heatmap-stat-value">
             {stats.bestDay ? stats.bestDay.hours.toFixed(1) : '-'}
             {stats.bestDay ? <span className="heatmap-stat-unit">h</span> : null}
@@ -693,13 +704,13 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, anch
 
         {/* Target */}
         <div className="heatmap-stat">
-          <div className="heatmap-stat-label">{t('目 标', 'Target')}</div>
+          <div className="heatmap-stat-label">{tt('目 标', 'Target')}</div>
           <div className="heatmap-stat-value">
             {targetHours.toFixed(1)}
             <span className="heatmap-stat-unit">h</span>
           </div>
           <div className="heatmap-stat-detail">
-            {t('每日', 'Daily')}
+            {tt('每日', 'Daily')}
           </div>
         </div>
       </div>
@@ -726,7 +737,7 @@ export function YearHeatmap({ rangeEvents, categories, language, now: _now, anch
           <div className="heatmap-tooltip-hours">
             {tooltip.cell.hours.toFixed(1)}h
             {' · '}
-            {t('达成', 'Hit')} {Math.round(tooltip.cell.ratio * 100)}%
+            {tt('达成', 'Hit')} {Math.round(tooltip.cell.ratio * 100)}%
           </div>
         </div>
       )}

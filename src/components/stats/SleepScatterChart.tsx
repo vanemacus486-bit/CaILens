@@ -56,6 +56,13 @@ function toWrapY(decimalHours: number): number {
   return Math.max(1080, Math.min(2280, wrapped))
 }
 
+/** Shift a clock hour onto the same continuous 18→42 timeline as toWrapY, so
+    post-midnight bed/wake times average against the previous evening's hours
+    instead of a plain 0-24 mean pulling them toward noon. */
+function wrapHour(decimalHours: number): number {
+  return decimalHours < 18 ? decimalHours + 24 : decimalHours
+}
+
 /** Y-axis tick → display label */
 function tickLabel(minutes: number): string {
   let m = minutes
@@ -136,12 +143,14 @@ function SleepMarks({
 
   return (
     <g>
-      {/* Average bed/wake reference lines (behind the marks) */}
+      {/* Average bed/wake reference lines. The value is labeled just past the
+          right edge of the plot — outside the data area — so it never sits
+          on top of a dot. */}
       {avgBedY != null && (
         <>
           <line x1={px} x2={px + pw} y1={yOf(avgBedY)} y2={yOf(avgBedY)} stroke={avgLineColor} strokeDasharray="4 4" strokeWidth={1} />
           {avgBedLabel && (
-            <text x={px + pw} y={yOf(avgBedY) - 4} textAnchor="end" fill={avgLabelColor} fontSize={11} style={{ fontFamily: 'var(--font-mono)' }}>{avgBedLabel}</text>
+            <text x={px + pw + 8} y={yOf(avgBedY)} dominantBaseline="middle" fill={avgLabelColor} fontSize={11} style={{ fontFamily: 'var(--font-mono)' }}>{avgBedLabel}</text>
           )}
         </>
       )}
@@ -149,7 +158,7 @@ function SleepMarks({
         <>
           <line x1={px} x2={px + pw} y1={yOf(avgWakeY)} y2={yOf(avgWakeY)} stroke={avgLineColor} strokeDasharray="4 4" strokeWidth={1} />
           {avgWakeLabel && (
-            <text x={px + pw} y={yOf(avgWakeY) - 4} textAnchor="end" fill={avgLabelColor} fontSize={11} style={{ fontFamily: 'var(--font-mono)' }}>{avgWakeLabel}</text>
+            <text x={px + pw + 8} y={yOf(avgWakeY)} dominantBaseline="middle" fill={avgLabelColor} fontSize={11} style={{ fontFamily: 'var(--font-mono)' }}>{avgWakeLabel}</text>
           )}
         </>
       )}
@@ -379,8 +388,8 @@ export function SleepScatterChart({ rangeEvents, anchorDate: anchorDateProp, vie
     const n = viewNights.length
     if (n === 0) return null
     const avgDuration = viewNights.reduce((s, d) => s + d.duration, 0) / n
-    const avgBed = viewNights.reduce((s, d) => s + d.bedTime, 0) / n
-    const avgWake = viewNights.reduce((s, d) => s + d.wakeTime, 0) / n
+    const avgBed = (viewNights.reduce((s, d) => s + wrapHour(d.bedTime), 0) / n) % 24
+    const avgWake = (viewNights.reduce((s, d) => s + wrapHour(d.wakeTime), 0) / n) % 24
     const avgBedY = toWrapY(avgBed)
     const avgWakeY = toWrapY(avgWake)
     return { n, avgDuration, avgBed, avgWake, avgBedY, avgWakeY }
@@ -419,7 +428,7 @@ export function SleepScatterChart({ rangeEvents, anchorDate: anchorDateProp, vie
           {/* ── Chart ─────────────────────────────── */}
           <div className="sleep-chart-container">
             <ResponsiveContainer width="100%" height={360}>
-              <ComposedChart data={viewNights} margin={{ top: 8, right: 24, left: 0, bottom: 8 }}>
+              <ComposedChart data={viewNights} margin={{ top: 8, right: isCompact ? 70 : 100, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={true} syncWithTicks={true} />
 
                 <XAxis
@@ -459,8 +468,8 @@ export function SleepScatterChart({ rangeEvents, anchorDate: anchorDateProp, vie
                   colorWakeDot={colorWakeDot}
                   avgBedY={stats?.avgBedY}
                   avgWakeY={stats?.avgWakeY}
-                  avgBedLabel={stats ? `平均就寝 ${fmtHour(stats.avgBed)}` : undefined}
-                  avgWakeLabel={stats ? `平均起床 ${fmtHour(stats.avgWake)}` : undefined}
+                  avgBedLabel={stats ? `${isCompact ? '就寝' : '平均就寝'} ${fmtHour(stats.avgBed)}` : undefined}
+                  avgWakeLabel={stats ? `${isCompact ? '起床' : '平均起床'} ${fmtHour(stats.avgWake)}` : undefined}
                   avgLineColor={avgLineColor}
                   avgLabelColor={avgLabelColor}
                   hoveredDay={hover?.night.day ?? null}
@@ -478,7 +487,7 @@ export function SleepScatterChart({ rangeEvents, anchorDate: anchorDateProp, vie
                 ? `${anchorDate.getMonth() + 1}月${n.day}日`
                 : `第 ${n.day} 日`
               return (
-                <div style={{
+                <div data-sleep-tooltip="1" style={{
                   position: 'absolute',
                   left: tipLeft,
                   top: hover.plotTop + 4,
