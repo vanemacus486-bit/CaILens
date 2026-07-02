@@ -119,6 +119,7 @@ export function WeekView() {
   cardStateRef.current = cardState
 
   const handledOpenEventRef = useRef<string | null>(null)
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const days = useMemo(() => getWeekDays(weekStart), [weekStart])
 
@@ -171,7 +172,7 @@ export function WeekView() {
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
         setHighlightedEventId(openEventId)
-        setTimeout(() => setHighlightedEventId(null), 2500)
+        highlightTimerRef.current = setTimeout(() => setHighlightedEventId(null), 2500)
         setCardState({ mode: 'detail', event, anchorEl: el })
       }
       setSearchParams((prev) => {
@@ -181,6 +182,8 @@ export function WeekView() {
       }, { replace: true })
     })
   }, [events, searchParams, setSearchParams])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => { if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current) }, [])
 
   // Auto-close cards if the active event is no longer in the store
   useEffect(() => {
