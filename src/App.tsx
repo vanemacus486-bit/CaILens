@@ -34,6 +34,7 @@ import { useShortcutManager } from '@/hooks/useShortcutManager'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { subDays, addDays, addMonths, addYears, parseISO } from 'date-fns'
 import { cycleActionFilter } from '@/lib/actionFilterCycle'
+import { subscribeCrossWindowWrites } from '@/lib/crossWindowSync'
 import type { ShortcutAction } from '@/domain/shortcuts'
 import { isNativeMobile } from '@/lib/platform'
 const MobileLayout = lazy(() => import('@/features/mobile/MobileLayout').then((m) => ({ default: m.MobileLayout })))
@@ -67,6 +68,16 @@ function Layout() {
     fireAndForget(loadProfile(), 'load profile')
     fireAndForget(loadTodos(), 'load todos')
     fireAndForget(loadLists(), 'load lists')
+  }, [])
+
+  // 跨窗口同步：QuickCapture 等独立 WebView 写入后，主窗口无感刷新
+  useEffect(() => {
+    return subscribeCrossWindowWrites((table) => {
+      if (table === 'events') {
+        const { reloadVisible } = useEventStore.getState()
+        reloadVisible()
+      }
+    })
   }, [])
 
   const shortcutHandlers = useMemo<Partial<Record<ShortcutAction, () => void>>>(() => ({

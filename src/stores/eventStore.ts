@@ -8,6 +8,7 @@ import type { ImportResult, ImportedEvent } from '@/domain/icsImport'
 import { useCategoryStore } from './categoryStore'
 import { getDayStart, shiftEventsByWeeks } from '@/domain/time'
 import { tryLearnAndReclassify } from '@/use-cases/classifyAndLearnKeyword'
+import { broadcastWrite } from '@/lib/crossWindowSync'
 
 // ── Event cache ──────────────────────────────────────────────
 //
@@ -186,6 +187,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
   createEvent: async (input) => {
     const event = await getEventRepo().create(input)
     clearEventCache()
+    broadcastWrite('events')
     set((state) => patchAll(state, (l) => [...l, event]))
 
     // Auto-learn keyword from event title (delegated to use-case)
@@ -208,6 +210,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     const prevEvent = get().events.find((e) => e.id === input.id)
     const event = await getEventRepo().update(input)
     clearEventCache()
+    broadcastWrite('events')
     set((state) => patchAll(state, (l) => l.map((e) => (e.id === event.id ? event : e))))
 
     // Auto-learn keyword when categoryId changes (delegated to use-case)
@@ -230,6 +233,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
   deleteEvent: async (id) => {
     await getEventRepo().delete(id)
     clearEventCache()
+    broadcastWrite('events')
     set((state) => patchAll(state, (l) => l.filter((e) => e.id !== id)))
   },
 
@@ -240,6 +244,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     const updates = shifted.map((e) => ({ id: e.id, startTime: e.startTime, endTime: e.endTime }))
     await getEventRepo().bulkUpdateTimes(updates)
     clearEventCache()
+    broadcastWrite('events')
     set((state) => patchAll(state, (l) => l.map((e) => {
       const s = shifted.find((s) => s.id === e.id)
       return s ?? e
@@ -268,6 +273,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
     const created = await getEventRepo().bulkCreate(inputs)
     clearEventCache()
+    broadcastWrite('events')
     set((state) => patchAll(state, (l) => [...l, ...created]))
     return result
   },
@@ -290,6 +296,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
     const created = await getEventRepo().bulkCreate(inputs)
     clearEventCache()
+    broadcastWrite('events')
     set((state) => patchAll(state, (l) => [...l, ...created]))
   },
 
@@ -307,6 +314,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     }
     const event = await getEventRepo().create(input)
     clearEventCache()
+    broadcastWrite('events')
     set((state) => patchAll(state, (l) => [...l, event]))
     return event
   },
@@ -334,6 +342,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
     await getEventRepo().bulkUpdateCategories(updates)
     clearEventCache()
+    broadcastWrite('events')
 
     set((state) => patchAll(state, (l) => l.map((e) => {
         const update = updates.find((u) => u.id === e.id)
@@ -345,6 +354,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     if (updates.length === 0) return
     await getEventRepo().bulkUpdateTitles(updates)
     clearEventCache()
+    broadcastWrite('events')
 
     const updateMap = new Map(updates.map((u) => [u.id, u.title]))
     const patchEvent = (e: CalendarEvent) =>
