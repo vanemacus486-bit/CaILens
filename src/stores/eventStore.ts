@@ -16,6 +16,7 @@ import { tryLearnAndReclassify } from '@/use-cases/classifyAndLearnKeyword'
 
 const _eventCache = new Map<string, CalendarEvent[]>()
 const ALL_KEY = '__all__'
+const MAX_CACHE_SIZE = 17 // 16 个范围 + ALL_KEY 豁免
 
 // 记录最近一次「可见范围」加载(周/区间),供后台事件补全完成后静默重放刷新视图
 type RangeLoad = { kind: 'week'; weekStart: number } | { kind: 'range'; start: number; end: number }
@@ -33,6 +34,24 @@ function clearEventCache(): void {
   _eventCache.clear()
 }
 
+/** 缓存大小超过上限时驱逐最旧的条目（ALL_KEY 豁免）。 */
+function evictCache(): void {
+  if (_eventCache.size <= MAX_CACHE_SIZE) return
+  const iter = _eventCache.keys()
+  let evicted = 0
+  const target = _eventCache.size - MAX_CACHE_SIZE
+  for (let key = iter.next(); !key.done && evicted < target; key = iter.next()) {
+    if (key.value !== ALL_KEY) {
+      _eventCache.delete(key.value)
+      evicted++
+    }
+  }
+}
+
+/** 请求序号守卫：后发起的加载若先返回，自动丢弃旧结果。 */
+let _weekLoadSeq = 0
+let _rangeLoadSeq = 0
+
 // 外部使用：watchdog 在文件系统变更后强制刷新
 export { clearEventCache }
 
@@ -42,7 +61,10 @@ interface EventState {
   events: CalendarEvent[]
   rangeEvents: CalendarEvent[]
   allEvents: CalendarEvent[]
+  /** 首次加载/切换周时 true（此时显示转圈）；后续缓存 miss 的重加载走 isFetching */
   isLoading: boolean
+  /** 缓存 miss 时异步取数的轻量标志，已有 events 时 UI 不卸载网格 */
+  isFetching: boolean
   loadError: string | null
   loadWeek: (weekStart: Date) => Promise<void>
   loadRange: (start: number, end: number) => Promise<void>
@@ -64,45 +86,62 @@ export const useEventStore = create<EventState>()((set, get) => ({
   rangeEvents: [],
   allEvents: [],
   isLoading: true,
+  isFetching: false,
   loadError: null,
 
   loadWeek: async (weekStart) => {
-    set({ isLoading: true, loadError: null })
+    const seq = ++_weekLoadSeq
     _lastRangeLoad = { kind: 'week', weekStart: weekStart.getTime() }
     try {
       const start = getDayStart(weekStart)
       const end   = getDayStart(addDays(weekStart, 7))
       const key   = weekKey(start)
 
-      let events = _eventCache.get(key)
-      if (!events) {
-        events = await getEventRepo().getByTimeRange(start, end)
-        _eventCache.set(key, events)
+      // 缓存命中：无须 loading，直接返回
+      const cached = _eventCache.get(key)
+      if (cached) {
+        set({ events: cached })
+        return
       }
 
-      set({ events, isLoading: false })
+      // 缓存 miss：stale-while-revalidate，保留旧 events
+      set({ isFetching: true })
+      const events = await getEventRepo().getByTimeRange(start, end)
+      if (seq !== _weekLoadSeq) return // 后发先至，丢弃
+
+      _eventCache.set(key, events)
+      evictCache()
+      set({ events, isFetching: false })
     } catch (err) {
+      if (seq !== _weekLoadSeq) return
       const message = err instanceof Error ? err.message : 'Failed to load events'
-      set({ isLoading: false, loadError: message })
+      set({ isFetching: false, loadError: message })
     }
   },
 
   loadRange: async (start, end) => {
-    set({ isLoading: true, loadError: null })
+    const seq = ++_rangeLoadSeq
     _lastRangeLoad = { kind: 'range', start, end }
     try {
       const key = rangeKey(start, end)
 
-      let rangeEvents = _eventCache.get(key)
-      if (!rangeEvents) {
-        rangeEvents = await getEventRepo().getByTimeRange(start, end)
-        _eventCache.set(key, rangeEvents)
+      const cached = _eventCache.get(key)
+      if (cached) {
+        set({ rangeEvents: cached })
+        return
       }
 
-      set({ rangeEvents, isLoading: false })
+      set({ isFetching: true })
+      const rangeEvents = await getEventRepo().getByTimeRange(start, end)
+      if (seq !== _rangeLoadSeq) return
+
+      _eventCache.set(key, rangeEvents)
+      evictCache()
+      set({ rangeEvents, isFetching: false })
     } catch (err) {
+      if (seq !== _rangeLoadSeq) return
       const message = err instanceof Error ? err.message : 'Failed to load events'
-      set({ isLoading: false, loadError: message })
+      set({ isFetching: false, loadError: message })
     }
   },
 
@@ -147,7 +186,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
   createEvent: async (input) => {
     const event = await getEventRepo().create(input)
     clearEventCache()
-    set((state) => ({ events: [...state.events, event] }))
+    set((state) => patchAll(state, (l) => [...l, event]))
 
     // Auto-learn keyword from event title (delegated to use-case)
     if (event.title && event.categoryId) {
@@ -169,9 +208,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     const prevEvent = get().events.find((e) => e.id === input.id)
     const event = await getEventRepo().update(input)
     clearEventCache()
-    set((state) => ({
-      events: state.events.map((e) => (e.id === event.id ? event : e)),
-    }))
+    set((state) => patchAll(state, (l) => l.map((e) => (e.id === event.id ? event : e))))
 
     // Auto-learn keyword when categoryId changes (delegated to use-case)
     const targetId = input.categoryId ?? input.color
@@ -193,7 +230,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
   deleteEvent: async (id) => {
     await getEventRepo().delete(id)
     clearEventCache()
-    set((state) => ({ events: state.events.filter((e) => e.id !== id) }))
+    set((state) => patchAll(state, (l) => l.filter((e) => e.id !== id)))
   },
 
   shiftCurrentWeek: async (direction) => {
@@ -203,7 +240,10 @@ export const useEventStore = create<EventState>()((set, get) => ({
     const updates = shifted.map((e) => ({ id: e.id, startTime: e.startTime, endTime: e.endTime }))
     await getEventRepo().bulkUpdateTimes(updates)
     clearEventCache()
-    set({ events: shifted })
+    set((state) => patchAll(state, (l) => l.map((e) => {
+      const s = shifted.find((s) => s.id === e.id)
+      return s ?? e
+    })))
   },
 
   importEvents: async (icsText, categoryId) => {
@@ -228,7 +268,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
     const created = await getEventRepo().bulkCreate(inputs)
     clearEventCache()
-    set((state) => ({ events: [...state.events, ...created] }))
+    set((state) => patchAll(state, (l) => [...l, ...created]))
     return result
   },
 
@@ -250,7 +290,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
 
     const created = await getEventRepo().bulkCreate(inputs)
     clearEventCache()
-    set((state) => ({ events: [...state.events, ...created] }))
+    set((state) => patchAll(state, (l) => [...l, ...created]))
   },
 
   duplicateEvent: async (id) => {
@@ -267,7 +307,7 @@ export const useEventStore = create<EventState>()((set, get) => ({
     }
     const event = await getEventRepo().create(input)
     clearEventCache()
-    set((state) => ({ events: [...state.events, event] }))
+    set((state) => patchAll(state, (l) => [...l, event]))
     return event
   },
 
@@ -295,12 +335,10 @@ export const useEventStore = create<EventState>()((set, get) => ({
     await getEventRepo().bulkUpdateCategories(updates)
     clearEventCache()
 
-    set((state) => ({
-      events: state.events.map((e) => {
+    set((state) => patchAll(state, (l) => l.map((e) => {
         const update = updates.find((u) => u.id === e.id)
         return update ? { ...e, color: update.color, categoryId: update.categoryId } : e
-      }),
-    }))
+      })))
   },
 
   bulkRenameEvents: async (updates) => {
@@ -318,4 +356,20 @@ export const useEventStore = create<EventState>()((set, get) => ({
       allEvents: state.allEvents.map(patchEvent),
     }))
   },
-}));
+}))
+
+// ── 三数组同步辅助 ─────────────────────────────────────────
+//
+// 让每个写操作把同一结构变换应用到三个事件数组（events / rangeEvents / allEvents）。
+// 往 rangeEvents / allEvents 添加超出其加载范围的事件是无害的——所有下游聚合
+// 都会按范围裁剪。
+
+type EventPatch = (list: CalendarEvent[]) => CalendarEvent[]
+
+function patchAll(state: EventState, patch: EventPatch): Partial<EventState> {
+  return {
+    events: patch(state.events),
+    rangeEvents: patch(state.rangeEvents),
+    allEvents: patch(state.allEvents),
+  }
+}

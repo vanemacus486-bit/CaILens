@@ -370,7 +370,7 @@ export function WeekView() {
           <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
         ) : (
         <div ref={scrollContainerRef} className="relative flex-1 min-h-0 max-md:overflow-x-auto overflow-y-auto">
-          {isLoading ? (
+          {isLoading && events.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-text-tertiary" />
             </div>

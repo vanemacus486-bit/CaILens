@@ -27,10 +27,6 @@ const categories = DEFAULT_CATEGORIES.map((c) => ({
 const weekStart = now - (now % (7 * oneDayMs)) - 6 * oneDayMs // 本周一 00:00 UTC
 const weekEnd = weekStart + 7 * oneDayMs
 
-// 3 年窗口
-const rangeStart = now - Math.ceil(YEARS * 365.25) * oneDayMs
-const rangeEnd = now
-
 // ── EventRepository 基准（需要 fake-indexeddb） ──────────────
 let repoForBench: EventRepository
 

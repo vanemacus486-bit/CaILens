@@ -1,7 +1,5 @@
-import type { CalendarEvent } from '@/domain/event'
+import type { CalendarEvent, EventColor } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
-import { DEFAULT_CATEGORIES } from '@/domain/category'
-import type { EventColor } from '@/domain/event'
 
 /**
  * Mulberry32 — 确定性的 32 位 PRNG（seed 相同则序列相同）。
