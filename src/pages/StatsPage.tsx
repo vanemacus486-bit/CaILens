@@ -20,6 +20,7 @@ import { HygieneView } from '@/components/stats/HygieneView'
 import { MoodCard } from '@/components/stats/MoodCard'
 import { ChronicleTimeline } from '@/components/stats/ChronicleTimeline'
 import { HabitTrendCard } from '@/components/stats/HabitTrendCard'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { EasternStatsShell, type RoutineViewMode } from '@/components/stats/EasternStatsShell'
 import { StatsHeader, type SegmentedOption } from '@/components/stats/StatsHeader'
@@ -377,7 +378,7 @@ export function StatsPage() {
           {/* View body */}
           <div>
             {routineView === 'trend' && (
-              <>
+              <ErrorBoundary key="trend">
                 <CategoryTrendChart
                   history={history}
                   categories={categories}
@@ -386,54 +387,68 @@ export function StatsPage() {
                   selected={trendSelected}
                 />
                 <HabitTrendCard />
-              </>
+              </ErrorBoundary>
             )}
             {routineView === 'heatmap' && (
-              <YearHeatmap
-                rangeEvents={rangeEvents}
-                categories={categories}
-                language={language}
-                anchorYear={viewAnchor.getFullYear()}
-                selectedId={heatmapSelectedId}
-                onCategoryChange={handleRailSelect}
-                viewMode={heatmapViewMode}
-                onViewModeChange={setHeatmapViewMode}
-              />
+              <ErrorBoundary key="heatmap">
+                <YearHeatmap
+                  rangeEvents={rangeEvents}
+                  categories={categories}
+                  language={language}
+                  anchorYear={viewAnchor.getFullYear()}
+                  selectedId={heatmapSelectedId}
+                  onCategoryChange={handleRailSelect}
+                  viewMode={heatmapViewMode}
+                  onViewModeChange={setHeatmapViewMode}
+                />
+              </ErrorBoundary>
             )}
             {routineView === 'sleep' && (
-              <SleepScatterChart
-                rangeEvents={rangeEvents}
-                anchorDate={viewAnchor}
-                viewMode={sleepViewMode}
-                onViewModeChange={setSleepViewMode}
-              />
+              <ErrorBoundary key="sleep">
+                <SleepScatterChart
+                  rangeEvents={rangeEvents}
+                  anchorDate={viewAnchor}
+                  viewMode={sleepViewMode}
+                  onViewModeChange={setSleepViewMode}
+                />
+              </ErrorBoundary>
             )}
             {routineView === 'diet' && (
-              <DietView
-                rangeEvents={rangeEvents}
-                anchorDate={viewAnchor}
-                mode={dietMode}
-                onModeChange={setDietMode}
-              />
+              <ErrorBoundary key="diet">
+                <DietView
+                  rangeEvents={rangeEvents}
+                  anchorDate={viewAnchor}
+                  mode={dietMode}
+                  onModeChange={setDietMode}
+                />
+              </ErrorBoundary>
             )}
             {routineView === 'hygiene' && (
-              <HygieneView
-                rangeEvents={rangeEvents}
-                activities={hygieneActivities}
-                language={language}
-                anchorDate={viewAnchor}
-                mode={hygieneMode}
-                onModeChange={setHygieneMode}
-              />
+              <ErrorBoundary key="hygiene">
+                <HygieneView
+                  rangeEvents={rangeEvents}
+                  activities={hygieneActivities}
+                  language={language}
+                  anchorDate={viewAnchor}
+                  mode={hygieneMode}
+                  onModeChange={setHygieneMode}
+                />
+              </ErrorBoundary>
             )}
             {routineView === 'outfit' && (
-              <OutfitCard outfits={outfits} language={language} />
+              <ErrorBoundary key="outfit">
+                <OutfitCard outfits={outfits} language={language} />
+              </ErrorBoundary>
             )}
             {routineView === 'mood' && (
-              <MoodCard />
+              <ErrorBoundary key="mood">
+                <MoodCard />
+              </ErrorBoundary>
             )}
             {routineView === 'chronicle' && (
-              <ChronicleTimeline mode={chronicleMode} />
+              <ErrorBoundary key="chronicle">
+                <ChronicleTimeline mode={chronicleMode} />
+              </ErrorBoundary>
             )}
           </div>
         </div>
