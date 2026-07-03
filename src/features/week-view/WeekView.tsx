@@ -18,6 +18,7 @@ import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
 import { WeekEmptyState } from './WeekEmptyState'
 import { MonthView } from '@/features/month-view/MonthView'
+import { DayWeatherDrawer } from '@/features/month-view/DayWeatherDrawer'
 import { FloatingEventCard } from '@/features/quick-log/FloatingEventCard'
 import { MobileDayView } from '@/features/day-view/MobileDayView'
 import { useIsMobile } from '@/hooks/useMediaQuery'
@@ -82,6 +83,14 @@ export function WeekView() {
 
   const [highlightedDayMs, setHighlightedDayMs] = useState<number | null>(null)
 
+  // 月视图选中的日期（用于右侧天气面板）
+  const [selectedMonthDayMs, setSelectedMonthDayMs] = useState<number | null>(null)
+
+  // 离开月视图时清除选中的日期
+  useEffect(() => {
+    if (viewMode !== 'month') setSelectedMonthDayMs(null)
+  }, [viewMode])
+
   // Parse ?highlight=<date> from URL on mount or param change
   useEffect(() => {
     const highlightParam = searchParams.get('highlight')
@@ -111,6 +120,15 @@ export function WeekView() {
       { replace: true },
     )
   }, [setWeekStart, setSearchParams])
+
+  // 月视图点击某天 → 打开右侧天气抽屉
+  const handleMonthDaySelect = useCallback((dateMs: number) => {
+    setSelectedMonthDayMs(dateMs)
+  }, [])
+
+  const handleCloseWeatherDrawer = useCallback(() => {
+    setSelectedMonthDayMs(null)
+  }, [])
 
   const [cardState, setCardState] = useState<CardState>({ mode: 'none' })
   const [activeDragState, setActiveDragState] = useState<DragState>({ phase: 'idle', ghostStyle: null })
@@ -386,6 +404,7 @@ export function WeekView() {
         onMobileViewModeChange={isMobile ? setMobileViewMode : undefined}
       />
 
+      <div className="flex-1 flex min-w-0 min-h-0">
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface-raised border border-border-subtle rounded-2xl shadow-lg m-3">
         {viewMode === 'week' && !(isMobile && mobileViewMode === 'day') && (
           <WeekDateHeader days={days} highlightedDayMs={highlightedDayMs} onDayClick={handleNavigateToWeek} />
@@ -393,7 +412,7 @@ export function WeekView() {
 
         <div key={`view-anim-${toggleGen}`} className={`${toggleGen >= 0 ? 'cai-radial-reveal' : ''} flex-1 flex flex-col min-h-0`}>
           {viewMode === 'month' ? (
-            <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} />
+            <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} onDaySelect={handleMonthDaySelect} />
           ) : isMobile && mobileViewMode === 'day' ? (
             <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
           ) : (
@@ -465,6 +484,14 @@ export function WeekView() {
         )}
       </div>
     </div>
+
+        {selectedMonthDayMs != null && (
+          <DayWeatherDrawer
+            selectedDateMs={selectedMonthDayMs}
+            onClose={handleCloseWeatherDrawer}
+          />
+        )}
+      </div>
 
       {cardState.mode === 'detail' && (
         <EventDetailCard

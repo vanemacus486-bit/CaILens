@@ -3,16 +3,39 @@ import type { HygieneActivityDef } from './hygieneActivity'
 import { DEFAULT_HYGIENE_ACTIVITIES } from './hygieneActivity'
 import type { HabitPlan } from './habitPlan'
 import type { DayMark } from './dayMark'
+import type { LocationSettings } from './location'
 
 export type AppLanguage = 'zh' | 'en' | 'es' | 'ar' | 'fr' | 'ru'
 export type AppTheme = 'light' | 'dark' | 'auto'
 export type UiFont = 'default' | 'sourcehan' | 'wenkai'
 export type VisualStyle = 'graphite' | 'nocturne' | 'carbon' | 'tide'
 export type FontScale = 'sm' | 'default' | 'lg' | 'xl'
+export type DefaultView = 'week' | 'month'
+
+// ── AI 设置 ──────────────────────────────────────────────
+
+export type AiProvider = 'openai' | 'anthropic' | 'google' | 'custom'
+
+/** 单个 AI 提供商配置 */
+export interface AiProviderConfig {
+  provider: AiProvider
+  /** 用户自定义标签（如「主力模型」「本地测试」） */
+  label: string
+  apiKey: string
+  /** 自定义 API 端点；缺省使用提供商官方地址 */
+  baseUrl?: string
+  /** 模型名，如 gpt-4o、claude-sonnet-4-20250514 */
+  model?: string
+}
+
+export interface AiSettings {
+  enabled: boolean
+  providers: AiProviderConfig[]
+}
 
 export interface AppSettings {
-  aiEnabled?: boolean
-  aiApiKey?: string
+  /** AI 功能设置 */
+  ai?: AiSettings
   id: 'default'   // singleton — Dexie primary key is always 'default'
   language: AppLanguage
   theme?: AppTheme
@@ -26,7 +49,10 @@ export interface AppSettings {
   habitPlans?: HabitPlan[]
   /** 日期标记（右键迷你月历某天打的标记 + 备注） */
   dayMarks?: DayMark[]
-
+  /** 启动时默认显示的视图 */
+  defaultView?: DefaultView
+  /** 用户位置与时区设置 */
+  location?: LocationSettings
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -35,6 +61,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'light',
   visualStyle: 'graphite',
   fontScale: 'default',
+  defaultView: 'week',
   hygieneActivities: [...DEFAULT_HYGIENE_ACTIVITIES],
 }
 

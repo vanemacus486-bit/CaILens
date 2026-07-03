@@ -1,18 +1,20 @@
 import { create } from 'zustand'
 import { getSettingsRepo } from '@/data/getRepositories'
-import type { AppSettings, AppLanguage, AppTheme, UiFont, VisualStyle, FontScale } from '@/domain/settings'
+import type { AppSettings, AppLanguage, AppTheme, UiFont, VisualStyle, FontScale, DefaultView } from '@/domain/settings'
 import type { HygieneActivityDef } from '@/domain/hygieneActivity'
 import type { HabitPlan } from '@/domain/habitPlan'
 import type { DayMark } from '@/domain/dayMark'
 import type { EventColor } from '@/domain/event'
 import { makePhase, startOfLocalDay } from '@/domain/habitPlan'
 import { DEFAULT_SETTINGS, resolveTheme } from '@/domain/settings'
+import type { AiSettings } from '@/domain/settings'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
 
 const THEME_KEY  = 'cailens-theme'
 const FONT_KEY   = 'cailens-font'
 const STYLE_KEY  = 'cailens-style'
 const SCALE_KEY  = 'cailens-scale'
+const DEFAULT_VIEW_KEY = 'cailens-default-view'
 
 function applyTheme(theme: AppTheme) {
   const dark = resolveTheme(theme, window.matchMedia('(prefers-color-scheme: dark)').matches)
@@ -87,6 +89,8 @@ interface AppSettingsState {
   addDayMark: (date: number, label: string, color?: EventColor | null) => Promise<DayMark>
   updateDayMark: (mark: DayMark) => Promise<void>
   deleteDayMark: (id: string) => Promise<void>
+  setDefaultView: (view: DefaultView) => Promise<void>
+  setAiSettings: (ai: AiSettings) => Promise<void>
 
 }
 
@@ -271,6 +275,17 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const current = (await getSettingsRepo().get()).dayMarks ?? []
     const next = current.map((m) => (m.id === mark.id ? { ...mark, updatedAt: Date.now() } : m))
     const settings = await getSettingsRepo().update({ dayMarks: next })
+    set({ settings })
+  },
+
+  setDefaultView: async (view) => {
+    const settings = await getSettingsRepo().update({ defaultView: view })
+    localStorage.setItem(DEFAULT_VIEW_KEY, view)
+    set({ settings })
+  },
+
+  setAiSettings: async (ai) => {
+    const settings = await getSettingsRepo().update({ ai })
     set({ settings })
   },
 

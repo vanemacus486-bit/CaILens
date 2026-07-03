@@ -20,9 +20,11 @@ function fmtTime(ms: number): string {
 export function MonthView({
   onNavigateToWeek,
   monthDate,
+  onDaySelect,
 }: {
   onNavigateToWeek?: (date: Date) => void
   monthDate: Date
+  onDaySelect?: (dateMs: number) => void
 }) {
   const language      = useAppSettingsStore((s) => s.settings.language)
   const events        = useEventStore((s) => s.rangeEvents)
@@ -126,11 +128,12 @@ export function MonthView({
           return (
             <div
               key={cell.date}
+              onClick={() => onDaySelect?.(cell.date)}
               className={`
                 min-h-[80px] p-1.5 border-b border-r border-border-subtle
                 ${!cell.isCurrentMonth ? 'opacity-30' : ''}
                 ${isToday_ ? 'bg-accent/5' : ''}
-                hover:bg-surface-sunken/50 transition-colors duration-150
+                hover:bg-surface-sunken/50 transition-colors duration-150 cursor-pointer
               `}
             >
               <div

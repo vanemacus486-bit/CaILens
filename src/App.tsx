@@ -25,15 +25,15 @@ import { useEventStore } from '@/stores/eventStore'
 import { useProfileStore } from '@/stores/profileStore'
 import { useTodoStore } from '@/stores/todoStore'
 import { useTodoListStore } from '@/stores/todoListStore'
+import { useLocationStore } from '@/stores/locationStore'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { SnackbarHost } from '@/components/ui/snackbar'
 import { UpdateBanner } from '@/components/ui/UpdateBanner'
 import { fireAndForget } from '@/lib/fireAndForget'
-import { addWeeks, getWeekStart, formatISODate } from '@/domain/time'
+import { getWeekStart, formatISODate } from '@/domain/time'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
 import { useIsMobile } from '@/hooks/useMediaQuery'
-import { subDays, addDays, addMonths, addYears, parseISO } from 'date-fns'
-import { cycleActionFilter } from '@/lib/actionFilterCycle'
+import { parseISO } from 'date-fns'
 import { subscribeCrossWindowWrites } from '@/lib/crossWindowSync'
 import type { ShortcutAction } from '@/domain/shortcuts'
 import { isNativeMobile } from '@/lib/platform'
@@ -63,11 +63,13 @@ function Layout() {
     const loadProfile = useProfileStore.getState().loadProfile
     const loadTodos = useTodoStore.getState().loadTodos
     const loadLists = useTodoListStore.getState().loadLists
+    const loadLocation = useLocationStore.getState().loadLocation
     fireAndForget(loadCategories(), 'load categories')
     fireAndForget(loadSettings(), 'load settings')
     fireAndForget(loadProfile(), 'load profile')
     fireAndForget(loadTodos(), 'load todos')
     fireAndForget(loadLists(), 'load lists')
+    fireAndForget(loadLocation(), 'load location')
   }, [])
 
   // 跨窗口同步：QuickCapture 等独立 WebView 写入后，主窗口无感刷新。
@@ -129,97 +131,6 @@ function Layout() {
       setTheme(theme === 'dark' ? 'light' : 'dark'),
       'toggle theme',
     ),
-    goToPreviousWeek: () => {
-      // Only active on navigable pages; arrow keys scroll normally elsewhere
-      if (!location.pathname.startsWith('/week') && !location.pathname.startsWith('/action') && !location.pathname.startsWith('/stats')) return
-      if (location.pathname.startsWith('/action')) {
-        const next = new URLSearchParams(searchParams)
-        const nextFilter = cycleActionFilter((searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? null, -1)
-        if (nextFilter) next.set('filter', nextFilter)
-        else next.delete('filter')
-        next.delete('archiveDate')
-        setSearchParams(next, { replace: true })
-        return
-      }
-      if (location.pathname.startsWith('/stats')) {
-        const statsView = searchParams.get('view') ?? 'trend'
-        const period = searchParams.get('period') ?? 'week'
-        const dateParam = searchParams.get('date')
-        const base = dateParam ? parseISO(dateParam) : new Date()
-        let prev: Date
-        switch (statsView) {
-          case 'trend': {
-            const p = period === 'day' ? 'day' : period === 'month' ? 'month' : 'week'
-            if (p === 'day') prev = addDays(base, -1)
-            else if (p === 'week') prev = addWeeks(base, -1)
-            else prev = addMonths(base, -1)
-            break
-          }
-          case 'heatmap': prev = addYears(base, -1); break
-          case 'sleep':   prev = addMonths(base, -1); break
-          default:        prev = addWeeks(base, -1); break
-        }
-        const next = new URLSearchParams(searchParams)
-        next.set('date', formatISODate(prev))
-        setSearchParams(next, { replace: true })
-        return
-      }
-      const weekParam = searchParams.get('week')
-      const current = weekParam ? parseISO(weekParam) : getWeekStart(new Date(), 1)
-      navigate(`/week?week=${formatISODate(addWeeks(current, -1))}`)
-    },
-    goToNextWeek: () => {
-      if (!location.pathname.startsWith('/week') && !location.pathname.startsWith('/action') && !location.pathname.startsWith('/stats')) return
-      if (location.pathname.startsWith('/action')) {
-        const next = new URLSearchParams(searchParams)
-        const nextFilter = cycleActionFilter((searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? null, 1)
-        if (nextFilter) next.set('filter', nextFilter)
-        else next.delete('filter')
-        next.delete('archiveDate')
-        setSearchParams(next, { replace: true })
-        return
-      }
-      if (location.pathname.startsWith('/stats')) {
-        const statsView = searchParams.get('view') ?? 'trend'
-        const period = searchParams.get('period') ?? 'week'
-        const dateParam = searchParams.get('date')
-        const base = dateParam ? parseISO(dateParam) : new Date()
-        let nextDate: Date
-        switch (statsView) {
-          case 'trend': {
-            const p = period === 'day' ? 'day' : period === 'month' ? 'month' : 'week'
-            if (p === 'day') nextDate = addDays(base, 1)
-            else if (p === 'week') nextDate = addWeeks(base, 1)
-            else nextDate = addMonths(base, 1)
-            break
-          }
-          case 'heatmap': nextDate = addYears(base, 1); break
-          case 'sleep':   nextDate = addMonths(base, 1); break
-          default:        nextDate = addWeeks(base, 1); break
-        }
-        const next = new URLSearchParams(searchParams)
-        next.set('date', formatISODate(nextDate))
-        setSearchParams(next, { replace: true })
-        return
-      }
-      const weekParam = searchParams.get('week')
-      const current = weekParam ? parseISO(weekParam) : getWeekStart(new Date(), 1)
-      navigate(`/week?week=${formatISODate(addWeeks(current, 1))}`)
-    },
-    goToPreviousDay: () => {
-      const dateParam = searchParams.get('highlight')
-      const current = dateParam ? parseISO(dateParam) : new Date()
-      const prev = subDays(current, 1)
-      const ws = getWeekStart(prev, 1)
-      navigate(`/week?week=${formatISODate(ws)}&highlight=${formatISODate(prev)}`)
-    },
-    goToNextDay: () => {
-      const dateParam = searchParams.get('highlight')
-      const current = dateParam ? parseISO(dateParam) : new Date()
-      const next = addDays(current, 1)
-      const ws = getWeekStart(next, 1)
-      navigate(`/week?week=${formatISODate(ws)}&highlight=${formatISODate(next)}`)
-    },
     deleteFocusedEvent: () => {
       const eventId = useUIStore.getState().lastFocusedEventId
       if (!eventId) return
@@ -301,9 +212,21 @@ function Layout() {
 }
 
 /** Preserves query params (week, openEvent, view, date) when redirecting / → /week */
+const DEFAULT_VIEW_KEY = 'cailens-default-view'
+
+function getDefaultViewFromStorage(): 'week' | 'month' {
+  const stored = localStorage.getItem(DEFAULT_VIEW_KEY)
+  if (stored === 'week' || stored === 'month') return stored
+  return 'week'
+}
+
 function RedirectToWeek() {
   const loc = useLocation()
-  return <Navigate to={{ pathname: '/week', search: loc.search }} replace />
+  const defaultView = getDefaultViewFromStorage()
+  const search = defaultView === 'month'
+    ? `?view=month${loc.search ? '&' + loc.search.slice(1) : ''}`
+    : loc.search
+  return <Navigate to={{ pathname: '/week', search }} replace />
 }
 
 export default function App() {

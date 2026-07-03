@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import type { AppTheme, FontScale, UiFont } from '@/domain/settings'
+import type { AppTheme, FontScale, UiFont, DefaultView } from '@/domain/settings'
 import type { AppLanguage } from '@/i18n/types'
 import { LANGUAGE_LABELS, LANGUAGE_ORDER } from '@/i18n/types'
 import { useT } from '@/i18n/useT'
@@ -39,6 +39,7 @@ export function SettingsAppearance() {
   const setTheme = useAppSettingsStore((s) => s.setTheme)
   const setFontScale = useAppSettingsStore((s) => s.setFontScale)
   const setUiFont = useAppSettingsStore((s) => s.setUiFont)
+  const setDefaultView = useAppSettingsStore((s) => s.setDefaultView)
   const setLanguage = useAppSettingsStore((s) => s.setLanguage)
 
   const t = useT()
@@ -100,6 +101,18 @@ export function SettingsAppearance() {
             ]}
             value={settings.uiFont ?? 'default'}
             onChange={(font) => fireAndForget(setUiFont(font), 'set font')}
+          />
+        </SettingsRow>
+
+        {/* 初始视图 */}
+        <SettingsRow label={t('settings.defaultView')}>
+          <SlideSegmented<DefaultView>
+            items={[
+              { id: 'week',  label: t('settings.weekView')  },
+              { id: 'month', label: t('settings.monthView') },
+            ]}
+            value={settings.defaultView ?? 'week'}
+            onChange={(v) => fireAndForget(setDefaultView(v), 'set default view')}
           />
         </SettingsRow>
 
