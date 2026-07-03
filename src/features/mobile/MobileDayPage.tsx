@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { List, Plus, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEventStore } from '@/stores/eventStore'
 import { getWeekDays, isSameDay, formatWeekday, formatISODate } from '@/domain/time'
@@ -8,6 +8,7 @@ import { getWeekStart } from '@/domain/time'
 import { parseISO } from 'date-fns'
 import type { CalendarEvent, EventColor } from '@/domain/event'
 import { MobileEventEditor, type MobileEditorDefaults } from './MobileEventEditor'
+import { MobileDayStream } from './MobileDayStream'
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -39,6 +40,19 @@ function dayBounds(date: Date): { start: number; end: number } {
 
 function minutesFromDayStart(ts: number, dayStart: number): number {
   return Math.max(0, (ts - dayStart) / 60_000)
+}
+
+// ── Mode persistence ──────────────────────────────────────────
+
+type DayMode = 'timeline' | 'stream'
+
+function getSavedMode(): DayMode {
+  if (typeof window === 'undefined') return 'timeline'
+  return (localStorage.getItem('cailens-mobile-day-mode') as DayMode) ?? 'timeline'
+}
+
+function saveMode(mode: DayMode): void {
+  localStorage.setItem('cailens-mobile-day-mode', mode)
 }
 
 // ── Event block ───────────────────────────────────────────────
@@ -161,10 +175,22 @@ export function MobileDayPage() {
 
   const today = new Date()
 
+  // ── Day mode toggle ──────────────────────────────────────
+  const [dayMode, setDayMode] = useState<DayMode>(getSavedMode)
+
+  const toggleMode = useCallback(() => {
+    setDayMode((prev) => {
+      const next = prev === 'timeline' ? 'stream' : 'timeline'
+      saveMode(next)
+      return next
+    })
+  }, [])
+
   return (
     <div className="flex flex-col h-full bg-surface-base overflow-hidden">
 
-      {/* 7-day date strip */}
+      {/* 7-day date strip (only in timeline mode) */}
+      {dayMode === 'timeline' && (
       <div className="flex items-center border-b border-border-subtle px-2 py-2 gap-1 flex-shrink-0">
         {weekDays.map((day, i) => {
           const isSelected = isSameDay(day, selectedDate)
@@ -190,8 +216,41 @@ export function MobileDayPage() {
           )
         })}
       </div>
+      )}
 
-      {/* Time axis scroll area */}
+      {/* Mode toggle */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border-subtle flex-shrink-0">
+        <button
+          onClick={toggleMode}
+          className="flex items-center gap-1.5 text-xs font-medium"
+        >
+          <span
+            className={cn(
+              'px-2 py-0.5 rounded-full transition-colors',
+              dayMode === 'timeline'
+                ? 'bg-accent text-white'
+                : 'text-text-secondary',
+            )}
+          >
+            <Clock size={12} className="inline mr-1" />
+            时间轴
+          </span>
+          <span
+            className={cn(
+              'px-2 py-0.5 rounded-full transition-colors',
+              dayMode === 'stream'
+                ? 'bg-accent text-white'
+                : 'text-text-secondary',
+            )}
+          >
+            <List size={12} className="inline mr-1" />
+            流水
+          </span>
+        </button>
+      </div>
+
+      {/* Timeline mode */}
+      {dayMode === 'timeline' && (
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto relative"
@@ -260,6 +319,16 @@ export function MobileDayPage() {
           </div>
         )}
       </div>
+      )}
+
+      {/* Stream mode */}
+      {dayMode === 'stream' && (
+        <MobileDayStream
+          selectedDate={selectedDate}
+          onEditEvent={openEdit}
+          onCreateEvent={openCreate}
+        />
+      )}
 
       {/* FAB */}
       <button

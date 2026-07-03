@@ -1491,6 +1491,30 @@ export const translations: TranslationDict = {
     fr: 'Archive',
     ru: 'Архив',
   },
+  'sidebar.summaryRecorded': {
+    zh: '已记录 {0}h',
+    en: 'Recorded {0}h',
+    es: 'Registrado {0}h',
+    ar: 'تم تسجيل {0}h',
+    fr: 'Enregistré {0}h',
+    ru: 'Записано {0}ч',
+  },
+  'sidebar.summaryCoverage': {
+    zh: '覆盖 {0}%',
+    en: 'Coverage {0}%',
+    es: 'Cobertura {0}%',
+    ar: 'تغطية {0}%',
+    fr: 'Couverture {0}%',
+    ru: 'Охват {0}%',
+  },
+  'sidebar.summaryStreak': {
+    zh: '连续 {0} 天',
+    en: '{0} day streak',
+    es: '{0} días consecutivos',
+    ar: 'استمرار {0} يوم',
+    fr: '{0} jours consécutifs',
+    ru: 'серия {0} дней',
+  },
 
   // ── 历史归档页 ─────────────────────────────────────────
   'archive.title': {

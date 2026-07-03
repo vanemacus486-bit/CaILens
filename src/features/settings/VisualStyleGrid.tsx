@@ -38,6 +38,14 @@ const STYLES: StyleDef[] = [
     swatches: ['#ECEAE4', '#F8F7F4', '#1F9E8E'],
     descZh: '暖炭黑与米灰表面配青绿强调，质感更厚、对比更足，适合长时间专注。',
   },
+  {
+    key: 'tide',
+    name: 'Tide',
+    nameZh: '浸染',
+    badge: '大胆',
+    swatches: ['#10645B', '#156E64', '#F2B279'],
+    descZh: '整面画布浸入深青，文字与卡片浮于其上——全色沉浸，浅色模式也刻意保持深底。',
+  },
 ]
 
 export function VisualStyleGrid() {
@@ -45,7 +53,7 @@ export function VisualStyleGrid() {
   const setVisualStyle = useAppSettingsStore((s) => s.setVisualStyle)
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {STYLES.map((style) => {
         const selected = visualStyle === style.key
         return (

@@ -45,6 +45,17 @@ export function WeekView() {
     // View mode: derived from URL (single source of truth — no useState)
   const viewMode = (searchParams.get('view') as 'week' | 'month' | null) ?? 'week'
 
+  // ── 周↔月切换径向揭幕 ───────────────────────────────────
+  // toggleGen 初始 -1（首次挂载不播动画）；仅在 viewMode 实际变化后同步递增，
+  // 配合 key 变化触发包裹层重挂载，CSS 动画自然重播。
+  const prevViewModeRef = useRef(viewMode)
+  const [toggleGen, setToggleGen] = useState(-1)
+  if (prevViewModeRef.current !== viewMode) {
+    prevViewModeRef.current = viewMode
+    setToggleGen((g) => g + 1)
+  }
+  // ────────────────────────────────────────────────────────
+
   const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null)
 
   const [selectedDay, setSelectedDay] = useState<Date>(() => {
@@ -233,6 +244,19 @@ export function WeekView() {
     })
   }, [cardState.mode])
 
+  // ── Ghost gap click → open FloatingEventCard ──────
+  const handleGapClick = useCallback((gapStart: number, gapEnd: number, anchorEl: HTMLElement) => {
+    if (cardState.mode !== 'none') return
+
+    setFloatingCard({
+      open: true,
+      anchorEl,
+      times: { start: gapStart, end: gapEnd },
+      color: 'accent',
+      editingEvent: undefined,
+    })
+  }, [cardState.mode])
+
 
   const handleEventClick = useCallback((event: CalendarEvent, el: HTMLElement) => {
     useUIStore.getState().setLastFocusedEventId(event.id)
@@ -367,11 +391,12 @@ export function WeekView() {
           <WeekDateHeader days={days} highlightedDayMs={highlightedDayMs} onDayClick={handleNavigateToWeek} />
         )}
 
-        {viewMode === 'month' ? (
-          <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} />
-        ) : isMobile && mobileViewMode === 'day' ? (
-          <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
-        ) : (
+        <div key={`view-anim-${toggleGen}`} className={`${toggleGen >= 0 ? 'cai-radial-reveal' : ''} flex-1 flex flex-col min-h-0`}>
+          {viewMode === 'month' ? (
+            <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} />
+          ) : isMobile && mobileViewMode === 'day' ? (
+            <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
+          ) : (
         <div ref={scrollContainerRef} className="relative flex-1 min-h-0 max-md:overflow-x-auto overflow-y-auto">
           {isLoading && events.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -413,6 +438,7 @@ export function WeekView() {
                     onDragStart={handleDragStart}
                     onDragStateChange={handleDragStateChange}
                     onResize={handleResize}
+                    onGapClick={handleGapClick}
                   />
                 ))}
                 {activeDragState.ghostStyle && (
@@ -438,6 +464,7 @@ export function WeekView() {
         </div>
         )}
       </div>
+    </div>
 
       {cardState.mode === 'detail' && (
         <EventDetailCard

@@ -69,6 +69,7 @@ interface EventState {
   loadError: string | null
   loadWeek: (weekStart: Date) => Promise<void>
   loadRange: (start: number, end: number) => Promise<void>
+  queryRange: (start: number, end: number) => Promise<CalendarEvent[]>
   loadAllEvents: () => Promise<void>
   reloadVisible: () => Promise<void>
   createEvent: (input: CreateEventInput) => Promise<CalendarEvent>
@@ -276,6 +277,17 @@ export const useEventStore = create<EventState>()((set, get) => ({
     broadcastWrite('events')
     set((state) => patchAll(state, (l) => [...l, ...created]))
     return result
+  },
+
+  queryRange: async (start, end) => {
+    const key = rangeKey(start, end)
+    const cached = _eventCache.get(key)
+    if (cached) return cached
+
+    const events = await getEventRepo().getByTimeRange(start, end)
+    _eventCache.set(key, events)
+    evictCache()
+    return events
   },
 
   importParsedEvents: async (parsedEvents, resolveCategory) => {

@@ -23,6 +23,7 @@ import {
   isSameMonth,
   isToday,
   format,
+  getISOWeek,
 } from 'date-fns'
 import type { DayMark } from '@/domain/dayMark'
 import { marksOnDay, upcomingMarks, formatRelativeDay } from '@/domain/dayMark'
@@ -30,7 +31,10 @@ import { startOfLocalDay } from '@/domain/habitPlan'
 import type { EventColor } from '@/domain/event'
 import { EVENT_COLORS } from '@/domain/event'
 import { formatISODate, getWeekStart, parseISODate } from '@/domain/time'
+import { computeDailyCoverage } from '@/domain/coverage'
+import { computeStreak } from '@/domain/stats'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useEventStore } from '@/stores/eventStore'
 import { useT } from '@/i18n/useT'
 import type { TranslationKey } from '@/i18n/translations'
 import { LANGUAGE_LOCALE } from '@/i18n/types'
@@ -127,6 +131,86 @@ function MarkDot({ color }: { color?: EventColor | null }) {
   )
 }
 
+/**
+ * 今日摘要卡 —— 大字日期 + 已记录时长/覆盖率/连续天数。
+ * 数据由父组件传入，取数失败时静默降级（日期行始终显示）。
+ */
+function TodaySummaryCard({
+  todayDate,
+  weekday,
+  weekNumber,
+  recordedHours,
+  coveragePct,
+  streakDays,
+  hasData,
+}: {
+  todayDate: string
+  weekday: string
+  weekNumber: number
+  recordedHours: string
+  coveragePct: string
+  streakDays: string
+  hasData: boolean
+}) {
+  return (
+    <div className="px-0.5 mb-2 select-none">
+      {/* 大字日期 */}
+      <div
+        className="text-[22px] leading-tight font-medium text-text-primary"
+        style={{ fontFamily: "'Source Serif 4', serif" }}
+      >
+        {todayDate}
+      </div>
+      {/* 星期 · 第 X 周 */}
+      <div className="text-xs text-text-secondary mt-0.5 mb-2">
+        {weekday} · {weekNumber}
+      </div>
+      {/* 分隔线 */}
+      <div className="h-px bg-border-subtle mb-2" />
+      {/* 数据行 */}
+      {hasData ? (
+        <div className="flex items-center gap-1 text-[11px] text-text-secondary flex-wrap">
+          <span className="whitespace-nowrap">
+            <span className="font-mono">{recordedHours}</span>h
+          </span>
+          <span className="text-text-quaternary">·</span>
+          <span className="whitespace-nowrap">
+            {coveragePct}%
+          </span>
+          <span className="text-text-quaternary">·</span>
+          <span className="whitespace-nowrap">
+            {streakDays}
+          </span>
+        </div>
+      ) : (
+        <div className="text-[11px] text-text-quaternary">
+          · · ·
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** 覆盖率墨杠 —— 单条短杠，墨色深浅随覆盖率分档。 */
+function CoverageBar({ pct }: { pct: number }) {
+  const style =
+    pct <= 0
+      ? {}
+      : pct < 40
+        ? { backgroundColor: 'var(--text-tertiary)', opacity: 0.4 }
+        : pct < 75
+          ? { backgroundColor: 'var(--text-secondary)', opacity: 0.7 }
+          : { backgroundColor: 'var(--text-primary)', opacity: 0.9 }
+
+  if (pct <= 0) return null
+
+  return (
+    <span
+      className="block mx-auto w-[10px] h-[2px] rounded-full pointer-events-none"
+      style={style}
+    />
+  )
+}
 /**
  * 日期标记编辑器弹窗。
  * 右键点击某天后弹出，可新建/编辑/删除该日标记。
@@ -359,6 +443,16 @@ export function WeekSidebar() {
 
   const [editorDay, setEditorDay] = useState<Date | null>(null)
 
+  // ── Sidebar summary & coverage state ──
+  const queryRange = useEventStore((s) => s.queryRange)
+  const [summaryData, setSummaryData] = useState<{
+    recordedHours: string
+    coveragePct: string
+    streakDays: string
+    hasData: boolean
+    dailyCoverage: Map<number, number>
+  }>({ recordedHours: '', coveragePct: '', streakDays: '', hasData: false, dailyCoverage: new Map() })
+
   const t = useT()
   const viewMode = (searchParams.get('view') as 'week' | 'month' | null) ?? 'week'
 
@@ -430,6 +524,56 @@ export function WeekSidebar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchorMonthKey])
 
+  // ── 加载摘要卡 & 月历覆盖数据 ──
+  // 组件挂载、月历翻页、视图模式变化时重新取数
+  useEffect(() => {
+    const now = Date.now()
+    const todayStart = startOfLocalDay(now)
+    const tomorrowStart = todayStart + 86_400_000
+
+    // 摘要卡范围：今天 - 60 天（streak 需要）
+    const summaryRangeStart = todayStart - 60 * 86_400_000
+    const summaryRangeEnd = tomorrowStart
+
+    // 迷你月历覆盖范围（从 viewMonth 直接算，不依赖 days 变量）
+    const calStart = startOfWeek(viewMonth, { weekStartsOn: 1 })
+    const calEnd = endOfWeek(endOfMonth(viewMonth), { weekStartsOn: 1 })
+    const calStartMs = startOfLocalDay(calStart.getTime())
+    const calEndMs = startOfLocalDay(calEnd.getTime()) + 86_400_000
+
+    const rangeStart = Math.min(summaryRangeStart, calStartMs)
+    const rangeEnd = Math.max(summaryRangeEnd, calEndMs)
+
+    queryRange(rangeStart, rangeEnd)
+      .then((events) => {
+        // 1) 每日覆盖率
+        const coverageMap = computeDailyCoverage(events, rangeStart, rangeEnd)
+
+        // 2) 今日数据
+        const todayMs = coverageMap.get(todayStart) ?? 0
+        const elapsed = now - todayStart // 分母：今天到现在
+        const pct = elapsed > 0 ? Math.round((todayMs / elapsed) * 100) : 0
+        const hours = (todayMs / 3_600_000).toFixed(1)
+
+        // 3) 连续天数
+        const streak = computeStreak(events, now)
+        const streakLabel = streak >= 60 ? '60+' : String(streak)
+
+        setSummaryData({
+          recordedHours: hours,
+          coveragePct: String(Math.min(pct, 100)),
+          streakDays: streakLabel,
+          hasData: true,
+          dailyCoverage: coverageMap,
+        })
+      })
+      .catch(() => {
+        // 静默降级：只显示日期行
+        setSummaryData((prev) => ({ ...prev, hasData: false, dailyCoverage: new Map() }))
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMonth, viewMode, queryRange])
+
   const handlePrevMonth = useCallback(() => setViewMonth((m) => subMonths(m, 1)), [])
   const handleNextMonth = useCallback(() => setViewMonth((m) => addMonths(m, 1)), [])
 
@@ -461,6 +605,24 @@ export function WeekSidebar() {
     <aside className="w-64 flex-shrink-0 flex flex-col bg-surface-raised border border-border-subtle rounded-2xl shadow-lg overflow-hidden m-3 max-md:hidden">
       {/* ── 滚动内容区 ── */}
       <div className="flex-1 flex flex-col gap-4 px-4 pt-4 pb-3 overflow-y-auto">
+        {/* ── 今日摘要卡 ── */}
+        <TodaySummaryCard
+          todayDate={(() => {
+            const now = new Date()
+            const locale = LANGUAGE_LOCALE[language] ?? 'zh-CN'
+            return now.toLocaleDateString(locale, { month: 'long', day: 'numeric' })
+          })()}
+          weekday={(() => {
+            const locale = LANGUAGE_LOCALE[language] ?? 'zh-CN'
+            return new Date().toLocaleDateString(locale, { weekday: 'short' })
+          })()}
+          weekNumber={getISOWeek(new Date())}
+          recordedHours={summaryData.recordedHours}
+          coveragePct={summaryData.coveragePct}
+          streakDays={summaryData.streakDays}
+          hasData={summaryData.hasData}
+        />
+
         {/* ── 域导航：日历 / 规划 / 复盘 ── */}
         <SlideSegmented
           items={navItems}
@@ -525,6 +687,19 @@ export function WeekSidebar() {
               // 标记圆点的颜色取第一条标记色
               const dotColor = hasMark ? (marksForDay[0].color ?? null) : null
 
+              // 覆盖率墨杠
+              const coverMs = summaryData.dailyCoverage.get(dayMs) ?? 0
+              const DAY_MS = 86_400_000
+              const nowTs = Date.now()
+              let coverPct = 0
+              if (dayMs < nowTs) {
+                // 今天分母用到现在，其它天用完整 24h
+                const denom = dayMs + DAY_MS > nowTs
+                  ? nowTs - dayMs
+                  : DAY_MS
+                coverPct = denom > 0 ? Math.round((coverMs / denom) * 100) : 0
+              }
+
               return (
                 <ContextMenu key={day.getTime()}>
                   <ContextMenuTrigger asChild>
@@ -542,6 +717,8 @@ export function WeekSidebar() {
                       {showMarkRing && <HandDrawnMarkRing />}
                       {showMarkDot && <MarkDot color={dotColor} />}
                       <span className="relative z-10">{format(day, 'd')}</span>
+                      {/* 覆盖率墨杠：在数字下方 */}
+                      <CoverageBar pct={coverPct} />
                     </button>
                   </ContextMenuTrigger>
                   <ContextMenuContent>

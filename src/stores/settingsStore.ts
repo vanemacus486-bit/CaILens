@@ -23,7 +23,7 @@ function applyFont(font: UiFont) {
   document.documentElement.setAttribute('data-font', font)
 }
 
-const VALID_VISUAL_STYLES: VisualStyle[] = ['graphite', 'nocturne', 'carbon']
+const VALID_VISUAL_STYLES: VisualStyle[] = ['graphite', 'nocturne', 'carbon', 'tide']
 
 function isValidVisualStyle(value: string): value is VisualStyle {
   return VALID_VISUAL_STYLES.includes(value as VisualStyle)

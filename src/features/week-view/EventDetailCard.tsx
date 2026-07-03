@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MapPin, Trash2, Pencil } from 'lucide-react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import {
@@ -7,6 +7,10 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import type { CalendarEvent } from '@/domain/event'
+import { computeEventEcho } from '@/domain/eventEcho'
+import type { EventEcho } from '@/domain/eventEcho'
+import { getWeekStart, getDayEnd } from '@/domain/time'
+import { useEventStore } from '@/stores/eventStore'
 
 interface EventDetailCardProps {
   event:    CalendarEvent
@@ -35,6 +39,12 @@ function fmtDateLine(startTs: number, endTs: number): string {
     return `${datePart} · ${fmtTime(startTs)} – ${fmtTime(endTs)}`
   }
   return `${datePart} ${fmtTime(startTs)} – ${e.getMonth() + 1}月${e.getDate()}日 ${fmtTime(endTs)}`
+}
+
+function fmtShortDuration(ms: number): string {
+  const hours = ms / 3_600_000
+  if (hours >= 1) return hours.toFixed(1) + 'h'
+  return Math.round(ms / 60_000) + 'm'
 }
 
 // ── 睡眠插图：趴睡小猫（内联 SVG·软线稿，表情随质量变） ──────────
@@ -150,6 +160,47 @@ function SleepChip({ children }: { children: string }) {
 
 export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: EventDetailCardProps) {
   const [showConfirm, setShowConfirm] = useState(false)
+  const [echo, setEcho] = useState<EventEcho | null>(null)
+  const [echoReady, setEchoReady] = useState(false)
+
+  const queryRange = useEventStore((s) => s.queryRange)
+
+  useEffect(() => {
+    const title = event.title.trim()
+    if (!title) {
+      setEcho(null)
+      setEchoReady(false)
+      return
+    }
+
+    let cancelled = false
+    setEchoReady(false)
+
+    const doFetch = async () => {
+      const d = new Date(event.startTime)
+      const weekStartMs = getWeekStart(d, 1).getTime()
+      const monthStartMs = new Date(d.getFullYear(), d.getMonth(), 1).getTime()
+      const dayEndMs = getDayEnd(d)
+
+      const queryStart = Math.min(monthStartMs, event.startTime - 90 * 86_400_000)
+      const queryEnd = dayEndMs
+
+      try {
+        const events = await queryRange(queryStart, queryEnd)
+        if (cancelled) return
+
+        const result = computeEventEcho(event, events, weekStartMs, monthStartMs)
+        setEcho(result)
+        setEchoReady(true)
+      } catch {
+        // silent — stats are decorative
+        if (!cancelled) setEchoReady(false)
+      }
+    }
+
+    doFetch()
+    return () => { cancelled = true }
+  }, [event.id, event.startTime, event.title, queryRange])
 
   const virtualRef = useRef<HTMLElement>(null!)
   virtualRef.current = anchorEl
@@ -214,6 +265,26 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
             <p className="text-[12px] text-text-secondary font-sans leading-relaxed pl-[22px]">
               {fmtDateLine(event.startTime, event.endTime)}
             </p>
+
+            {/* Echo stats */}
+            {echoReady && echo && (() => {
+              const { weekCount, monthTotalMs, daysSinceLast } = echo
+              const isFirst = weekCount === 1 && daysSinceLast === null
+
+              const line = isFirst
+                ? '90 天内首次记录'
+                : [
+                    `本周第 ${weekCount} 次`,
+                    `本月 ${fmtShortDuration(monthTotalMs)}`,
+                    daysSinceLast === 0 ? '今天还有一次' : daysSinceLast != null ? `距上次 ${daysSinceLast} 天` : null,
+                  ].filter(Boolean).join(' · ')
+
+              return (
+                <p className="text-[11px] text-text-tertiary font-sans leading-relaxed pl-[22px] animate-fadeIn">
+                  {line}
+                </p>
+              )
+            })()}
 
             {/* Sleep quality (5-moon scale) */}
             {sleep && (

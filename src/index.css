@@ -832,3 +832,15 @@ body {
   }
 }
 
+/* ── 周↔月切换径向揭幕 ────────────────────────────────── */
+@keyframes cai-radial-reveal {
+  from { clip-path: circle(0% at 50% 30%); }
+  to   { clip-path: circle(142% at 50% 30%); }
+}
+.cai-radial-reveal {
+  animation: cai-radial-reveal 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cai-radial-reveal { animation: none; }
+}
+

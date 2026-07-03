@@ -186,3 +186,25 @@
   --ink: #E7E8F0; --ink-2: #ABADBC; --ink-3: #7F8190;
   --line: #3E3F52; --line-strong: #4E5064; --accent-soft: #222438;
 }
+
+/* ── Tide 浸染（全画布深青 + 暖沙橙强调，Timepage 式沉浸；浅色模式刻意也是深底） ── */
+[data-style="tide"] {
+  --surface-base: #10645B; --surface-raised: #156E64; --surface-sunken: #0C554D;
+  --border-subtle: #20776C; --border-default: #2C867A;
+  --grid-line: rgba(232,246,242,0.10); --grid-line-date-sep: rgba(232,246,242,0.16);
+  --accent: #F2B279; --accent-hover: #F6C28F; --accent-light: #1D6D62; --time-line: #F2B279;
+  --text-primary: #EAF4F1; --text-secondary: #A9CEC7; --text-tertiary: #7FA9A2; --text-quaternary: #58807A;
+  --paper: #10645B; --surface: #146A60;
+  --ink: #EAF4F1; --ink-2: #A9CEC7; --ink-3: #7FA9A2;
+  --line: #20776C; --line-strong: #2C867A; --accent-soft: #1D6D62;
+}
+.dark[data-style="tide"] {
+  --surface-base: #0A433D; --surface-raised: #0E4D46; --surface-sunken: #073630;
+  --border-subtle: #175249; --border-default: #216056;
+  --grid-line: rgba(226,244,239,0.08); --grid-line-date-sep: rgba(226,244,239,0.13);
+  --accent: #F0B075; --accent-hover: #F4BE89; --accent-light: #12483F; --time-line: #F0B075;
+  --text-primary: #E6F1EE; --text-secondary: #A2C6BF; --text-tertiary: #77A099; --text-quaternary: #52776F;
+  --paper: #0A433D; --surface: #0D4A43;
+  --ink: #E6F1EE; --ink-2: #A2C6BF; --ink-3: #77A099;
+  --line: #175249; --line-strong: #216056; --accent-soft: #12483F;
+}

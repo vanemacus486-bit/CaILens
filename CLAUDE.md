@@ -24,7 +24,7 @@
 | 路径 | 组件 | 说明 |
 |---|---|---|
 | `/` | → `/week` | 重定向（保留 search params） |
-| `/week` | `WeekView` | 周视图（`?view=day&date=...` 切日；`?week=...` 指定周） |
+| `/week` | `WeekView` | 周视图（`?view=week|month` 视图模式；`?week=...` 指定周；移动端 mobileViewMode 切日/周） |
 | `/action` | `ActionPage` | 待办事项 + 项目分组双视图 |
 | `/stats` | `StatsPage` | 复盘仪表盘（4 Tab：作息/日常/身体/关联） |
 | `/settings` | `SettingsPage` | 设置页（弹窗 `SettingsModal` 也可触发） |
@@ -130,10 +130,10 @@ use-cases/  →  domain/  →  data/  →  stores/  →  features/ + components/
 
 | 层 | 关键文件 | 职责 |
 |---|---|---|
-| `domain/` | `event.ts`, `category.ts`, `stats.ts`, `layout.ts`, `todo.ts`, `time.ts`, `settings.ts`, `quadrant.ts`, `gaps.ts`, `maturity.ts`, `icsImport.ts`, `dailyContext.ts`, `dietStats.ts`, `insomnia.ts`, `napStats.ts`, `recipeStats.ts`, `log.ts`, `shortcuts.ts` | 纯类型 + 纯函数。统计引擎、布局算法、关键词学习、关联分析、稳态指标、成熟度判定 |
+| `domain/` | `event.ts`, `category.ts`, `stats.ts`, `layout.ts`, `todo.ts`, `time.ts`, `settings.ts`, `quadrant.ts`, `maturity.ts`, `icsImport.ts`, `dailyContext.ts`, `dietStats.ts`, `insomnia.ts`, `napStats.ts`, `recipeStats.ts`, `log.ts`, `shortcuts.ts` | 纯类型 + 纯函数。统计引擎、布局算法、关键词学习、关联分析、稳态指标、成熟度判定 |
 | `data/` | `db.ts` (Dexie v25), `getRepositories.ts` (DI 容器), `eventRepository.ts`, `categoryRepository.ts`, `todoRepository.ts`, `projectRepository.ts`, `settingsRepository.ts`, `dailyContextRepository.ts`, `estimateRepository.ts`, `inspirationRepository.ts`, `profileRepository.ts`, `migrations/upgrades.ts`, `adapters/StorageAdapter.ts`, `adapters/IndexedDBAdapter.ts`, `adapters/FileSystemAdapter.ts`, `tauriFs.ts`, `seedDemoData.ts` | 唯一碰 IndexedDB 的地方。Repository 注入 Clock+IdGenerator。适配器模式：IndexedDB / 文件系统 / Tauri FS |
 | `stores/` | `eventStore.ts`, `categoryStore.ts`, `settingsStore.ts`, `todoStore.ts`, `projectStore.ts`, `dailyContextStore.ts`, `profileStore.ts`, `estimateStore.ts`, `uiStore.ts`, `watchdog.ts` | Zustand 切片包装 Repository。组件只通过 store 访问数据 |
-| `features/` | `week-view/` (WeekView, DayTimelineCard, EventBlock 等), `day-view/` (DayEventStream), `month-view/`, `quick-log/` (FloatingEventCard), `quick-capture/`, `search/` (CommandPalette), `import-ics/`, `settings/`, `action/` | 业务功能模块，按场景组织 |
+| `features/` | `week-view/` (WeekView, WeekToolbar, WeekSidebar, WeekDateHeader, EventDetailCard, WeekEmptyState, MobileMenu), `day-view/` (MobileDayView), `month-view/`, `mobile/` (MobileLayout, MobileDayPage, MobileEventEditor), `quick-log/` (FloatingEventCard), `quick-capture/`, `search/` (CommandPalette), `import-ics/`, `settings/`, `action/` | 业务功能模块，按场景组织 |
 | `components/` | `ui/` (shadcn 复制: button, dialog, popover, alert-dialog, context-menu, DatePickerPopover, ErrorBoundary, snackbar), `calendar/` (EventBlock, DayColumn, CurrentTimeLine, EventCard, TimeGrid), `nav/` (TopNavBar, TabBar, ReviewLayout, SlideSegmented), `stats/` (40+ 图表组件) | 可复用 UI 原语 |
 | `pages/` | `StatsPage.tsx`, `ActionPage/`, `ProfilePage.tsx`, `ProjectDetailPage/` | 路由级页面，编排 store + 渲染 |
 | `hooks/` | `useStatsAggregation.ts`, `useShortcutManager.ts`, `useMediaQuery.ts`, `useTabTransition.ts`, `usePageScrollRestore.ts`, `useSessionRestore.ts` | 共享 hooks |
@@ -151,7 +151,6 @@ use-cases/  →  domain/  →  data/  →  stores/  →  features/ + components/
 | `domain/dailyContext.ts` | 每日上下文（穿搭/卫生/娱乐/身体指标） |
 | `domain/correlation.ts` | 关联分析 |
 | `domain/steadyMetrics.ts` | 稳态指标 |
-| `domain/gaps.ts` | 间隙检测 |
 | `domain/maturity.ts` | 数据成熟度判定 (Cold/Warming/Mature) |
 | `domain/shortcuts.ts` | 快捷键系统定义 (6KB) |
 | `domain/dietStats.ts` | 饮食统计 (10KB) |
@@ -171,7 +170,7 @@ use-cases/  →  domain/  →  data/  →  stores/  →  features/ + components/
 **6 种事件色** = 6 种分类 = 6 种 CategoryId。各有 `bg/text/fill` 三个 CSS 变量：
 - `accent` (焦橙) / `sage` (鼠尾草绿) / `sand` (沙色) / `sky` (暖灰蓝) / `rose` (玫瑰色) / `stone` (石灰色)
 
-**6 视觉风格** (graphite/slate/aurora/carbon/nocturne/amber)，通过 `<html data-style="...">` 切换（`settingsStore.ts` 写入，`index.html` 启动还原）。定义在 `tokens.css` 末尾的 `[data-style]` 覆盖块，同时改写两套 token 体系（index.css 的 `--surface-*`/`--accent*` 与 tokens.css 的 `--paper`/`--ink*`/`--line*`），不影响事件分类色。`graphite` = 项目默认暖色。
+**3 视觉风格** (graphite/nocturne/carbon)，通过 `<html data-style="...">` 切换（`settingsStore.ts` 写入，`index.html` 启动还原）。定义在 `tokens.css` 末尾的 `[data-style]` 覆盖块，同时改写两套 token 体系（index.css 的 `--surface-*`/`--accent*` 与 tokens.css 的 `--paper`/`--ink*`/`--line*`），不影响事件分类色。`graphite` = 项目默认暖色。
 
 **状态色：** success `#2D7D46`, danger `#B53535`, info `#3A5A80`。
 

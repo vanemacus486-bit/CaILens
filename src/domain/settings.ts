@@ -7,7 +7,7 @@ import type { DayMark } from './dayMark'
 export type AppLanguage = 'zh' | 'en' | 'es' | 'ar' | 'fr' | 'ru'
 export type AppTheme = 'light' | 'dark' | 'auto'
 export type UiFont = 'default' | 'sourcehan' | 'wenkai'
-export type VisualStyle = 'graphite' | 'nocturne' | 'carbon'
+export type VisualStyle = 'graphite' | 'nocturne' | 'carbon' | 'tide'
 export type FontScale = 'sm' | 'default' | 'lg' | 'xl'
 
 export interface AppSettings {

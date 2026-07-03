@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { layoutDayEvents } from '@/domain/layout'
 import type { CalendarEvent, EventColor } from '@/domain/event'
 import { getDayStart, isToday } from '@/domain/time'
+import { computeDayGaps, type DayGap } from '@/domain/gaps'
 import { EventBlock } from './EventBlock'
 import { CurrentTimeLine } from './CurrentTimeLine'
 import { MAX_OVERLAP_COLUMNS, TOTAL_SLOTS } from '@/features/week-view/constants'
@@ -15,6 +16,20 @@ const GRID_STYLE = {
   gridTemplateRows:    `repeat(${TOTAL_SLOTS}, 1fr)`,
   gridTemplateColumns: `repeat(${MAX_OVERLAP_COLUMNS}, 1fr)`,
 } as const
+
+const EMPTY_GAPS: DayGap[] = []
+
+/** 将 UTC ms 时间戳转换为当天 CSS grid 的 1-based row 位置（15 分钟每槽） */
+function timeToGridRow(timestamp: number, dayStartMs: number): number {
+  const minutesFromDayStart = Math.max(0, Math.min(1440, (timestamp - dayStartMs) / 60_000))
+  return Math.floor(minutesFromDayStart / 15) + 1
+}
+
+/** 格式化时间为 HH:MM */
+function fmtGapTime(ts: number): string {
+  const d = new Date(ts)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 interface DayColumnProps {
   date:              Date
@@ -36,6 +51,8 @@ interface DayColumnProps {
   onDragStateChange?: (dragState: import('@/features/week-view/hooks/useEventDrag').DragState) => void
   onResize:        (eventId: string, newStartTime: number, newEndTime: number) => void
   onTypedEdit?:    (event: CalendarEvent, el: HTMLElement) => void
+  /** 幽灵间隙块点击回调（不传则不计算、不渲染） */
+  onGapClick?:     (gapStart: number, gapEnd: number, anchorEl: HTMLElement) => void
 }
 
 function slotToTimestamp(slotIndex: number, dayStart: number): number {
@@ -46,15 +63,25 @@ function DayColumnInner({
   date, events, selectedEventId, highlightedEventId, highlightedDayMs, weekDays, gridRef,
   onSlotClick, onEventClick, onColorChange, onEdit, onDuplicate, onDelete,
   onDragMove, onDragToEdge, onDragStart, onDragStateChange, onResize,
-  onTypedEdit,
+  onTypedEdit, onGapClick,
 }: DayColumnProps) {
   const today    = isToday(date.getTime())
   const dayStart = getDayStart(date)
+  const dayEnd   = dayStart + 24 * 60 * 60_000
 
   const positioned = useMemo(
     () => layoutDayEvents(events, date),
     [events, date],
   )
+
+  // ── Ghost gaps ───────────────────────────────────
+  const gaps = useMemo(() => {
+    if (!onGapClick) return EMPTY_GAPS
+    return computeDayGaps(events, dayStart, dayEnd, {
+      nowMs: Date.now(),
+      minGapMs: 30 * 60_000,
+    })
+  }, [events, dayStart, dayEnd, onGapClick])
 
   const isHighlighted = highlightedDayMs != null && date.getTime() === highlightedDayMs
 
@@ -128,6 +155,82 @@ function DayColumnInner({
             highlightedEventId={highlightedEventId}
           />
         ))}
+
+        {/* Ghost blocks: unrecorded time gaps */}
+        {onGapClick && gaps.map((gap) => {
+          const gRowStart = timeToGridRow(gap.start, dayStart)
+          const gRowEnd   = timeToGridRow(gap.end, dayStart)
+          const gapHeightPct = ((gap.end - gap.start) / (24 * 60 * 60_000)) * 100
+          const showText = gapHeightPct >= 28
+          return (
+            <div
+              key={`gap-${gap.start}`}
+              role="button"
+              tabIndex={0}
+              aria-label={`${fmtGapTime(gap.start)} → ${fmtGapTime(gap.end)}`}
+              className="relative overflow-hidden select-none cursor-pointer z-[5] transition-all duration-200 ease-out"
+              style={{
+                gridRowStart: gRowStart,
+                gridRowEnd: Math.max(gRowStart + 1, gRowEnd),
+                gridColumn: `1 / ${MAX_OVERLAP_COLUMNS + 1}`,
+                margin: '1px 2px',
+                borderRadius: 'var(--radius-s)',
+                border: '1px dashed var(--border-default)',
+                opacity: 0.45,
+                backgroundColor: 'transparent',
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget
+                el.style.opacity = '1'
+                el.style.borderColor = 'var(--accent)'
+                el.style.backgroundColor = 'color-mix(in srgb, var(--accent) 6%, transparent)'
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget
+                el.style.opacity = '0.45'
+                el.style.borderColor = 'var(--border-default)'
+                el.style.backgroundColor = 'transparent'
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onGapClick(gap.start, gap.end, e.currentTarget as HTMLElement)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onGapClick(gap.start, gap.end, e.currentTarget as HTMLElement)
+                }
+              }}
+            >
+              {showText ? (
+                <span
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10,
+                    color: 'var(--text-tertiary)',
+                    lineHeight: 1,
+                  }}
+                >
+                  {`${fmtGapTime(gap.start)} → ${fmtGapTime(gap.end)}`}
+                </span>
+              ) : (
+                <span
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10,
+                    color: 'var(--text-tertiary)',
+                    lineHeight: 1,
+                  }}
+                >
+                  +
+                </span>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -152,5 +255,6 @@ export const DayColumn = React.memo(DayColumnInner, (prev, next) =>
   prev.onDragStart       === next.onDragStart        &&
   prev.onDragStateChange === next.onDragStateChange   &&
   prev.onResize          === next.onResize            &&
-  prev.onTypedEdit       === next.onTypedEdit,
+  prev.onTypedEdit       === next.onTypedEdit         &&
+  prev.onGapClick        === next.onGapClick,
 )
