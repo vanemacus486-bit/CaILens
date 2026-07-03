@@ -12,10 +12,6 @@ export type ShortcutAction =
   | 'goToReview'
   | 'openSettings'
   | 'toggleTheme'
-  | 'goToPreviousWeek'
-  | 'goToNextWeek'
-  | 'goToPreviousDay'
-  | 'goToNextDay'
   | 'deleteFocusedEvent'
   | 'duplicateFocusedEvent'
   | 'quickCaptureTodo'
@@ -70,10 +66,6 @@ export const SHORTCUT_REGISTRY: Record<ShortcutAction, ShortcutDefinition> = {
   goToReview:         { action: 'goToReview',          label: '切换复盘',    defaultBinding: { key: '3', ctrl: false, alt: true, shift: false } },
   openSettings:       { action: 'openSettings',        label: '打开设置',     defaultBinding: { key: ',', ctrl: true, alt: false, shift: false } },
   toggleTheme:        { action: 'toggleTheme',         label: '切换主题',     defaultBinding: { key: 'T', ctrl: true, alt: false, shift: true } },
-  goToPreviousWeek:   { action: 'goToPreviousWeek',    label: '上一个',      defaultBinding: { key: 'ArrowLeft', ctrl: false, alt: false, shift: false } },
-  goToNextWeek:       { action: 'goToNextWeek',        label: '下一个',      defaultBinding: { key: 'ArrowRight', ctrl: false, alt: false, shift: false } },
-  goToPreviousDay:    { action: 'goToPreviousDay',     label: '上一天',      defaultBinding: { key: 'ArrowLeft', ctrl: true, alt: false, shift: true } },
-  goToNextDay:        { action: 'goToNextDay',         label: '下一天',      defaultBinding: { key: 'ArrowRight', ctrl: true, alt: false, shift: true } },
   deleteFocusedEvent: { action: 'deleteFocusedEvent',  label: '删除事件',    defaultBinding: { key: 'Delete', ctrl: false, alt: false, shift: false } },
   duplicateFocusedEvent: { action: 'duplicateFocusedEvent', label: '复制并创建事件', defaultBinding: { key: 'd', ctrl: true, alt: false, shift: false } },
   quickCaptureTodo:     { action: 'quickCaptureTodo',      label: '快速录入待办', defaultBinding: { key: 'n', ctrl: true, alt: true, shift: false } },
