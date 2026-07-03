@@ -110,7 +110,14 @@ export function TaskRow({ todo, now, sortMode = 'manual', onReorder, onToggle, o
   }, [todo.title])
 
   const handleRowClick = useCallback((e: MouseEvent) => {
-    if (expanded || editingTitle || isCompleting) return
+    if (editingTitle || isCompleting) return
+
+    // 已展开 → 点击收起
+    if (expanded) {
+      setExpanded(false)
+      return
+    }
+
     // ── 手动双击检测（不用浏览器原生 dblclick，Tauri webview 不可靠）──
     const isOnTitle = titleAreaRef.current?.contains(e.target as Node) ?? false
     const now = Date.now()

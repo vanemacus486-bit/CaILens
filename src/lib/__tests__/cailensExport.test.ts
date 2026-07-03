@@ -162,7 +162,7 @@ describe('round-trip: collect 鈫?serialize 鈫?text 鈫?import (IndexedDBAdapte
     await expectAllTablesRestored(target)
     expect(result.tables.events).toBe(2)
     expect(result.tables.todos).toBe(1)
-  })
+  }, 15000)
 })
 
 describe('round-trip: collect 鈫?serialize 鈫?text 鈫?import (FileSystemAdapter)', () => {

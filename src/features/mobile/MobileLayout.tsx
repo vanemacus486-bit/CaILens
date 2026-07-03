@@ -4,8 +4,7 @@ import { Settings } from 'lucide-react'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useProfileStore } from '@/stores/profileStore'
-import { useUIStore } from '@/stores/uiStore'
-import { SettingsModal } from '@/features/settings/SettingsModal'
+
 import { SnackbarHost } from '@/components/ui/snackbar'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { fireAndForget } from '@/lib/fireAndForget'
@@ -34,7 +33,7 @@ export function MobileLayout() {
     fireAndForget(loadProfile(), 'load profile')
   }, [])
 
-  const openSettings = () => useUIStore.getState().setSettingsModalOpen(true)
+  const openSettings = () => navigate('/settings')
 
   const goToday = () => {
     navigate(`/day?date=${formatISODate(new Date())}`)
@@ -79,7 +78,6 @@ export function MobileLayout() {
         </ErrorBoundary>
       </main>
 
-      <SettingsModal />
       <SnackbarHost />
     </div>
   )
