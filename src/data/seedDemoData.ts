@@ -168,6 +168,7 @@ export async function seedDemoData(): Promise<void> {
       listId: 'default',
       goalId: null,
       isStarred: false,
+      archivedAt: null,
     })
   }
 

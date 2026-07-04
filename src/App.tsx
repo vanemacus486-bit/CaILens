@@ -64,12 +64,14 @@ function Layout() {
     const loadTodos = useTodoStore.getState().loadTodos
     const loadLists = useTodoListStore.getState().loadLists
     const loadLocation = useLocationStore.getState().loadLocation
+    const loadDayLocations = useLocationStore.getState().loadDayLocations
     fireAndForget(loadCategories(), 'load categories')
     fireAndForget(loadSettings(), 'load settings')
     fireAndForget(loadProfile(), 'load profile')
     fireAndForget(loadTodos(), 'load todos')
     fireAndForget(loadLists(), 'load lists')
     fireAndForget(loadLocation(), 'load location')
+    fireAndForget(loadDayLocations(), 'load day locations')
   }, [])
 
   // 跨窗口同步：QuickCapture 等独立 WebView 写入后，主窗口无感刷新。

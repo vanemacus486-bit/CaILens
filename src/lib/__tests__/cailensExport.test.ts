@@ -72,7 +72,7 @@ function hygiene(): HygieneLogRecord {
   return { id: 'hyg-1', date: '2026-06-24' }
 }
 function todo(id = 'todo-1', title = 'T'): Todo {
-  return { id, title, description: '', status: 'todo', priority: null, domain: null, listId: 'default', dueDate: null, sortOrder: 0, projectId: null, categoryId: null, createdAt: 0, updatedAt: 0, completedAt: null, repeatPattern: null, goalId: null, isStarred: false }
+  return { id, title, description: '', status: 'todo', priority: null, domain: null, listId: 'default', dueDate: null, sortOrder: 0, projectId: null, categoryId: null, createdAt: 0, updatedAt: 0, completedAt: null, repeatPattern: null, goalId: null, isStarred: false, archivedAt: null }
 }
 
 /** 寰€姣忓紶鐢ㄦ埛鏁版嵁琛ㄥ啓鍏ヤ竴琛屼唬琛ㄦ暟鎹紙浜嬩欢鍚竴鏉″纰戯級銆?*/

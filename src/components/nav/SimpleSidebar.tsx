@@ -15,11 +15,16 @@ import { useDomainNav } from './domainNav'
 import { SlideSegmented } from './SlideSegmented'
 import type { RoutineViewMode } from '@/components/stats/EasternStatsShell'
 import type { LucideIcon } from 'lucide-react'
+import type { CategoryId } from '@/domain/category'
+import { EVENT_COLOR_LABELS } from '@/domain/event'
 import {
   CheckCircle, Star, TrendingUp, LayoutGrid, Moon, Utensils, Droplets, Shirt, Smile,
-  Plus, Trash2, Edit3, Archive, BookOpen,
+  Plus, Trash2, Edit3, BookOpen, Palette,
 } from 'lucide-react'
-import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu'
+import {
+  ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator,
+  ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent,
+} from '@/components/ui/context-menu'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -41,6 +46,8 @@ const STATS_VIEWS: { id: RoutineViewMode; labelKey: string; icon: LucideIcon }[]
   { id: 'chronicle', labelKey: 'stats.chronicle', icon: BookOpen },
 ]
 
+const CATEGORY_IDS: readonly CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
+
 export function SimpleSidebar() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -51,13 +58,14 @@ export function SimpleSidebar() {
   const isAction = location.pathname === '/action'
 
   const routineView = (searchParams.get('view') as RoutineViewMode | null) ?? 'trend'
-  const todoFilter = (searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? 'all'
+  const todoFilter = (searchParams.get('filter') as 'all' | 'starred' | null) ?? 'all'
 
   // ── 任务列表区状态 ──
   const lists = useTodoListStore((s) => s.lists)
   const visibleListIds = useTodoListStore((s) => s.visibleListIds)
   const toggleVisibility = useTodoListStore((s) => s.toggleListVisibility)
   const renameListStore = useTodoListStore((s) => s.renameList)
+  const changeListCategory = useTodoListStore((s) => s.changeListCategory)
   const deleteListStore = useTodoListStore((s) => s.deleteList)
   const createList = useTodoListStore((s) => s.createList)
   const reorderLists = useTodoListStore((s) => s.reorderLists)
@@ -74,11 +82,10 @@ export function SimpleSidebar() {
     setSearchParams(next, { replace: true })
   }
 
-  const setTodoFilter = (v: 'all' | 'starred' | 'archive') => {
+  const setTodoFilter = (v: 'all' | 'starred') => {
     const next = new URLSearchParams(searchParams)
     if (v === 'all') next.delete('filter')
     else next.set('filter', v)
-    if (v !== 'archive') next.delete('archiveDate')
     setSearchParams(next, { replace: true })
   }
 
@@ -106,7 +113,6 @@ export function SimpleSidebar() {
             {([
               { id: 'all' as const, labelKey: 'sidebar.allTasks', icon: CheckCircle },
               { id: 'starred' as const, labelKey: 'sidebar.starred', icon: Star },
-              { id: 'archive' as const, labelKey: 'sidebar.archive', icon: Archive },
             ]).map((v) => {
               const Icon = v.icon
               const selected = v.id === todoFilter
@@ -182,6 +188,12 @@ export function SimpleSidebar() {
                               </svg>
                             )}
                           </div>
+                          {list.categoryId && (
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: `var(--event-${list.categoryId}-fill)` }}
+                            />
+                          )}
                           {renamingId === list.id ? (
                             <input
                               value={renameDraft}
@@ -209,26 +221,52 @@ export function SimpleSidebar() {
                           )}
                         </button>
                       </ContextMenuTrigger>
-                      {!isDefault && (
-                        <ContextMenuContent className="w-40">
-                          <ContextMenuItem
-                            onSelect={() => {
-                              setRenamingId(list.id)
-                              setRenameDraft(list.name)
-                            }}
-                          >
-                            <Edit3 size={14} />
-                            <span>{t('sidebar.rename')}</span>
-                          </ContextMenuItem>
-                          <ContextMenuItem
-                            onSelect={() => setDeleteConfirmId(list.id)}
-                            className="text-danger focus:text-danger"
-                          >
-                            <Trash2 size={14} />
-                            <span>{t('sidebar.deleteList')}</span>
-                          </ContextMenuItem>
-                        </ContextMenuContent>
-                      )}
+                      <ContextMenuContent className="w-44">
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <Palette size={14} />
+                            <span>{t('sidebar.changeCategory')}</span>
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent className="w-auto p-2">
+                            <div className="flex items-center gap-1.5">
+                              {CATEGORY_IDS.map((cid) => {
+                                const active = list.categoryId === cid
+                                return (
+                                  <ContextMenuItem
+                                    key={cid}
+                                    aria-label={EVENT_COLOR_LABELS[cid]}
+                                    onSelect={() => changeListCategory(list.id, active ? null : cid)}
+                                    className={`w-5 h-5 p-0 justify-center rounded-full border-2 transition-transform focus:scale-110
+                                      ${active ? 'border-text-primary scale-110' : 'border-transparent'}`}
+                                    style={{ backgroundColor: `var(--event-${cid}-fill)` }}
+                                  />
+                                )
+                              })}
+                            </div>
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+                        {!isDefault && (
+                          <>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                              onSelect={() => {
+                                setRenamingId(list.id)
+                                setRenameDraft(list.name)
+                              }}
+                            >
+                              <Edit3 size={14} />
+                              <span>{t('sidebar.rename')}</span>
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              onSelect={() => setDeleteConfirmId(list.id)}
+                              className="text-danger focus:text-danger"
+                            >
+                              <Trash2 size={14} />
+                              <span>{t('sidebar.deleteList')}</span>
+                            </ContextMenuItem>
+                          </>
+                        )}
+                      </ContextMenuContent>
                     </ContextMenu>
 
                     {/* 插入指示线：after */}

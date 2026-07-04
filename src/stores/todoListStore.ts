@@ -7,7 +7,8 @@
 
 import { create } from 'zustand'
 import type { TodoList } from '@/domain/todo'
-import { getTodoListRepo } from '@/data/getRepositories'
+import type { CategoryId } from '@/domain/category'
+import { getTodoListRepo, getTodoRepo } from '@/data/getRepositories'
 
 const LS_KEY = 'cailens_active_list_id'
 const VISIBLE_LS_KEY = 'cailens_visible_list_ids'
@@ -23,6 +24,7 @@ interface TodoListState {
   loadLists: () => Promise<void>
   createList: (name: string) => Promise<TodoList>
   renameList: (id: string, name: string) => Promise<void>
+  changeListCategory: (id: string, categoryId: CategoryId | null) => Promise<void>
   deleteList: (id: string) => Promise<void>
   setActiveList: (id: string) => void
   clearCompleted: (listId: string) => Promise<void>
@@ -77,7 +79,7 @@ export const useTodoListStore = create<TodoListState>()((set) => ({
       // 即使持久层失败也确保 UI 可用：至少有一个默认清单列
       const now = Date.now()
       set({
-        lists: [{ id: 'default', name: '默认', sortOrder: -1, createdAt: now, updatedAt: now }],
+        lists: [{ id: 'default', name: '默认', sortOrder: -1, categoryId: null, createdAt: now, updatedAt: now }],
         visibleListIds: ['default'],
         isLoading: false,
         isLoaded: true,
@@ -97,6 +99,13 @@ export const useTodoListStore = create<TodoListState>()((set) => ({
   renameList: async (id, name) => {
     if (id === 'default') return
     const updated = await getTodoListRepo().update(id, { name })
+    set((state) => ({
+      lists: state.lists.map((l) => (l.id === id ? updated : l)),
+    }))
+  },
+
+  changeListCategory: async (id, categoryId) => {
+    const updated = await getTodoListRepo().update(id, { categoryId })
     set((state) => ({
       lists: state.lists.map((l) => (l.id === id ? updated : l)),
     }))
@@ -123,9 +132,11 @@ export const useTodoListStore = create<TodoListState>()((set) => ({
     set({ activeListId: id })
   },
 
-  clearCompleted: async (_listId) => {
-    void _listId
-    // 已完成待办保留在数据库中（归档面板可读取），无需额外操作
+  clearCompleted: async (listId) => {
+    await getTodoRepo().archiveCompleted(listId)
+    // 刷新 todoStore 的本地状态
+    const { useTodoStore } = await import('@/stores/todoStore')
+    await useTodoStore.getState().loadTodos()
   },
 
   toggleListVisibility: (id) => {

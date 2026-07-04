@@ -1,44 +1,38 @@
 /**
- * # SettingsLocation — 设置：位置、时区与天气
+ * # SettingsLocation — 设置：位置、时区与多城市天气管理
  *
- * 允许用户搜索并选择城市，自动获取时区与当前天气。
+ * 允许用户搜索并添加多个城市，管理城市列表，查看各城市天气。
  * 使用 Open-Meteo API（免费，无需 API Key）。
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { MapPin, RefreshCw, Thermometer, Droplets, Wind, Sun, Cloud, CloudRain, CloudSnow, CloudFog, CloudLightning, Search, Check } from 'lucide-react'
+import { MapPin, RefreshCw, Thermometer, Droplets, Wind, Search, Check, Trash2 } from 'lucide-react'
 import { useLocationStore } from '@/stores/locationStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { detectBrowserTimezone, wmoCodeToLabelZh, wmoCodeToLabelEn } from '@/domain/location'
+import { detectBrowserTimezone, wmoCodeToLabelZh, wmoCodeToLabelEn, cityWeatherKey } from '@/domain/location'
 import type { GeocodingResult } from '@/domain/location'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { useT } from '@/i18n/useT'
 import { cn } from '@/lib/utils'
-
-function WeatherIcon({ code, size = 24 }: { code: number; size?: number }) {
-  if (code === 0) return <Sun size={size} className="text-accent" />
-  if (code <= 2) return <Sun size={size} className="text-text-secondary" />
-  if (code === 3) return <Cloud size={size} className="text-text-tertiary" />
-  if (code >= 45 && code <= 48) return <CloudFog size={size} className="text-text-tertiary" />
-  if (code >= 51 && code <= 67) return <CloudRain size={size} className="text-info" />
-  if (code >= 71 && code <= 77) return <CloudSnow size={size} className="text-info" />
-  if (code >= 80 && code <= 82) return <CloudRain size={size} className="text-info" />
-  if (code >= 85 && code <= 86) return <CloudSnow size={size} className="text-info" />
-  if (code >= 95 && code <= 99) return <CloudLightning size={size} className="text-danger" />
-  return <Cloud size={size} className="text-text-tertiary" />
-}
+import { WeatherIcon } from '@/components/ui/WeatherIcon'
 
 export function SettingsLocation() {
   const locationSettings = useLocationStore((s) => s.locationSettings)
-  const weather = useLocationStore((s) => s.weather)
-  const weatherLoading = useLocationStore((s) => s.weatherLoading)
-  const weatherError = useLocationStore((s) => s.weatherError)
+  const savedCities = useLocationStore((s) => s.savedCities)
+  const activeCityIndex = useLocationStore((s) => s.activeCityIndex)
+  const weatherMap = useLocationStore((s) => s.weatherMap)
+  const weatherLoadingMap = useLocationStore((s) => s.weatherLoadingMap)
+  const weatherErrorMap = useLocationStore((s) => s.weatherErrorMap)
   const searchResults = useLocationStore((s) => s.searchResults)
   const searching = useLocationStore((s) => s.searching)
   const loadLocation = useLocationStore((s) => s.loadLocation)
-  const setCity = useLocationStore((s) => s.setCity)
+  const addCity = useLocationStore((s) => s.addCity)
+  const removeCity = useLocationStore((s) => s.removeCity)
+  const setActiveCity = useLocationStore((s) => s.setActiveCity)
+  const refreshCityWeather = useLocationStore((s) => s.refreshCityWeather)
+  const refreshAllWeather = useLocationStore((s) => s.refreshAllWeather)
   const searchCity = useLocationStore((s) => s.searchCity)
-  const refreshWeather = useLocationStore((s) => s.refreshWeather)
+  const clearSearchResults = useLocationStore((s) => s.clearSearchResults)
 
   const language = useAppSettingsStore((s) => s.settings.language)
   const settingsLoaded = useAppSettingsStore((s) => s.isLoaded)
@@ -49,7 +43,7 @@ export function SettingsLocation() {
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // 加载已保存的位置
+  // 加载已保存的城市
   useEffect(() => {
     if (settingsLoaded) {
       fireAndForget(loadLocation(), 'load location')
@@ -62,47 +56,68 @@ export function SettingsLocation() {
       setQuery(value)
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
-        fireAndForget(searchCity(value), 'search city')
+        fireAndForget(searchCity(value, language), 'search city')
       }, 300)
     },
-    [searchCity],
+    [searchCity, language],
   )
 
-  // 选中城市
+  // 添加城市
   const handleSelect = useCallback(
     (result: GeocodingResult) => {
-      fireAndForget(setCity(result), 'set city')
+      fireAndForget(addCity(result), 'add city')
       setQuery(result.name)
       setFocused(false)
     },
-    [setCity],
+    [addCity],
   )
 
-  // 刷新天气
-  const handleRefresh = useCallback(() => {
-    fireAndForget(refreshWeather(), 'refresh weather')
-  }, [refreshWeather])
+  // 删除城市
+  const handleRemove = useCallback(
+    (index: number) => {
+      fireAndForget(removeCity(index), 'remove city')
+    },
+    [removeCity],
+  )
+
+  // 设为活跃
+  const handleSetActive = useCallback(
+    (index: number) => {
+      fireAndForget(setActiveCity(index), 'set active city')
+    },
+    [setActiveCity],
+  )
+
+  // 刷新单个城市天气
+  const handleRefreshCity = useCallback(
+    (index: number) => {
+      fireAndForget(refreshCityWeather(index), 'refresh city weather')
+    },
+    [refreshCityWeather],
+  )
+
+  // 刷新全部
+  const handleRefreshAll = useCallback(() => {
+    fireAndForget(refreshAllWeather(), 'refresh all weather')
+  }, [refreshAllWeather])
 
   // 关闭候选项（点击外部）
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (inputRef.current && !inputRef.current.parentElement?.contains(e.target as Node)) {
         setFocused(false)
+        clearSearchResults()
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [])
+  }, [clearSearchResults])
 
   const browserTz = detectBrowserTimezone()
   const displayTimezone = locationSettings?.timezone ?? browserTz
 
-  // 天气标签
-  const weatherLabel = weather
-    ? language === 'zh'
-      ? wmoCodeToLabelZh(weather.weatherCode)
-      : wmoCodeToLabelEn(weather.weatherCode)
-    : ''
+  // 是否有任意城市正在加载天气
+  const anyLoading = Object.values(weatherLoadingMap).some((v) => v)
 
   return (
     <div className="flex flex-col gap-5">
@@ -116,7 +131,7 @@ export function SettingsLocation() {
       </div>
 
       {/* 城市搜索 */}
-      <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
+      <div className="rounded-xl bg-surface-raised border border-border-subtle">
         <div className="px-5 py-4">
           <label className="text-sm font-sans font-medium text-text-primary mb-2 block">
             {t('settings.locationCity')}
@@ -140,20 +155,33 @@ export function SettingsLocation() {
                     {t('common.loading')}
                   </div>
                 ) : (
-                  searchResults.map((r, i) => (
-                    <button
-                      key={`${r.latitude}-${r.longitude}-${i}`}
-                      onClick={() => handleSelect(r)}
-                      className="w-full text-left px-4 py-2.5 text-sm font-sans text-text-primary hover:bg-surface-sunken transition-colors duration-100 cursor-pointer border-none flex items-center gap-2"
-                    >
-                      <MapPin size={14} className="text-text-tertiary flex-shrink-0" />
-                      <span className="flex-1 min-w-0 truncate">{r.name}</span>
-                      <span className="text-xs text-text-tertiary flex-shrink-0">{r.country}</span>
-                      {locationSettings?.latitude === r.latitude && locationSettings?.longitude === r.longitude && (
-                        <Check size={14} className="text-success flex-shrink-0" />
-                      )}
-                    </button>
-                  ))
+                  searchResults.map((r, i) => {
+                    const alreadyAdded = savedCities.some(
+                      (c) => c.latitude === r.latitude && c.longitude === r.longitude,
+                    )
+                    return (
+                      <button
+                        key={`${r.latitude}-${r.longitude}-${i}`}
+                        onClick={() => !alreadyAdded && handleSelect(r)}
+                        disabled={alreadyAdded}
+                        className={cn(
+                          'w-full text-left px-4 py-2.5 text-sm font-sans transition-colors duration-100 cursor-pointer border-none flex items-center gap-2',
+                          alreadyAdded
+                            ? 'text-text-quaternary cursor-not-allowed'
+                            : 'text-text-primary hover:bg-surface-sunken',
+                        )}
+                      >
+                        <MapPin size={14} className="text-text-tertiary flex-shrink-0" />
+                        <span className="flex-1 min-w-0 truncate">{r.name}</span>
+                        <span className="text-xs text-text-tertiary flex-shrink-0">{r.country}</span>
+                        {alreadyAdded ? (
+                          <span className="text-xs text-text-quaternary flex-shrink-0">{t('settings.locationAddCity')}</span>
+                        ) : (
+                          <Check size={14} className="text-success flex-shrink-0" />
+                        )}
+                      </button>
+                    )
+                  })
                 )}
               </div>
             )}
@@ -169,78 +197,195 @@ export function SettingsLocation() {
         </div>
       </div>
 
-      {/* 天气展示 */}
-      <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
-        <div className="px-5 py-4 flex items-center justify-between">
-          <h2 className="text-sm font-sans font-medium text-text-primary">
-            {t('settings.locationWeather')}
-          </h2>
-          <button
-            onClick={handleRefresh}
-            disabled={weatherLoading || !locationSettings}
-            className="flex items-center gap-1 text-xs font-sans text-text-tertiary hover:text-text-primary transition-colors duration-150 cursor-pointer border-none bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <RefreshCw
-              size={13}
-              className={cn(weatherLoading && 'animate-spin')}
-            />
-            {t('settings.locationRefresh')}
-          </button>
-        </div>
-
-        {!locationSettings ? (
-          <div className="px-5 pb-5 text-sm text-text-tertiary font-sans">
-            {t('settings.locationNoCity')}
-          </div>
-        ) : weatherLoading && !weather ? (
-          <div className="px-5 pb-5 flex items-center gap-2 text-sm text-text-tertiary font-sans">
-            <RefreshCw size={14} className="animate-spin" />
-            {t('common.loading')}
-          </div>
-        ) : weatherError && !weather ? (
-          <div className="px-5 pb-5 text-sm text-danger font-sans">
-            {weatherError}
+      {/* 城市列表 */}
+      {savedCities.length > 0 && (
+        <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
+          <div className="px-5 py-4 flex items-center justify-between border-b border-border-subtle">
+            <h2 className="text-sm font-sans font-medium text-text-primary">
+              {t('settings.locationWeather')}
+            </h2>
             <button
-              onClick={handleRefresh}
-              className="ml-2 underline text-text-tertiary hover:text-text-primary cursor-pointer border-none bg-transparent"
+              onClick={handleRefreshAll}
+              disabled={anyLoading || savedCities.length === 0}
+              className="flex items-center gap-1 text-xs font-sans text-text-tertiary hover:text-text-primary transition-colors duration-150 cursor-pointer border-none bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {t('settings.locationRetry')}
+              <RefreshCw size={13} className={cn(anyLoading && 'animate-spin')} />
+              {t('settings.locationRefresh')}
             </button>
           </div>
-        ) : weather ? (
-          <div className="px-5 pb-5">
-            <div className="flex items-center gap-4 mb-4">
-              <WeatherIcon code={weather.weatherCode} size={40} />
-              <div>
-                <div className="text-2xl font-sans font-medium text-text-primary tracking-tight">
-                  {Math.round(weather.temperature)}°C
+
+          <div className="divide-y divide-border-subtle">
+            {savedCities.map((city, index) => {
+              const key = cityWeatherKey(city.latitude, city.longitude)
+              const weather = weatherMap[key]
+              const loading = weatherLoadingMap[key]
+              const error = weatherErrorMap[key]
+              const isActive = index === activeCityIndex
+              const weatherLabel = weather
+                ? (language === 'zh' ? wmoCodeToLabelZh(weather.weatherCode) : wmoCodeToLabelEn(weather.weatherCode))
+                : ''
+
+              return (
+                <div
+                  key={key}
+                  className={cn(
+                    'px-5 py-3 flex items-center gap-3',
+                    isActive && 'bg-accent/5',
+                  )}
+                >
+                  {/* 活跃标记 */}
+                  <button
+                    onClick={() => handleSetActive(index)}
+                    disabled={isActive}
+                    className={cn(
+                      'flex items-center justify-center w-8 h-8 rounded-lg border-none cursor-pointer transition-colors duration-150 flex-shrink-0',
+                      isActive
+                        ? 'bg-accent/15 text-accent cursor-default'
+                        : 'text-text-quaternary hover:text-text-primary hover:bg-surface-sunken',
+                    )}
+                    title={isActive ? t('settings.locationCurrent') : t('settings.locationSetActive')}
+                  >
+                    <MapPin size={14} strokeWidth={isActive ? 3 : 1.75} />
+                  </button>
+
+                  {/* 城市信息 + 天气 */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        'text-sm font-sans font-medium truncate',
+                        isActive ? 'text-text-primary' : 'text-text-secondary',
+                      )}>
+                        {city.cityName}
+                      </span>
+                      {city.country && (
+                        <span className="text-xs text-text-quaternary font-sans">{city.country}</span>
+                      )}
+                      {isActive && (
+                        <span className="text-[10px] font-sans font-medium text-accent px-1.5 py-0.5 rounded-full bg-accent/10">
+                          {t('settings.locationCurrent')}
+                        </span>
+                      )}
+                    </div>
+                    {/* 天气信息 */}
+                    {loading ? (
+                      <div className="flex items-center gap-1.5 text-xs text-text-tertiary font-sans mt-1">
+                        <RefreshCw size={11} className="animate-spin" />
+                        {t('common.loading')}
+                      </div>
+                    ) : error ? (
+                      <div className="flex items-center gap-1.5 text-xs text-danger font-sans mt-1">
+                        <span className="truncate">{error}</span>
+                      </div>
+                    ) : weather ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <WeatherIcon code={weather.weatherCode} size={16} />
+                        <span className="text-sm font-sans font-medium text-text-primary">
+                          {Math.round(weather.temperature)}°C
+                        </span>
+                        <span className="text-xs text-text-tertiary font-sans">{weatherLabel}</span>
+                        <span className="text-[10px] text-text-quaternary font-sans">
+                          {t('settings.locationFeelsLike')} {Math.round(weather.feelsLike)}°
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-text-quaternary font-sans mt-1 block">
+                        {t('settings.locationNoWeather')}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 操作按钮 */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleRefreshCity(index)}
+                      disabled={loading}
+                      className="w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-150 cursor-pointer border-none bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={t('settings.locationRefresh')}
+                    >
+                      <RefreshCw size={12} className={cn(loading && 'animate-spin')} />
+                    </button>
+                    {savedCities.length > 1 && (
+                      <button
+                        onClick={() => handleRemove(index)}
+                        className="w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-danger hover:bg-surface-sunken transition-colors duration-150 cursor-pointer border-none bg-transparent"
+                        title={t('settings.locationRemoveCity')}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="text-xs text-text-tertiary font-sans mt-0.5">
-                  {weatherLabel}
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 当前活跃城市详细天气 */}
+      {locationSettings && savedCities[activeCityIndex] && (() => {
+        const city = savedCities[activeCityIndex]
+        const key = cityWeatherKey(city.latitude, city.longitude)
+        const weather = weatherMap[key]
+        const loading = weatherLoadingMap[key]
+        const error = weatherErrorMap[key]
+
+        if (loading && !weather) {
+          return (
+            <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden px-5 py-4 flex items-center gap-2 text-sm text-text-tertiary font-sans">
+              <RefreshCw size={14} className="animate-spin" />
+              {t('common.loading')}
+            </div>
+          )
+        }
+        if (error && !weather) {
+          return (
+            <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden px-5 py-4 text-sm text-danger font-sans">
+              {error}
+              <button
+                onClick={() => handleRefreshCity(activeCityIndex)}
+                className="ml-2 underline text-text-tertiary hover:text-text-primary cursor-pointer border-none bg-transparent"
+              >
+                {t('settings.locationRetry')}
+              </button>
+            </div>
+          )
+        }
+        if (weather) {
+          const weatherLabel = language === 'zh' ? wmoCodeToLabelZh(weather.weatherCode) : wmoCodeToLabelEn(weather.weatherCode)
+          return (
+            <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
+              <div className="px-5 py-4">
+                <div className="flex items-center gap-4 mb-4">
+                  <WeatherIcon code={weather.weatherCode} size={40} />
+                  <div>
+                    <div className="text-2xl font-sans font-medium text-text-primary tracking-tight">
+                      {Math.round(weather.temperature)}°C
+                    </div>
+                    <div className="text-xs text-text-tertiary font-sans mt-0.5">
+                      {weatherLabel}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="flex items-center gap-2 text-xs font-sans text-text-secondary">
+                    <Thermometer size={13} className="text-text-tertiary" />
+                    {t('settings.locationFeelsLike')} {Math.round(weather.feelsLike)}°C
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-sans text-text-secondary">
+                    <Droplets size={13} className="text-info" />
+                    {weather.humidity}%
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-sans text-text-secondary">
+                    <Wind size={13} className="text-text-tertiary" />
+                    {Math.round(weather.windSpeed)} km/h
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="flex items-center gap-2 text-xs font-sans text-text-secondary">
-                <Thermometer size={13} className="text-text-tertiary" />
-                {t('settings.locationFeelsLike')} {Math.round(weather.feelsLike)}°C
-              </div>
-              <div className="flex items-center gap-2 text-xs font-sans text-text-secondary">
-                <Droplets size={13} className="text-info" />
-                {weather.humidity}%
-              </div>
-              <div className="flex items-center gap-2 text-xs font-sans text-text-secondary">
-                <Wind size={13} className="text-text-tertiary" />
-                {Math.round(weather.windSpeed)} km/h
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="px-5 pb-5 text-sm text-text-tertiary font-sans">
-            {t('settings.locationNoWeather')}
-          </div>
-        )}
-      </div>
+          )
+        }
+        return null
+      })()}
     </div>
   )
 }

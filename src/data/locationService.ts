@@ -7,6 +7,7 @@
  * API 文档：https://open-meteo.com/en/docs
  */
 
+import { cityWeatherKey } from '@/domain/location'
 import type { GeocodingResult, WeatherData, DailyWeatherData } from '@/domain/location'
 
 const GEOCODING_BASE = 'https://geocoding-api.open-meteo.com/v1/search'
@@ -14,30 +15,43 @@ const WEATHER_BASE = 'https://api.open-meteo.com/v1/forecast'
 
 /** 单次请求超时上限：国内访问 Open-Meteo 域名有时会挂起很久，需要快速失败而不是无限等待 */
 const FETCH_TIMEOUT_MS = 10_000
+/** 网络层失败后的重试间隔 */
+const RETRY_DELAY_MS = 400
 
-async function fetchWithTimeout(url: string): Promise<Response> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
-  try {
-    return await fetch(url, { signal: controller.signal })
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'AbortError') {
-      throw new Error('网络请求超时，请检查网络连接后重试', { cause: e })
+/**
+ * 带超时的 fetch。attempts 为总尝试次数（含首次）——超时/断网等网络层失败自动重试，
+ * 国内访问 Open-Meteo 的超时多为瞬时故障，重试一次往往就能成功。
+ * HTTP 非 2xx 是服务端明确应答，由调用方检查 res.ok，不在此重试。
+ */
+async function fetchWithTimeout(url: string, attempts: number = 1): Promise<Response> {
+  let lastError: unknown
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+    try {
+      return await fetch(url, { signal: controller.signal })
+    } catch (e) {
+      lastError = e
+    } finally {
+      clearTimeout(timer)
     }
-    throw e
-  } finally {
-    clearTimeout(timer)
   }
+  if (lastError instanceof DOMException && lastError.name === 'AbortError') {
+    throw new Error('网络请求超时，请检查网络连接后重试', { cause: lastError })
+  }
+  if (lastError instanceof Error) throw lastError
+  throw new Error('网络请求失败', { cause: lastError })
 }
 
 /** 搜索城市名称，返回候选项列表 */
-export async function geocodeCity(query: string): Promise<GeocodingResult[]> {
+export async function geocodeCity(query: string, language: string = 'en'): Promise<GeocodingResult[]> {
   if (!query.trim()) return []
 
   const url = new URL(GEOCODING_BASE)
   url.searchParams.set('name', query.trim())
   url.searchParams.set('count', '5')
-  url.searchParams.set('language', 'zh')
+  url.searchParams.set('language', language)
   url.searchParams.set('format', 'json')
 
   const res = await fetchWithTimeout(url.toString())
@@ -70,7 +84,7 @@ export async function fetchWeather(
   url.searchParams.set('timezone', timezone)
   url.searchParams.set('forecast_days', '1')
 
-  const res = await fetchWithTimeout(url.toString())
+  const res = await fetchWithTimeout(url.toString(), 2)
   if (!res.ok) throw new Error(`Weather API 返回错误: ${res.status}`)
 
   const data: {
@@ -90,9 +104,13 @@ export async function fetchWeather(
     feelsLike: data.current.apparent_temperature,
     humidity: data.current.relative_humidity_2m,
     windSpeed: data.current.wind_speed_10m,
-    timestamp: new Date(data.current.time).getTime(),
+    // 记录获取时刻供「更新于」显示；API 的 current.time 是城市本地时间，跨时区按机器时区解析会偏差
+    timestamp: Date.now(),
   }
 }
+
+/** 每日预报会话级缓存（key = 城市坐标|YYYY-MM-DD）：过去日期的数据不会变，会话内不重复请求 */
+const dailyWeatherCache = new Map<string, DailyWeatherData>()
 
 /** 获取指定坐标某一天的每日预报（最高/最低温 + 天气代码） */
 export async function fetchDailyWeather(
@@ -103,6 +121,10 @@ export async function fetchDailyWeather(
 ): Promise<DailyWeatherData | null> {
   const targetDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`
 
+  const cacheKey = `${cityWeatherKey(latitude, longitude)}|${targetDateStr}`
+  const cached = dailyWeatherCache.get(cacheKey)
+  if (cached) return cached
+
   const url = new URL(WEATHER_BASE)
   url.searchParams.set('latitude', String(latitude))
   url.searchParams.set('longitude', String(longitude))
@@ -112,7 +134,7 @@ export async function fetchDailyWeather(
   url.searchParams.set('start_date', targetDateStr)
   url.searchParams.set('end_date', targetDateStr)
 
-  const res = await fetchWithTimeout(url.toString())
+  const res = await fetchWithTimeout(url.toString(), 2)
   if (!res.ok) throw new Error(`Daily weather API 返回错误: ${res.status}`)
 
   const data: {
@@ -126,10 +148,12 @@ export async function fetchDailyWeather(
 
   if (!data.daily || data.daily.time.length === 0) return null
 
-  return {
+  const result: DailyWeatherData = {
     weatherCode: data.daily.weather_code[0],
     temperatureMax: data.daily.temperature_2m_max[0],
     temperatureMin: data.daily.temperature_2m_min[0],
     date: new Date(data.daily.time[0]).getTime(),
   }
+  dailyWeatherCache.set(cacheKey, result)
+  return result
 }

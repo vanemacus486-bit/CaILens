@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { formatWeekday, isToday } from '@/domain/time'
+import { activeLocationAt } from '@/domain/location'
 import type { CalendarEvent } from '@/domain/event'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useLocationStore } from '@/stores/locationStore'
 import { useT } from '@/i18n/useT'
+import { MapPin } from 'lucide-react'
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+} from '@/components/ui/context-menu'
 import { MonthOverflowPopover } from './MonthOverflowPopover'
+import { DayLocationPickerDialog } from './DayLocationPickerDialog'
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -99,6 +109,23 @@ export function MonthView({
     setPopoverAnchor(null)
   }
 
+  // ── Day Location ────────────────────────────────────────
+  const dayLocations = useLocationStore((s) => s.dayLocations)
+  const removeDayLocation = useLocationStore((s) => s.removeDayLocation)
+  const [locationPickerDate, setLocationPickerDate] = useState<number | null>(null)
+
+  const handleSetLocation = (dateMs: number) => {
+    setLocationPickerDate(dateMs)
+  }
+
+  const handleClearLocation = (dateMs: number) => {
+    fireAndForget(removeDayLocation(dateMs), 'clear day location')
+  }
+
+  const handleLocationPickerClose = () => {
+    setLocationPickerDate(null)
+  }
+
   // ⚠️ 所有 hooks 必须在 early return 之前调用完毕
   return (
     <div className="flex flex-col h-full p-5 overflow-y-auto bg-surface-base">
@@ -125,57 +152,94 @@ export function MonthView({
         {cells.map((cell) => {
           const isToday_ = isToday(cell.date)
           const overflow = cell.events.length > 2 ? cell.events.length - 2 : 0
+          const activeLoc = activeLocationAt(dayLocations, cell.date)
+          const hasActiveLoc = activeLoc !== null
+          const previousLoc = activeLocationAt(dayLocations, cell.date - 86_400_000)
+          const locChanged = hasActiveLoc && (!previousLoc || previousLoc.locationName !== activeLoc.locationName)
           return (
-            <div
-              key={cell.date}
-              onClick={() => onDaySelect?.(cell.date)}
-              className={`
-                min-h-[80px] p-1.5 border-b border-r border-border-subtle
-                ${!cell.isCurrentMonth ? 'opacity-30' : ''}
-                ${isToday_ ? 'bg-accent/5' : ''}
-                hover:bg-surface-sunken/50 transition-colors duration-150 cursor-pointer
-              `}
-            >
-              <div
-                className={`
-                  w-6 h-6 flex items-center justify-center rounded-full font-sans text-xs
-                  ${isToday_ ? 'bg-accent text-white font-medium' : 'text-text-secondary'}
-                `}
-              >
-                {cell.day > 0 ? cell.day : ''}
-              </div>
-
-              {/* Events (max 2) */}
-              {cell.events.slice(0, 2).map((ev) => {
-                const cat = categories.find((c) => c.id === ev.categoryId)
-                const color = cat ? `var(--event-${cat.id}-fill)` : 'var(--event-accent-fill)'
-                return (
-                  <div
-                    key={ev.id}
-                    className="flex items-center gap-1 mt-px rounded px-0.5"
-                    title={ev.title}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: color }}
-                    />
-                    <span className="truncate font-sans text-[11px] text-text-secondary leading-normal" style={{ color }}>
-                      {fmtTime(ev.startTime)} {ev.title}
-                    </span>
-                  </div>
-                )
-              })}
-
-              {/* 溢出 — 点击打开悬浮卡片 */}
-              {overflow > 0 && (
-                <span
-                  onClick={(e) => handleOverflowClick(e, cell.date, cell.events)}
-                  className="font-sans text-[11px] text-text-tertiary pl-0.5 leading-tight mt-px cursor-pointer hover:text-accent transition-colors"
+            <ContextMenu key={cell.date}>
+              <ContextMenuTrigger asChild>
+                <div
+                  onClick={() => onDaySelect?.(cell.date)}
+                  className={`
+                    min-h-[80px] p-1.5 border-b border-r border-border-subtle
+                    ${!cell.isCurrentMonth ? 'opacity-30' : ''}
+                    ${isToday_ ? 'bg-accent/5' : ''}
+                    hover:bg-surface-sunken/50 transition-colors duration-150 cursor-pointer
+                  `}
                 >
-                  {t('month.moreEvents', overflow)}
-                </span>
-              )}
-            </div>
+                  <div
+                    className={`
+                      w-6 h-6 flex items-center justify-center rounded-full font-sans text-xs
+                      ${isToday_ ? 'bg-accent text-white font-medium' : 'text-text-secondary'}
+                    `}
+                  >
+                    {cell.day > 0 ? cell.day : ''}
+                  </div>
+
+                  {/* Location indicator */}
+                  {hasActiveLoc && cell.isCurrentMonth && (
+                    <div
+                      className={`
+                        flex items-center gap-0.5 mt-0.5 px-0.5 rounded-sm
+                        font-sans text-[10px] leading-tight
+                        ${locChanged ? 'text-accent font-medium' : 'text-text-tertiary'}
+                      `}
+                    >
+                      <MapPin size={8} strokeWidth={2} className="shrink-0" />
+                      <span className="truncate max-w-[70px]">{activeLoc.locationName}</span>
+                    </div>
+                  )}
+
+                  {/* Events (max 2) */}
+                  {cell.events.slice(0, 2).map((ev) => {
+                    const cat = categories.find((c) => c.id === ev.categoryId)
+                    const color = cat ? `var(--event-${cat.id}-fill)` : 'var(--event-accent-fill)'
+                    return (
+                      <div
+                        key={ev.id}
+                        className="flex items-center gap-1 mt-px rounded px-0.5"
+                        title={ev.title}
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="truncate font-sans text-[11px] text-text-secondary leading-normal" style={{ color }}>
+                          {fmtTime(ev.startTime)} {ev.title}
+                        </span>
+                      </div>
+                    )
+                  })}
+
+                  {/* 溢出 — 点击打开悬浮卡片 */}
+                  {overflow > 0 && (
+                    <span
+                      onClick={(e) => handleOverflowClick(e, cell.date, cell.events)}
+                      className="font-sans text-[11px] text-text-tertiary pl-0.5 leading-tight mt-px cursor-pointer hover:text-accent transition-colors"
+                    >
+                      {t('month.moreEvents', overflow)}
+                    </span>
+                  )}
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                {hasActiveLoc ? (
+                  <>
+                    <ContextMenuItem onSelect={() => handleSetLocation(cell.date)}>
+                      {t('dayLocation.changeLocation')}
+                    </ContextMenuItem>
+                    <ContextMenuItem onSelect={() => handleClearLocation(cell.date)}>
+                      {t('dayLocation.clearLocation')}
+                    </ContextMenuItem>
+                  </>
+                ) : (
+                  <ContextMenuItem onSelect={() => handleSetLocation(cell.date)}>
+                    {t('dayLocation.setLocation')}
+                  </ContextMenuItem>
+                )}
+              </ContextMenuContent>
+            </ContextMenu>
           )
         })}
       </div>
@@ -191,6 +255,15 @@ export function MonthView({
           language={language}
           onClose={handlePopoverClose}
           onNavigateToWeek={onNavigateToWeek}
+        />
+      )}
+
+      {/* ── Day Location picker ── */}
+      {locationPickerDate !== null && (
+        <DayLocationPickerDialog
+          date={locationPickerDate}
+          initialName={activeLocationAt(dayLocations, locationPickerDate)?.locationName ?? undefined}
+          onClose={handleLocationPickerClose}
         />
       )}
     </div>

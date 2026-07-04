@@ -7,7 +7,7 @@
 
 import { useMemo } from 'react'
 import { useLocation, useSearchParams, useNavigate } from 'react-router-dom'
-import { Settings, CheckCircle, Star, TrendingUp, LayoutGrid, Moon, Utensils, Droplets, Shirt, Smile, Archive, BookOpen } from 'lucide-react'
+import { Settings, CheckCircle, Star, TrendingUp, LayoutGrid, Moon, Utensils, Droplets, Shirt, Smile, BookOpen } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useT } from '@/i18n/useT'
 import { useDomainNav } from '@/components/nav/domainNav'
@@ -41,7 +41,7 @@ export function CompactSidebar() {
   const isStats = location.pathname === '/stats'
   const isAction = location.pathname === '/action'
   const routineView = (searchParams.get('view') as RoutineViewMode | null) ?? 'trend'
-  const todoFilter = (searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? 'all'
+  const todoFilter = (searchParams.get('filter') as 'all' | 'starred' | null) ?? 'all'
 
   const setRoutineView = (v: RoutineViewMode) => {
     const next = new URLSearchParams(searchParams)
@@ -50,11 +50,10 @@ export function CompactSidebar() {
     setSearchParams(next, { replace: true })
   }
 
-  const setTodoFilter = (v: 'all' | 'starred' | 'archive') => {
+  const setTodoFilter = (v: 'all' | 'starred') => {
     const next = new URLSearchParams(searchParams)
     if (v === 'all') next.delete('filter')
     else next.set('filter', v)
-    if (v !== 'archive') next.delete('archiveDate')
     setSearchParams(next, { replace: true })
   }
 
@@ -101,7 +100,6 @@ export function CompactSidebar() {
           {([
             { id: 'all' as const, labelKey: 'sidebar.allTasks', icon: CheckCircle },
             { id: 'starred' as const, labelKey: 'sidebar.starred', icon: Star },
-            { id: 'archive' as const, labelKey: 'sidebar.archive', icon: Archive },
           ]).map((v) => {
             const Icon = v.icon
             const selected = v.id === todoFilter

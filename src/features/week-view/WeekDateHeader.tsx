@@ -1,7 +1,5 @@
 import { cn } from '@/lib/utils'
 import { formatWeekday, isToday } from '@/domain/time'
-import { detectBrowserTimezone, formatTimezoneWithOffset } from '@/domain/location'
-import { useLocationStore } from '@/stores/locationStore'
 
 interface WeekDateHeaderProps {
   days: Date[]
@@ -10,17 +8,12 @@ interface WeekDateHeaderProps {
 }
 
 export function WeekDateHeader({ days, highlightedDayMs, onDayClick }: WeekDateHeaderProps) {
-  const locationSettings = useLocationStore((s) => s.locationSettings)
-  const browserTz = detectBrowserTimezone()
-  const tz = locationSettings?.timezone ?? browserTz
-  const tzLabel = formatTimezoneWithOffset(tz)
-
   return (
     <div className="grid flex-shrink-0 min-w-[540px]" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)' }}>
-      {/* Spacer — aligns with TimeGrid's label column, shows timezone */}
+      {/* Spacer — aligns with TimeGrid's label column */}
       <div className="flex items-end justify-center pb-2 bg-surface-base border-l border-grid-line">
         <span className="text-[9px] font-mono text-text-tertiary leading-none whitespace-nowrap select-none">
-          {tzLabel}
+          &nbsp;
         </span>
       </div>
 

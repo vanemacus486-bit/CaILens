@@ -2,15 +2,17 @@
  * # SettingsAI — 设置：AI 提供商配置
  *
  * 允许用户启用/禁用 AI 功能，并管理多个 AI 提供商（OpenAI / Anthropic / Google / 自定义）的
- * API Key、端点 Base URL 和模型名。目前仅作存储，不涉及实际 AI 调用。
+ * API Key、端点 Base URL 和模型名。
+ * 支持「测试连接」按钮验证配置是否可用，以及「快速添加」预设。
  */
 
 import { useCallback, useMemo } from 'react'
-import { Plus, Trash2, Eye, EyeOff, Info } from 'lucide-react'
+import { Plus, Trash2, Eye, EyeOff, Info, Loader2, CheckCircle2, XCircle, Zap, Download } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import type { AiProvider, AiProviderConfig, AiSettings } from '@/domain/settings'
 import { cn } from '@/lib/utils'
 import { fireAndForget } from '@/lib/fireAndForget'
+import { testAiConnection, fetchAvailableModels, type ConnectionTestResult } from '@/data/aiChatService'
 import { useState } from 'react'
 
 /* ── 常量 ── */
@@ -28,6 +30,13 @@ const PROVIDER_DEFAULTS: Record<AiProvider, string> = {
   google:    'https://generativelanguage.googleapis.com',
   custom:    '',
 }
+
+const QUICK_ADD_PRESETS: { provider: AiProvider; label: string; baseUrl: string; model: string }[] = [
+  { provider: 'custom', label: 'Agnes（OpenAI 兼容）', baseUrl: 'https://apihub.agnes-ai.com/v1',  model: '' },
+  { provider: 'openai',    label: 'OpenAI',                   baseUrl: 'https://api.openai.com/v1',    model: 'gpt-4o' },
+  { provider: 'anthropic', label: 'Anthropic Claude',         baseUrl: 'https://api.anthropic.com',    model: 'claude-sonnet-4-20250514' },
+  { provider: 'google',    label: 'Google Gemini',            baseUrl: 'https://generativelanguage.googleapis.com', model: 'gemini-2.0-flash' },
+]
 
 /* ── Toggle Switch 组件 ── */
 
@@ -90,6 +99,203 @@ function PasswordInput({
   )
 }
 
+/* ── 测试连接按钮 ── */
+
+function ConnectionTest({
+  config,
+  language,
+}: {
+  config: AiProviderConfig
+  language: string
+}) {
+  const [testing, setTesting] = useState(false)
+  const [result, setResult] = useState<ConnectionTestResult | null>(null)
+  const tl = (zh: string, en: string) => (language === 'zh' ? zh : en)
+
+  const handleTest = useCallback(async () => {
+    if (!config.apiKey.trim()) {
+      setResult({ ok: false, message: tl('请先填写 API Key', 'Please enter an API Key first') })
+      return
+    }
+    setTesting(true)
+    setResult(null)
+    const r = await testAiConnection(config)
+    setResult(r)
+    setTesting(false)
+  }, [config, tl])
+
+  return (
+    <div className="mt-3">
+      <button
+        onClick={handleTest}
+        disabled={testing}
+        className={cn(
+          'flex items-center gap-1.5 text-xs font-sans transition-colors duration-150 cursor-pointer border-none rounded-lg px-3 py-1.5',
+          testing
+            ? 'bg-surface-base text-text-tertiary cursor-wait'
+            : 'bg-surface-base text-text-secondary hover:text-text-primary hover:bg-surface-sunken',
+        )}
+      >
+        {testing ? (
+          <Loader2 size={12} className="animate-spin" />
+        ) : (
+          <Zap size={12} />
+        )}
+        {testing ? tl('测试中…', 'Testing…') : tl('测试连接', 'Test Connection')}
+      </button>
+
+      {result && (
+        <div
+          className={cn(
+            'mt-2 flex items-start gap-1.5 text-xs font-sans rounded-lg px-3 py-2',
+            result.ok
+              ? 'bg-success/10 text-success'
+              : 'bg-danger/10 text-danger',
+          )}
+        >
+          {result.ok ? (
+            <CheckCircle2 size={12} className="mt-0.5 shrink-0" />
+          ) : (
+            <XCircle size={12} className="mt-0.5 shrink-0" />
+          )}
+          <span>{result.message}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── 模型拉取下拉 ── */
+
+function ModelPicker({
+  config,
+  onPick,
+  language,
+}: {
+  config: AiProviderConfig
+  onPick: (model: string) => void
+  language: string
+}) {
+  const [loading, setLoading] = useState(false)
+  const [models, setModels] = useState<string[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const tl = (zh: string, en: string) => (language === 'zh' ? zh : en)
+
+  const handleFetch = useCallback(async () => {
+    if (!config.apiKey.trim()) {
+      setError(tl('请先填写 API Key', 'Please enter an API Key first'))
+      setModels(null)
+      return
+    }
+    setLoading(true)
+    setError(null)
+    const r = await fetchAvailableModels(config)
+    if (r.ok) {
+      setModels(r.models)
+      setError(
+        r.models.length === 0
+          ? tl('该端点未返回模型列表，请手动填写模型名', 'Endpoint returned no models; enter the model name manually')
+          : null,
+      )
+    } else {
+      setModels(null)
+      setError(r.message ?? tl('拉取失败', 'Failed to fetch models'))
+    }
+    setLoading(false)
+  }, [config, tl])
+
+  return (
+    <div className="mt-3">
+      <button
+        onClick={handleFetch}
+        disabled={loading}
+        className={cn(
+          'flex items-center gap-1.5 text-xs font-sans transition-colors duration-150 cursor-pointer border-none rounded-lg px-3 py-1.5',
+          loading
+            ? 'bg-surface-base text-text-tertiary cursor-wait'
+            : 'bg-surface-base text-text-secondary hover:text-text-primary hover:bg-surface-sunken',
+        )}
+      >
+        {loading ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+        {loading ? tl('拉取中…', 'Fetching…') : tl('从端点拉取模型', 'Fetch models')}
+      </button>
+
+      {models && models.length > 0 && (
+        <select
+          value={config.model ?? ''}
+          onChange={(e) => onPick(e.target.value)}
+          className="mt-2 w-full text-xs font-sans text-text-primary bg-surface-base border border-border-subtle rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-accent/30 focus:outline-none focus:border-border-default transition-shadow duration-150 cursor-pointer font-mono"
+        >
+          <option value="">{tl('选择模型…', 'Select a model…')}</option>
+          {models.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {error && (
+        <div className="mt-2 flex items-start gap-1.5 text-xs font-sans rounded-lg px-3 py-2 bg-danger/10 text-danger">
+          <XCircle size={12} className="mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── 快速添加预设按钮 ── */
+
+function QuickAddPreset({
+  onAdd,
+  language,
+}: {
+  onAdd: (config: AiProviderConfig) => void
+  language: string
+}) {
+  const [open, setOpen] = useState(false)
+  const tl = (zh: string, en: string) => (language === 'zh' ? zh : en)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 text-xs font-sans text-accent hover:text-accent/80 transition-colors cursor-pointer border-none bg-transparent"
+      >
+        <Zap size={13} />
+        {tl('快速添加', 'Quick Add')}
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-lg border border-border-subtle bg-surface-raised p-1.5 shadow-lg">
+            {QUICK_ADD_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                onClick={() => {
+                  onAdd({
+                    provider: preset.provider,
+                    label: preset.label,
+                    apiKey: '',
+                    baseUrl: preset.baseUrl || undefined,
+                    model: preset.model || undefined,
+                  })
+                  setOpen(false)
+                }}
+                className="w-full text-left px-3 py-2 text-xs font-sans text-text-primary hover:bg-surface-sunken rounded-md transition-colors cursor-pointer border-none bg-transparent"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 /* ── 主组件 ── */
 
 export function SettingsAI() {
@@ -124,6 +330,13 @@ export function SettingsAI() {
     }
     updateAi({ ...ai, providers: [...ai.providers, newProvider] })
   }, [ai, updateAi])
+
+  const addProviderFromPreset = useCallback(
+    (preset: AiProviderConfig) => {
+      updateAi({ ...ai, enabled: true, providers: [...ai.providers, preset] })
+    },
+    [ai, updateAi],
+  )
 
   const updateProvider = useCallback(
     (index: number, patch: Partial<AiProviderConfig>) => {
@@ -195,13 +408,16 @@ export function SettingsAI() {
           <h2 className="text-sm font-sans font-medium text-text-primary">
             {tl('提供商', 'Providers')}
           </h2>
-          <button
-            onClick={addProvider}
-            className="flex items-center gap-1 text-xs font-sans text-accent hover:text-accent/80 transition-colors cursor-pointer border-none bg-transparent"
-          >
-            <Plus size={13} />
-            {tl('添加', 'Add')}
-          </button>
+          <div className="flex items-center gap-2">
+            <QuickAddPreset onAdd={addProviderFromPreset} language={language} />
+            <button
+              onClick={addProvider}
+              className="flex items-center gap-1 text-xs font-sans text-accent hover:text-accent/80 transition-colors cursor-pointer border-none bg-transparent"
+            >
+              <Plus size={13} />
+              {tl('添加', 'Add')}
+            </button>
+          </div>
         </div>
 
         {ai.providers.length === 0 ? (
@@ -299,6 +515,18 @@ export function SettingsAI() {
                     />
                   </div>
                 </div>
+
+                {/* 拉取模型 + 测试连接 */}
+                {provider.apiKey.trim() && (
+                  <>
+                    <ModelPicker
+                      config={provider}
+                      onPick={(m) => updateProvider(index, { model: m })}
+                      language={language}
+                    />
+                    <ConnectionTest config={provider} language={language} />
+                  </>
+                )}
               </div>
             ))}
           </div>

@@ -17,14 +17,13 @@ import { TaskRow } from './TaskRow'
 import { CompletedSection } from './CompletedSection'
 import { EmptyState } from './EmptyState'
 import { TodoListColumn } from './TodoListColumn'
-import { ArchivePanel } from './ArchivePanel'
 
 function sortTodos(todos: Todo[], sortMode: SortMode, now: number): { active: Todo[]; done: Todo[] } {
   const active: Todo[] = []
   const done: Todo[] = []
   for (const t of todos) {
-    if (t.status === 'done') done.push(t)
-    else active.push(t)
+    if (t.status === 'done' && t.archivedAt === null) done.push(t)
+    else if (t.status !== 'done') active.push(t)
   }
   if (sortMode === 'dueDate') {
     active.sort((a, b) => {
@@ -59,7 +58,7 @@ export function PlanningPage() {
   const [sortMode, setSortMode] = useState<SortMode>('manual')
   const [composerOpen, setComposerOpen] = useState(false)
   const [composerFocusNonce, setComposerFocusNonce] = useState(0)
-  const filterMode = (searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? 'all'
+  const filterMode = (searchParams.get('filter') as 'all' | 'starred' | null) ?? 'all'
   const now = useMemo(() => Date.now(), [])
 
   // Unconditional hook: visible lists for kanban (used below conditional returns)
@@ -67,11 +66,6 @@ export function PlanningPage() {
     () => lists.filter((l) => visibleListIds.includes(l.id)).sort((a, b) => a.sortOrder - b.sortOrder),
     [lists, visibleListIds],
   )
-
-  // ── 归档视图（所有 hook 之后方可 early return）──
-  if (filterMode === 'archive') {
-    return <ArchivePanel />
-  }
 
   // ── 已加星标视图（跨清单单列） ──
   if (filterMode === 'starred') {

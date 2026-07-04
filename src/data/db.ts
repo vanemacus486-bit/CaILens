@@ -306,6 +306,26 @@ export class CailensDB extends Dexie {
       chronicleTasks: 'id, date',
     })
 
+    // v31: todoLists 新增 categoryId 字段（清单颜色标签，纯视觉，不影响统计）
+    this.version(31).stores({
+      todoLists: 'id, sortOrder, categoryId',
+    }).upgrade((tx) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tx.table('todoLists').toCollection().modify((l: any) => {
+        if (l.categoryId === undefined) l.categoryId = null
+      })
+    )
+
+    // v32: todos 新增 archivedAt 字段（归档已完成）
+    this.version(32).stores({
+      todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern, priority, domain, goalId, listId, archivedAt',
+    }).upgrade((tx) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tx.table('todos').toCollection().modify((t: any) => {
+        if (t.archivedAt === undefined) t.archivedAt = null
+      })
+    )
+
     // 鍏ㄦ柊 DB 棣栨鍒涘缓鏃惰Е鍙戯紙version 0 鈫?any锛?
     this.on('populate', () =>
       Promise.all([

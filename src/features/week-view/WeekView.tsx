@@ -18,7 +18,7 @@ import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
 import { WeekEmptyState } from './WeekEmptyState'
 import { MonthView } from '@/features/month-view/MonthView'
-import { DayWeatherDrawer } from '@/features/month-view/DayWeatherDrawer'
+import { DayDrawer } from './DayDrawer'
 import { FloatingEventCard } from '@/features/quick-log/FloatingEventCard'
 import { MobileDayView } from '@/features/day-view/MobileDayView'
 import { useIsMobile } from '@/hooks/useMediaQuery'
@@ -83,13 +83,8 @@ export function WeekView() {
 
   const [highlightedDayMs, setHighlightedDayMs] = useState<number | null>(null)
 
-  // 月视图选中的日期（用于右侧天气面板）
-  const [selectedMonthDayMs, setSelectedMonthDayMs] = useState<number | null>(null)
-
-  // 离开月视图时清除选中的日期
-  useEffect(() => {
-    if (viewMode !== 'month') setSelectedMonthDayMs(null)
-  }, [viewMode])
+  // 右侧信息面板选中的日期
+  const [drawerDayMs, setDrawerDayMs] = useState<number | null>(null)
 
   // Parse ?highlight=<date> from URL on mount or param change
   useEffect(() => {
@@ -121,13 +116,17 @@ export function WeekView() {
     )
   }, [setWeekStart, setSearchParams])
 
-  // 月视图点击某天 → 打开右侧天气抽屉
-  const handleMonthDaySelect = useCallback((dateMs: number) => {
-    setSelectedMonthDayMs(dateMs)
+  // 月视图点击某天 / 周视图双击日期 → 打开右侧信息面板
+  const handleDaySelect = useCallback((dateMs: number) => {
+    setDrawerDayMs(dateMs)
   }, [])
 
-  const handleCloseWeatherDrawer = useCallback(() => {
-    setSelectedMonthDayMs(null)
+  const handleOpenDrawer = useCallback((date: Date) => {
+    setDrawerDayMs(date.getTime())
+  }, [])
+
+  const handleCloseDrawer = useCallback(() => {
+    setDrawerDayMs(null)
   }, [])
 
   const [cardState, setCardState] = useState<CardState>({ mode: 'none' })
@@ -257,19 +256,6 @@ export function WeekView() {
       open: true,
       anchorEl: slotEl,
       times: { start: startTime, end: startTime + 60 * 60_000 },
-      color: 'accent',
-      editingEvent: undefined,
-    })
-  }, [cardState.mode])
-
-  // ── Ghost gap click → open FloatingEventCard ──────
-  const handleGapClick = useCallback((gapStart: number, gapEnd: number, anchorEl: HTMLElement) => {
-    if (cardState.mode !== 'none') return
-
-    setFloatingCard({
-      open: true,
-      anchorEl,
-      times: { start: gapStart, end: gapEnd },
       color: 'accent',
       editingEvent: undefined,
     })
@@ -407,12 +393,12 @@ export function WeekView() {
       <div className="flex-1 flex min-w-0 min-h-0">
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface-raised border border-border-subtle rounded-2xl shadow-lg m-3">
         {viewMode === 'week' && !(isMobile && mobileViewMode === 'day') && (
-          <WeekDateHeader days={days} highlightedDayMs={highlightedDayMs} onDayClick={handleNavigateToWeek} />
+          <WeekDateHeader days={days} highlightedDayMs={highlightedDayMs} onDayClick={handleOpenDrawer} />
         )}
 
-        <div key={`view-anim-${toggleGen}`} className={`${toggleGen >= 0 ? 'cai-radial-reveal' : ''} flex-1 flex flex-col min-h-0`}>
+        <div key={`view-anim-${toggleGen}`} className={`${toggleGen >= 0 ? 'cai-flip-in' : ''} flex-1 flex flex-col min-h-0`}>
           {viewMode === 'month' ? (
-            <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} onDaySelect={handleMonthDaySelect} />
+            <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} onDaySelect={handleDaySelect} />
           ) : isMobile && mobileViewMode === 'day' ? (
             <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
           ) : (
@@ -457,7 +443,6 @@ export function WeekView() {
                     onDragStart={handleDragStart}
                     onDragStateChange={handleDragStateChange}
                     onResize={handleResize}
-                    onGapClick={handleGapClick}
                   />
                 ))}
                 {activeDragState.ghostStyle && (
@@ -485,10 +470,10 @@ export function WeekView() {
       </div>
     </div>
 
-        {selectedMonthDayMs != null && (
-          <DayWeatherDrawer
-            selectedDateMs={selectedMonthDayMs}
-            onClose={handleCloseWeatherDrawer}
+        {drawerDayMs != null && (
+          <DayDrawer
+            selectedDateMs={drawerDayMs}
+            onClose={handleCloseDrawer}
           />
         )}
       </div>

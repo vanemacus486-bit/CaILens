@@ -1,16 +1,16 @@
-/**
- * # WeekSidebar — 周/月视图左侧面板
+﻿/**
+ * # WeekSidebar �?�?月�1�?图左侧面�?
  *
- * 精简浅色面板：导航切换 + 缩小版月视图 + 日期标记（右键标记 + 提醒列表）+ 设置。
- * 显隐由顶栏左上角 ☰ 控制（uiStore.sidebarExpanded，见 App.tsx Layout），
- * 本组件只负责内容，不再常驻、不含品牌名与折叠按钮。
+ * 精简浅色面板：�1�?�?�?���?+ 缩小版月视图 + 日期标�1�?（右�?�?���?+ 提醒列表�? 设置�?
+ * 显隐由顶栏左上�1�? �?控制（uiStore.sidebarExpanded，�1�? App.tsx Layout），
+ * �?�?��件只负责内�1�?，不再常驻��不�?�?��牌名与折叠按�?�?��?
  *
- * 自驱动：从 store 读语言，从 URL 读视图参数，导航直接更新 URL。
+ * �?�?���?�?���?store 读�1�?訄1�7��，从 URL 读�1�?图参数，导航直接更新 URL�?
  */
 
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, Trash2, X, CheckCircle } from 'lucide-react'
 import {
   startOfMonth,
   endOfMonth,
@@ -30,7 +30,12 @@ import { startOfLocalDay } from '@/domain/habitPlan'
 import type { EventColor } from '@/domain/event'
 import { EVENT_COLORS } from '@/domain/event'
 import { formatISODate, getWeekStart, parseISODate } from '@/domain/time'
+import { activeLocationAt } from '@/domain/location'
+import { useLocationStore } from '@/stores/locationStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useTodoStore } from '@/stores/todoStore'
+import { useTodoListStore } from '@/stores/todoListStore'
+import { fireAndForget } from '@/lib/fireAndForget'
 import { useT } from '@/i18n/useT'
 import type { TranslationKey } from '@/i18n/translations'
 import { LANGUAGE_LOCALE } from '@/i18n/types'
@@ -51,10 +56,11 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { DayLocationPickerDialog } from '@/features/month-view/DayLocationPickerDialog'
 
 const WEEKDAYS_EN = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
-/** 手写风圆圈 —— 不规则椭圆 + 顶部小缺口，像用笔圈了一下 */
+/** 手写风圆�?—��?不�1�?则椭�?+ 顶部小缺口，像用笔圈了一�?*/
 function HandDrawnCircle() {
   return (
     <svg
@@ -74,7 +80,7 @@ function HandDrawnCircle() {
   )
 }
 
-/** 手写风标记圈 —— 与 HandDrawnCircle 路径微差 + 墨色描边，一眼可辨「非今天但有标记」 */
+/** 手写风标记圈 —��?�?HandDrawnCircle �?�?���?�?�� + 墨色描边，一眼可辄1�7���非今天但有标�1�?�?*/
 function HandDrawnMarkRing() {
   return (
     <svg
@@ -95,7 +101,7 @@ function HandDrawnMarkRing() {
   )
 }
 
-/** 手写风横线 —— 贯穿单元格底部，相邻格首尾相接成「当前周」整行下划线 */
+/** 手写风横�?—��?�?�?��单元格底�?�?��相邻格�1�?尾相接成「当前周」整行下划线 */
 function HandDrawnWeekUnderline() {
   return (
     <svg
@@ -115,7 +121,7 @@ function HandDrawnWeekUnderline() {
   )
 }
 
-/** 标记圆点 —— 仅今天+有标记时出现，在数字下方 */
+/** 标�1�?圆点 —��?仅今�?有标记时出现，在数字下方 */
 function MarkDot({ color }: { color?: EventColor | null }) {
   const fill = color ? `var(--event-${color}-fill)` : 'var(--accent)'
   return (
@@ -128,8 +134,8 @@ function MarkDot({ color }: { color?: EventColor | null }) {
 }
 
 /**
- * 日期标记编辑器弹窗。
- * 右键点击某天后弹出，可新建/编辑/删除该日标记。
+ * 日期标�1�?编辑器弹窗��?
+ * 右键点击某天后弹出，�?�?���?编辑/删除该日标�1�?�?
  */
 function DayMarkEditor({
   day,
@@ -223,7 +229,7 @@ function DayMarkEditor({
         )}
       </DialogDescription>
 
-      {/* 已有标记列表 */}
+      {/* 已有标�1�?列表 */}
       {existingMarks.length > 0 && (
         <div className="mt-3 space-y-1.5 max-h-[120px] overflow-y-auto">
           {existingMarks.map((m) => (
@@ -347,7 +353,7 @@ function DayMarkEditor({
 }
 
 export function WeekSidebar() {
-  // ── All hooks first (rule of hooks) ──
+  // ┄1�7��┄1�7�� All hooks first (rule of hooks) ┄1�7��┄1�7��
   const [searchParams, setSearchParams] = useSearchParams()
   const language = useAppSettingsStore((s) => s.settings.language)
   const isMobile = useIsMobile()
@@ -359,11 +365,34 @@ export function WeekSidebar() {
 
   const [editorDay, setEditorDay] = useState<Date | null>(null)
 
+  // ┢�┢� 归档已完成数�?┢�┢�
+  const allTodos = useTodoStore((s) => s.todos)
+  const todoLists = useTodoListStore((s) => s.lists)
+  const [archiveExpanded, setArchiveExpanded] = useState(false)
+
+  const dayLocations = useLocationStore((s) => s.dayLocations)
+  const removeDayLocation = useLocationStore((s) => s.removeDayLocation)
+
   const t = useT()
   const viewMode = (searchParams.get('view') as 'week' | 'month' | null) ?? 'week'
 
   const openEditor = useCallback((day: Date) => setEditorDay(day), [])
   const closeEditor = useCallback(() => setEditorDay(null), [])
+
+  // ┢�┢� Day Location ┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�┢�
+  const [locationPickerDay, setLocationPickerDay] = useState<number | null>(null)
+
+  const handleSetLocation = useCallback((dayMs: number) => {
+    setLocationPickerDay(dayMs)
+  }, [])
+
+  const handleClearLocation = useCallback((dayMs: number) => {
+    fireAndForget(removeDayLocation(dayMs), 'clear day location')
+  }, [removeDayLocation])
+
+  const handleLocationPickerClose = useCallback(() => {
+    setLocationPickerDay(null)
+  }, [])
 
   const handleSaveMark = useCallback(
     (label: string, color?: EventColor | null) => {
@@ -387,7 +416,7 @@ export function WeekSidebar() {
     [deleteDayMark],
   )
 
-  // ── 点击迷你月历某天：更新 URL ──
+  // ┄1�7��┄1�7�� 点击迷你月历某天：更�?URL ┄1�7��┄1�7��
   const handleSelectDate = useCallback((day: Date) => {
     if (viewMode === 'month') {
       const monthStart = new Date(day.getFullYear(), day.getMonth(), 1)
@@ -404,7 +433,7 @@ export function WeekSidebar() {
     }
   }, [viewMode, setSearchParams])
 
-  // ── 从 URL 取值 ──
+  // ┄1�7��┄1�7�� �?URL 取��?┄1�7��┄1�7��
   const weekParam = searchParams.get('week')
   const weekStart = weekParam ? parseISODate(weekParam) : getWeekStart(new Date(), 1)
 
@@ -417,14 +446,14 @@ export function WeekSidebar() {
     return weekStart
   })()
 
-  // 决定高亮基准日：周模式取该周周四（多数天所在月，跨月周不会偏向周一所在的月），月模式看 selectedDay
+  // 决定高亮基准日：周模式取该周周四（�1�?数天扄1�7��在月，跨月周不会偏向周一扄1�7��在的月），月模式�?selectedDay
   const anchorDate = viewMode === 'week' ? addDays(weekStart, 3) : selectedDay
   const anchorMonthKey = format(anchorDate, 'yyyy-MM')
 
-  // 迷你月历当前显示的月份；主视图跨月时自动跟随
+  // 迷你月历当前显示的月份；主�1�?图跨月时�?�?��跟随
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(anchorDate))
 
-  // 仅在主视图基准月变化时同步，避免覆盖用户手动翻月
+  // 仅在主�1�?图基准月变化时同步，避免覆盖用户手动翻月
   useEffect(() => {
     setViewMonth(startOfMonth(anchorDate))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -433,18 +462,36 @@ export function WeekSidebar() {
   const handlePrevMonth = useCallback(() => setViewMonth((m) => subMonths(m, 1)), [])
   const handleNextMonth = useCallback(() => setViewMonth((m) => addMonths(m, 1)), [])
 
-  // ── 移动端不渲染（由 Layout 控制）──
+  const activeWeekStart = startOfWeek(anchorDate, { weekStartsOn: 1 })
+  const activeWeekEnd = endOfWeek(anchorDate, { weekStartsOn: 1 })
+
+  // ┢�┢� 归档已完成数捄1�7��必须�?early return 前定义） ┢�┢�
+  const archivedTodosThisWeek = useMemo(() => {
+    const weekStartMs = activeWeekStart.getTime()
+    const weekEndMs = activeWeekEnd.getTime()
+    return allTodos
+      .filter((t) => t.archivedAt !== null && t.completedAt !== null && t.completedAt >= weekStartMs && t.completedAt <= weekEndMs)
+      .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+  }, [allTodos, activeWeekStart, activeWeekEnd])
+
+  const listNameMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const l of todoLists) {
+      map.set(l.id, l.name)
+    }
+    return map
+  }, [todoLists])
+
+  // ┄1�7��┄1�7�� 移动�?�?��渲染（由 Layout 控制）─┄1�7��
   if (isMobile) return null
 
-  // ── 派生值 ──
+  // ┄1�7��┄1�7�� 派生�?┄1�7��┄1�7��
   const editorOpen = editorDay !== null
   const editorMarks = editorDay
     ? marksOnDay(dayMarks ?? [], startOfLocalDay(editorDay.getTime()))
     : []
   const reminders = upcomingMarks(dayMarks ?? [], Date.now())
 
-  const activeWeekStart = startOfWeek(anchorDate, { weekStartsOn: 1 })
-  const activeWeekEnd = endOfWeek(anchorDate, { weekStartsOn: 1 })
 
   const days = eachDayOfInterval({
     start: startOfWeek(viewMonth, { weekStartsOn: 1 }),
@@ -459,9 +506,9 @@ export function WeekSidebar() {
 
   return (
     <aside className="w-64 flex-shrink-0 flex flex-col bg-surface-raised border border-border-subtle rounded-2xl shadow-lg overflow-hidden m-3 max-md:hidden">
-      {/* ── 滚动内容区 ── */}
+      {/* ┄1�7��┄1�7�� 滚动内�1�?�?┄1�7��┄1�7�� */}
       <div className="flex-1 flex flex-col gap-4 px-4 pt-4 pb-3 overflow-y-auto">
-        {/* ── 域导航：日历 / 规划 / 复盘 ── */}
+        {/* ┄1�7��┄1�7�� 域�1�?�?�?��日历 / 规划 / 复盘 ┄1�7��┄1�7�� */}
         <SlideSegmented
           items={navItems}
           value={activeMode}
@@ -471,7 +518,7 @@ export function WeekSidebar() {
           shortcuts={{ calendar: 'Alt+1', plan: 'Alt+2', review: 'Alt+3' }}
         />
 
-        {/* ── 缩小版月视图 ── */}
+        {/* ┄1�7��┄1�7�� 缩小版月视图 ┄1�7��┄1�7�� */}
         <div>
           {/* 月份导航 */}
           <div className="flex items-center justify-between mb-2">
@@ -511,18 +558,18 @@ export function WeekSidebar() {
             {days.map((day) => {
               const inMonth = isSameMonth(day, viewMonth)
               const inActiveWeek = day >= activeWeekStart && day <= activeWeekEnd
-              // 圈出今天；周模式额外在当前周整行下画手写横线
+              // 圈出今天；周模式额�1�?在当前周整�1�?下画手写�?�?��
               const isCircled = isToday(day)
               const showUnderline = viewMode === 'week' && inActiveWeek
 
-              // 日期标记相关
+              // 日期标�1�?相关
               const dayMs = startOfLocalDay(day.getTime())
               const marksForDay = marksOnDay(dayMarks ?? [], dayMs)
               const hasMark = marksForDay.length > 0
-              // 环层：橙圈已占据时不再画墨圈；点层仅在橙圈+标记时出现
+              // �?�?��：�1�?圈已占据时不再画墨圈；点层仅圄1�7��1�?�?标�1�?时出�?
               const showMarkRing = !isCircled && hasMark
               const showMarkDot = isCircled && hasMark
-              // 标记圆点的颜色取第一条标记色
+              // 标�1�?圆点的�1�?色取�?�?��条标记色
               const dotColor = hasMark ? (marksForDay[0].color ?? null) : null
 
               return (
@@ -570,6 +617,15 @@ export function WeekSidebar() {
                         ))}
                       </>
                     )}
+                    <ContextMenuSeparator />
+                    <ContextMenuItem onSelect={() => handleSetLocation(dayMs)}>
+                      {t('dayLocation.setLocation')}
+                    </ContextMenuItem>
+                    {activeLocationAt(dayLocations, dayMs) && (
+                      <ContextMenuItem onSelect={() => handleClearLocation(dayMs)}>
+                        {t('dayLocation.clearLocation')}
+                      </ContextMenuItem>
+                    )}
                   </ContextMenuContent>
                 </ContextMenu>
               )
@@ -577,7 +633,7 @@ export function WeekSidebar() {
           </div>
         </div>
 
-        {/* ── 提醒列表 ── */}
+        {/* ┄1�7��┄1�7�� 提醒列表 ┄1�7��┄1�7�� */}
         {reminders.length > 0 && (
           <div>
             <div className="text-[11px] font-sans font-medium text-text-secondary mb-1.5 tracking-wide">
@@ -628,14 +684,48 @@ export function WeekSidebar() {
             </div>
           </div>
         )}
+
+        {/* ┢�┢� 已完成归档（朄1�7���?┢�┢� */}
+        {archivedTodosThisWeek.length > 0 && (
+          <div>
+            <button
+              onClick={() => setArchiveExpanded(!archiveExpanded)}
+              className="w-full flex items-center gap-2 px-1 py-1 text-[11px] font-sans font-medium text-text-secondary hover:text-text-primary transition-colors cursor-pointer border-none bg-transparent"
+            >
+              {archiveExpanded ? <ChevronDown size={12} strokeWidth={1.75} /> : <ChevronRight size={12} strokeWidth={1.75} />}
+              <span>����ɹ鵵 ({archivedTodosThisWeek.length})</span>
+            </button>
+            {archiveExpanded && (
+              <div className="flex flex-col gap-0.5 mt-1 max-h-[200px] overflow-y-auto">
+                {archivedTodosThisWeek.map((todo) => (
+                  <div
+                    key={todo.id}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs hover:bg-surface-base transition-colors"
+                  >
+                    <CheckCircle size={12} strokeWidth={1.5} className="text-text-tertiary/40 shrink-0" />
+                    <span className="flex-1 min-w-0 text-text-tertiary line-through truncate">
+                      {todo.title}
+                    </span>
+                    <span className="text-[10px] text-text-quaternary font-mono shrink-0 tabular-nums">
+                      {todo.completedAt ? new Date(todo.completedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''}
+                    </span>
+                    <span className="text-[10px] text-text-quaternary font-sans shrink-0">
+                      {listNameMap.get(todo.listId) ?? '默认'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ── 账户（底部固定）── */}
+      {/* ┄1�7��┄1�7�� 账户（底部固定）┄1�7��┄1�7�� */}
       <div className="px-4 pb-4 pt-2 border-t border-border-subtle flex-shrink-0">
         <AccountMenu variant="sidebar" />
       </div>
 
-      {/* ── 日期标记编辑器弹窗 ── */}
+      {/* ┄1�7��┄1�7�� 日期标�1�?编辑器弹�?┄1�7��┄1�7�� */}
       <Dialog open={editorOpen} onOpenChange={(open) => { if (!open) closeEditor() }}>
         {editorDay && (
           <DayMarkEditor
@@ -649,6 +739,15 @@ export function WeekSidebar() {
           />
         )}
       </Dialog>
+
+      {/* ┢�┢� Day Location picker ┢�┢� */}
+      {locationPickerDay !== null && (
+        <DayLocationPickerDialog
+          date={locationPickerDay}
+          initialName={activeLocationAt(dayLocations, locationPickerDay)?.locationName ?? undefined}
+          onClose={handleLocationPickerClose}
+        />
+      )}
     </aside>
   )
 }

@@ -113,7 +113,7 @@
 /* ── Dark mode (neutral gray) ──────────────────────────── */
 .dark {
   --surface-base:    #2A2722;
-  --surface-raised:  #343029;
+  --surface-raised:  #000000;
   --surface-sunken:  #211E1A;
 
   --border-subtle:   #46413A;
@@ -132,22 +132,22 @@
 
   --time-line:       #DE9270;
 
-  --event-accent-bg:   #412C22;
+  --event-accent-bg:   var(--surface-base);
   --event-accent-text: #E0966F;
   --event-accent-fill: #E0966F;
-  --event-sage-bg:     #2C3623;
+  --event-sage-bg:     var(--surface-base);
   --event-sage-text:   #9DBE93;
   --event-sage-fill:   #9DBE93;
-  --event-sand-bg:     #372F1E;
+  --event-sand-bg:     var(--surface-base);
   --event-sand-text:   #CDB87C;
   --event-sand-fill:   #CDB87C;
-  --event-sky-bg:      #283440;
+  --event-sky-bg:      var(--surface-base);
   --event-sky-text:    #94AEBC;
   --event-sky-fill:    #94AEBC;
-  --event-rose-bg:     #3D2C32;
+  --event-rose-bg:     var(--surface-base);
   --event-rose-text:   #D09AA0;
   --event-rose-fill:   #D09AA0;
-  --event-stone-bg:    #322E28;
+  --event-stone-bg:    var(--surface-base);
   --event-stone-text:  #ADA89F;
   --event-stone-fill:  #ADA89F;
 
@@ -832,15 +832,22 @@ body {
   }
 }
 
-/* ── 周↔月切换径向揭幕 ────────────────────────────────── */
-@keyframes cai-radial-reveal {
-  from { clip-path: circle(0% at 50% 30%); }
-  to   { clip-path: circle(142% at 50% 30%); }
+/* ── 周↔月切换 3D 翻转 ──────────────────────────────────── */
+@keyframes cai-flip-in {
+  from {
+    transform: perspective(800px) rotateY(-85deg);
+    opacity: 0.7;
+  }
+  to {
+    transform: perspective(800px) rotateY(0deg);
+    opacity: 1;
+  }
 }
-.cai-radial-reveal {
-  animation: cai-radial-reveal 420ms cubic-bezier(0.22, 1, 0.36, 1);
+.cai-flip-in {
+  animation: cai-flip-in 400ms ease-out;
+  backface-visibility: hidden;
 }
 @media (prefers-reduced-motion: reduce) {
-  .cai-radial-reveal { animation: none; }
+  .cai-flip-in { animation: none; }
 }
 

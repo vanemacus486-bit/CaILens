@@ -58,13 +58,19 @@ function EventRow({
       <span className="text-[13px] text-text-primary truncate flex-1 min-w-0">
         {event.title || <span className="italic text-text-tertiary">无标题</span>}
       </span>
-      {/* Time range + duration */}
-      <span className="font-mono text-[11px] text-text-tertiary whitespace-nowrap flex-shrink-0">
-        {event.startStr}
-        <span className="mx-0.5">→</span>
-        {event.endStr}
-        <span className="ml-1 opacity-60">{event.durationStr}</span>
-      </span>
+      {/* Time range + duration, or an all-day tag */}
+      {event.isAllDay ? (
+        <span className="font-mono text-[11px] tracking-wider text-text-tertiary whitespace-nowrap flex-shrink-0 uppercase">
+          全天
+        </span>
+      ) : (
+        <span className="font-mono text-[11px] text-text-tertiary whitespace-nowrap flex-shrink-0">
+          {event.startStr}
+          <span className="mx-0.5">→</span>
+          {event.endStr}
+          <span className="ml-1 opacity-60">{event.durationStr}</span>
+        </span>
+      )}
     </div>
   )
 }
@@ -191,6 +197,35 @@ export function MobileDayStream({
     prevScrollTop.current = 0
   }, [events, dayBuckets])
 
+  // ── Rotated left-edge month/year label (tracks scroll position) ──
+  // Only month-boundary days get an (invisible) sentinel — far fewer
+  // elements to observe than one-per-day, and still gives us "which
+  // month segment is currently at the top of the viewport".
+
+  const [visibleMonthTs, setVisibleMonthTs] = useState(todayStart)
+  const monthSentinelsRef = useRef<Map<number, HTMLDivElement>>(new Map())
+
+  useEffect(() => {
+    const root = scrollRef.current
+    if (!root) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          const ds = Number((entry.target as HTMLElement).dataset.monthStart)
+          if (!Number.isNaN(ds)) setVisibleMonthTs(ds)
+        }
+      },
+      // Trigger when a month-boundary sentinel crosses near the top of the
+      // scroll viewport (classic "scrollspy" rootMargin trick).
+      { root, rootMargin: '0px 0px -92% 0px', threshold: 0 },
+    )
+
+    for (const el of monthSentinelsRef.current.values()) observer.observe(el)
+    return () => observer.disconnect()
+  }, [windowStart])
+
   // ── Render helpers ────────────────────────────────────────
 
   /** Determine if a day is "today". */
@@ -216,77 +251,92 @@ export function MobileDayStream({
   // ── Render ─────────────────────────────────────────────────
 
   return (
-    <div
-      ref={scrollRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden"
-    >
-      {/* Top sentinel for infinite scroll */}
-      <div ref={sentinelRef} className="h-px" />
+    <div className="relative flex-1 min-h-0 flex flex-col">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden pl-6"
+      >
+        {/* Top sentinel for infinite scroll */}
+        <div ref={sentinelRef} className="h-px" />
 
-      {/* Loading indicator at top */}
-      {loading && (
-        <div className="flex items-center justify-center py-3">
-          <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
-        </div>
-      )}
-
-      {/* Day segments */}
-      {dayStarts.map((ds, idx) => {
-        if (ds >= windowEnd) return null // skip future
-
-        const date = new Date(ds)
-        const today = isToday(ds)
-        const wd = WEEKDAY_ZH[date.getDay()]
-        const dayNum = date.getDate()
-        const bucket = dayBuckets[idx] ?? []
-        const rows = buildDayStreamRows(bucket)
-
-        return (
-          <div key={ds}>
-            {/* Month separator */}
-            {isMonthBoundary(ds, idx) && (
-              <div className="flex items-center justify-center py-3">
-                <span className="text-[11px] text-text-tertiary tracking-[0.2em]">
-                  {formatMonthLabel(ds)}
-                </span>
-              </div>
-            )}
-
-            {/* Day segment */}
-            <div className="flex">
-              {/* Left rail — sticky within segment */}
-              <div className="sticky top-0 z-10 w-12 flex-shrink-0 self-start flex flex-col items-center pt-3 bg-surface-base">
-                <span className="text-[11px] text-text-tertiary leading-none">{wd}</span>
-                <span
-                  className={cn(
-                    'text-[20px] leading-tight mt-0.5',
-                    today ? 'text-accent font-bold' : 'text-text-primary font-medium',
-                  )}
-                >
-                  {dayNum}
-                </span>
-              </div>
-
-              {/* Content area */}
-              <div className="flex-1 min-w-0 pb-2 pr-3">
-                {rows.length === 0 ? (
-                  <p className="text-[12px] text-text-quaternary italic py-3">无记录</p>
-                ) : (
-                  rows.map((row) => (
-                    <EventRow key={row.id} event={row} onTap={onEditEvent} />
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Day separator */}
-            <div className="border-t border-border-subtle" />
+        {/* Loading indicator at top */}
+        {loading && (
+          <div className="flex items-center justify-center py-3">
+            <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
           </div>
-        )
-      })}
+        )}
 
-      {/* Bottom spacer for safe area */}
-      <div className="h-4" />
+        {/* Day segments */}
+        {dayStarts.map((ds, idx) => {
+          if (ds >= windowEnd) return null // skip future
+
+          const date = new Date(ds)
+          const today = isToday(ds)
+          const wd = WEEKDAY_ZH[date.getDay()]
+          const dayNum = date.getDate()
+          const bucket = dayBuckets[idx] ?? []
+          const rows = buildDayStreamRows(bucket, ds)
+
+          return (
+            <div key={ds}>
+              {/* Month-boundary sentinel — invisible, drives the rotated edge label */}
+              {isMonthBoundary(ds, idx) && (
+                <div
+                  ref={(el) => {
+                    if (el) monthSentinelsRef.current.set(ds, el)
+                    else monthSentinelsRef.current.delete(ds)
+                  }}
+                  data-month-start={ds}
+                  className="h-px"
+                />
+              )}
+
+              {/* Day segment */}
+              <div className="flex">
+                {/* Left rail — sticky within segment */}
+                <div className="sticky top-0 z-10 w-12 flex-shrink-0 self-start flex flex-col items-center pt-3 bg-surface-base">
+                  <span className="text-[11px] text-text-tertiary leading-none">{wd}</span>
+                  <span
+                    className={cn(
+                      'text-[20px] leading-tight mt-0.5',
+                      today ? 'text-accent font-bold' : 'text-text-primary font-medium',
+                    )}
+                  >
+                    {dayNum}
+                  </span>
+                </div>
+
+                {/* Content area */}
+                <div className="flex-1 min-w-0 pb-2 pr-3">
+                  {rows.length === 0 ? (
+                    <p className="text-[12px] text-text-quaternary italic py-3">无记录</p>
+                  ) : (
+                    rows.map((row) => (
+                      <EventRow key={row.id} event={row} onTap={onEditEvent} />
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Day separator */}
+              <div className="border-t border-border-subtle" />
+            </div>
+          )
+        })}
+
+        {/* Bottom spacer for safe area */}
+        <div className="h-4" />
+      </div>
+
+      {/* Rotated month/year label, pinned to the left edge, tracks scroll position */}
+      <div
+        className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-6 flex justify-center pointer-events-none select-none"
+        style={{ writingMode: 'vertical-rl' }}
+      >
+        <span className="text-[10px] tracking-[0.25em] text-text-tertiary/80 font-medium uppercase">
+          {formatMonthLabel(visibleMonthTs)}
+        </span>
+      </div>
     </div>
   )
 }

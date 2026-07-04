@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fmtStreamTime, fmtStreamDuration, eventBarFill, buildDayStreamRows } from '../dayStream'
+import { fmtStreamTime, fmtStreamDuration, eventBarFill, buildDayStreamRows, isAllDayEvent } from '../dayStream'
 import type { CalendarEvent, EventColor } from '../event'
 
 function makeEvent(overrides: Partial<CalendarEvent> & { id?: string }): CalendarEvent {
@@ -158,5 +158,57 @@ describe('buildDayStreamRows', () => {
     const event = makeEvent({ title: '' })
     const [row] = buildDayStreamRows([event])
     expect(row.title).toBe('')
+  })
+
+  it('defaults isAllDay to false when dayStart is omitted', () => {
+    const dayStart = new Date(2026, 3, 20, 0, 0, 0).getTime()
+    const event = makeEvent({ startTime: dayStart, endTime: dayStart + 86_400_000 })
+    const [row] = buildDayStreamRows([event])
+    expect(row.isAllDay).toBe(false)
+  })
+
+  it('marks isAllDay true when the clipped event spans the full day', () => {
+    const dayStart = new Date(2026, 3, 20, 0, 0, 0).getTime()
+    const event = makeEvent({ startTime: dayStart, endTime: dayStart + 86_400_000 })
+    const [row] = buildDayStreamRows([event], dayStart)
+    expect(row.isAllDay).toBe(true)
+  })
+
+  it('marks isAllDay false for a normal same-day event', () => {
+    const dayStart = new Date(2026, 3, 20, 0, 0, 0).getTime()
+    const event = makeEvent({ startTime: dayStart + 9 * 3_600_000, endTime: dayStart + 10 * 3_600_000 })
+    const [row] = buildDayStreamRows([event], dayStart)
+    expect(row.isAllDay).toBe(false)
+  })
+
+  it('marks isAllDay false for a cross-day event clipped to only part of the day', () => {
+    const dayStart = new Date(2026, 3, 20, 0, 0, 0).getTime()
+    const event = makeEvent({ startTime: dayStart, endTime: dayStart + 7 * 3_600_000 })
+    const [row] = buildDayStreamRows([event], dayStart)
+    expect(row.isAllDay).toBe(false)
+  })
+})
+
+describe('isAllDayEvent', () => {
+  const dayStart = new Date(2026, 3, 20, 0, 0, 0).getTime()
+
+  it('is true when start/end exactly match the day boundaries', () => {
+    const event = makeEvent({ startTime: dayStart, endTime: dayStart + 86_400_000 })
+    expect(isAllDayEvent(event, dayStart)).toBe(true)
+  })
+
+  it('is false when start is after the day boundary', () => {
+    const event = makeEvent({ startTime: dayStart + 1, endTime: dayStart + 86_400_000 })
+    expect(isAllDayEvent(event, dayStart)).toBe(false)
+  })
+
+  it('is false when end is before the next day boundary', () => {
+    const event = makeEvent({ startTime: dayStart, endTime: dayStart + 86_400_000 - 1 })
+    expect(isAllDayEvent(event, dayStart)).toBe(false)
+  })
+
+  it('is false for a short same-day event', () => {
+    const event = makeEvent({ startTime: dayStart + 8 * 3_600_000, endTime: dayStart + 9 * 3_600_000 })
+    expect(isAllDayEvent(event, dayStart)).toBe(false)
   })
 })

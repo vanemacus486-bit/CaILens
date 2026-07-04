@@ -4,6 +4,41 @@
  * 纯类型 + 纯函数，零副作用。
  */
 
+// ── 日期位置标记 ────────────────────────────────────────────
+
+/**
+ * 日期位置标记：某天起所处地点。
+ * 语义：「从这天开始，我在这个地点」— 查询某天的位置时取 date ≤ 当天的最新一条。
+ * 数据存 AppSettings.dayLocations 数组，与 DayMark 同策略。
+ */
+export interface DayLocation {
+  /** 本地午夜 UTC ms（与 DayMark.date 一致） */
+  date: number
+  /** 地点名称（如「上海」「家」「办公室」） */
+  locationName: string
+  /** 可选关联已保存城市索引，可用于后续查询天气等 */
+  cityRef?: number
+  createdAt: number
+  updatedAt: number
+}
+
+/**
+ * 给定 DayLocation 列表，返回指定日期当天应处的位置。
+ * 取 date ≤ dayMs 的最新一条；无匹配返回 null。
+ */
+export function activeLocationAt(locations: DayLocation[], dayMs: number): DayLocation | null {
+  if (locations.length === 0) return null
+  let best: DayLocation | null = null
+  for (const loc of locations) {
+    if (loc.date <= dayMs) {
+      if (!best || loc.date > best.date || (loc.date === best.date && loc.createdAt > best.createdAt)) {
+        best = loc
+      }
+    }
+  }
+  return best
+}
+
 /** 用户配置的位置信息 */
 export interface LocationSettings {
   /** 城市名称（显示用） */
@@ -18,6 +53,39 @@ export interface LocationSettings {
   lastUpdated: number
 }
 
+/** 用户保存的城市（多城市支持） */
+export interface SavedCity {
+  /** 城市显示名称 */
+  cityName: string
+  /** 国家名称 */
+  country: string
+  /** IANA 时区名 */
+  timezone: string
+  /** 纬度 */
+  latitude: number
+  /** 经度 */
+  longitude: number
+  /** 最后更新时间的 UTC 毫秒时间戳 */
+  lastUpdated: number
+}
+
+/** 基于经纬度生成 weatherMap 键 */
+export function cityWeatherKey(lat: number, lng: number): string {
+  return `${lat.toFixed(4)},${lng.toFixed(4)}`
+}
+
+/** 从 GeocodingResult 创建 SavedCity */
+export function geocodingToCity(result: GeocodingResult): SavedCity {
+  return {
+    cityName: result.name,
+    country: result.country,
+    timezone: result.timezone,
+    latitude: result.latitude,
+    longitude: result.longitude,
+    lastUpdated: Date.now(),
+  }
+}
+
 /** Open-Meteo 天气 API 返回的当前天气数据（精简） */
 export interface WeatherData {
   /** WMO 天气代码 */
@@ -30,7 +98,7 @@ export interface WeatherData {
   humidity: number
   /** 风速（km/h） */
   windSpeed: number
-  /** 天气数据的 UTC 时间戳 */
+  /** 数据获取时刻的 UTC 毫秒时间戳（供「更新于」显示与缓存新鲜度判断） */
   timestamp: number
 }
 

@@ -85,6 +85,7 @@ export class TodoRepository {
       repeatPattern: input.repeatPattern ?? null,
       goalId: input.goalId ?? null,
       isStarred: input.isStarred ?? false,
+      archivedAt: null,
     }
     await this.adapter.todos.put(todo)
     return todo
@@ -152,5 +153,20 @@ export class TodoRepository {
     const cloned = spawnNextRepeat(todo)
     await this.adapter.todos.put(cloned)
     return cloned
+  }
+
+  /** 归档指定清单下所有已完成且尚未归档的待办 */
+  async archiveCompleted(listId: string): Promise<void> {
+    const all = await this.adapter.todos.getAll()
+    const now = this.clock.now()
+    const toArchive = all.filter(
+      (t) => t.listId === listId && t.status === 'done' && t.archivedAt === null,
+    )
+    if (toArchive.length === 0) return
+    for (const todo of toArchive) {
+      todo.archivedAt = now
+      todo.updatedAt = now
+    }
+    await this.adapter.todos.bulkPut(toArchive)
   }
 }

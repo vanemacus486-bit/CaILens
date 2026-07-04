@@ -5,6 +5,8 @@
  * 纯类型 + 纯函数，不依赖 React/Dexie/浏览器 API。
  */
 
+import type { CategoryId } from './category'
+
 // ── 清单类型 ────────────────────────────────────────────────
 
 /** 多清单分组：每个 TodoList 是一个独立的待办清单 */
@@ -12,6 +14,8 @@ export interface TodoList {
   id: string
   name: string
   sortOrder: number
+  /** 清单颜色标签（复用 6 分类色），纯视觉区分，不影响清单内待办的统计归类 */
+  categoryId: CategoryId | null
   createdAt: number
   updatedAt: number
 }
@@ -102,6 +106,8 @@ export interface Todo {
   goalId: string | null
   /** 是否星标（标记重要任务） */
   isStarred: boolean
+  /** 归档时间戳，仅 status === 'done' 且经「归档已完成」操作后设置；null 表示未归档 */
+  archivedAt: number | null
 }
 
 // ── 输入类型 ────────────────────────────────────────────────
@@ -549,6 +555,7 @@ export function spawnNextRepeat(todo: Todo, now: number = Date.now()): Todo {
     completedAt: null,
     goalId: todo.goalId,
     isStarred: todo.isStarred,
+    archivedAt: null,
   }
 }
 

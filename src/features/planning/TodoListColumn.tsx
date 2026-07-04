@@ -53,9 +53,9 @@ export function TodoListColumn({ listId, now }: TodoListColumnProps) {
     const active: Todo[] = []
     const done: Todo[] = []
     for (const t of listTodos) {
-      if (t.status === 'done') {
+      if (t.status === 'done' && t.archivedAt === null) {
         done.push(t)
-      } else {
+      } else if (t.status !== 'done') {
         active.push(t)
       }
     }

@@ -15,6 +15,8 @@ export interface DayStreamRow {
   barColor: string
   /** Sort order key (UTC ms) */
   sortKey: number
+  /** True when this event occupies the entire local day it's bucketed into */
+  isAllDay: boolean
   /** Reference to the original event for editing */
   calendarEvent: CalendarEvent
 }
@@ -44,6 +46,20 @@ export function eventBarFill(color: EventColor): string {
   return `var(--event-${color}-fill)`
 }
 
+const DAY_MS = 86_400_000
+
+/**
+ * True when an event (already clipped to a single day's window by
+ * bucketEventsByLocalDay) occupies that entire local day.
+ *
+ * There's no stored "all-day" flag on CalendarEvent — this is derived
+ * purely from the clipped start/end lining up exactly with the day's
+ * boundaries.
+ */
+export function isAllDayEvent(event: CalendarEvent, dayStart: number): boolean {
+  return event.startTime === dayStart && event.endTime === dayStart + DAY_MS
+}
+
 /**
  * Transform an array of CalendarEvent for a single day into
  * sorted DayStreamRow objects ready for rendering.
@@ -51,8 +67,11 @@ export function eventBarFill(color: EventColor): string {
  * Events are sorted by startTime ascending.
  * Cross-day events (clipped by bucketEventsByLocalDay) will have
  * their clipped start/end displayed.
+ *
+ * `dayStart` is optional so callers without a day context (existing
+ * tests) keep working — omitting it just means `isAllDay` is always false.
  */
-export function buildDayStreamRows(events: readonly CalendarEvent[]): DayStreamRow[] {
+export function buildDayStreamRows(events: readonly CalendarEvent[], dayStart?: number): DayStreamRow[] {
   return [...events]
     .sort((a, b) => a.startTime - b.startTime)
     .map((event) => ({
@@ -63,6 +82,7 @@ export function buildDayStreamRows(events: readonly CalendarEvent[]): DayStreamR
       durationStr: fmtStreamDuration(event.endTime - event.startTime),
       barColor: eventBarFill(event.color),
       sortKey: event.startTime,
+      isAllDay: dayStart !== undefined && isAllDayEvent(event, dayStart),
       calendarEvent: event,
     }))
 }

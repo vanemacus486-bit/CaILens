@@ -47,6 +47,7 @@ export class TodoListRepository {
       id: this.idGen.generate(),
       name,
       sortOrder: maxOrder + 1,
+      categoryId: null,
       createdAt: now,
       updatedAt: now,
     }
@@ -54,7 +55,7 @@ export class TodoListRepository {
     return list
   }
 
-  async update(id: string, patch: Partial<Pick<TodoList, 'name' | 'sortOrder'>>): Promise<TodoList> {
+  async update(id: string, patch: Partial<Pick<TodoList, 'name' | 'sortOrder' | 'categoryId'>>): Promise<TodoList> {
     const existing = await this.adapter.todoLists.get(id)
     if (!existing) throw new Error(`TodoList not found: ${id}`)
     const updated: TodoList = {
@@ -80,6 +81,7 @@ export class TodoListRepository {
       id: 'default',
       name: '默认',
       sortOrder: -1,
+      categoryId: null,
       createdAt: now,
       updatedAt: now,
     })
