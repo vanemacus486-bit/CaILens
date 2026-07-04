@@ -47,6 +47,7 @@ function renderRow(todo?: Todo, over: Partial<Parameters<typeof TaskRow>[0]> = {
     <TaskRow
       todo={todo ?? makeTodo()}
       now={2000}
+      lists={[]}
       sortMode="manual"
       onReorder={onReorder}
       onToggle={onToggle}

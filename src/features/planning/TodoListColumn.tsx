@@ -97,6 +97,10 @@ export function TodoListColumn({ listId, now }: TodoListColumnProps) {
     await updateTodo({ id, ...patch })
   }, [updateTodo])
 
+  const handleMoveToList = useCallback(async (id: string, targetListId: string) => {
+    await updateTodo({ id, listId: targetListId })
+  }, [updateTodo])
+
   const handleDeleteList = useCallback(async (id: string) => {
     if (id === 'default') return
     const listTodosToDelete = todos.filter((t) => t.listId === id)
@@ -136,8 +140,10 @@ export function TodoListColumn({ listId, now }: TodoListColumnProps) {
                 sortMode={sortMode}
                 onReorder={(draggedId, targetId, pos) => reorderTodo(draggedId, targetId, pos, listId)}
                 onToggle={toggleComplete}
+                lists={lists}
                 onUpdate={handleUpdate}
                 onDelete={deleteTodo}
+                onMoveToList={handleMoveToList}
               />
             ))}
           </div>

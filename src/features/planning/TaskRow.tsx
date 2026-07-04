@@ -13,7 +13,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useLayoutEffect, type KeyboardEvent, type DragEvent, type MouseEvent } from 'react'
-import { CheckCircle, ChevronDown, ChevronRight, Star, GripVertical, Trash2 } from 'lucide-react'
+import { CheckCircle, ChevronDown, ChevronRight, Star, GripVertical, Trash2, List } from 'lucide-react'
 import type { Todo } from '@/domain/todo'
 import { formatDueDateChip } from '@/domain/todoDateLabels'
 import { DatePickerPopover } from '@/components/ui/DatePickerPopover'
@@ -22,20 +22,25 @@ import {
   ContextMenuTrigger,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
 } from '@/components/ui/context-menu'
 import type { SortMode } from './ListHeader'
 
 interface TaskRowProps {
   todo: Todo
   now: number
+  lists: { id: string; name: string }[]
   sortMode?: SortMode
   onReorder?: (draggedId: string, targetId: string, position: 'before' | 'after') => void
   onToggle: (id: string) => void
   onUpdate: (id: string, patch: Partial<Pick<Todo, 'title' | 'description' | 'dueDate' | 'repeatPattern' | 'isStarred'>>) => void
   onDelete: (id: string) => void
+  onMoveToList?: (id: string, targetListId: string) => void
 }
 
-export function TaskRow({ todo, now, sortMode = 'manual', onReorder, onToggle, onUpdate, onDelete }: TaskRowProps) {
+export function TaskRow({ todo, now, lists, sortMode = 'manual', onReorder, onToggle, onUpdate, onDelete, onMoveToList }: TaskRowProps) {
   const [expanded, setExpanded] = useState(false)
   const [titleDraft, setTitleDraft] = useState(todo.title)
   const [descDraft, setDescDraft] = useState(todo.description)
@@ -260,6 +265,24 @@ export function TaskRow({ todo, now, sortMode = 'manual', onReorder, onToggle, o
             <Trash2 size={14} />
             删除
           </ContextMenuItem>
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <List size={14} />
+              移动至…
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              {lists
+                .filter((l) => l.id !== todo.listId)
+                .map((l) => (
+                  <ContextMenuItem
+                    key={l.id}
+                    onSelect={() => onMoveToList?.(todo.id, l.id)}
+                  >
+                    {l.name}
+                  </ContextMenuItem>
+                ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
         </ContextMenuContent>
       </ContextMenu>
     )
@@ -422,6 +445,24 @@ export function TaskRow({ todo, now, sortMode = 'manual', onReorder, onToggle, o
               <Trash2 size={14} />
               删除
             </ContextMenuItem>
+            <ContextMenuSub>
+              <ContextMenuSubTrigger>
+                <List size={14} />
+                移动至…
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent>
+                {lists
+                  .filter((l) => l.id !== todo.listId)
+                  .map((l) => (
+                    <ContextMenuItem
+                      key={l.id}
+                      onSelect={() => onMoveToList?.(todo.id, l.id)}
+                    >
+                      {l.name}
+                    </ContextMenuItem>
+                  ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
           </ContextMenuContent>
         )}
       </ContextMenu>

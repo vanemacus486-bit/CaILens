@@ -8,9 +8,9 @@
  * �?�?���?�?���?store 读�1�?訄1�7��，从 URL 读�1�?图参数，导航直接更新 URL�?
  */
 
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronDown, Trash2, X, CheckCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react'
 import {
   startOfMonth,
   endOfMonth,
@@ -33,8 +33,7 @@ import { formatISODate, getWeekStart, parseISODate } from '@/domain/time'
 import { activeLocationAt } from '@/domain/location'
 import { useLocationStore } from '@/stores/locationStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { useTodoStore } from '@/stores/todoStore'
-import { useTodoListStore } from '@/stores/todoListStore'
+
 import { fireAndForget } from '@/lib/fireAndForget'
 import { useT } from '@/i18n/useT'
 import type { TranslationKey } from '@/i18n/translations'
@@ -365,10 +364,7 @@ export function WeekSidebar() {
 
   const [editorDay, setEditorDay] = useState<Date | null>(null)
 
-  // ┢�┢� 归档已完成数�?┢�┢�
-  const allTodos = useTodoStore((s) => s.todos)
-  const todoLists = useTodoListStore((s) => s.lists)
-  const [archiveExpanded, setArchiveExpanded] = useState(false)
+
 
   const dayLocations = useLocationStore((s) => s.dayLocations)
   const removeDayLocation = useLocationStore((s) => s.removeDayLocation)
@@ -465,22 +461,7 @@ export function WeekSidebar() {
   const activeWeekStart = startOfWeek(anchorDate, { weekStartsOn: 1 })
   const activeWeekEnd = endOfWeek(anchorDate, { weekStartsOn: 1 })
 
-  // ┢�┢� 归档已完成数捄1�7��必须�?early return 前定义） ┢�┢�
-  const archivedTodosThisWeek = useMemo(() => {
-    const weekStartMs = activeWeekStart.getTime()
-    const weekEndMs = activeWeekEnd.getTime()
-    return allTodos
-      .filter((t) => t.archivedAt !== null && t.completedAt !== null && t.completedAt >= weekStartMs && t.completedAt <= weekEndMs)
-      .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
-  }, [allTodos, activeWeekStart, activeWeekEnd])
 
-  const listNameMap = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const l of todoLists) {
-      map.set(l.id, l.name)
-    }
-    return map
-  }, [todoLists])
 
   // ┄1�7��┄1�7�� 移动�?�?��渲染（由 Layout 控制）─┄1�7��
   if (isMobile) return null
@@ -685,39 +666,7 @@ export function WeekSidebar() {
           </div>
         )}
 
-        {/* ┢�┢� 已完成归档（朄1�7���?┢�┢� */}
-        {archivedTodosThisWeek.length > 0 && (
-          <div>
-            <button
-              onClick={() => setArchiveExpanded(!archiveExpanded)}
-              className="w-full flex items-center gap-2 px-1 py-1 text-[11px] font-sans font-medium text-text-secondary hover:text-text-primary transition-colors cursor-pointer border-none bg-transparent"
-            >
-              {archiveExpanded ? <ChevronDown size={12} strokeWidth={1.75} /> : <ChevronRight size={12} strokeWidth={1.75} />}
-              <span>����ɹ鵵 ({archivedTodosThisWeek.length})</span>
-            </button>
-            {archiveExpanded && (
-              <div className="flex flex-col gap-0.5 mt-1 max-h-[200px] overflow-y-auto">
-                {archivedTodosThisWeek.map((todo) => (
-                  <div
-                    key={todo.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs hover:bg-surface-base transition-colors"
-                  >
-                    <CheckCircle size={12} strokeWidth={1.5} className="text-text-tertiary/40 shrink-0" />
-                    <span className="flex-1 min-w-0 text-text-tertiary line-through truncate">
-                      {todo.title}
-                    </span>
-                    <span className="text-[10px] text-text-quaternary font-mono shrink-0 tabular-nums">
-                      {todo.completedAt ? new Date(todo.completedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''}
-                    </span>
-                    <span className="text-[10px] text-text-quaternary font-sans shrink-0">
-                      {listNameMap.get(todo.listId) ?? '默认'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+
       </div>
 
       {/* ┄1�7��┄1�7�� 账户（底部固定）┄1�7��┄1�7�� */}

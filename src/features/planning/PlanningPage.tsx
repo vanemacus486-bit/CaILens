@@ -104,6 +104,8 @@ export function PlanningPage() {
                       onToggle={toggleComplete}
                       onUpdate={(id, patch) => updateTodo({ id, ...patch })}
                       onDelete={deleteTodo}
+                      lists={lists}
+                      onMoveToList={(id, targetListId) => updateTodo({ id, listId: targetListId })}
                     />
                   ))}
                 </div>
