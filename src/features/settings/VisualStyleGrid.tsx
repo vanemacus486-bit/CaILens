@@ -46,6 +46,14 @@ const STYLES: StyleDef[] = [
     swatches: ['#10645B', '#156E64', '#F2B279'],
     descZh: '整面画布浸入深青，文字与卡片浮于其上——全色沉浸，浅色模式也刻意保持深底。',
   },
+  {
+    key: 'indigo',
+    name: 'Indigo',
+    nameZh: '靛蓝',
+    badge: '鲜明',
+    swatches: ['#1B5FA8', '#2569BE', '#F0C36B'],
+    descZh: '深邃靛蓝铺满整个画布，文字与卡片浮于其上——克制而醒目的全屏沉浸感。',
+  },
 ]
 
 export function VisualStyleGrid() {
@@ -53,7 +61,7 @@ export function VisualStyleGrid() {
   const setVisualStyle = useAppSettingsStore((s) => s.setVisualStyle)
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {STYLES.map((style) => {
         const selected = visualStyle === style.key
         return (
