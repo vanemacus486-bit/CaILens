@@ -14,50 +14,21 @@
     </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="modulepreload" href="/src/main.tsx" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CaILens</title>
-    <script>
-      (function() {
-        var label = document.getElementById('splash-label');
-        var bar   = document.getElementById('splash-bar-fill');
-        function setStatus(text, pct) {
-          if (label) label.textContent = text;
-          if (bar) {
-            bar.classList.remove('indeterminate');
-            if (pct != null) bar.style.width = pct + '%';
-          }
-        }
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', function() {
-            setStatus('Loading resources…', 25);
-          });
-        }
-        var mainScript = document.querySelector('script[type="module"][src*="/src/main"]');
-        if (mainScript) {
-          mainScript.addEventListener('load', function() {
-            setStatus('Initializing…', 50);
-          });
-        }
-      })();
-    </script>
     <style>
       /* ── Critical splash tokens (mirrors src/styles/tokens.css 实际生效值) ── */
       :root {
         --splash-bg:              #F2EEE3;
         --splash-text:            #2B2620;
-        --splash-text-secondary:  #6A6354;
         --splash-text-tertiary:   #A39B87;
         --splash-accent:          #BC4A26;
-        --splash-bar-bg:          #E2DBC9;
       }
       .dark {
         --splash-bg:              #1a1a1a;
         --splash-text:            #ededed;
-        --splash-text-secondary:  #8a8a8a;
         --splash-text-tertiary:   #5a5a5a;
         --splash-accent:          #c48a78;
-        --splash-bar-bg:          #262626;
       }
 
       /* ── Splash layout ── */
@@ -70,7 +41,7 @@
         justify-content: center;
         background-color: var(--splash-bg);
         z-index: 9999;
-        transition: opacity 400ms ease-out;
+        transition: opacity 200ms ease-out;
       }
 
       #splash-screen.splash-fade-out {
@@ -78,13 +49,33 @@
         pointer-events: none;
       }
 
+      /* ── Content(延迟浮现) ──
+         启动足够快(<300ms)时用户只看到一块与应用同色的背景,任何"加载中"
+         元素都不出现;只有超过 300ms(冷启动)才浮现呼吸圆点。 */
+      .splash-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        opacity: 0;
+        animation: splash-reveal 300ms ease-out 300ms forwards;
+      }
+
+      @keyframes splash-reveal {
+        to { opacity: 1; }
+      }
+
+      /* 启动失败:立即显示内容与错误文案,不受延迟影响 */
+      #splash-screen.splash-error .splash-content {
+        opacity: 1;
+        animation: none;
+      }
+
       /* ── Brand mark ── */
       .splash-mark {
-        width: 8px;
-        height: 8px;
+        width: 10px;
+        height: 10px;
         border-radius: 50%;
         background-color: var(--splash-accent);
-        margin-bottom: 24px;
       }
 
       @media (prefers-reduced-motion: no-preference) {
@@ -97,97 +88,31 @@
         }
       }
 
-      /* ── Typography ── */
-      .splash-title {
-        font-family: 'Georgia', 'Source Serif 4', 'Noto Serif SC', serif;
-        font-size: 28px;
-        font-weight: 600;
-        color: var(--splash-text);
-        letter-spacing: 0.02em;
-        margin-bottom: 6px;
-        user-select: none;
-      }
-
-      .splash-subtitle {
-        font-size: 12px;
-        font-weight: 400;
-        color: var(--splash-text-secondary);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        margin-bottom: 48px;
-        user-select: none;
-      }
-
-      /* ── Progress bar ── */
-      .splash-bar-track {
-        width: 160px;
-        height: 3px;
-        background-color: var(--splash-bar-bg);
-        border-radius: 999px;
-        overflow: hidden;
-        position: relative;
-        margin-bottom: 14px;
-      }
-
-      .splash-bar-fill {
-        height: 100%;
-        width: 0%;
-        background-color: var(--splash-accent);
-        border-radius: 999px;
-        transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      /* Indeterminate shimmer */
-      .splash-bar-fill.indeterminate {
-        width: 35%;
-      }
-
-      @media (prefers-reduced-motion: no-preference) {
-        .splash-bar-fill.indeterminate {
-          animation: splash-shimmer 1.8s ease-in-out infinite;
-        }
-        @keyframes splash-shimmer {
-          0%   { transform: translateX(-60%);  }
-          50%  { transform: translateX(200%);  }
-          100% { transform: translateX(-60%);  }
-        }
-      }
-
-      /* ── Status label ── */
+      /* ── Error label(平时为空,不可见) ── */
       .splash-label {
+        margin-top: 20px;
         font-size: 12px;
         font-weight: 400;
         color: var(--splash-text-tertiary);
         letter-spacing: 0.02em;
         text-align: center;
+        max-width: 320px;
         min-height: 18px;
         user-select: none;
       }
 
-      /* ── Version ── */
-      .splash-version {
-        position: absolute;
-        bottom: 28px;
-        font-size: 11px;
-        font-weight: 400;
-        color: var(--splash-text-tertiary);
-        letter-spacing: 0.03em;
-        opacity: 0.5;
-        user-select: none;
+      #splash-screen.splash-error .splash-label {
+        color: var(--splash-text);
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
     <div id="splash-screen">
-      <div class="splash-mark"></div>
-      <div class="splash-title">CaILens</div>
-      <div class="splash-subtitle">Calendar &times; Lens</div>
-      <div class="splash-bar-track">
-        <div class="splash-bar-fill indeterminate" id="splash-bar-fill"></div>
+      <div class="splash-content">
+        <div class="splash-mark"></div>
+        <div class="splash-label" id="splash-label"></div>
       </div>
-      <div class="splash-label" id="splash-label">Starting up&hellip;</div>
-      <div class="splash-version">v%APP_VERSION%</div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

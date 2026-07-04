@@ -194,6 +194,7 @@ use-cases/  →  domain/  →  data/  →  stores/  →  features/ + components/
 - **函数组件 + hooks**，禁 `any` / `as unknown as` / `@ts-ignore`
 - **`domain/` 零副作用**：无 React、无 IndexedDB、无浏览器 API
 - **组件不直接调 Repository**：必须通过 store
+- **Tauri 命令必须 `async fn`**：Tauri v2 非 async 命令跑在主线程上，文件 I/O 会卡死事件循环 → 窗口"未响应"。`fs_commands.rs` 新增命令一律 async，阻塞 I/O 包进现有 `run_blocking()` helper
 - **`index.html` `<style>` 禁全局选择器**：Tailwind v4 用 `@layer`，非 layered 样式无条件优先
 - **新增 UI 必须定义 `:root` 和 `.dark` 两套变量**
 - **测试**：`domain/` 纯函数必须有测试；IndexedDB 测试用 `fake-indexeddb`；Repository 注入 fake Clock + IdGenerator

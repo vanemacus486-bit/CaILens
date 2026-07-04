@@ -14,12 +14,25 @@ pub struct FileEntryWithContent {
     pub content: String,
 }
 
+/// 文件 I/O 统一走 tokio 阻塞线程池。Tauri v2 的非 async 命令在主线程执行，
+/// 启动时全量扫描数千个事件 JSON 会卡住事件循环 → 窗口被 Windows 标记"未响应"。
+async fn run_blocking<T: Send + 'static>(
+    f: impl FnOnce() -> Result<T, String> + Send + 'static,
+) -> Result<T, String> {
+    tauri::async_runtime::spawn_blocking(f)
+        .await
+        .map_err(|e| format!("Task join error: {}", e))?
+}
+
 #[tauri::command]
-pub fn read_dir_recursive(path: String) -> Result<Vec<FileEntry>, String> {
-    let root = Path::new(&path);
-    let mut entries = Vec::new();
-    scan_dir(root, &mut entries).map_err(|e| format!("Failed to scan directory: {}", e))?;
-    Ok(entries)
+pub async fn read_dir_recursive(path: String) -> Result<Vec<FileEntry>, String> {
+    run_blocking(move || {
+        let root = Path::new(&path);
+        let mut entries = Vec::new();
+        scan_dir(root, &mut entries).map_err(|e| format!("Failed to scan directory: {}", e))?;
+        Ok(entries)
+    })
+    .await
 }
 
 fn scan_dir(dir: &Path, entries: &mut Vec<FileEntry>) -> std::io::Result<()> {
@@ -51,12 +64,15 @@ fn scan_dir(dir: &Path, entries: &mut Vec<FileEntry>) -> std::io::Result<()> {
 /// Like read_dir_recursive but also reads file contents in a single pass.
 /// Eliminates N per-file IPC round-trips that would otherwise dominate startup.
 #[tauri::command]
-pub fn read_dir_with_content(path: String) -> Result<Vec<FileEntryWithContent>, String> {
-    let root = Path::new(&path);
-    let mut entries = Vec::new();
-    scan_dir_with_content(root, &mut entries)
-        .map_err(|e| format!("Failed to scan directory: {}", e))?;
-    Ok(entries)
+pub async fn read_dir_with_content(path: String) -> Result<Vec<FileEntryWithContent>, String> {
+    run_blocking(move || {
+        let root = Path::new(&path);
+        let mut entries = Vec::new();
+        scan_dir_with_content(root, &mut entries)
+            .map_err(|e| format!("Failed to scan directory: {}", e))?;
+        Ok(entries)
+    })
+    .await
 }
 
 fn scan_dir_with_content(dir: &Path, entries: &mut Vec<FileEntryWithContent>) -> std::io::Result<()> {
@@ -88,54 +104,69 @@ fn scan_dir_with_content(dir: &Path, entries: &mut Vec<FileEntryWithContent>) ->
 }
 
 #[tauri::command]
-pub fn read_text_file(path: String) -> Result<String, String> {
-    std::fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
+pub async fn read_text_file(path: String) -> Result<String, String> {
+    run_blocking(move || {
+        std::fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
+    })
+    .await
 }
 
 /// Atomic write: write to .tmp file then rename to target path.
 /// This prevents partial writes if the process crashes mid-write.
 #[tauri::command]
-pub fn write_text_file(path: String, content: String) -> Result<(), String> {
-    let tmp_path = format!("{}.tmp", path);
-    std::fs::write(&tmp_path, &content).map_err(|e| format!("Failed to write temp file: {}", e))?;
-    std::fs::rename(&tmp_path, &path).map_err(|e| format!("Failed to rename temp file: {}", e))?;
-    Ok(())
+pub async fn write_text_file(path: String, content: String) -> Result<(), String> {
+    run_blocking(move || {
+        let tmp_path = format!("{}.tmp", path);
+        std::fs::write(&tmp_path, &content).map_err(|e| format!("Failed to write temp file: {}", e))?;
+        std::fs::rename(&tmp_path, &path).map_err(|e| format!("Failed to rename temp file: {}", e))?;
+        Ok(())
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn delete_file(path: String) -> Result<(), String> {
-    std::fs::remove_file(&path).map_err(|e| format!("Failed to delete file: {}", e))
+pub async fn delete_file(path: String) -> Result<(), String> {
+    run_blocking(move || {
+        std::fs::remove_file(&path).map_err(|e| format!("Failed to delete file: {}", e))
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn create_dir_all(path: String) -> Result<(), String> {
-    std::fs::create_dir_all(&path).map_err(|e| format!("Failed to create directory: {}", e))
+pub async fn create_dir_all(path: String) -> Result<(), String> {
+    run_blocking(move || {
+        std::fs::create_dir_all(&path).map_err(|e| format!("Failed to create directory: {}", e))
+    })
+    .await
 }
 
 /// Given a date prefix directory and filename pattern (e.g. `YYYY-MM-DD-`),
 /// find the next available sequence number by scanning existing files.
 #[tauri::command]
-pub fn get_next_sequence(dir: String, prefix: String) -> Result<u32, String> {
-    let dir_path = Path::new(&dir);
-    if !dir_path.exists() {
-        return Ok(1);
-    }
-    let mut max_seq = 0u32;
-    if let Ok(entries) = std::fs::read_dir(dir_path) {
-        for entry in entries.flatten() {
-            let name = entry.file_name().to_string_lossy().to_string();
-            if let Some(stripped) = name.strip_prefix(&prefix) {
-                if let Some(num_str) = stripped.strip_suffix(".json") {
-                    if let Ok(num) = num_str.parse::<u32>() {
-                        if num > max_seq {
-                            max_seq = num;
+pub async fn get_next_sequence(dir: String, prefix: String) -> Result<u32, String> {
+    run_blocking(move || {
+        let dir_path = Path::new(&dir);
+        if !dir_path.exists() {
+            return Ok(1);
+        }
+        let mut max_seq = 0u32;
+        if let Ok(entries) = std::fs::read_dir(dir_path) {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if let Some(stripped) = name.strip_prefix(&prefix) {
+                    if let Some(num_str) = stripped.strip_suffix(".json") {
+                        if let Ok(num) = num_str.parse::<u32>() {
+                            if num > max_seq {
+                                max_seq = num;
+                            }
                         }
                     }
                 }
             }
         }
-    }
-    Ok(max_seq + 1)
+        Ok(max_seq + 1)
+    })
+    .await
 }
 
 // ── File watcher ──────────────────────────────────────────────
@@ -153,7 +184,7 @@ pub struct FsChangeEvent {
 struct WatcherState(Mutex<Option<RecommendedWatcher>>);
 
 #[tauri::command]
-pub fn watch_dir(app: AppHandle, path: String) -> Result<(), String> {
+pub async fn watch_dir(app: AppHandle, path: String) -> Result<(), String> {
     let app_handle = app.app_handle().clone();
 
     let mut watcher = RecommendedWatcher::new(
@@ -190,7 +221,7 @@ pub fn watch_dir(app: AppHandle, path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn stop_watching(app: AppHandle) -> Result<(), String> {
+pub async fn stop_watching(app: AppHandle) -> Result<(), String> {
     if let Some(state) = app.try_state::<WatcherState>() {
         if let Ok(mut guard) = state.0.lock() {
             *guard = None; // drop the watcher, stopping it

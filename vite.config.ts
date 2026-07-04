@@ -38,6 +38,10 @@ export default defineConfig({
         // 提前拉回首屏预载，反而拖慢启动。让它们自然留在各自的 lazy 分包里。
         manualChunks(id) {
           if (!id.includes('node_modules')) return
+          // zustand 必须单独成 vendor：store 模块顶层就调 create()，若 zustand 留在
+          // 入口大 chunk 会与各 store 分包形成循环引用，求值顺序翻车时 create 尚未
+          // 初始化 → 启动白屏(TypeError: r is not a function)。
+          if (id.includes('zustand')) return 'vendor-state'
           if (id.includes('dexie')) return 'vendor-dexie'
           if (id.includes('date-fns')) return 'vendor-date'
           if (id.includes('react-router') || id.includes('@remix-run/router')) return 'vendor-router'

@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { Settings, Globe, Check, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Settings, Palette, Globe, Check, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { useProfileStore } from '@/stores/profileStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
@@ -81,6 +81,12 @@ export function AccountMenu({ variant }: AccountMenuProps) {
     setOpen(false)
   }, [setActiveSettingsTab, setSettingsModalOpen])
 
+  const handleOpenAppearance = useCallback(() => {
+    setActiveSettingsTab('appearance')
+    setSettingsModalOpen(true)
+    setOpen(false)
+  }, [setActiveSettingsTab, setSettingsModalOpen])
+
   const handleSwitchLanguage = useCallback(
     (lang: AppLanguage) => {
       fireAndForget(setLanguage(lang), 'set language')
@@ -139,6 +145,16 @@ export function AccountMenu({ variant }: AccountMenuProps) {
               <Settings size={16} strokeWidth={1.75} className="text-text-tertiary shrink-0" />
               <span>{t('nav.settings')}</span>
               <span className="ml-auto text-xs text-text-tertiary">Ctrl ,</span>
+            </button>
+
+            {/* 外观 */}
+            <button
+              type="button"
+              onClick={handleOpenAppearance}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-150 cursor-pointer border-none bg-transparent"
+            >
+              <Palette size={16} strokeWidth={1.75} className="text-text-tertiary shrink-0" />
+              <span>{t('settings.appearance')}</span>
             </button>
 
             {/* 语言 */}

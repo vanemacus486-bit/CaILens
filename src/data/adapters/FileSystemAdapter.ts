@@ -1041,19 +1041,23 @@ export class FileSystemAdapter implements StorageAdapter {
     if (!this.rootPath) return
     const root = this.rootPath
 
-    // 1) 单文件表 + estimates(体积小,直接读)
+    // 三组独立读盘(单文件表 / estimates / 最近事件)并发发起——async 命令在
+    // Rust 阻塞线程池上真正并行,启动等待缩短为最慢一路;读完再按原顺序应用。
     const SINGLE_FILES = ['categories.json', 'settings.json', 'profile.json', 'todos.json', 'todoLists.json', 'goals.json', 'projects.json']
-    const metaEntries: FileEntryWithContent[] = []
-    await Promise.all(SINGLE_FILES.map(async (name) => {
-      try {
-        const content = await readTextFile(joinPath(root, name))
-        metaEntries.push({ path: joinPath(root, name), modified: 0, content })
-      } catch { /* 文件可能尚不存在(新库) */ }
-    }))
-    try {
-      const estEntries = await readDirWithContent(joinPath(root, 'estimates'))
-      metaEntries.push(...estEntries)
-    } catch { /* estimates 目录可能不存在 */ }
+    const [singleEntries, estEntries, recent] = await Promise.all([
+      Promise.all(SINGLE_FILES.map(async (name): Promise<FileEntryWithContent | null> => {
+        try {
+          const content = await readTextFile(joinPath(root, name))
+          return { path: joinPath(root, name), modified: 0, content }
+        } catch { return null /* 文件可能尚不存在(新库) */ }
+      })),
+      readDirWithContent(joinPath(root, 'estimates')).catch(() => [] as FileEntryWithContent[] /* 目录可能不存在 */),
+      this.readRecentEventEntries(2),
+    ])
+    const metaEntries: FileEntryWithContent[] = [
+      ...singleEntries.filter((e): e is FileEntryWithContent => e !== null),
+      ...estEntries,
+    ]
 
     await (this.categories as CategoriesFsTable).loadFromScan(metaEntries)
     await (this.settings as SettingsFsTable).loadFromScan(metaEntries)
@@ -1063,24 +1067,24 @@ export class FileSystemAdapter implements StorageAdapter {
     await (this.todos as TodosFsTable).loadFromScan(metaEntries)
     await (this.todoLists as TodoListsFsTable).loadFromScan(metaEntries)
 
-    // 2) 最近两个月事件(当前月 + 上月,自动跨年),以「部分加载」标记(markInitialized=false)
-    const recent = await this.readRecentEventEntries(2)
+    // 最近两个月事件(当前月 + 上月,自动跨年),以「部分加载」标记(markInitialized=false)
     await (this.events as EventsFsTable).loadFromScan(recent, false)
   }
 
-  /** 读取最近 N 个自然月的事件文件内容(events/YYYY/MM/)。 */
+  /** 读取最近 N 个自然月的事件文件内容(events/YYYY/MM/),各月目录并行读。 */
   private async readRecentEventEntries(months: number): Promise<FileEntryWithContent[]> {
     if (!this.rootPath) return []
-    const out: FileEntryWithContent[] = []
+    const rootPath = this.rootPath
     const now = new Date()
+    const dirs: string[] = []
     for (let i = 0; i < months; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const dir = joinPath(this.rootPath, 'events', String(d.getFullYear()), pad2(d.getMonth() + 1))
-      try {
-        out.push(...await readDirWithContent(dir))
-      } catch { /* 月目录可能不存在 */ }
+      dirs.push(joinPath(rootPath, 'events', String(d.getFullYear()), pad2(d.getMonth() + 1)))
     }
-    return out
+    const results = await Promise.all(
+      dirs.map((dir) => readDirWithContent(dir).catch(() => [] as FileEntryWithContent[] /* 月目录可能不存在 */)),
+    )
+    return results.flat()
   }
 
   /**

@@ -8,33 +8,21 @@ import './index.css'
 import './styles/tokens.css'
 import App from './App.tsx'
 
-function updateSplash(percent: number, label: string) {
-  const bar = document.getElementById('splash-bar-fill')
-  const labelEl = document.getElementById('splash-label')
-  if (bar) {
-    bar.classList.remove('indeterminate')
-    bar.style.width = `${percent}%`
-  }
-  if (labelEl) labelEl.textContent = label
-}
-
-/** 启动失败时:把错误显示在启动画面上,避免无限转圈 / 静默白屏。 */
+/** 启动失败时:强制显示 splash 内容(绕过 300ms 延迟浮现)并写出错误,避免静默白屏。 */
 function showSplashError(message: string) {
-  const bar = document.getElementById('splash-bar-fill')
+  const splash = document.getElementById('splash-screen')
+  if (splash) splash.classList.add('splash-error')
   const labelEl = document.getElementById('splash-label')
-  if (bar) {
-    bar.classList.remove('indeterminate')
-    bar.style.width = '100%'
-  }
   if (labelEl) labelEl.textContent = message
 }
 
-/** React 首屏就绪后淡出并移除启动画面(splash 独立于 #root,不会被 React 清空)。 */
+/** React 首屏就绪后淡出并移除启动画面(splash 独立于 #root,不会被 React 清空)。
+ *  splash 内容有 300ms 延迟浮现:启动够快时用户全程只看到与应用同色的背景。 */
 function fadeOutSplash() {
   const splash = document.getElementById('splash-screen')
   if (!splash) return
   splash.classList.add('splash-fade-out')
-  setTimeout(() => splash.remove(), 450)
+  setTimeout(() => splash.remove(), 250)
 }
 
 /**
@@ -54,11 +42,8 @@ function installGlobalErrorHandlers() {
 
 async function bootstrap() {
   installGlobalErrorHandlers()
-  updateSplash(5, 'Detecting environment...')
 
   const adapter = await getAdapter()
-
-  updateSplash(55, 'Initializing database...')
   initRepositories(adapter)
 
   // 开发服务器：事件表为空时播种 28 天模板数据（生产构建里被 DEV 守卫消除）
@@ -67,10 +52,7 @@ async function bootstrap() {
     await seedDemoData()
   }
 
-  updateSplash(100, 'Ready')
-
-  // 先渲染 React，再淡出启动画面——首屏在淡出动画期间已就绪，体感更快，
-  // 且去掉了此前 200ms+400ms 的纯空等。
+  // 先渲染 React，再淡出启动画面——首屏在淡出动画期间已就绪，体感更快。
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <App />
