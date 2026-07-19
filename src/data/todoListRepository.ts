@@ -32,11 +32,12 @@ export class TodoListRepository {
   }
 
   async getAll(): Promise<TodoList[]> {
-    return this.adapter.todoLists.getAll()
+    return (await this.adapter.todoLists.getAll()).filter((l) => !l.deletedAt)
   }
 
   async getById(id: string): Promise<TodoList | undefined> {
-    return this.adapter.todoLists.get(id)
+    const list = await this.adapter.todoLists.get(id)
+    return list?.deletedAt ? undefined : list
   }
 
   async create(name: string): Promise<TodoList> {
@@ -50,6 +51,7 @@ export class TodoListRepository {
       categoryId: null,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     }
     await this.adapter.todoLists.put(list)
     return list
@@ -84,10 +86,14 @@ export class TodoListRepository {
       categoryId: null,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     })
   }
 
   async delete(id: string): Promise<void> {
-    await this.adapter.todoLists.delete(id)
+    const existing = await this.adapter.todoLists.get(id)
+    if (!existing) return
+    const now = this.clock.now()
+    await this.adapter.todoLists.put({ ...existing, deletedAt: now, updatedAt: now })
   }
 }

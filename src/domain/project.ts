@@ -30,6 +30,7 @@ export interface Project {
   sortOrder: number
   createdAt: number
   updatedAt: number
+  deletedAt?: number | null
   archivedAt?: number
   /** 项目级每日重复开关：开启后该项目下所有 done 的 todo 在过零点自动重置为 todo */
   dailyRepeat: boolean

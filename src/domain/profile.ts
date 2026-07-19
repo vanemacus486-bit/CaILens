@@ -14,6 +14,7 @@ export interface Profile {
   avatar: string
   /** 最后更新时间 YYYY-MM-DD */
   updatedAt: string | null
+  updatedAtMs?: number | null
 }
 
 // ── 默认值 ──────────────────────────────────────────
@@ -23,4 +24,5 @@ export const DEFAULT_PROFILE: Profile = {
   name: '',
   avatar: '',
   updatedAt: null,
+  updatedAtMs: null,
 }

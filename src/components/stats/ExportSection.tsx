@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Lock, Calendar } from 'lucide-react'
 import { getEventRepo } from '@/data/getRepositories'
 import { generateIcs, downloadIcs } from '@/lib/icsExport'
+import { saveTextFile } from '@/lib/nativeShare'
 import { EncryptedExportDialog } from './EncryptedExportDialog'
 import type { AppLanguage } from '@/i18n/types'
 
@@ -44,13 +45,7 @@ export function ExportSection({ language }: ExportSectionProps) {
       ext = 'csv'
     }
 
-    const blob = new Blob([content], { type: mime })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
-    a.href     = url
-    a.download = `cailens-export.${ext}`
-    a.click()
-    URL.revokeObjectURL(url)
+    await saveTextFile(content, `cailens-export.${ext}`, mime)
   }
 
   async function doExportIcs() {
@@ -60,7 +55,7 @@ export function ExportSection({ language }: ExportSectionProps) {
       const events = await getEventRepo().getByTimeRange(0, now)
       events.sort((a, b) => a.startTime - b.startTime)
       const ics = generateIcs(events)
-      downloadIcs(ics)
+      await downloadIcs(ics)
     } finally {
       setIcsBusy(false)
     }

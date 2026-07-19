@@ -197,6 +197,14 @@
   --paper: #10645B; --surface: #146A60;
   --ink: #EAF4F1; --ink-2: #A9CEC7; --ink-3: #7FA9A2;
   --line: #20776C; --line-strong: #2C867A; --accent-soft: #1D6D62;
+  /* 深底浅色模式：复盘/热力 token 须跟随主题文字色，否则纸面用的深棕墨在深底上不可读 */
+  --stats-shell-bg: var(--surface-base); --stats-shell-pill-bg: var(--surface-raised); --stats-shell-pill-text: var(--text-tertiary);
+  --stats-shell-ink-1: var(--text-primary); --stats-shell-ink-2: var(--text-secondary); --stats-shell-ink-3: var(--text-tertiary);
+  --stats-shell-rule: rgba(255,255,255,0.10);
+  --heatmap-bg: var(--surface-base); --heatmap-bg-card: var(--surface-raised);
+  --heatmap-ink-1: var(--text-primary); --heatmap-ink-2: var(--text-secondary); --heatmap-ink-3: var(--text-tertiary);
+  --heatmap-rule: rgba(255,255,255,0.10);
+  --heatmap-bg-cell-empty: #17564E; --bg-cell-empty: #17564E;
 }
 .dark[data-style="tide"] {
   --surface-base: #0A433D; --surface-raised: #000000; --surface-sunken: #073630;
@@ -207,26 +215,38 @@
   --paper: #0A433D; --surface: #0D4A43;
   --ink: #E6F1EE; --ink-2: #A2C6BF; --ink-3: #77A099;
   --line: #175249; --line-strong: #216056; --accent-soft: #12483F;
+  --stats-shell-rule: rgba(226,244,239,0.08); --heatmap-rule: rgba(226,244,239,0.08);
+  --heatmap-bg-cell-empty: #0E4A42; --bg-cell-empty: #0E4A42;
 }
 
-/* ── Indigo 靛蓝（全画布饱和靛蓝 + 暖金强调，Timepage 式沉浸；浅色模式刻意也是深底） ── */
+/* ── Indigo 靛蓝（全画布深靛墨蓝 + 暖金强调，Timepage 式沉浸；浅色模式刻意也是深底） ── */
 [data-style="indigo"] {
-  --surface-base: #1B5FA8; --surface-raised: #2569BE; --surface-sunken: #164E8C;
-  --border-subtle: #2E71C2; --border-default: #3C7ECB;
+  --surface-base: #16294F; --surface-raised: #24407A; --surface-sunken: #101F3E;
+  --border-subtle: #2E4E8C; --border-default: #3B5CA0;
   --grid-line: rgba(255,255,255,0.10); --grid-line-date-sep: rgba(255,255,255,0.16);
-  --accent: #F0C36B; --accent-hover: #F4CE85; --accent-light: #1F6BB5; --time-line: #F0C36B;
-  --text-primary: #F5F9FF; --text-secondary: #C7DAF2; --text-tertiary: #93B4DC; --text-quaternary: #6690BE;
-  --paper: #1B5FA8; --surface: #2065B4;
-  --ink: #F5F9FF; --ink-2: #C7DAF2; --ink-3: #93B4DC;
-  --line: #2E71C2; --line-strong: #3C7ECB; --accent-soft: #1F6BB5;
+  --accent: #F0C36B; --accent-hover: #F4CE85; --accent-light: #27437E; --time-line: #F0C36B;
+  --text-primary: #F2F6FD; --text-secondary: #C2D2EC; --text-tertiary: #90A8CE; --text-quaternary: #647FA8;
+  --paper: #16294F; --surface: #1B3160;
+  --ink: #F2F6FD; --ink-2: #C2D2EC; --ink-3: #90A8CE;
+  --line: #2E4E8C; --line-strong: #3B5CA0; --accent-soft: #27437E;
+  /* 深底浅色模式：复盘/热力 token 须跟随主题文字色，否则纸面用的深棕墨在深底上不可读 */
+  --stats-shell-bg: var(--surface-base); --stats-shell-pill-bg: var(--surface-raised); --stats-shell-pill-text: var(--text-tertiary);
+  --stats-shell-ink-1: var(--text-primary); --stats-shell-ink-2: var(--text-secondary); --stats-shell-ink-3: var(--text-tertiary);
+  --stats-shell-rule: rgba(255,255,255,0.10);
+  --heatmap-bg: var(--surface-base); --heatmap-bg-card: var(--surface-raised);
+  --heatmap-ink-1: var(--text-primary); --heatmap-ink-2: var(--text-secondary); --heatmap-ink-3: var(--text-tertiary);
+  --heatmap-rule: rgba(255,255,255,0.10);
+  --heatmap-bg-cell-empty: #21375F; --bg-cell-empty: #21375F;
 }
 .dark[data-style="indigo"] {
-  --surface-base: #0F3868; --surface-raised: #000000; --surface-sunken: #0A2C54;
-  --border-subtle: #1B4C8A; --border-default: #235998;
+  --surface-base: #131F3C; --surface-raised: #000000; --surface-sunken: #0C162E;
+  --border-subtle: #263A66; --border-default: #30487C;
   --grid-line: rgba(234,242,255,0.08); --grid-line-date-sep: rgba(234,242,255,0.13);
-  --accent: #EEBE63; --accent-hover: #F2C97C; --accent-light: #123A6E; --time-line: #EEBE63;
-  --text-primary: #EAF2FF; --text-secondary: #A9C4E8; --text-tertiary: #7FA0C9; --text-quaternary: #5A7DA0;
-  --paper: #0F3868; --surface: #12447C;
-  --ink: #EAF2FF; --ink-2: #A9C4E8; --ink-3: #7FA0C9;
-  --line: #1B4C8A; --line-strong: #235998; --accent-soft: #123A6E;
+  --accent: #EEBE63; --accent-hover: #F2C97C; --accent-light: #1B2C52; --time-line: #EEBE63;
+  --text-primary: #E9F0FB; --text-secondary: #A9BEDD; --text-tertiary: #7E96BC; --text-quaternary: #58729A;
+  --paper: #131F3C; --surface: #182848;
+  --ink: #E9F0FB; --ink-2: #A9BEDD; --ink-3: #7E96BC;
+  --line: #263A66; --line-strong: #30487C; --accent-soft: #1B2C52;
+  --stats-shell-rule: rgba(234,242,255,0.08); --heatmap-rule: rgba(234,242,255,0.08);
+  --heatmap-bg-cell-empty: #1A2A4E; --bg-cell-empty: #1A2A4E;
 }

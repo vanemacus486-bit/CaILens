@@ -72,7 +72,7 @@ export function HygieneCalendarCard({ rangeEvents, activities, anchorDate: ancho
             id: it.eventId,
             hour: hourOfDay(it.startTime),
             timeLabel: fmtTime(it.startTime),
-            color: hygieneColorVar(it.activityId),
+            color: hygieneColorVar(it.colorKey),
             label: it.name,
             detail: it.title && it.title !== it.name ? it.title : undefined,
           })),

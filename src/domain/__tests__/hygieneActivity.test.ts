@@ -47,6 +47,9 @@ describe('findHygieneActivity / hygieneColorVar', () => {
 
   it('resolves palette keys to css vars and falls back for unknown keys', () => {
     expect(hygieneColorVar('shower')).toBe('var(--tag-hygiene-shower)')
+    expect(hygieneColorVar('brush_teeth')).toBe('var(--tag-hygiene-brush-teeth)')
+    expect(hygieneColorVar('hair_wash')).toBe('var(--tag-hygiene-hair-wash)')
+    expect(hygieneColorVar('nail_care')).toBe('var(--tag-hygiene-nail-care)')
     expect(hygieneColorVar('sky')).toBe('var(--event-sky-fill)')
     expect(hygieneColorVar('unknown-key')).toBe('var(--event-sand-fill)')
   })

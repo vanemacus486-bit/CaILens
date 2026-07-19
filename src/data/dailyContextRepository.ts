@@ -38,26 +38,30 @@ export class DailyContextRepository {
       where: { key: 'date', op: 'equals', value: date },
       limit: 1,
     })
-    return all[0]
+    return all.find((o) => !o.deletedAt)
   }
 
   async saveOutfit(outfit: Omit<DailyOutfit, 'id'>): Promise<DailyOutfit> {
-    const record: DailyOutfit = { ...outfit, id: this.idGen.generate() }
+    const now = Date.now()
+    const record: DailyOutfit = { ...outfit, id: this.idGen.generate(), createdAt: now, updatedAt: now, deletedAt: null }
     await this.adapter.outfitLogs.put(record)
     return record
   }
 
   async updateOutfit(id: string, changes: Partial<Omit<DailyOutfit, 'id'>>): Promise<void> {
-    await this.adapter.outfitLogs.update(id, changes as Partial<DailyOutfit>)
+    await this.adapter.outfitLogs.update(id, { ...changes, updatedAt: Date.now(), deletedAt: null } as Partial<DailyOutfit>)
   }
 
   async deleteOutfit(id: string): Promise<void> {
-    await this.adapter.outfitLogs.delete(id)
+    const existing = await this.adapter.outfitLogs.get(id)
+    if (!existing) return
+    const now = Date.now()
+    await this.adapter.outfitLogs.put({ ...existing, deletedAt: now, updatedAt: now })
   }
 
   async getOutfitsByDateRange(startDate: string, endDate: string): Promise<DailyOutfit[]> {
     return this.adapter.outfitLogs.query({
-      filter: (o) => o.date >= startDate && o.date <= endDate,
+      filter: (o) => !o.deletedAt && o.date >= startDate && o.date <= endDate,
     })
   }
 }

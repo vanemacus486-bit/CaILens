@@ -321,8 +321,12 @@ export const useEventStore = create<EventState>()((set, get) => ({
       endTime: original.endTime,
       color: original.color,
       categoryId: original.categoryId,
+      projectId: original.projectId,
       description: original.description,
       location: original.location,
+      typedKey: original.typedKey,
+      typedData: original.typedData,
+      goalId: original.goalId ?? null,
     }
     const event = await getEventRepo().create(input)
     clearEventCache()

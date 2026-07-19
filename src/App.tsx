@@ -39,6 +39,7 @@ import type { ShortcutAction } from '@/domain/shortcuts'
 import { isNativeMobile } from '@/lib/platform'
 const MobileLayout = lazy(() => import('@/features/mobile/MobileLayout').then((m) => ({ default: m.MobileLayout })))
 const MobileDayPage = lazy(() => import('@/features/mobile/MobileDayPage').then((m) => ({ default: m.MobileDayPage })))
+const MobileSearchPage = lazy(() => import('@/features/mobile/MobileSearchPage').then((m) => ({ default: m.MobileSearchPage })))
 
 /** 懒加载页面切换时的占位（与背景同色，避免闪烁突兀）。 */
 function PageFallback() {
@@ -241,6 +242,14 @@ export default function App() {
             <Route element={<MobileLayout />}>
               <Route path="/" element={<Navigate to={`/day?date=${formatISODate(new Date())}`} replace />} />
               <Route path="/day" element={<MobileDayPage />} />
+              <Route path="/week" element={<MobileDayPage />} />
+              <Route path="/month" element={<WeekView />} />
+              <Route path="/action" element={<ActionPage />} />
+              <Route path="/stats" element={<StatsPage />} />
+              <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/search" element={<MobileSearchPage />} />
+              <Route path="/quick-capture" element={<Navigate to={`/day?date=${formatISODate(new Date())}`} replace />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Routes>

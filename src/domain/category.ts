@@ -16,6 +16,7 @@ export interface Category {
   color: EventColor
   weeklyBudget: number
   folders: KeywordFolder[]
+  updatedAt?: number
 }
 
 export const DEFAULT_CATEGORIES: readonly Category[] = [

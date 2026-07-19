@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react'
 import { FileJson, FileSpreadsheet, Lock, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { importJson, importCsv } from '@/lib/jsonCsvImport'
-import { importCailens } from '@/lib/cailensExport'
+import { importCailens, mergeCailens } from '@/lib/cailensExport'
 import type { AppLanguage } from '@/i18n/types'
 import { translate } from '@/i18n/useT'
 import type { ImportStats } from '@/lib/jsonCsvImport'
-import type { CailensImportResult } from '@/lib/cailensExport'
+import type { CailensImportResult, CailensMergeResult } from '@/lib/cailensExport'
 
 interface ImportSectionProps {
   language: AppLanguage
@@ -15,7 +15,7 @@ type ImportStatus = 'idle' | 'importing' | 'done' | 'error'
 
 export function ImportSection({ language }: ImportSectionProps) {
   const [status, setStatus] = useState<ImportStatus>('idle')
-  const [result, setResult] = useState<ImportStats | CailensImportResult | null>(null)
+  const [result, setResult] = useState<ImportStats | CailensImportResult | CailensMergeResult | null>(null)
   const [error, setError] = useState('')
   const [cailensPassphrase, setCailensPassphrase] = useState('')
   const [cailensFile, setCailensFile] = useState<{ name: string; text: string } | null>(null)
@@ -79,14 +79,21 @@ export function ImportSection({ language }: ImportSectionProps) {
     if (cailensInputRef.current) cailensInputRef.current.value = ''
   }
 
-  async function handleCailensRestore() {
+  function reloadAfterImport() {
+    window.setTimeout(() => window.location.reload(), 700)
+  }
+
+  async function handleCailensRestore(mode: 'restore' | 'merge') {
     if (!cailensFile || !cailensPassphrase) return
     setStatus('importing')
     setError('')
     try {
-      const stats = await importCailens(cailensFile.text, cailensPassphrase)
+      const stats = mode === 'merge'
+        ? await mergeCailens(cailensFile.text, cailensPassphrase)
+        : await importCailens(cailensFile.text, cailensPassphrase)
       setResult(stats)
       setStatus('done')
+      reloadAfterImport()
     } catch (err) {
       setStatus('error')
       setError((err as Error).message)
@@ -108,7 +115,10 @@ export function ImportSection({ language }: ImportSectionProps) {
           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
           <span className="text-xs text-green-700 dark:text-green-300">
             {'tables' in result ? (
-              tr('import.imported', Object.values(result.tables).reduce((a, b) => a + b, 0))
+              tr('import.imported', Object.values(result.tables).reduce((a, b) => {
+                if (typeof b === 'number') return a + b
+                return a + b.added + b.updated + b.deleted
+              }, 0))
             ) : (
               tr('import.imported', result.imported)
             )}
@@ -150,7 +160,7 @@ export function ImportSection({ language }: ImportSectionProps) {
         {/* .cailens restore */}
         {!cailensFile ? (
           <>
-            <input ref={cailensInputRef} type="file" accept=".cailens" className="hidden" onChange={handleCailensFile} />
+            <input ref={cailensInputRef} type="file" accept=".cailens,application/octet-stream,*/*" className="hidden" onChange={handleCailensFile} />
             <button
               onClick={() => cailensInputRef.current?.click()}
               disabled={status === 'importing'}
@@ -172,12 +182,19 @@ export function ImportSection({ language }: ImportSectionProps) {
               autoFocus
             />
             <button
-              onClick={handleCailensRestore}
+              onClick={() => handleCailensRestore('merge')}
               disabled={!cailensPassphrase || status === 'importing'}
               className="inline-flex items-center gap-1 bg-accent text-white px-3 py-1.5 text-xs font-medium rounded-sm transition-colors duration-200 hover:bg-accent-hover disabled:opacity-50 cursor-pointer border-none"
             >
               {status === 'importing' ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-              {tr('import.restore')}
+              合并同步
+            </button>
+            <button
+              onClick={() => handleCailensRestore('restore')}
+              disabled={!cailensPassphrase || status === 'importing'}
+              className="inline-flex items-center gap-1 bg-surface-base border border-border-default px-3 py-1.5 text-xs font-medium rounded-sm transition-colors duration-200 hover:bg-surface-sunken disabled:opacity-50 cursor-pointer text-text-secondary"
+            >
+              恢复备份
             </button>
             <button
               onClick={reset}

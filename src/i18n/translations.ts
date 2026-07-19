@@ -591,7 +591,7 @@ export const translations: TranslationDict = {
     ru: 'По умолч.',
   },
   'settings.language': {
-    zh: '界面语言',
+    zh: '语言',
     en: 'Language',
     es: 'Idioma',
     ar: 'اللغة',
@@ -1562,22 +1562,22 @@ export const translations: TranslationDict = {
     ru: 'Текущий',
   },
 
-  // ── 设置：AI ────────────────────────────────────────────
+  // ── 设置：模型 ───────────────────────────────────────────
   'settings.tab.ai': {
-    zh: 'AI',
-    en: 'AI',
-    es: 'IA',
+    zh: '模型',
+    en: 'Models',
+    es: 'Modelos',
     ar: 'الذكاء الاصطناعي',
-    fr: 'IA',
-    ru: 'ИИ',
+    fr: 'Modèles',
+    ru: 'Модели',
   },
   'settings.tab.ai.desc': {
-    zh: 'API 密钥与模型配置',
-    en: 'API keys & model config',
-    es: 'Claves API y configuración de modelos',
+    zh: '默认模型与接入配置',
+    en: 'Default models & providers',
+    es: 'Modelos predeterminados y proveedores',
     ar: 'مفاتيح API وتكوين النموذج',
-    fr: 'Clés API et configuration des modèles',
-    ru: 'Ключи API и конфигурация моделей',
+    fr: 'Modèles par défaut et fournisseurs',
+    ru: 'Модели по умолчанию и провайдеры',
   },
 
   // ── 设置：账户 ─────────────────────────────────────────
@@ -2024,12 +2024,12 @@ export const translations: TranslationDict = {
     ru: 'Выберите провайдера',
   },
   'dayDrawer.aiGoToSettings': {
-    zh: '设置 AI',
-    en: 'AI Settings',
-    es: 'Configurar IA',
+    zh: '设置模型',
+    en: 'Model Settings',
+    es: 'Configurar modelos',
     ar: 'إعدادات الذكاء الاصطناعي',
-    fr: 'Paramètres IA',
-    ru: 'Настройки ИИ',
+    fr: 'Paramètres des modèles',
+    ru: 'Настройки моделей',
   },
   'dayDrawer.closePanel': {
     zh: '关闭板块',

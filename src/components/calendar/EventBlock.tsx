@@ -191,7 +191,7 @@ export const EventBlock = React.memo(function EventBlock({
             }
           }}
           className={cn(
-            'relative overflow-hidden select-none my-[1px]',
+            'relative overflow-hidden select-none touch-none my-[1px]',
             'transition-colors duration-200 z-10 hover:z-30',
             roundedClass,
             isDragging
@@ -324,7 +324,7 @@ export const EventBlock = React.memo(function EventBlock({
           {showResizeHandles && (
             <div
               className={cn(
-                'absolute bottom-0 left-0 right-0 cursor-ns-resize z-20',
+                'absolute bottom-0 left-0 right-0 cursor-ns-resize touch-none z-20',
                 blockH >= 40 ? 'h-3' : 'h-1.5',
               )}
               onPointerDown={bottomResize.onPointerDown}

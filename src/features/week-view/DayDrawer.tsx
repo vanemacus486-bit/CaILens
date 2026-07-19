@@ -142,7 +142,7 @@ export function DayDrawer({ selectedDateMs, onClose }: DayDrawerProps) {
               {flowModes.map((m) => (
                 <div key={`panel-${m}-${selectedDateMs}`} className="flex-1 min-h-0">
                   <PanelCard mode={m} onClosePanel={() => handleToggleMode(m)}>
-                    <RenderPanelContent mode={m} selectedDateMs={selectedDateMs} />
+                    <DayDrawerPanelContent mode={m} selectedDateMs={selectedDateMs} />
                   </PanelCard>
                 </div>
               ))}
@@ -152,7 +152,7 @@ export function DayDrawer({ selectedDateMs, onClose }: DayDrawerProps) {
           {aiActive && (
             <div key={`panel-ai-${selectedDateMs}`} className="flex-1 min-h-0 min-w-0">
               <PanelCard mode="ai" onClosePanel={() => handleToggleMode('ai')}>
-                <RenderPanelContent mode="ai" selectedDateMs={selectedDateMs} />
+                <DayDrawerPanelContent mode="ai" selectedDateMs={selectedDateMs} />
               </PanelCard>
             </div>
           )}
@@ -160,12 +160,14 @@ export function DayDrawer({ selectedDateMs, onClose }: DayDrawerProps) {
       </div>
 
       <style>{`
-        @keyframes slideInFromRight {
-          from { transform: translateX(100%); }
-          to   { transform: translateX(0); }
-        }
-        .animate-slide-in-from-right {
-          animation: slideInFromRight 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+        @media (prefers-reduced-motion: no-preference) {
+          @keyframes slideInFromRight {
+            from { transform: translateX(100%); }
+            to   { transform: translateX(0); }
+          }
+          .animate-slide-in-from-right {
+            animation: slideInFromRight 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+          }
         }
       `}</style>
     </div>
@@ -174,7 +176,7 @@ export function DayDrawer({ selectedDateMs, onClose }: DayDrawerProps) {
 
 // ── RenderPanelContent ─────────────────────────────────
 
-function RenderPanelContent({ mode, selectedDateMs }: { mode: DrawerMode; selectedDateMs: number }) {
+export function DayDrawerPanelContent({ mode, selectedDateMs }: { mode: DrawerMode; selectedDateMs: number }) {
   if (mode === 'weather-archive') {
     return (
       <>

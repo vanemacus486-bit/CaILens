@@ -76,8 +76,8 @@ export function DrawerAIChat({ selectedDateMs }: DrawerAIChatProps) {
   }, [day, language])
 
   const systemPrompt = useMemo(
-    () => buildDayContextPrompt(dateLabel, dayEvents, dayTodos, language),
-    [dateLabel, dayEvents, dayTodos, language],
+    () => buildDayContextPrompt(dateLabel, dayEvents, dayTodos, language, ai?.systemPrompt),
+    [dateLabel, dayEvents, dayTodos, language, ai?.systemPrompt],
   )
 
   // ── 可用提供商 ──

@@ -56,6 +56,7 @@ export interface HabitPlan {
   phases: PlanPhase[]
   createdAt: number
   updatedAt: number
+  deletedAt?: number | null
   archivedAt?: number
 }
 

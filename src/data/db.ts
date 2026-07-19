@@ -326,6 +326,54 @@ export class CailensDB extends Dexie {
       })
     )
 
+    // v33: sync metadata for manual file merge.
+    this.version(33).stores({
+      events: 'id, startTime, endTime, projectId, goalId, deletedAt',
+      categories: 'id',
+      settings: 'id',
+      weeklyEstimates: 'id, weekStart, categoryId, deletedAt',
+      projects: 'id, categoryId, name, status, sortOrder, useCount, lastUsedAt, dailyRepeat, deletedAt',
+      inspirations: 'id, projectId, eventId, deletedAt',
+      mealRecords: 'id, eventId', sleepRecords: 'id, eventId',
+      profiles: 'id',
+      outfitLogs: 'id, date, deletedAt',
+      hygieneLogs: 'id, date',
+      todos: 'id, status, dueDate, sortOrder, projectId, categoryId, repeatPattern, priority, domain, goalId, listId, archivedAt, deletedAt',
+      goals: 'id, parentId, status, sortOrder',
+      todoLists: 'id, sortOrder, categoryId, deletedAt',
+      chroniclePhases: 'id, startDate, endDate, deletedAt',
+      chronicleTasks: 'id, date, deletedAt',
+    }).upgrade(async (tx) => {
+      const now = Date.now()
+      const ensure = async (tableName: string, withUpdatedAt = true) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await tx.table(tableName).toCollection().modify((row: any) => {
+          if (row.deletedAt === undefined) row.deletedAt = null
+          if (withUpdatedAt && row.updatedAt === undefined) row.updatedAt = row.createdAt ?? now
+        })
+      }
+      await ensure('weeklyEstimates')
+      await ensure('projects')
+      await ensure('inspirations')
+      await ensure('outfitLogs')
+      await ensure('todos')
+      await ensure('todoLists')
+      await ensure('chroniclePhases')
+      await ensure('chronicleTasks')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await tx.table('categories').toCollection().modify((row: any) => {
+        if (row.updatedAt === undefined) row.updatedAt = now
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await tx.table('settings').toCollection().modify((row: any) => {
+        if (row.updatedAt === undefined) row.updatedAt = now
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await tx.table('profiles').toCollection().modify((row: any) => {
+        if (row.updatedAtMs === undefined) row.updatedAtMs = row.updatedAt ? Date.parse(row.updatedAt) || now : now
+      })
+    })
+
     // 鍏ㄦ柊 DB 棣栨鍒涘缓鏃惰Е鍙戯紙version 0 鈫?any锛?
     this.on('populate', () =>
       Promise.all([

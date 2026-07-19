@@ -16,6 +16,13 @@ import type { ChatMessage } from '@/domain/aiChat'
 /** 请求超时：10s */
 const FETCH_TIMEOUT_MS = 10_000
 
+function resolveModelName(model: string | undefined, fallback: string): string {
+  return model
+    ?.split(',')
+    .map((item) => item.trim())
+    .find(Boolean) ?? fallback
+}
+
 async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
@@ -56,7 +63,7 @@ async function callOpenAI(
   signal?: AbortSignal,
 ): Promise<string> {
   const baseUrl = (config.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '')
-  const model = config.model || 'gpt-4o'
+  const model = resolveModelName(config.model, 'gpt-4o')
 
   const body = {
     model,
@@ -94,7 +101,7 @@ async function callAnthropic(
   signal?: AbortSignal,
 ): Promise<string> {
   const baseUrl = (config.baseUrl || 'https://api.anthropic.com').replace(/\/+$/, '')
-  const model = config.model || 'claude-sonnet-4-20250514'
+  const model = resolveModelName(config.model, 'claude-sonnet-4-20250514')
 
   const body = {
     model,
@@ -136,7 +143,7 @@ async function callGoogle(
   signal?: AbortSignal,
 ): Promise<string> {
   const baseUrl = (config.baseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '')
-  const model = config.model || 'gemini-2.0-flash'
+  const model = resolveModelName(config.model, 'gemini-2.0-flash')
 
   const url = `${baseUrl}/v1beta/models/${model}:generateContent?key=${config.apiKey}`
 

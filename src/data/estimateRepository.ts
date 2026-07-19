@@ -12,6 +12,7 @@ export class EstimateRepository {
   async getByWeek(weekStart: number): Promise<WeeklyEstimate[]> {
     return this.adapter.weeklyEstimates.query({
       where: { key: 'weekStart', op: 'equals', value: weekStart },
+      filter: (e) => !e.deletedAt,
     })
   }
 
@@ -28,17 +29,20 @@ export class EstimateRepository {
       }))[0]
 
       if (existing) {
-        await this.adapter.weeklyEstimates.update(existing.id, { estimatedHours } as Partial<WeeklyEstimate>)
+        await this.adapter.weeklyEstimates.update(existing.id, { estimatedHours, updatedAt: Date.now(), deletedAt: null } as Partial<WeeklyEstimate>)
         return (await this.adapter.weeklyEstimates.get(existing.id))!
       }
 
       const id = crypto.randomUUID()
+      const now = Date.now()
       const record: WeeklyEstimate = {
         id,
         weekStart,
         categoryId,
         estimatedHours,
-        createdAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
       }
       await this.adapter.weeklyEstimates.put(record)
       return record
@@ -49,6 +53,7 @@ export class EstimateRepository {
   async getRecentHistory(weekStarts: number[]): Promise<WeeklyEstimate[][]> {
     const rows = await this.adapter.weeklyEstimates.query({
       where: { key: 'weekStart', op: 'anyOf', value: weekStarts },
+      filter: (e) => !e.deletedAt,
     })
     const map = new Map<number, WeeklyEstimate[]>()
     for (const row of rows) {

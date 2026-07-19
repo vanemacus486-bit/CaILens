@@ -37,7 +37,7 @@ export class CategoryRepository {
   }
 
   async update(id: CategoryId, changes: CategoryUpdatable): Promise<Category> {
-    await this.adapter.categories.update(id, changes)
+    await this.adapter.categories.update(id, { ...changes, updatedAt: Date.now() })
     const updated = await this.adapter.categories.get(id)
     if (updated === undefined) throw new Error(`Category not found: ${id}`)
     return updated

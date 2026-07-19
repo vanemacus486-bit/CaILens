@@ -21,6 +21,7 @@ export interface DayMark {
   color?: EventColor | null
   createdAt: number
   updatedAt: number
+  deletedAt?: number | null
 }
 
 // ── 纯工具 ──────────────────────────────────────────────────

@@ -114,6 +114,11 @@ describe('buildDayContextPrompt', () => {
     const result = buildDayContextPrompt('6月15日 · 周六', [], [], 'zh')
     expect(result).toContain('请基于以上')
   })
+
+  it('prepends the custom system prompt when provided', () => {
+    const result = buildDayContextPrompt('6月15日 · 周六', [], [], 'zh', '保持非常简短。')
+    expect(result.startsWith('保持非常简短。\n\n以下是用户在 6月15日 · 周六')).toBe(true)
+  })
 })
 
 describe('ChatMessage type', () => {

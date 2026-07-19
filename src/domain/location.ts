@@ -20,6 +20,7 @@ export interface DayLocation {
   cityRef?: number
   createdAt: number
   updatedAt: number
+  deletedAt?: number | null
 }
 
 /**

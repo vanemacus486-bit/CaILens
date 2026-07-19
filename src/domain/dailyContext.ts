@@ -104,4 +104,7 @@ export interface DailyOutfit {
   items: OutfitItem[]
   /** 自由备注，如"下雨天"、"约会" */
   note?: string
+  createdAt?: number
+  updatedAt?: number
+  deletedAt?: number | null
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { List, Plus, Clock } from 'lucide-react'
+import { List, Plus, Clock, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEventStore } from '@/stores/eventStore'
 import { getWeekDays, isSameDay, formatWeekday, formatISODate } from '@/domain/time'
@@ -9,6 +9,7 @@ import { parseISO } from 'date-fns'
 import type { CalendarEvent, EventColor } from '@/domain/event'
 import { MobileEventEditor, type MobileEditorDefaults } from './MobileEventEditor'
 import { MobileDayStream } from './MobileDayStream'
+import { MobileDayInsightSheet } from './MobileDayInsightSheet'
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -64,12 +65,12 @@ interface EventBlockProps {
 }
 
 const COLOR_STYLE: Record<EventColor, { bg: string; text: string }> = {
-  accent: { bg: 'var(--color-accent-bg)', text: 'var(--color-accent-text)' },
-  sage:   { bg: 'var(--color-sage-bg)',   text: 'var(--color-sage-text)' },
-  sand:   { bg: 'var(--color-sand-bg)',   text: 'var(--color-sand-text)' },
-  sky:    { bg: 'var(--color-sky-bg)',     text: 'var(--color-sky-text)' },
-  rose:   { bg: 'var(--color-rose-bg)',   text: 'var(--color-rose-text)' },
-  stone:  { bg: 'var(--color-stone-bg)', text: 'var(--color-stone-text)' },
+  accent: { bg: 'var(--event-accent-bg)', text: 'var(--event-accent-text)' },
+  sage:   { bg: 'var(--event-sage-bg)',   text: 'var(--event-sage-text)' },
+  sand:   { bg: 'var(--event-sand-bg)',   text: 'var(--event-sand-text)' },
+  sky:    { bg: 'var(--event-sky-bg)',    text: 'var(--event-sky-text)' },
+  rose:   { bg: 'var(--event-rose-bg)',   text: 'var(--event-rose-text)' },
+  stone:  { bg: 'var(--event-stone-bg)',  text: 'var(--event-stone-text)' },
 }
 
 function EventBlock({ event, dayStart, onTap }: EventBlockProps) {
@@ -141,6 +142,7 @@ export function MobileDayPage() {
   const [editorKey, setEditorKey] = useState(0)
   const [editorDefaults, setEditorDefaults] = useState<MobileEditorDefaults>({ startTime: 0, endTime: 0 })
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>()
+  const [insightOpen, setInsightOpen] = useState(false)
 
   const openCreate = useCallback((startMs: number) => {
     const endMs = startMs + 30 * 60_000
@@ -156,6 +158,13 @@ export function MobileDayPage() {
     setEditorKey((k) => k + 1)
     setEditorOpen(true)
   }, [])
+
+  useEffect(() => {
+    const openEventId = params.get('openEvent')
+    if (!openEventId || dayEvents.length === 0) return
+    const event = dayEvents.find((e) => e.id === openEventId)
+    if (event) openEdit(event)
+  }, [params, dayEvents, openEdit])
 
   const handleSlotTap = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -246,6 +255,13 @@ export function MobileDayPage() {
             <List size={12} className="inline mr-1" />
             流水
           </span>
+        </button>
+        <button
+          onClick={() => setInsightOpen(true)}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary bg-surface-raised"
+          aria-label="Day insights"
+        >
+          <Sparkles size={14} />
         </button>
       </div>
 
@@ -347,6 +363,9 @@ export function MobileDayPage() {
         editingEvent={editingEvent}
         onClose={() => setEditorOpen(false)}
       />
+      {insightOpen && (
+        <MobileDayInsightSheet selectedDateMs={dayStart} onClose={() => setInsightOpen(false)} />
+      )}
     </div>
   )
 }

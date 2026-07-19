@@ -30,6 +30,8 @@ export interface AiProviderConfig {
 
 export interface AiSettings {
   enabled: boolean
+  /** 用户自定义的 AI 系统提示词；为空时使用默认提示词 */
+  systemPrompt?: string
   providers: AiProviderConfig[]
 }
 
@@ -61,6 +63,7 @@ export interface AppSettings {
   activeCityIndex?: number
   /** 各城市最近一次成功获取的天气（key = cityWeatherKey）：启动水合 + 断网时兜底显示 */
   weatherCache?: Record<string, WeatherData>
+  updatedAt?: number
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {

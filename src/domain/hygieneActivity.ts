@@ -38,9 +38,16 @@ export const HYGIENE_PALETTE: readonly { key: string; varName: string }[] = [
   { key: 'rose',     varName: '--event-rose-fill' },
 ]
 
+const HYGIENE_COLOR_ALIASES: Record<string, string> = {
+  brush_teeth: 'teeth',
+  hair_wash: 'hair',
+  nail_care: 'nail',
+}
+
 /** 调色板 key → CSS 变量引用；未知 key 回退中性色 */
 export function hygieneColorVar(colorKey: string): string {
-  const found = HYGIENE_PALETTE.find((c) => c.key === colorKey)
+  const normalized = HYGIENE_COLOR_ALIASES[colorKey] ?? colorKey
+  const found = HYGIENE_PALETTE.find((c) => c.key === normalized)
   return `var(${found ? found.varName : '--event-sand-fill'})`
 }
 

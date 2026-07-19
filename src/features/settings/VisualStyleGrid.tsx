@@ -50,8 +50,8 @@ const STYLES: StyleDef[] = [
     key: 'indigo',
     name: 'Indigo',
     nameZh: '靛蓝',
-    badge: '鲜明',
-    swatches: ['#1B5FA8', '#2569BE', '#F0C36B'],
+    badge: '典雅',
+    swatches: ['#16294F', '#24407A', '#F0C36B'],
     descZh: '深邃靛蓝铺满整个画布，文字与卡片浮于其上——克制而醒目的全屏沉浸感。',
   },
 ]

@@ -10,29 +10,35 @@ export class InspirationRepository {
   async getByProject(projectId: string): Promise<InspirationLog[]> {
     const all = await this.adapter.inspirations.getAll()
     return all
-      .filter((i) => i.projectId === projectId)
+      .filter((i) => !i.deletedAt && i.projectId === projectId)
       .sort((a, b) => b.createdAt - a.createdAt)
   }
 
   async getByEvent(eventId: string): Promise<InspirationLog | null> {
     const all = await this.adapter.inspirations.getAll()
-    return all.find((i) => i.eventId === eventId) ?? null
+    return all.find((i) => !i.deletedAt && i.eventId === eventId) ?? null
   }
 
   async create(input: CreateInspirationInput): Promise<InspirationLog> {
+    const now = Date.now()
     const inspiration: InspirationLog = {
       id: crypto.randomUUID(),
       projectId: input.projectId,
       eventId: input.eventId,
       content: input.content,
-      createdAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
     }
     await this.adapter.inspirations.put(inspiration)
     return inspiration
   }
 
   async delete(id: string): Promise<void> {
-    await this.adapter.inspirations.delete(id)
+    const existing = await this.adapter.inspirations.get(id)
+    if (!existing) return
+    const now = Date.now()
+    await this.adapter.inspirations.put({ ...existing, deletedAt: now, updatedAt: now })
   }
 
   /** 获取近期灵感（用于 SOP 修订提示） */

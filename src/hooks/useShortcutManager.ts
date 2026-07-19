@@ -9,6 +9,12 @@ export function useShortcutManager(handlers: Partial<Record<ShortcutAction, () =
   handlersRef.current = handlers
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isMobileViewport = window.matchMedia('(max-width: 767px)').matches
+      const isTouchPrimary = window.matchMedia('(pointer: coarse)').matches
+      if (isMobileViewport || isTouchPrimary) return
+    }
+
     const resolved = resolveBindings(shortcuts ?? {})
 
     const onKeyDown = (e: KeyboardEvent) => {

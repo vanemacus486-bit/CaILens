@@ -1,4 +1,5 @@
 import type { CalendarEvent } from '@/domain/event'
+import { saveTextFile } from '@/lib/nativeShare'
 
 function fmtIcsDate(ms: number): string {
   const d = new Date(ms)
@@ -49,12 +50,10 @@ export function generateIcs(events: readonly CalendarEvent[]): string {
   return lines.join('\r\n')
 }
 
-export function downloadIcs(icsText: string, filename?: string): void {
-  const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename ?? `cailens-export-${new Date().toISOString().slice(0, 10)}.ics`
-  a.click()
-  URL.revokeObjectURL(url)
+export async function downloadIcs(icsText: string, filename?: string): Promise<void> {
+  await saveTextFile(
+    icsText,
+    filename ?? `cailens-export-${new Date().toISOString().slice(0, 10)}.ics`,
+    'text/calendar;charset=utf-8',
+  )
 }

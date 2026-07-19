@@ -16,6 +16,16 @@ export interface ChatMessage {
   content: string
 }
 
+export const DEFAULT_AI_SYSTEM_PROMPT_ZH = '你是 CaILens 的时间复盘助手。请基于用户的日程、已完成事项和提问，给出具体、克制、可执行的回应。不要编造不存在的数据；如果信息不足，先说明不确定性。'
+
+export const DEFAULT_AI_SYSTEM_PROMPT_EN = 'You are the time review assistant inside CaILens. Answer with specific, restrained, actionable guidance based on the user schedule, completed tasks, and question. Do not invent missing data; state uncertainty when context is insufficient.'
+
+export function resolveAiSystemPrompt(customPrompt: string | undefined, language: string): string {
+  const trimmed = customPrompt?.trim()
+  if (trimmed) return trimmed
+  return language === 'zh' ? DEFAULT_AI_SYSTEM_PROMPT_ZH : DEFAULT_AI_SYSTEM_PROMPT_EN
+}
+
 // ── 上下文构建 ────────────────────────────────────────────
 
 /**
@@ -32,8 +42,9 @@ export function buildDayContextPrompt(
   events: CalendarEvent[],
   completedTodos: Todo[],
   language: string,
+  customSystemPrompt?: string,
 ): string {
-  const lines: string[] = []
+  const lines: string[] = [resolveAiSystemPrompt(customSystemPrompt, language), '']
 
   if (language === 'zh') {
     lines.push(`以下是用户在 ${dateLabel} 的日程与已完成事项：`)

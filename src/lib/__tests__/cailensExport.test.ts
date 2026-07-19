@@ -27,6 +27,7 @@ import type { StorageAdapter } from '@/data/adapters/StorageAdapter'
 import {
   collectSnapshot,
   restoreSnapshot,
+  mergeSnapshot,
   serializeSnapshot,
   deserializeSnapshot,
   importCailens,
@@ -40,8 +41,8 @@ import type { WeeklyEstimate } from '@/domain/estimate'
 import type { Project } from '@/domain/project'
 import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit } from '@/domain/dailyContext'
-import type { HygieneLogRecord } from '@/data/adapters/StorageAdapter'
 import type { Todo } from '@/domain/todo'
+import type { ChroniclePhase, ChronicleTask } from '@/domain/chronicle'
 
 const PASS = 'correct horse battery staple'
 
@@ -57,22 +58,25 @@ function customSettings(): AppSettings {
   return { id: 'default', language: 'en', theme: 'dark', visualStyle: 'graphite', fontScale: 'default' }
 }
 function estimate(): WeeklyEstimate {
-  return { id: 'est-1', weekStart: 0, categoryId: 'accent', estimatedHours: 5, createdAt: 0 }
+  return { id: 'est-1', weekStart: 0, categoryId: 'accent', estimatedHours: 5, createdAt: 0, updatedAt: 0, deletedAt: null }
 }
 function project(): Project {
   return { id: 'proj-1', name: 'P', categoryId: 'accent', status: 'active', description: '', totalMinutes: 0, eventCount: 0, useCount: 0, lastUsedAt: 0, sortOrder: 0, createdAt: 0, updatedAt: 0, dailyRepeat: false }
 }
 function inspiration(): InspirationLog {
-  return { id: 'insp-1', projectId: 'proj-1', eventId: 'evt-live', content: 'idea', createdAt: 0 }
+  return { id: 'insp-1', projectId: 'proj-1', eventId: 'evt-live', content: 'idea', createdAt: 0, updatedAt: 0, deletedAt: null }
 }
 function outfit(): DailyOutfit {
-  return { id: 'outfit-1', date: '2026-06-24', items: [] }
-}
-function hygiene(): HygieneLogRecord {
-  return { id: 'hyg-1', date: '2026-06-24' }
+  return { id: 'outfit-1', date: '2026-06-24', items: [], createdAt: 0, updatedAt: 0, deletedAt: null }
 }
 function todo(id = 'todo-1', title = 'T'): Todo {
-  return { id, title, description: '', status: 'todo', priority: null, domain: null, listId: 'default', dueDate: null, sortOrder: 0, projectId: null, categoryId: null, createdAt: 0, updatedAt: 0, completedAt: null, repeatPattern: null, goalId: null, isStarred: false, archivedAt: null }
+  return { id, title, description: '', status: 'todo', priority: null, domain: null, listId: 'default', dueDate: null, sortOrder: 0, projectId: null, categoryId: null, createdAt: 0, updatedAt: 0, completedAt: null, repeatPattern: null, goalId: null, isStarred: false, archivedAt: null, deletedAt: null }
+}
+function phase(): ChroniclePhase {
+  return { id: 'phase-1', title: 'Phase', startDate: 0, endDate: 100, color: '#000000', categoryId: null, createdAt: 0, updatedAt: 0, deletedAt: null }
+}
+function chronicleTask(): ChronicleTask {
+  return { id: 'ctask-1', title: 'Task', date: 0, startDate: null, endDate: null, color: '#000000', categoryId: null, description: null, status: 'todo', createdAt: 0, updatedAt: 0, deletedAt: null }
 }
 
 /** 寰€姣忓紶鐢ㄦ埛鏁版嵁琛ㄥ啓鍏ヤ竴琛屼唬琛ㄦ暟鎹紙浜嬩欢鍚竴鏉″纰戯級銆?*/
@@ -85,8 +89,9 @@ async function seedAllTables(adapter: StorageAdapter): Promise<void> {
   await adapter.projects.bulkPut([project()])
   await adapter.inspirations.bulkPut([inspiration()])
   await adapter.outfitLogs.bulkPut([outfit()])
-  await adapter.hygieneLogs.bulkPut([hygiene()])
   await adapter.todos.bulkPut([todo()])
+  await adapter.chroniclePhases.bulkPut([phase()])
+  await adapter.chronicleTasks.bulkPut([chronicleTask()])
 }
 
 function freshIndexedDB(): IndexedDBAdapter {
@@ -112,8 +117,9 @@ async function expectAllTablesRestored(adapter: StorageAdapter): Promise<void> {
   expect((await adapter.projects.getAll()).map((x) => x.id)).toEqual(['proj-1'])
   expect((await adapter.inspirations.getAll()).map((x) => x.id)).toEqual(['insp-1'])
   expect((await adapter.outfitLogs.getAll()).map((x) => x.id)).toEqual(['outfit-1'])
-  expect((await adapter.hygieneLogs.getAll()).map((x) => x.id)).toEqual(['hyg-1'])
   expect((await adapter.todos.getAll()).map((x) => x.id)).toEqual(['todo-1'])
+  expect((await adapter.chroniclePhases.getAll()).map((x) => x.id)).toEqual(['phase-1'])
+  expect((await adapter.chronicleTasks.getAll()).map((x) => x.id)).toEqual(['ctask-1'])
 }
 
 /** 妯℃嫙钀界洏鍐嶈鍥烇細瀵煎叆绔寜 file.text() 璇绘枃鏈紝蹇呴』 ASCII 瀹夊叏銆?*/
@@ -127,11 +133,12 @@ describe('collectSnapshot', () => {
   let adapter: IndexedDBAdapter
   beforeEach(async () => { adapter = freshIndexedDB(); await seedAllTables(adapter) })
 
-  it('produces a version-2 snapshot covering every user-data table (Bug B)', async () => {
+  it('produces a version-3 snapshot covering every active user-data table (Bug B)', async () => {
     const snap = await collectSnapshot(adapter)
-    expect(snap.version).toBe(2)
+    expect(snap.version).toBe(3)
+    expect(snap.formatVersion).toBe(3)
     expect(Object.keys(snap.data).sort()).toEqual(
-      ['categories', 'events', 'hygieneLogs', 'inspirations', 'outfitLogs', 'profile', 'projects', 'settings', 'todoLists', 'todos', 'weeklyEstimates'].sort(),
+      ['categories', 'chroniclePhases', 'chronicleTasks', 'events', 'inspirations', 'outfitLogs', 'profile', 'projects', 'settings', 'todoLists', 'todos', 'weeklyEstimates'].sort(),
     )
     expect(snap.data.todos.map((t) => t.id)).toEqual(['todo-1'])
     expect(snap.data.projects.map((p) => p.id)).toEqual(['proj-1'])
@@ -163,6 +170,95 @@ describe('round-trip: collect 鈫?serialize 鈫?text 鈫?import (IndexedDBAdapte
     expect(result.tables.events).toBe(2)
     expect(result.tables.todos).toBe(1)
   }, 15000)
+})
+
+describe('mergeSnapshot semantics', () => {
+  it('uses LWW with tombstones and does not resurrect newer local deletes', async () => {
+    const target = freshIndexedDB()
+    await target.todos.bulkPut([{ ...todo('same', 'Local deleted'), updatedAt: 30, deletedAt: 30 }])
+
+    await mergeSnapshot({ version: 3, formatVersion: 3, data: { todos: [{ ...todo('same', 'Incoming older'), updatedAt: 20, deletedAt: null }] } }, target)
+
+    expect((await target.todos.get('same'))?.deletedAt).toBe(30)
+  })
+
+  it('allows a newer update to beat an older delete', async () => {
+    const target = freshIndexedDB()
+    await target.todos.bulkPut([{ ...todo('same', 'Local deleted'), updatedAt: 20, deletedAt: 20 }])
+
+    await mergeSnapshot({ version: 3, formatVersion: 3, data: { todos: [{ ...todo('same', 'Incoming newer'), updatedAt: 30, deletedAt: null }] } }, target)
+
+    const row = await target.todos.get('same')
+    expect(row?.title).toBe('Incoming newer')
+    expect(row?.deletedAt).toBeNull()
+  })
+
+  it('dedupes weekly estimates and outfits by natural key', async () => {
+    const target = freshIndexedDB()
+    await target.weeklyEstimates.bulkPut([{ ...estimate(), id: 'local-est', estimatedHours: 1, updatedAt: 10 }])
+    await target.outfitLogs.bulkPut([{ ...outfit(), id: 'local-outfit', note: 'old', updatedAt: 10 }])
+
+    await mergeSnapshot({
+      version: 3,
+      formatVersion: 3,
+      data: {
+        weeklyEstimates: [{ ...estimate(), id: 'remote-est', estimatedHours: 9, updatedAt: 20 }],
+        outfitLogs: [{ ...outfit(), id: 'remote-outfit', note: 'new', updatedAt: 20 }],
+      },
+    }, target)
+
+    expect((await target.weeklyEstimates.getAll()).map((e) => [e.id, e.estimatedHours])).toEqual([['remote-est', 9]])
+    expect((await target.outfitLogs.getAll()).map((o) => [o.id, o.note])).toEqual([['remote-outfit', 'new']])
+  })
+
+  it('merges settings nested data and excludes remote weather cache', async () => {
+    const target = freshIndexedDB()
+    await target.settings.put({
+      id: 'default',
+      language: 'zh',
+      theme: 'light',
+      updatedAt: 10,
+      weatherCache: { local: { weatherCode: 1, temperature: 1, feelsLike: 1, humidity: 1, windSpeed: 1, timestamp: 10 } },
+      dayMarks: [{ id: 'local-mark', date: 1, label: 'local', createdAt: 10, updatedAt: 10 }],
+    })
+
+    await mergeSnapshot({
+      version: 3,
+      formatVersion: 3,
+      data: {
+        settings: [{
+          id: 'default',
+          language: 'zh',
+          theme: 'dark',
+          updatedAt: 20,
+          weatherCache: { remote: { weatherCode: 2, temperature: 2, feelsLike: 2, humidity: 2, windSpeed: 2, timestamp: 20 } },
+          dayMarks: [{ id: 'remote-mark', date: 2, label: 'remote', createdAt: 20, updatedAt: 20 }],
+        }],
+      },
+    }, target)
+
+    const settings = await target.settings.get('default')
+    expect(settings?.theme).toBe('dark')
+    expect(Object.keys(settings?.weatherCache ?? {})).toEqual(['local'])
+    expect(settings?.dayMarks?.map((m) => m.id).sort()).toEqual(['local-mark', 'remote-mark'])
+  })
+
+  it('unions category keywords', async () => {
+    const target = freshIndexedDB()
+    await target.categories.put({ id: 'accent', color: 'accent', name: 'Local', weeklyBudget: 1, updatedAt: 10, folders: [{ id: 'default', name: 'Default', keywords: ['alpha'] }] })
+
+    await mergeSnapshot({
+      version: 3,
+      formatVersion: 3,
+      data: {
+        categories: [{ id: 'accent', color: 'accent', name: 'Remote', weeklyBudget: 2, updatedAt: 20, folders: [{ id: 'default', name: 'Default', keywords: ['beta'] }] }],
+      },
+    }, target)
+
+    const category = await target.categories.get('accent')
+    expect(category?.name).toBe('Remote')
+    expect([...(category?.folders[0].keywords ?? [])].sort()).toEqual(['alpha', 'beta'])
+  })
 })
 
 describe('round-trip: collect 鈫?serialize 鈫?text 鈫?import (FileSystemAdapter)', () => {

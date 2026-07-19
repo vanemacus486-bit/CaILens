@@ -13,18 +13,21 @@ export class TodoRepository {
   async getAll(): Promise<Todo[]> {
     const todos = await this.adapter.todos.getAll()
     return todos
+      .filter((t) => !t.deletedAt)
       .map((t) => ({ ...t, isStarred: t.isStarred ?? false }))
       .sort((a, b) => a.sortOrder - b.sortOrder)
   }
 
   async getById(id: string): Promise<Todo | undefined> {
     const t = await this.adapter.todos.get(id)
+    if (t?.deletedAt) return undefined
     return t ? { ...t, isStarred: t.isStarred ?? false } : undefined
   }
 
   async queryByStatus(status: TodoStatus): Promise<Todo[]> {
     return this.adapter.todos.query({
       where: { key: 'status', op: 'equals', value: status },
+      filter: (t) => !t.deletedAt,
       orderBy: 'sortOrder',
       orderDir: 'asc',
     })
@@ -33,6 +36,7 @@ export class TodoRepository {
   async getByProject(projectId: string): Promise<Todo[]> {
     return this.adapter.todos.query({
       where: { key: 'projectId', op: 'equals', value: projectId },
+      filter: (t) => !t.deletedAt,
       orderBy: 'sortOrder',
       orderDir: 'asc',
     })
@@ -41,6 +45,7 @@ export class TodoRepository {
   async getByListId(listId: string): Promise<Todo[]> {
     return this.adapter.todos.query({
       where: { key: 'listId', op: 'equals', value: listId },
+      filter: (t) => !t.deletedAt,
       orderBy: 'sortOrder',
       orderDir: 'asc',
     })
@@ -49,6 +54,7 @@ export class TodoRepository {
   async getByGoal(goalId: string): Promise<Todo[]> {
     return this.adapter.todos.query({
       where: { key: 'goalId', op: 'equals', value: goalId },
+      filter: (t) => !t.deletedAt,
       orderBy: 'sortOrder',
       orderDir: 'asc',
     })
@@ -57,7 +63,7 @@ export class TodoRepository {
   async queryByDueDateRange(start: number, end: number): Promise<Todo[]> {
     return this.adapter.todos.query({
       where: { key: 'dueDate', op: 'above', value: start },
-      filter: (t) => t.dueDate !== null && t.dueDate <= end && t.status !== 'done',
+      filter: (t) => !t.deletedAt && t.dueDate !== null && t.dueDate <= end && t.status !== 'done',
     })
   }
 
@@ -86,6 +92,7 @@ export class TodoRepository {
       goalId: input.goalId ?? null,
       isStarred: input.isStarred ?? false,
       archivedAt: null,
+      deletedAt: null,
     }
     await this.adapter.todos.put(todo)
     return todo
@@ -128,7 +135,10 @@ export class TodoRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.adapter.todos.delete(id)
+    const existing = await this.adapter.todos.get(id)
+    if (!existing) return
+    const now = this.clock.now()
+    await this.adapter.todos.put({ ...existing, deletedAt: now, updatedAt: now })
   }
 
   async reorder(id: string, newSortOrder: number): Promise<Todo> {
@@ -160,7 +170,7 @@ export class TodoRepository {
     const all = await this.adapter.todos.getAll()
     const now = this.clock.now()
     const toArchive = all.filter(
-      (t) => t.listId === listId && t.status === 'done' && t.archivedAt === null,
+      (t) => !t.deletedAt && t.listId === listId && t.status === 'done' && t.archivedAt === null,
     )
     if (toArchive.length === 0) return
     for (const todo of toArchive) {

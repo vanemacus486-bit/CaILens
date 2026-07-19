@@ -170,15 +170,15 @@ const WTA_CSS = `
 }
 .wta-track::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--heatmap-rule); }
 .wta-mark {
-  position: absolute; top: 50%; width: 8px; height: 8px; border-radius: 50%;
-  transform: translate(-50%, -50%); border: 1.5px solid var(--heatmap-bg-card); box-sizing: content-box; z-index: 1;
+  position: absolute; top: 50%; width: 6px; height: 6px; border-radius: 2px;
+  transform: translate(-50%, -50%); z-index: 1;
 }
 
 /* 明细 */
 .wta-detail { padding-left: 96px; margin-top: 2px; }
 .wta-empty { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--heatmap-ink-3); opacity: 0.4; }
 .wta-item { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 13px; }
-.wta-item-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.wta-item-dot { width: 8px; height: 4px; border-radius: 2px; flex-shrink: 0; }
 .wta-item-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--heatmap-ink-3); width: 40px; flex-shrink: 0; }
 .wta-item-label { color: var(--heatmap-ink-1); }
 .wta-item-detail { color: var(--heatmap-ink-2); }
@@ -188,5 +188,5 @@ const WTA_CSS = `
 .wta-allday { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 4px 0 2px; }
 .wta-allday-prefix { font-size: 10px; color: var(--heatmap-ink-3); letter-spacing: 0.1em; }
 .wta-allday-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--heatmap-ink-1); }
-.wta-allday-dot { width: 6px; height: 6px; border-radius: 50%; }
+.wta-allday-dot { width: 8px; height: 4px; border-radius: 2px; }
 `

@@ -22,7 +22,7 @@ export class ProfileRepository {
 
   async update(updates: Partial<Omit<Profile, 'id'>>): Promise<Profile> {
     const current = await this.get()
-    const updated: Profile = { ...current, ...updates }
+    const updated: Profile = { ...current, ...updates, updatedAtMs: Date.now() }
     await this.adapter.profile.put(updated)
     return updated
   }

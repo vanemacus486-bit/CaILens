@@ -11,17 +11,17 @@ export class ChronicleRepository {
   // ── Phases ──────────────────────────────────────────────
 
   async getAllPhases(): Promise<ChroniclePhase[]> {
-    return this.adapter.chroniclePhases.getAll()
+    return (await this.adapter.chroniclePhases.getAll()).filter((p) => !p.deletedAt)
   }
 
   async getPhasesInRange(startDate: number, endDate: number): Promise<ChroniclePhase[]> {
     return this.adapter.chroniclePhases.query({
-      filter: (p) => p.startDate <= endDate && p.endDate >= startDate,
+      filter: (p) => !p.deletedAt && p.startDate <= endDate && p.endDate >= startDate,
     })
   }
 
   async putPhase(phase: ChroniclePhase): Promise<void> {
-    await this.adapter.chroniclePhases.put(phase)
+    await this.adapter.chroniclePhases.put({ ...phase, deletedAt: phase.deletedAt ?? null })
   }
 
   async updatePhase(id: string, changes: Partial<ChroniclePhase>): Promise<void> {
@@ -29,18 +29,21 @@ export class ChronicleRepository {
   }
 
   async deletePhase(id: string): Promise<void> {
-    await this.adapter.chroniclePhases.delete(id)
+    const existing = await this.adapter.chroniclePhases.get(id)
+    if (!existing) return
+    await this.adapter.chroniclePhases.put({ ...existing, deletedAt: Date.now(), updatedAt: Date.now() })
   }
 
   // ── Tasks ───────────────────────────────────────────────
 
   async getAllTasks(): Promise<ChronicleTask[]> {
-    return this.adapter.chronicleTasks.getAll()
+    return (await this.adapter.chronicleTasks.getAll()).filter((t) => !t.deletedAt)
   }
 
   async getTasksInRange(startDate: number, endDate: number): Promise<ChronicleTask[]> {
     return this.adapter.chronicleTasks.query({
       filter: (t) => {
+        if (t.deletedAt) return false
         const tStart = t.startDate ?? t.date
         const tEnd = t.endDate ?? t.date
         return tStart <= endDate && tEnd >= startDate
@@ -49,7 +52,7 @@ export class ChronicleRepository {
   }
 
   async putTask(task: ChronicleTask): Promise<void> {
-    await this.adapter.chronicleTasks.put(task)
+    await this.adapter.chronicleTasks.put({ ...task, deletedAt: task.deletedAt ?? null })
   }
 
   async updateTask(id: string, changes: Partial<ChronicleTask>): Promise<void> {
@@ -57,6 +60,8 @@ export class ChronicleRepository {
   }
 
   async deleteTask(id: string): Promise<void> {
-    await this.adapter.chronicleTasks.delete(id)
+    const existing = await this.adapter.chronicleTasks.get(id)
+    if (!existing) return
+    await this.adapter.chronicleTasks.put({ ...existing, deletedAt: Date.now(), updatedAt: Date.now() })
   }
 }

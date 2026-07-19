@@ -12,6 +12,7 @@ export interface ChroniclePhase {
   categoryId: CategoryId | null  // optional link to event category for default color
   createdAt: number       // UTC ms
   updatedAt: number       // UTC ms
+  deletedAt?: number | null
 }
 
 export type ChronicleTaskStatus = 'todo' | 'in_progress' | 'done'
@@ -28,6 +29,7 @@ export interface ChronicleTask {
   status: ChronicleTaskStatus
   createdAt: number
   updatedAt: number
+  deletedAt?: number | null
 }
 
 /** A month-aligned node on the timeline axis */

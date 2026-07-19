@@ -25,11 +25,12 @@ export class ProjectRepository {
   }
 
   async getAll(): Promise<Project[]> {
-    return this.adapter.projects.getAll()
+    return (await this.adapter.projects.getAll()).filter((p) => !p.deletedAt)
   }
 
   async getById(id: string): Promise<Project | undefined> {
-    return this.adapter.projects.get(id)
+    const project = await this.adapter.projects.get(id)
+    return project?.deletedAt ? undefined : project
   }
 
   async getByCategory(categoryId: string): Promise<Project[]> {
@@ -65,6 +66,7 @@ export class ProjectRepository {
       sortOrder: input.sortOrder ?? maxOrder + 1,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
       dailyRepeat: input.dailyRepeat ?? false,
     }
     await this.adapter.projects.put(project)
@@ -88,7 +90,9 @@ export class ProjectRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.adapter.projects.delete(id)
+    const existing = await this.adapter.projects.get(id)
+    if (!existing || existing.deletedAt) return
+    await this.adapter.projects.put({ ...existing, deletedAt: this.clock.now(), updatedAt: this.clock.now() })
   }
 
   /** 获取最近使用的项目（按 lastUsedAt 降序，limit 限制） */
@@ -146,7 +150,7 @@ export class ProjectRepository {
       0,
     )
     const existing = await this.adapter.projects.get(id)
-    if (existing) {
+    if (existing && !existing.deletedAt) {
       await this.adapter.projects.put({
         ...existing,
         totalMinutes: Math.round(totalMinutes),
@@ -159,7 +163,7 @@ export class ProjectRepository {
   /** 切换项目每日重复开关 */
   async toggleDailyRepeat(id: string): Promise<Project> {
     const existing = await this.adapter.projects.get(id)
-    if (existing === undefined) {
+    if (existing === undefined || existing.deletedAt) {
       throw new Error(`Project not found: ${id}`)
     }
     const updated: Project = {

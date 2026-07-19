@@ -23,7 +23,7 @@ const MOBILE_TABS: { key: SettingsTab; label: string; labelZh: string }[] = [
   { key: 'categories', label: 'Categories', labelZh: '分类' },
   { key: 'hygiene', label: 'Hygiene', labelZh: '卫生' },
   { key: 'location', label: 'Location', labelZh: '位置' },
-  { key: 'ai', label: 'AI', labelZh: 'AI' },
+  { key: 'ai', label: 'Models', labelZh: '模型' },
   { key: 'appearance', label: 'Appearance', labelZh: '外观与语言' },
   { key: 'shortcuts',  label: 'Shortcuts', labelZh: '快捷键' },
   { key: 'data',       label: 'Data & Profile', labelZh: '数据与档案' },

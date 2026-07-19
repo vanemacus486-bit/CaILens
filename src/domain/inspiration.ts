@@ -11,6 +11,8 @@ export interface InspirationLog {
   eventId: string
   content: string
   createdAt: number
+  updatedAt?: number
+  deletedAt?: number | null
 }
 
 export type CreateInspirationInput = Pick<

@@ -117,7 +117,7 @@ export function HygieneFrequencyMatrix({ rangeEvents, activities, anchorDate: an
                       {cell > 0 ? (
                         <span
                           className="hfm-dot"
-                          style={{ backgroundColor: hygieneColorVar(row.activityId) }}
+                          style={{ backgroundColor: hygieneColorVar(row.colorKey) }}
                           title={fmtWeekTooltip(ci, cell)}
                         />
                       ) : null}
@@ -251,9 +251,9 @@ const HFM_CSS = `
 }
 .hfm-dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  width: 14px;
+  height: 5px;
+  border-radius: 2px;
   margin: 0 1px;
   vertical-align: middle;
 }

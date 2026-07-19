@@ -12,7 +12,7 @@
  * 上一处「滑入」到自己的位置，视觉上连成一次滑动。失败时静默退化为无动画。
  */
 
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { type LucideIcon } from 'lucide-react'
 import { HoverCard } from '@/components/ui/hover-card'
 
@@ -53,9 +53,18 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
   // entry = 接力滑入的起点（新实例从上一处屏幕位置开始）
   const [entry, setEntry] = useState<{ left: number; width: number } | null>(null)
   const [animated, setAnimated] = useState(false)
+  const [showShortcutHints, setShowShortcutHints] = useState(true)
 
   // 含 label：语言切换只改文字不改 id，靠 id-only key 测不出按钮宽度已变，滑块会卡在旧位置
   const itemsKey = items.map((it) => `${it.id}:${it.label}`).join('|')
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px), (pointer: coarse)')
+    const sync = () => setShowShortcutHints(!mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   // 测量激活按钮位置 → 定位滑块；ResizeObserver 处理字体/断点变化后的重对齐
   useLayoutEffect(() => {
@@ -166,7 +175,7 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
         )
         if (!showLabel) {
           return (
-            <HoverCard key={it.id} content={it.label} shortcut={shortcuts?.[it.id]} position="right" delay={300}>
+            <HoverCard key={it.id} content={it.label} shortcut={showShortcutHints ? shortcuts?.[it.id] : undefined} position="right" delay={300}>
               {btn}
             </HoverCard>
           )

@@ -32,7 +32,7 @@ export function StatsRail({ mode, selected, onToggle, onSelect }: StatsRailProps
             className={`stats-rail-dot${isSelected ? ' stats-rail-dot-active' : ' stats-rail-dot-inactive'}`}
             style={{
               borderColor: `var(--event-${id}-fill)`,
-              backgroundColor: isSelected ? `var(--event-${id}-fill)` : 'transparent',
+              backgroundColor: `var(--event-${id}-fill)`,
             }}
             title={id}
             aria-label={id}
@@ -53,29 +53,29 @@ const STATS_RAIL_CSS = `
 .stats-rail-horizontal {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .stats-rail-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid;
+  width: 18px;
+  height: 8px;
+  border-radius: 3px;
+  border: 1px solid;
   cursor: pointer;
   padding: 0;
-  transition: background-color 0.25s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
   flex-shrink: 0;
 }
 
 .stats-rail-dot:hover {
-  transform: scale(1.25);
+  opacity: 0.85;
 }
 
 .stats-rail-dot-active {
-  box-shadow: 0 0 0 2px var(--surface-base);
+  opacity: 1;
 }
 
 .stats-rail-dot-inactive {
-  background: transparent !important;
+  opacity: 0.28;
 }
 `

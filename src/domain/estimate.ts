@@ -8,6 +8,8 @@ export interface WeeklyEstimate {
   categoryId: CategoryId
   estimatedHours: number
   createdAt: number       // UTC ms
+  updatedAt?: number      // UTC ms
+  deletedAt?: number | null
 }
 
 export interface EstimateDeviation {

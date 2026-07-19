@@ -170,7 +170,7 @@ use-cases/  →  domain/  →  data/  →  stores/  →  features/ + components/
 **6 种事件色** = 6 种分类 = 6 种 CategoryId。各有 `bg/text/fill` 三个 CSS 变量：
 - `accent` (焦橙) / `sage` (鼠尾草绿) / `sand` (沙色) / `sky` (暖灰蓝) / `rose` (玫瑰色) / `stone` (石灰色)
 
-**3 视觉风格** (graphite/nocturne/carbon)，通过 `<html data-style="...">` 切换（`settingsStore.ts` 写入，`index.html` 启动还原）。定义在 `tokens.css` 末尾的 `[data-style]` 覆盖块，同时改写两套 token 体系（index.css 的 `--surface-*`/`--accent*` 与 tokens.css 的 `--paper`/`--ink*`/`--line*`），不影响事件分类色。`graphite` = 项目默认暖色。
+**5 视觉风格** (graphite/nocturne/carbon/tide/indigo)，通过 `<html data-style="...">` 切换（`settingsStore.ts` 写入，`index.html` 启动还原）。定义在 `tokens.css` 末尾的 `[data-style]` 覆盖块，同时改写两套 token 体系（index.css 的 `--surface-*`/`--accent*` 与 tokens.css 的 `--paper`/`--ink*`/`--line*`），不影响事件分类色。`graphite` = 项目默认暖色；`tide`/`indigo` = Timepage 式全画布深底沉浸风格（浅色模式也是深底，需覆盖 `--text-*`）。
 
 **状态色：** success `#2D7D46`, danger `#B53535`, info `#3A5A80`。
 

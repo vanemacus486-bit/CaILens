@@ -45,7 +45,7 @@ const SETTINGS_TABS: TabDef[] = [
 const EXTENSION_TABS: TabDef[] = [
   { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
   { key: 'location', labelZh: '位置', labelEn: 'Location', descZh: '时区与天气', descEn: 'Timezone & weather' },
-  { key: 'ai', labelZh: 'AI', labelEn: 'AI', descZh: 'API 密钥与模型配置', descEn: 'API keys & model config' },
+  { key: 'ai', labelZh: '模型', labelEn: 'Models', descZh: '默认模型与接入配置', descEn: 'Default models & providers' },
 ]
 
 /* ── Tab → 组件映射 ── */
@@ -197,7 +197,7 @@ export function SettingsPage() {
 
       {/* ── Content panel ── */}
       <main className="flex-1 overflow-y-auto min-w-0 bg-surface-base/50">
-        <div className={cn('mx-auto px-10 py-10', activeSettingsTab === 'appearance' ? 'max-w-3xl' : 'max-w-xl')}>
+        <div className={cn('mx-auto px-10 py-10', activeSettingsTab === 'appearance' || activeSettingsTab === 'ai' ? 'max-w-5xl' : 'max-w-xl')}>
           <div key={activeSettingsTab} className="animate-settings-fade-in">
             <ActiveTab />
           </div>

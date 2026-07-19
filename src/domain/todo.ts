@@ -18,6 +18,7 @@ export interface TodoList {
   categoryId: CategoryId | null
   createdAt: number
   updatedAt: number
+  deletedAt?: number | null
 }
 
 // ── 状态枚举 ────────────────────────────────────────────────
@@ -98,6 +99,7 @@ export interface Todo {
   categoryId: string | null
   createdAt: number
   updatedAt: number
+  deletedAt?: number | null
   /** 完成时间戳，仅 status === 'done' 时有值 */
   completedAt: number | null
   /** 重复模式。null = 普通待办。'daily' = 完成后自动克隆到明天 */

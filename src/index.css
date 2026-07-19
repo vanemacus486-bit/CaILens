@@ -400,6 +400,27 @@
   transform: scale(1);
 }
 
+/* ── Mobile insight sheet entrance ─────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes mobile-insight-backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes mobile-insight-sheet-in {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .mobile-insight-sheet-backdrop {
+    animation: mobile-insight-backdrop-in 180ms ease-out both;
+  }
+
+  .mobile-insight-sheet {
+    animation: mobile-insight-sheet-in 260ms var(--ease-spring) both;
+  }
+}
+
 /* ── Todo appear (new item slides in) ──────────────────── */
 @media (prefers-reduced-motion: no-preference) {
   @keyframes todo-appear {

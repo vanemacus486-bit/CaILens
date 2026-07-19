@@ -23,7 +23,7 @@ export class SettingsRepository {
 
   async update(updates: Partial<Omit<AppSettings, 'id'>>): Promise<AppSettings> {
     const current = await this.get()
-    const updated: AppSettings = { ...current, ...updates }
+    const updated: AppSettings = { ...current, ...updates, updatedAt: Date.now() }
     await this.adapter.settings.put(updated)
     return updated
   }
