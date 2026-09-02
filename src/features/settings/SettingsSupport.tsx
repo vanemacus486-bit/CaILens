@@ -24,9 +24,8 @@ function ChannelCard({ channel, t, language }: { channel: SponsorChannel; t: T; 
     }
   }
 
-  const open = () => {
-    // 桌面端 window.open 常被拦截 → 退而复制链接，提示用户去浏览器打开
-    if (!openExternal(channel.url)) void copy()
+  const open = async () => {
+    if (!await openExternal(channel.url)) void copy()
   }
 
   const qrSrc = channel.qrImage ? `${import.meta.env.BASE_URL}${channel.qrImage}` : null
@@ -77,7 +76,7 @@ function ChannelCard({ channel, t, language }: { channel: SponsorChannel; t: T; 
             {copied ? t('support.copied') : t('support.copy')}
           </button>
           <button
-            onClick={open}
+            onClick={() => void open()}
             className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-sans font-medium text-white bg-accent hover:bg-accent-hover transition-colors duration-200 cursor-pointer border-none"
             aria-label={t('support.openLink')}
           >

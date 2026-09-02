@@ -12,11 +12,21 @@ export function isTauriDesktop(): boolean {
 }
 
 /**
- * 在系统浏览器打开外部链接，返回是否「可能成功」打开。
- * - 网页 / Capacitor 移动端：window.open 直接打开系统浏览器
- * - Tauri 桌面：window.open 默认被拦截，返回 false，调用方应回退到「复制链接 / 扫码」
+ * 在系统浏览器打开外部链接。
+ * - Tauri 桌面端通过 opener 插件交给系统默认浏览器
+ * - 网页 / Capacitor 移动端使用 window.open
  */
-export function openExternal(url: string): boolean {
+export async function openExternal(url: string): Promise<boolean> {
+  if (isTauriDesktop()) {
+    try {
+      const { openUrl } = await import('@tauri-apps/plugin-opener')
+      await openUrl(url)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   try {
     const w = window.open(url, '_blank', 'noopener,noreferrer')
     return w != null

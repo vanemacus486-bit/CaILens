@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "CaILens",
-  "version": "3.24.3",
+  "version": "3.24.4",
   "identifier": "com.cailens.app",
   "build": {
     "frontendDist": "../dist",
@@ -44,14 +44,6 @@
       "nsis": {
         "installerIcon": "icons/icon.ico"
       }
-    }
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkwMzVBMjRDNUI0MDhBNjYKUldSbWlrQmJUS0kxa0NQcUNZbnArUTNvdnJoOXdkSXJXeWQ3b1FDZ0ZBb1NGTEticnZ3RnA3YlAK",
-      "endpoints": [
-        "https://github.com/vanemacus486-bit/CaILens/releases/latest/download/latest.json"
-      ]
     }
   }
 }
