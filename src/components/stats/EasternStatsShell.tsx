@@ -15,9 +15,9 @@ interface Props {
 
 export function EasternStatsShell({ children }: Props) {
   return (
-    <div className="eastern-shell-root">
+    <div className="eastern-shell-root review-page">
       <style>{SHELL_CSS}</style>
-      <div className="shell-content">
+      <div className="shell-content review-page-content">
         {children}
       </div>
     </div>

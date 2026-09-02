@@ -115,7 +115,7 @@ export function TodoListColumn({ listId, now }: TodoListColumnProps) {
   const hasActiveTasks = activeTodos.length > 0
 
   return (
-    <div className="flex-1 min-w-[280px] max-w-[840px] bg-surface-raised rounded-2xl border border-border-subtle shadow-lg overflow-hidden flex flex-col self-start">
+    <div className="planning-column flex-1 min-w-[280px] max-w-[840px] bg-surface-raised rounded-2xl border border-border-subtle shadow-lg overflow-hidden flex flex-col self-start">
       <ListHeader
         activeList={list}
         allLists={lists}

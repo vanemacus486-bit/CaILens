@@ -13,7 +13,7 @@ import { DatePickerPopover } from '@/components/ui/DatePickerPopover'
 /** 顶部「添加任务」触发器（折叠态）。点击后由父级把编辑器在列表底部展开。 */
 export function AddTaskTrigger({ onClick }: { onClick: () => void }) {
   return (
-    <div className="px-4 py-2.5">
+    <div className="plan-add-task px-4 py-2.5">
       <button
         onClick={onClick}
         className="flex items-center gap-3 text-sm font-sans text-accent hover:text-accent/80 transition-colors w-full text-left"
@@ -92,7 +92,7 @@ export function AddTaskComposer({ open, onOpenChange, onSave, defaultRepeat, foc
   if (!open) return null
 
   return (
-    <div className="px-4 pb-3 pt-2">
+    <div className="plan-composer px-4 pb-3 pt-2">
       <div className="rounded-lg border border-border-subtle bg-surface-raised p-3 space-y-2">
         {/* 标题行：○ + 输入框 */}
         <div className="flex items-start gap-3">

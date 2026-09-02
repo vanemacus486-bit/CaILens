@@ -319,7 +319,7 @@ export function StatsPage() {
       )}
 
       {!isLoading && !loadError && (
-        <div className="routine-container">
+        <div className="routine-container review-canvas">
           {/* StatsHeader — shared title + segments bar + arrows */}
           <StatsHeader
             title={title}

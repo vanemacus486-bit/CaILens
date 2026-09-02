@@ -384,7 +384,7 @@ export function WeekView() {
       />
 
       <div className="flex-1 flex min-w-0 min-h-0">
-      <div className="week-canvas flex-1 flex flex-col min-w-0 overflow-hidden bg-surface-raised border border-border-subtle rounded-2xl m-3" data-density={weekDensity.mode}>
+      <div className="week-canvas week-canvas--calendar flex-1 flex flex-col min-w-0 overflow-hidden bg-surface-raised border border-border-subtle rounded-2xl m-3" data-density={weekDensity.mode}>
         {viewMode === 'week' && !(isMobile && mobileViewMode === 'day') && (
           <WeekDateHeader days={days} highlightedDayMs={highlightedDayMs} onDayClick={handleOpenDrawer} />
         )}

@@ -61,7 +61,7 @@ export function VisualStyleGrid() {
   const setVisualStyle = useAppSettingsStore((s) => s.setVisualStyle)
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    <div className="visual-style-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {STYLES.map((style) => {
         const selected = visualStyle === style.key
         return (
@@ -69,7 +69,7 @@ export function VisualStyleGrid() {
             key={style.key}
             onClick={() => fireAndForget(setVisualStyle(style.key), 'set visual style')}
             className={cn(
-              'relative text-left rounded-xl p-3.5 border transition-all duration-200 cursor-pointer',
+              'visual-style-card relative text-left rounded-xl p-3.5 border transition-all duration-200 cursor-pointer',
               'bg-surface-raised',
               selected
                 ? 'border-accent ring-2 ring-accent/20'

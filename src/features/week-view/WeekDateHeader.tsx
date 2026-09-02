@@ -40,7 +40,7 @@ export function WeekDateHeader({ days, highlightedDayMs, onDayClick }: WeekDateH
                 aria-current={today ? 'date' : undefined}
                 className={cn('week-date-number', today && 'is-today')}
               >
-                {format(day, 'MM-dd')}
+                {format(day, 'd')}
               </time>
             </div>
             {/* Column hint */}

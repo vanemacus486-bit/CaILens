@@ -81,7 +81,7 @@ export function ListHeader({
 
   if (isStarred) {
     return (
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+      <div className="plan-list-header flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         {/* 静态 "已加星标" 标题 */}
         <div className="flex items-center gap-2 text-base font-sans font-medium text-text-primary">
           <Star size={16} className="text-accent" fill="currentColor" />
@@ -110,7 +110,7 @@ export function ListHeader({
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+    <div className="plan-list-header flex items-center justify-between px-4 py-3 border-b border-border-subtle">
       {/* 清单名 + 切换（simplified 时仅显示名称） */}
       {simplified ? (
         <div className="flex items-center gap-2 text-base font-sans font-medium text-text-primary">

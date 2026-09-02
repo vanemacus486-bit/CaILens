@@ -242,6 +242,7 @@ export const EventBlock = React.memo(function EventBlock({
           }}
           data-density={densityMode}
           data-sleep={sleepEvent ? 'true' : 'false'}
+          data-category={event.color}
           onPointerDown={onDragPointerDown}
           onClick={(e) => {
             e.stopPropagation()

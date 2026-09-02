@@ -96,10 +96,10 @@ export function SettingsPage() {
   if (isMobile) return <MobileSettingsPage />
 
   return (
-    <div className="flex h-full bg-surface-base">
+    <div className="settings-page flex h-full bg-surface-base">
       {/* ── Sidebar navigation ── */}
       <nav
-        className="w-[220px] flex-shrink-0 border-r border-border-subtle bg-surface-base overflow-y-auto"
+        className="settings-nav w-[220px] flex-shrink-0 border-r border-border-subtle bg-surface-base overflow-y-auto"
         onKeyDown={handleKeyDown}
         role="tablist"
         aria-orientation="vertical"
@@ -193,8 +193,8 @@ export function SettingsPage() {
       </nav>
 
       {/* ── Content panel ── */}
-      <main className="flex-1 overflow-y-auto min-w-0 bg-surface-base/50">
-        <div className={cn('mx-auto px-10 py-10', activeSettingsTab === 'appearance' || activeSettingsTab === 'ai' ? 'max-w-5xl' : 'max-w-xl')}>
+      <main className="settings-main flex-1 overflow-y-auto min-w-0 bg-surface-base/50">
+        <div className={cn('settings-content mx-auto px-10 py-10', activeSettingsTab === 'appearance' || activeSettingsTab === 'ai' ? 'max-w-5xl' : 'max-w-xl')}>
           <div key={activeSettingsTab} className="animate-settings-fade-in">
             <ActiveTab />
           </div>

@@ -56,7 +56,7 @@ export function CompletedSection({ todos, onToggle }: CompletedSectionProps) {
   if (todos.length === 0) return null
 
   return (
-    <div className="border-t border-border-subtle mt-2">
+    <div className="plan-completed border-t border-border-subtle mt-2">
       <button
         onClick={handleToggle}
         className="flex items-center gap-2 px-4 py-3 w-full text-left text-xs font-sans text-text-tertiary hover:text-text-secondary transition-colors"

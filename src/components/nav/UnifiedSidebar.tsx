@@ -470,7 +470,7 @@ export function UnifiedSidebar() {
   if (isMobile) return null
 
   return (
-    <aside className="floating-side-panel max-md:hidden">
+    <aside className="floating-side-panel app-sidebar max-md:hidden">
       {/* ── 滚动内容区 ── */}
       <div className="week-ledger-body">
         {/* ── 域导航（与顶栏同款切换器）── */}

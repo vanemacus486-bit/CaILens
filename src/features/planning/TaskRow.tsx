@@ -316,7 +316,7 @@ export function TaskRow({ todo, now, lists, sortMode = 'manual', onReorder, onTo
         <ContextMenuTrigger asChild>
           <div
             ref={rowInnerRef}
-            className={`todo-row-inner flex items-start gap-1.5 px-4 py-2.5 rounded-lg transition-colors
+            className={`todo-row-inner plan-task-row flex items-start gap-1.5 px-4 py-2.5 rounded-lg transition-colors
               ${dragEnabled && !isCompleting ? 'hover:bg-surface-sunken/40' : ''}
               ${expanded ? '' : 'cursor-pointer hover:bg-surface-sunken/40'}`}
             onClick={handleRowClick}

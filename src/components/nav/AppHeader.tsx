@@ -214,7 +214,7 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
   if (!isWeek && !isActionOrStats) return null
 
   return (
-    <div className="nav-bar flex items-center px-3 h-[52px] flex-shrink-0" data-tauri-drag-region>
+    <div className="nav-bar app-header flex items-center px-3 h-[52px] flex-shrink-0" data-tauri-drag-region>
       {/* ── Left: ☰ | 🔍 | ‹ › | label ── */}
       {sidebarExpanded ? (
         <button

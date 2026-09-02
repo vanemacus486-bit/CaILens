@@ -45,7 +45,7 @@ export function SettingsAppearance() {
   const t = useT()
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="settings-appearance flex flex-col gap-5">
       <div>
         <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
           {t('settings.appearance')}
