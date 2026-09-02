@@ -76,18 +76,11 @@ if ($?) { npx tsc -b }
 
 ## 4. 打包桌面 .exe
 
-### 4a: 本地出包（带签名）
-
-> 自任务 D 起，`createUpdaterArtifacts: true` 要求签名。
-> **以下两个环境变量缺一不可，否则 tauri build 报错。**
+### 4a: 本地出包
 
 ```powershell
 # 先关掉正在运行的 CaILens（否则产物覆盖失败）
 Stop-Process -Name CaILens -Force -ErrorAction SilentlyContinue
-
-# 设置签名环境变量（两个都用同一个密码）
-$env:TAURI_SIGNING_PRIVATE_KEY = "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25lcnNlY3JldCBrZXkgLS0tLS0g..."
-$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = "your-password"
 
 # 打包
 npm run tauri:build
@@ -96,16 +89,8 @@ npm run tauri:build
 产物在 `release/`：
 - `CaILens.exe` — 绿色便携版（~21MB）
 - `CaILens_<版本>_x64-setup.exe` — NSIS 安装包（~17MB）
-- `latest.json` — updater 清单（自动生成）
 
 ### 4b: CI 发版（推荐）
-
-**前置条件（一次性）：** 在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加以下 Repository secrets：
-
-| Secret 名称 | 值 |
-|---|---|
-| `TAURI_SIGNING_PRIVATE_KEY` | `D:\Dev\CaILens_keys\cailens.key` 文件内容（整个字符串） |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 生成密钥时使用的密码 |
 
 推送一个 `vX.Y.Z` 格式的 tag 即自动触发 `.github/workflows/release.yml`：
 
@@ -116,31 +101,27 @@ git push origin vX.Y.Z
 
 CI 会自动：
 1. 构建 Windows release
-2. 生成 `latest.json`
-3. 发布 GitHub Release（含可自动更新的安装包、签名和 `latest.json`）
+2. 发布 GitHub Release（含安装包）
 
 ---
 
 ## 5. 确认 GitHub Release
 
-CI 会在构建成功后直接发布 Release，这样已安装的应用才能立刻通过
-`/releases/latest/download/latest.json` 获取更新。确认 Release 页面中同时包含
-安装包、`.sig` 签名文件和 `latest.json`。
+CI 会在构建成功后直接发布 Release。确认 Release 页面中的 Windows 安装包可正常下载。
 
 若手动发布：
 1. 打开 https://github.com/vanemacus486-bit/CaILens/releases/new
-2. Tag 填 `vX.Y.Z`（**必须大于上一版**，否则用户端不弹更新）
+2. Tag 填 `vX.Y.Z`（**必须大于上一版**）
 3. Release title 填 `CaILens vX.Y.Z`
 4. 将 `CHANGELOG.md` 对应条目粘贴到 description
-5. 上传 `release/CaILens.exe`、`release/CaILens_<版本>_x64-setup.exe`、`release/latest.json`
+5. 上传 `release/CaILens.exe`、`release/CaILens_<版本>_x64-setup.exe`
 
-> ⚠️ Tag 版本号是 updater 检测更新的唯一依据。若新 tag ≤ 上一个 Release tag，桌面端不会弹出更新提示。
+> ⚠️ Tag 版本号必须大于上一版，避免用户混淆不同版本的下载包。
 
 ---
 
 ## 6. 发版后
 
 - [ ] 确认 GitHub Release 页可正常下载
-- [ ] 确认 `latest.json` 的 `version` 字段与发布版本一致
-- [ ] 在已安装旧版的桌面端验证自动更新（启动 App → 应弹出更新横幅）
+- [ ] 在已安装旧版的桌面端确认「检查更新」可跳转到 Release 下载页
 - [ ] 更新 `README.md` / `README.en.md` 中的状态行（版本号 + 描述）
