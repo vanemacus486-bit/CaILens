@@ -1,6 +1,6 @@
 {
   "name": "cailens",
-  "version": "3.24.0",
+  "version": "3.24.1",
   "description": "本地优先的时间记录工具 — 记录你每一小时的去向",
   "license": "AGPL-3.0-or-later",
   "type": "module",
@@ -39,6 +39,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build && node scripts/copy-release.mjs tauri",
     "android:sync": "npm run build && npx cap sync android",
