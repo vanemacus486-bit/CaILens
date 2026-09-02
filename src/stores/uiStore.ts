@@ -11,7 +11,6 @@ export type SettingsTab =
   | 'storage'
   | 'about'
   | 'support'
-  | 'location'
   | 'ai'
 
 interface UIState {
@@ -33,7 +32,7 @@ interface UIState {
   setQuickCaptureInboxOpen: (open: boolean) => void
 }
 
-const SIDEBAR_KEY = 'cailens.sidebarOpen'
+const SIDEBAR_KEY = 'cailens.sidebarOpen.v2'
 
 // 默认收起：左侧面板由顶栏 ☰ 按需展开，不再常驻
 function loadSidebarExpanded(): boolean {

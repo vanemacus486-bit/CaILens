@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { formatWeekday, isToday } from '@/domain/time'
+import { format } from 'date-fns'
 
 interface WeekDateHeaderProps {
   days: Date[]
@@ -23,26 +24,25 @@ export function WeekDateHeader({ days, highlightedDayMs, onDayClick }: WeekDateH
           <div
             key={day.getTime()}
             className={cn(
-              'flex flex-col items-center justify-center py-2.5 select-none cursor-default bg-surface-base hover:bg-surface-base/70 transition-colors duration-150 border-b border-grid-line-date-sep relative',
+              'week-date-cell flex flex-col items-center justify-center select-none cursor-default bg-surface-base hover:bg-surface-base/70 transition-colors duration-150 border-b border-grid-line-date-sep relative',
+              day.getTime() > new Date().setHours(23, 59, 59, 999) && 'week-date-future',
               highlightedDayMs != null && day.getTime() === highlightedDayMs && 'bg-accent/15 ring-1 ring-accent/40',
             )}
             onDoubleClick={() => onDayClick?.(day)}
             title="双击查看当天"
           >
-            <span className="text-[10px] font-sans text-text-quaternary uppercase tracking-[0.1em] leading-none">
-              {formatWeekday(day, 'short')}
-            </span>
-            <span
-              className={cn(
-                'font-mono text-base font-medium leading-none mt-[3px]',
-                today ? 'text-accent' : 'text-text-primary',
-              )}
-            >
-              {day.getDate()}
-            </span>
-            {today && (
-              <span className="block w-1 h-1 rounded-full bg-accent mx-auto mt-1" />
-            )}
+            <div className="week-date-content">
+              <span className="week-date-weekday">
+                {formatWeekday(day, 'short')}
+              </span>
+              <time
+                dateTime={format(day, 'yyyy-MM-dd')}
+                aria-current={today ? 'date' : undefined}
+                className={cn('week-date-number', today && 'is-today')}
+              >
+                {format(day, 'MM-dd')}
+              </time>
+            </div>
             {/* Column hint */}
             <div className="absolute right-0 bottom-0 w-px h-1.5 bg-grid-line" />
           </div>

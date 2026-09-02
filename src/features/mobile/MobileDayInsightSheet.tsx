@@ -1,8 +1,5 @@
-import { X } from 'lucide-react'
-import { useState } from 'react'
-import { cn } from '@/lib/utils'
-import { DayDrawerPanelContent } from '@/features/week-view/DayDrawer'
-import { MODES, MODE_LABEL_KEYS, type DrawerMode } from '@/features/week-view/drawer/DrawerModeSwitcher'
+import { Bot, X } from 'lucide-react'
+import { DrawerAIChat } from '@/features/week-view/drawer/DrawerAIChat'
 import { useT } from '@/i18n/useT'
 
 interface MobileDayInsightSheetProps {
@@ -11,7 +8,6 @@ interface MobileDayInsightSheetProps {
 }
 
 export function MobileDayInsightSheet({ selectedDateMs, onClose }: MobileDayInsightSheetProps) {
-  const [mode, setMode] = useState<DrawerMode>('weather-archive')
   const t = useT()
   const date = new Date(selectedDateMs)
 
@@ -25,7 +21,7 @@ export function MobileDayInsightSheet({ selectedDateMs, onClose }: MobileDayInsi
         className="mobile-insight-sheet mt-auto max-h-[88vh] min-h-[68vh] rounded-t-[28px] bg-surface-base border-t border-border-subtle overflow-hidden flex flex-col"
         role="dialog"
         aria-modal="true"
-        aria-label={t(MODE_LABEL_KEYS[mode])}
+        aria-label={t('dayDrawer.aiAssistant')}
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -43,25 +39,13 @@ export function MobileDayInsightSheet({ selectedDateMs, onClose }: MobileDayInsi
           </button>
         </div>
 
-        <div className="flex gap-2 px-4 pb-3 overflow-x-auto">
-          {MODES.map(({ mode: itemMode, icon: Icon }) => (
-            <button
-              key={itemMode}
-              onClick={() => setMode(itemMode)}
-              className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs whitespace-nowrap active:scale-[0.97] transition-transform',
-                mode === itemMode ? 'bg-accent text-white' : 'bg-surface-raised text-text-secondary',
-              )}
-              aria-pressed={mode === itemMode}
-            >
-              <Icon size={14} />
-              {t(MODE_LABEL_KEYS[itemMode])}
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5 px-4 pb-3 text-xs font-medium text-accent">
+          <Bot size={14} strokeWidth={1.75} />
+          <span>{t('dayDrawer.aiAssistant')}</span>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto bg-surface-raised/35">
-          <DayDrawerPanelContent mode={mode} selectedDateMs={selectedDateMs} />
+        <div className="flex-1 min-h-0 bg-surface-raised/35">
+          <DrawerAIChat selectedDateMs={selectedDateMs} />
         </div>
       </div>
     </div>

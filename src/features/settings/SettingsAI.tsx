@@ -14,6 +14,7 @@ import {
   Loader2,
   Plus,
   Settings2,
+  Sparkles,
   Trash2,
   XCircle,
   Zap,
@@ -46,6 +47,8 @@ const QUICK_ADD_PRESETS: { provider: AiProvider; label: string; baseUrl: string;
   { provider: 'openai', label: 'OpenAI 官方', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o' },
   { provider: 'anthropic', label: 'Anthropic Claude', baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-4-20250514' },
   { provider: 'google', label: 'Google Gemini', baseUrl: 'https://generativelanguage.googleapis.com', model: 'gemini-2.0-flash' },
+  { provider: 'custom', label: 'Ollama（本地）', baseUrl: 'http://localhost:11434/v1', model: 'llama3.2' },
+  { provider: 'custom', label: 'LM Studio（本地）', baseUrl: 'http://localhost:1234/v1', model: '' },
 ]
 
 function providerName(provider: AiProvider, language: string) {
@@ -282,7 +285,6 @@ export function SettingsAI() {
   const [activeTab, setActiveTab] = useState<ModelSettingsTab>('usage')
 
   const ai = useMemo<AiSettings>(() => settings.ai ?? { enabled: false, providers: [] }, [settings.ai])
-  const availableProviders = useMemo(() => ai.providers.filter((provider) => provider.apiKey.trim().length > 0), [ai.providers])
   const defaultSystemPrompt = language === 'zh' ? DEFAULT_AI_SYSTEM_PROMPT_ZH : DEFAULT_AI_SYSTEM_PROMPT_EN
   const systemPrompt = ai.systemPrompt ?? ''
 
@@ -355,6 +357,35 @@ export function SettingsAI() {
 
       <div className="h-px bg-border-subtle" />
 
+      {/* ── 主开关：始终可见，跨 tab ── */}
+      <div className="rounded-xl border border-border-subtle bg-surface-raised overflow-hidden">
+        <div className="px-5 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0">
+              <Sparkles size={16} strokeWidth={1.75} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-sans font-semibold text-text-primary">
+                {tl('模型功能', 'Model features')}
+              </h2>
+              <p className="text-xs text-text-tertiary mt-1 font-sans leading-relaxed">
+                {tl('启用后，日程抽屉里的对话将使用下方接入的模型。', 'When enabled, the chat in the day drawer uses the providers below.')}
+              </p>
+            </div>
+          </div>
+          <Toggle id="model-enabled-toggle" checked={ai.enabled} onChange={setEnabled} />
+        </div>
+        {!ai.enabled && (
+          <div className="px-5 py-2.5 border-t border-border-subtle flex items-center gap-2 text-xs font-sans text-text-tertiary bg-surface-sunken/50">
+            <Info size={12} className="shrink-0" />
+            <span>
+              {tl('模型功能当前已关闭。', 'Model features are currently disabled.')}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Tab 切换 ── */}
       <div className="inline-flex w-fit rounded-lg border border-border-subtle bg-surface-base p-1">
         {([
           ['usage', tl('使用', 'Usage')],
@@ -376,76 +407,145 @@ export function SettingsAI() {
       </div>
 
       {activeTab === 'usage' ? (
+        <>
+        {/* ── 使用 tab：系统提示词 ── */}
         <div className="rounded-lg border border-border-subtle bg-surface-raised overflow-hidden">
-          <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-base font-sans font-semibold text-text-primary">
-                {tl('使用', 'Usage')}
-              </h2>
-              <p className="text-xs text-text-tertiary mt-1 font-sans">
-                {tl('这里的系统提示词会注入日程抽屉里的 AI 对话。', 'This system prompt is used by the AI chat in the day drawer.')}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-sans text-text-tertiary">
-                {tl('启用模型功能', 'Enable models')}
-              </span>
-              <Toggle id="model-enabled-toggle" checked={ai.enabled} onChange={setEnabled} />
-            </div>
+          <div className="px-5 py-4 border-b border-border-subtle">
+            <h2 className="text-base font-sans font-semibold text-text-primary">
+              {tl('使用', 'Usage')}
+            </h2>
+            <p className="text-xs text-text-tertiary mt-1 font-sans">
+              {tl('这里的系统提示词会注入日程抽屉里的 AI 对话。', 'This system prompt is used by the AI chat in the day drawer.')}
+            </p>
           </div>
 
-          <div className="p-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-            <div>
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <label htmlFor="model-system-prompt" className="text-sm font-sans font-medium text-text-primary">
-                  {tl('系统提示词', 'System prompt')}
-                </label>
-                <button
-                  onClick={() => setSystemPrompt('')}
-                  className="text-xs font-sans text-text-tertiary hover:text-text-primary transition-colors cursor-pointer border-none bg-transparent"
-                >
-                  {tl('恢复默认', 'Reset')}
-                </button>
-              </div>
-              <textarea
-                id="model-system-prompt"
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                placeholder={defaultSystemPrompt}
-                className="min-h-[260px] w-full resize-y rounded-lg border border-border-subtle bg-surface-base px-3 py-3 text-sm font-sans leading-relaxed text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent/30 focus:outline-none focus:border-border-default transition-shadow duration-150"
-              />
+          <div className="p-5">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <label htmlFor="model-system-prompt" className="text-sm font-sans font-medium text-text-primary">
+                {tl('系统提示词', 'System prompt')}
+              </label>
+              <button
+                onClick={() => setSystemPrompt('')}
+                className="text-xs font-sans text-text-tertiary hover:text-text-primary transition-colors cursor-pointer border-none bg-transparent"
+              >
+                {tl('恢复默认', 'Reset')}
+              </button>
             </div>
+            <textarea
+              id="model-system-prompt"
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              placeholder={defaultSystemPrompt}
+              className="min-h-[280px] w-full resize-y rounded-lg border border-border-subtle bg-surface-base px-3 py-3 text-sm font-sans leading-relaxed text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent/30 focus:outline-none focus:border-border-default transition-shadow duration-150"
+            />
 
-            <div className="rounded-lg border border-border-subtle bg-surface-base p-4">
-              <h3 className="text-sm font-sans font-medium text-text-primary">
-                {tl('当前概览', 'Overview')}
-              </h3>
-              <dl className="mt-4 space-y-3 text-xs font-sans">
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-text-tertiary">{tl('状态', 'Status')}</dt>
-                  <dd className={cn('font-medium', ai.enabled ? 'text-success' : 'text-text-tertiary')}>
-                    {ai.enabled ? tl('已启用', 'Enabled') : tl('已关闭', 'Disabled')}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-text-tertiary">{tl('可用接入', 'Ready providers')}</dt>
-                  <dd className="text-text-primary font-medium">{availableProviders.length}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-text-tertiary">{tl('提示词', 'Prompt')}</dt>
-                  <dd className="text-text-primary font-medium">{systemPrompt.trim() ? tl('自定义', 'Custom') : tl('默认', 'Default')}</dd>
-                </div>
-              </dl>
-              <div className="mt-5 flex items-start gap-2 rounded-lg bg-surface-sunken px-3 py-3">
-                <Info size={13} className="mt-0.5 shrink-0 text-text-tertiary" />
-                <p className="text-[11px] leading-relaxed font-sans text-text-tertiary">
-                  {tl('系统提示词只保存在本地设置里。日程、待办等上下文仍会在对话时追加到提示词后。', 'The system prompt is stored locally. Schedule and task context is still appended when you chat.')}
-                </p>
-              </div>
+            <div className="mt-5 flex items-start gap-2 rounded-lg bg-surface-sunken px-3 py-3">
+              <Info size={13} className="mt-0.5 shrink-0 text-text-tertiary" />
+              <p className="text-[11px] leading-relaxed font-sans text-text-tertiary">
+                {tl('系统提示词只保存在本地设置里。日程、待办等上下文仍会在对话时追加到提示词后。', 'The system prompt is stored locally. Schedule and task context is still appended when you chat.')}
+              </p>
             </div>
           </div>
         </div>
+
+        {/* ── 隐私：上下文脱敏 ── */}
+        <div className="rounded-lg border border-border-subtle bg-surface-raised overflow-hidden">
+          <div className="px-5 py-4 border-b border-border-subtle">
+            <h2 className="text-base font-sans font-semibold text-text-primary">
+              {tl('隐私', 'Privacy')}
+            </h2>
+            <p className="text-xs text-text-tertiary mt-1 font-sans">
+              {tl('控制发送给 AI 的上下文内容。更严格的脱敏会降低分析的精细度。', 'Control what context is sent to the AI. Stricter masking reduces the granularity of analysis.')}
+            </p>
+          </div>
+          <div className="p-5 flex flex-col gap-2">
+            {([
+              ['full', tl('完整（默认）：发送事件与待办标题', 'Full (default): send event and task titles')],
+              ['category-only', tl('只发分类与时长，不发送标题', 'Only category and duration, no titles')],
+              ['summary', tl('仅分类统计摘要，不发明细', 'Summary stats only, no details')],
+            ] as const).map(([value, label]) => (
+              <label key={value} className="flex items-center gap-2 text-sm font-sans text-text-secondary cursor-pointer">
+                <input
+                  type="radio"
+                  name="ai-privacy"
+                  checked={(ai.privacy ?? 'full') === value}
+                  onChange={() => updateAi({ ...ai, privacy: value })}
+                  className="accent-[var(--accent)] cursor-pointer"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* ── 用量统计：本月 token 用量 + 月度预算 ── */}
+        <div className="rounded-lg border border-border-subtle bg-surface-raised overflow-hidden">
+          <div className="px-5 py-4 border-b border-border-subtle">
+            <h2 className="text-base font-sans font-semibold text-text-primary">
+              {tl('用量统计', 'Usage stats')}
+            </h2>
+            <p className="text-xs text-text-tertiary mt-1 font-sans">
+              {tl('token 用量在本机估算，仅用于月度预算告警，不上传任何数据。', 'Token usage is estimated locally for the monthly budget alert; nothing is uploaded.')}
+            </p>
+          </div>
+          <div className="p-5">
+            <div className="flex flex-wrap items-end gap-5">
+              <div>
+                <p className="text-xs font-sans font-medium text-text-tertiary mb-1">
+                  {tl('本月已用（估算）', 'This month (est.)')}
+                </p>
+                <p className="text-2xl font-mono font-semibold text-text-primary">
+                  {(ai.monthlyTokens ?? 0).toLocaleString()}
+                  <span className="text-xs font-sans text-text-tertiary ml-1">
+                    tokens{ai.usageMonth ? ` · ${ai.usageMonth}` : ''}
+                  </span>
+                </p>
+              </div>
+              <div className="min-w-[200px]">
+                <label htmlFor="ai-monthly-budget" className="block text-xs font-sans font-medium text-text-secondary mb-1">
+                  {tl('月度预算（token 数，0=不限）', 'Monthly budget (tokens, 0 = unlimited)')}
+                </label>
+                <input
+                  id="ai-monthly-budget"
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={ai.monthlyBudget ?? ''}
+                  onChange={(e) => updateAi({ ...ai, monthlyBudget: Number(e.target.value) || undefined })}
+                  placeholder="0"
+                  className="w-full rounded-lg border border-border-subtle bg-surface-base px-3 py-2 text-xs font-mono text-text-primary placeholder-text-tertiary focus:ring-2 focus:ring-accent/30 focus:outline-none focus:border-border-default transition-shadow duration-150"
+                />
+              </div>
+            </div>
+
+            {ai.monthlyBudget && ai.monthlyBudget > 0 ? (() => {
+              const used = ai.monthlyTokens ?? 0
+              const pct = Math.min(Math.round((used / ai.monthlyBudget) * 100), 100)
+              const exceeded = used >= ai.monthlyBudget
+              return (
+                <div className="mt-4">
+                  <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">
+                    <div
+                      className={cn('h-full rounded transition-all duration-300', exceeded ? 'bg-danger' : 'bg-accent')}
+                      style={{ width: `${Math.max(pct, 2)}%` }}
+                    />
+                  </div>
+                  <p className={cn('mt-2 text-[11px] font-sans', exceeded ? 'text-danger' : 'text-text-tertiary')}>
+                    {used.toLocaleString()} / {ai.monthlyBudget.toLocaleString()} tokens · {pct}%
+                    {exceeded ? ` · ${tl('已超限', 'exceeded')}` : ''}
+                  </p>
+                </div>
+              )
+            })() : (
+              <p className="mt-4 text-[11px] font-sans text-text-tertiary">
+                {tl('未设置预算（不限量）。', 'No budget set (unlimited).')}
+              </p>
+            )}
+          </div>
+        </div>
+        </>
       ) : (
+        /* ── 接入 tab：供应商管理 ── */
         <div className="rounded-lg border border-border-subtle bg-surface-raised overflow-hidden">
           <div className="px-5 py-4 border-b border-border-subtle flex items-start justify-between gap-4">
             <div>
@@ -469,15 +569,22 @@ export function SettingsAI() {
           </div>
 
           {ai.providers.length === 0 ? (
-            <div className="px-5 py-10 text-center">
-              <p className="text-sm text-text-tertiary font-sans">
+            <div className="px-5 py-12 text-center">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-surface-sunken text-text-quaternary flex items-center justify-center mb-3">
+                <Settings2 size={20} strokeWidth={1.5} />
+              </div>
+              <p className="text-sm text-text-secondary font-sans">
                 {tl('尚未添加任何模型服务。', 'No model services configured yet.')}
+              </p>
+              <p className="text-xs text-text-tertiary font-sans mt-1">
+                {tl('点击右上角「快速添加」或「添加模型服务」开始配置。', 'Click "Quick add" or "Add service" above to get started.')}
               </p>
             </div>
           ) : (
             <div className="flex flex-col gap-4 p-5">
               {ai.providers.map((provider, index) => {
                 const models = enabledModelNames(provider)
+                const isReady = provider.apiKey.trim().length > 0
                 return (
                   <div key={index} className="rounded-lg border border-border-subtle bg-surface-base p-4 shadow-sm">
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -493,7 +600,7 @@ export function SettingsAI() {
                           <span className="rounded-full border border-border-subtle px-2 py-0.5 text-[11px] font-sans text-text-secondary">
                             {provider.provider === 'custom' ? tl('自定义', 'Custom') : tl('官方', 'Official')}
                           </span>
-                          {provider.apiKey.trim() && (
+                          {isReady && (
                             <span className="rounded-full border border-success/40 px-2 py-0.5 text-[11px] font-sans text-success">
                               {tl('已设密钥', 'Key set')}
                             </span>
@@ -501,9 +608,6 @@ export function SettingsAI() {
                         </div>
                         <p className="mt-1 text-sm font-sans text-text-secondary">
                           {provider.baseUrl || PROVIDER_DEFAULTS[provider.provider] || tl('未设置端点', 'No endpoint')}
-                        </p>
-                        <p className="mt-3 text-xs font-mono text-text-tertiary break-all">
-                          {provider.provider} · {provider.baseUrl || PROVIDER_DEFAULTS[provider.provider] || 'custom'} · {provider.apiKey.trim() ? 'API_KEY' : 'NO_KEY'}
                         </p>
                         <div className="mt-4">
                           <p className="text-xs font-sans font-medium text-text-tertiary mb-2">

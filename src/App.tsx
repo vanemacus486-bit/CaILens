@@ -17,8 +17,7 @@ const QuickCaptureInbox = lazy(() => import('@/features/action/QuickCaptureInbox
 const SettingsModal = lazy(() => import('@/features/settings/SettingsModal').then((m) => ({ default: m.SettingsModal })))
 import { useUIStore } from '@/stores/uiStore'
 import { AppHeader } from '@/components/nav/AppHeader'
-import { WeekSidebar } from '@/features/week-view/WeekSidebar'
-import { SimpleSidebar } from '@/components/nav/SimpleSidebar'
+import { UnifiedSidebar } from '@/components/nav/UnifiedSidebar'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useEventStore } from '@/stores/eventStore'
@@ -177,14 +176,15 @@ function Layout() {
     <div className="h-screen flex flex-col bg-surface-base text-text-primary overflow-hidden">
       <AppHeader />
       {(isMobile || (!isWeek && !isActionOrStats)) && <TopNavBar />}
-      <div className="flex-1 flex min-h-0">
-        {!isMobile && sidebarExpanded && (isWeek
-          ? <WeekSidebar />
-          : isActionOrStats
-            ? <SimpleSidebar />
-            : null
+      <div className="relative flex-1 flex min-h-0">
+        {!isMobile && sidebarExpanded && (
+          <div className="absolute inset-y-0 left-0 z-40 pointer-events-none">
+            <div className="h-full pointer-events-auto">
+              <UnifiedSidebar />
+            </div>
+          </div>
         )}
-        <main className="flex-1 h-full overflow-hidden flex flex-col min-w-0">
+        <main className={`flex-1 h-full overflow-hidden flex flex-col min-w-0${!isMobile && sidebarExpanded ? ' desktop-panel-offset' : ''}`}>
         <ErrorBoundary>
           <Suspense fallback={<PageFallback />}>
             <Outlet />

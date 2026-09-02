@@ -14,7 +14,6 @@ import { SettingsStorage } from './SettingsStoragePage'
 import { SettingsAbout } from './SettingsAbout'
 import { SettingsSupport } from './SettingsSupport'
 import { SettingsAccount } from './SettingsAccount'
-import { SettingsLocation } from './SettingsLocation'
 import { SettingsAI } from './SettingsAI'
 import { isSponsorConfigured } from '@/lib/sponsor'
 
@@ -44,7 +43,6 @@ const SETTINGS_TABS: TabDef[] = [
 
 const EXTENSION_TABS: TabDef[] = [
   { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
-  { key: 'location', labelZh: '位置', labelEn: 'Location', descZh: '时区与天气', descEn: 'Timezone & weather' },
   { key: 'ai', labelZh: '模型', labelEn: 'Models', descZh: '默认模型与接入配置', descEn: 'Default models & providers' },
 ]
 
@@ -58,7 +56,6 @@ const TAB_CONTENT: Record<SettingsTab, React.FC> = {
   shortcuts: SettingsShortcuts,
   data:        SettingsData,
   storage:     SettingsStorage,
-  location:    SettingsLocation,
   ai:          SettingsAI,
   about:       SettingsAbout,
   support:     SettingsSupport,

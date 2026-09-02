@@ -5,6 +5,7 @@ import { getDayStart, isToday } from '@/domain/time'
 import { EventBlock } from './EventBlock'
 import { CurrentTimeLine } from './CurrentTimeLine'
 import { MAX_OVERLAP_COLUMNS, TOTAL_SLOTS } from '@/features/week-view/constants'
+import type { WeekDensityMode } from '@/domain/weekDensity'
 
 const SLOT_STYLE_HOUR = 'cursor-pointer hover:bg-surface-sunken/20'
 const SLOT_STYLE_HALF = 'cursor-pointer hover:bg-surface-sunken/20'
@@ -23,6 +24,7 @@ interface DayColumnProps {
   selectedEventId:   string | null
   highlightedEventId: string | null
   highlightedDayMs?: number | null
+  densityMode:       WeekDensityMode
   weekDays:        Date[]
   gridRef:         React.RefObject<HTMLElement | null>
   onSlotClick:     (startTime: number, slotEl: HTMLElement) => void
@@ -44,7 +46,7 @@ function slotToTimestamp(slotIndex: number, dayStart: number): number {
 }
 
 function DayColumnInner({
-  date, events, selectedEventId, highlightedEventId, highlightedDayMs, weekDays, gridRef,
+  date, events, selectedEventId, highlightedEventId, highlightedDayMs, densityMode, weekDays, gridRef,
   onSlotClick, onEventClick, onColorChange, onEdit, onDuplicate, onDelete,
   onDragMove, onDragToEdge, onDragStart, onDragStateChange, onResize,
   onTypedEdit,
@@ -56,10 +58,12 @@ function DayColumnInner({
     [events, date],
   )
   const isHighlighted = highlightedDayMs != null && date.getTime() === highlightedDayMs
+  const isFuture = dayStart > new Date().setHours(23, 59, 59, 999)
 
   return (
     <div
-      className={`h-full border-r relative transition-shadow duration-300 ${isHighlighted ? 'ring-2 ring-accent ring-inset' : ''}`}
+      className={`week-day-column h-full border-r relative transition-shadow duration-200 ${isFuture ? 'week-day-future' : ''} ${isHighlighted ? 'ring-1 ring-accent ring-inset' : ''}`}
+      data-density={densityMode}
       style={{
         borderRightColor: 'var(--line)',
         borderRightStyle: 'solid',
@@ -125,6 +129,7 @@ function DayColumnInner({
             gridRef={gridRef}
             isCardOpen={pe.event.id === selectedEventId}
             highlightedEventId={highlightedEventId}
+            densityMode={densityMode}
           />
         ))}
       </div>
@@ -138,6 +143,7 @@ export const DayColumn = React.memo(DayColumnInner, (prev, next) =>
   prev.selectedEventId     === next.selectedEventId      &&
   prev.highlightedEventId  === next.highlightedEventId   &&
   prev.highlightedDayMs   === next.highlightedDayMs    &&
+  prev.densityMode        === next.densityMode         &&
   prev.weekDays            === next.weekDays              &&
   prev.gridRef             === next.gridRef               &&
   prev.onSlotClick       === next.onSlotClick        &&

@@ -16,6 +16,9 @@ export type DefaultView = 'week' | 'month'
 
 export type AiProvider = 'openai' | 'anthropic' | 'google' | 'custom'
 
+/** 上下文脱敏级别：full=完整标题；category-only=只发分类+时长；summary=仅分类统计摘要 */
+export type AiPrivacy = 'full' | 'category-only' | 'summary'
+
 /** 单个 AI 提供商配置 */
 export interface AiProviderConfig {
   provider: AiProvider
@@ -33,6 +36,14 @@ export interface AiSettings {
   /** 用户自定义的 AI 系统提示词；为空时使用默认提示词 */
   systemPrompt?: string
   providers: AiProviderConfig[]
+  /** 上下文脱敏级别：full（默认）/ category-only / summary */
+  privacy?: AiPrivacy
+  /** 当月累计 token 用量（本地估算，按自然月；月份变化时自动归零） */
+  monthlyTokens?: number
+  /** 当前用量所属月份 'YYYY-MM' */
+  usageMonth?: string
+  /** 月度预算（token 数）；缺省/0 表示不限制 */
+  monthlyBudget?: number
 }
 
 export interface AppSettings {

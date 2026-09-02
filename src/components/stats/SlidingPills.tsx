@@ -48,6 +48,12 @@ export function SlidingPills<T extends string>({ items, value, onChange, divider
         return
       }
       setPos({ left: btn.offsetLeft, width: btn.offsetWidth })
+
+      const scroller = track.parentElement
+      if (scroller && scroller.scrollWidth > scroller.clientWidth) {
+        const target = btn.offsetLeft - (scroller.clientWidth - btn.offsetWidth) / 2
+        scroller.scrollLeft = Math.max(0, target)
+      }
     }
 
     measure()

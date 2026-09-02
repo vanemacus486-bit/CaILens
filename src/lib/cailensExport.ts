@@ -196,13 +196,15 @@ async function mergeById<T extends SyncableRow>(
     const local = byId.get(incoming.id)
     if (!local) {
       toPut.push(incoming)
-      incoming.deletedAt ? stats.deleted++ : stats.added++
+      if (incoming.deletedAt) stats.deleted++
+      else stats.added++
       continue
     }
     const choice = chooseWinner(local, incoming)
     if (choice === 'incoming') {
       toPut.push(incoming)
-      incoming.deletedAt ? stats.deleted++ : stats.updated++
+      if (incoming.deletedAt) stats.deleted++
+      else stats.updated++
     } else {
       stats.skipped++
     }
@@ -239,12 +241,14 @@ async function mergeNaturalKey<T extends SyncableRow>(
   for (const row of winners.values()) {
     if (!localIds.has(row.id)) {
       toPut.push(row)
-      row.deletedAt ? stats.deleted++ : stats.added++
+      if (row.deletedAt) stats.deleted++
+      else stats.added++
     } else {
       const local = await table.get(row.id)
       if (local && chooseWinner(local, row) === 'incoming') {
         toPut.push(row)
-        row.deletedAt ? stats.deleted++ : stats.updated++
+        if (row.deletedAt) stats.deleted++
+        else stats.updated++
       } else {
         stats.skipped++
       }
@@ -328,7 +332,8 @@ async function mergeProfile(
   const local = await adapter.profile.get('default')
   if (!local || profileTime(incoming) > profileTime(local)) {
     await adapter.profile.put(incoming)
-    local ? stats.updated++ : stats.added++
+    if (local) stats.updated++
+    else stats.added++
   } else {
     stats.skipped++
   }
@@ -407,7 +412,8 @@ function profileTime(profile: Profile): number {
 }
 
 function stripSettingsVolatileCache(settings: AppSettings): AppSettings {
-  const { weatherCache: _weatherCache, ...rest } = settings
+  const rest = { ...settings }
+  delete rest.weatherCache
   return rest
 }
 

@@ -12,9 +12,9 @@
 | 类型 | TypeScript ~6.0.2 strict (`noImplicitAny`, `strictNullChecks` 等) |
 | 包类型 | `"type": "module"` (ESM) |
 | 路由 | react-router-dom v7 `HashRouter`，路径见下表 |
-| 存储 | Dexie v4 (IndexedDB)，schema v25，16 张表 |
+| 存储 | Dexie v4 (IndexedDB)，schema v34，17 张表 |
 | 状态 | Zustand v5 切片订阅，9 个 store + 1 watchdog |
-| 测试 | Vitest 4 + jsdom + fake-indexeddb，25 文件 / 509 测试 |
+| 测试 | Vitest 4 + jsdom + fake-indexeddb，74 文件 / 928 测试 |
 | 图标 | lucide-react |
 | 桌面 | Tauri v2 (`src-tauri/`) |
 | 移动 | Capacitor v8 (`capacitor.config.ts`) |
@@ -40,7 +40,7 @@
 npm run dev          # Vite dev server (:5173)
 npm run build        # tsc -b && vite build → 只出网页包 dist/，不更新桌面 .exe
 npm run lint         # eslint .
-npm run test         # vitest run  (509 tests, ~13s)
+npm run test         # vitest run  (928 tests, ~40s)
 npm run test:watch   # vitest (watch)
 npm run preview      # vite preview
 npm run tauri:build  # ★重打桌面 .exe（用户说"构建/打包"通常指这个）→ release/CaILens.exe

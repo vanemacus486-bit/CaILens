@@ -1,13 +1,12 @@
 import { create } from 'zustand'
 import { getSettingsRepo } from '@/data/getRepositories'
-import type { AppSettings, AppLanguage, AppTheme, UiFont, VisualStyle, FontScale, DefaultView } from '@/domain/settings'
+import type { AppSettings, AppLanguage, AppTheme, UiFont, VisualStyle, FontScale, DefaultView, AiSettings } from '@/domain/settings'
 import type { HygieneActivityDef } from '@/domain/hygieneActivity'
 import type { HabitPlan } from '@/domain/habitPlan'
 import type { DayMark } from '@/domain/dayMark'
 import type { EventColor } from '@/domain/event'
 import { makePhase, startOfLocalDay } from '@/domain/habitPlan'
 import { DEFAULT_SETTINGS, resolveTheme } from '@/domain/settings'
-import type { AiSettings } from '@/domain/settings'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
 
 const THEME_KEY  = 'cailens-theme'
@@ -91,6 +90,8 @@ interface AppSettingsState {
   deleteDayMark: (id: string) => Promise<void>
   setDefaultView: (view: DefaultView) => Promise<void>
   setAiSettings: (ai: AiSettings) => Promise<void>
+  /** 累加当月 token 用量（按自然月，跨月自动归零） */
+  recordAiUsage: (tokens: number) => Promise<void>
 
 }
 
@@ -286,6 +287,21 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
 
   setAiSettings: async (ai) => {
     const settings = await getSettingsRepo().update({ ai })
+    set({ settings })
+  },
+
+  recordAiUsage: async (tokens) => {
+    const current = await getSettingsRepo().get()
+    const ai = current.ai ?? { enabled: false, providers: [] }
+    const now = new Date()
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const sameMonth = ai.usageMonth === monthKey
+    const next: AiSettings = {
+      ...ai,
+      usageMonth: monthKey,
+      monthlyTokens: (sameMonth ? (ai.monthlyTokens ?? 0) : 0) + tokens,
+    }
+    const settings = await getSettingsRepo().update({ ai: next })
     set({ settings })
   },
 

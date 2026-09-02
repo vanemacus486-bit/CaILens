@@ -257,7 +257,7 @@ export function CategoryTrendChart({
       {/* ── Chart ───────────────────────────────────────── */}
       <div className="trend-chart-container">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 96, left: 0, bottom: 8 }}>
+          <ComposedChart data={chartData} margin={{ top: 8, right: isCompact ? 56 : 96, left: 0, bottom: 8 }}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--line)"
@@ -359,7 +359,7 @@ export function CategoryTrendChart({
             })}
 
             {/* Right-edge endpoint labels — one de-collided layer (see EndpointLabels) */}
-            <Customized component={EndpointLabels} labels={endpointLabels} maxValue={dynamicMax} />
+            <Customized component={EndpointLabels} labels={isCompact ? [] : endpointLabels} maxValue={dynamicMax} />
 
             {budgetLine > 0 && selected.length === 1 && (
               <ReferenceLine
@@ -368,7 +368,7 @@ export function CategoryTrendChart({
                 strokeDasharray="4 4"
                 strokeWidth={1}
                 label={{
-                  value: `${'预算'} ${budgetLine.toFixed(1)}h`,
+                  value: isCompact ? '预算' : `${'预算'} ${budgetLine.toFixed(1)}h`,
                   position: 'insideTopRight',
                   fill: 'var(--ink-2)',
                   fontSize: 10,

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { Moon, Utensils } from 'lucide-react'
 
 import type { PositionedEvent } from '@/domain/layout'
 import type { CalendarEvent, EventColor } from '@/domain/event'
@@ -7,6 +8,7 @@ import { EVENT_COLORS } from '@/domain/event'
 import { MAX_OVERLAP_COLUMNS } from '@/features/week-view/constants'
 import { useEventDrag, type DragState } from '@/features/week-view/hooks/useEventDrag'
 import { useDragToResize } from '@/features/week-view/hooks/useDragToResize'
+import type { WeekDensityMode } from '@/domain/weekDensity'
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem,
   ContextMenuSeparator, ContextMenuTrigger,
@@ -63,6 +65,7 @@ interface EventBlockProps {
   gridRef:            React.RefObject<HTMLElement | null>
   isCardOpen?:        boolean
   highlightedEventId?: string | null
+  densityMode?:       WeekDensityMode
   onTypedEdit?:       (event: CalendarEvent, el: HTMLElement) => void
 }
 
@@ -74,14 +77,14 @@ function fmtHM(ts: number): string {
 export const EventBlock = React.memo(function EventBlock({
   positioned, columnDate, onClick, onColorChange, onEdit, onDuplicate, onDelete,
   onDragMove, onDragStart, onDragStateChange, onResize, weekDays, gridRef,
-  isCardOpen = false, highlightedEventId,
+  isCardOpen = false, highlightedEventId, densityMode = 'progressing',
   onTypedEdit,
 }: EventBlockProps) {
   const { event, rowStart, rowEnd, columnIndex, totalColumns, startsBeforeDay, endsAfterDay } = positioned
   const { gridColumnStart, gridColumnEnd } = colSpan(columnIndex, totalColumns)
 
   const divRef = useRef<HTMLDivElement>(null)
-  const [blockH, setBlockH] = useState(0)
+  const [blockSize, setBlockSize] = useState({ width: 0, height: 0 })
 
   // Measure actual rendered height; short blocks get min-height so they're
   // always at least MIN_BLOCK_PX tall (even if grid row is ~9px).
@@ -90,13 +93,22 @@ export const EventBlock = React.memo(function EventBlock({
     if (!el) return
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const h = entry.contentBoxSize?.[0]?.blockSize ?? entry.contentRect.height
-        if (h !== blockH) setBlockH(h)
+        const size = entry.contentBoxSize?.[0]
+        const width = Math.round(size?.inlineSize ?? entry.contentRect.width)
+        const height = Math.round(size?.blockSize ?? entry.contentRect.height)
+        setBlockSize((current) => (
+          current.width === width && current.height === height
+            ? current
+            : { width, height }
+        ))
       }
     })
     ro.observe(el)
     return () => ro.disconnect()
-  })
+  }, [])
+
+  const blockW = blockSize.width
+  const blockH = blockSize.height
 
   const { onPointerDown: onDragPointerDown, dragState, isDragging, wasDragging } = useEventDrag({
     event,
@@ -140,15 +152,21 @@ export const EventBlock = React.memo(function EventBlock({
   const catBg   = CAT_BG[event.color]
 
   // Adaptive content visibility by measured block height
-  const showFull = blockH >= 40
-  const showDescription = blockH >= 50
-  const showCompact = blockH >= 28 && blockH < 40
+  const dense = densityMode === 'dense'
+  const showFull = blockH >= (dense ? 96 : 40)
+  const showDescription = blockH >= (dense ? 160 : 50)
+  const showCompact = blockH >= (dense ? 44 : 28) && !showFull
+  const showCompactTime = blockW >= 150
+  const fullTimeLabel = blockW > 0 && blockW < 84
+    ? fmtHM(segStart)
+    : `${fmtHM(segStart)}–${fmtHM(segEnd)}`
+  const sleepEvent = event.typedData?.type === 'sleep' || event.color === 'stone'
 
   // Shared icon for meal/sleep typed events
   const typedIcon = event.typedData?.type === 'meal'
-    ? '🍚'
+    ? <Utensils size={10} strokeWidth={1.8} />
     : event.typedData?.type === 'sleep'
-      ? '🌙'
+      ? <Moon size={10} strokeWidth={1.8} />
       : null
 
   const iconHandler = typedIcon
@@ -174,8 +192,10 @@ export const EventBlock = React.memo(function EventBlock({
           ref={divRef}
           role="button"
           tabIndex={0}
+          aria-label={`${event.title || '无标题事件'}，${fmtHM(segStart)} 至 ${fmtHM(segEnd)}`}
           data-event-id={event.id}
           data-event-category={event.categoryId}
+          data-open={isCardOpen ? 'true' : 'false'}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault()
@@ -191,7 +211,7 @@ export const EventBlock = React.memo(function EventBlock({
             }
           }}
           className={cn(
-            'relative overflow-hidden select-none touch-none my-[1px]',
+            'event-block-hit-target relative overflow-hidden select-none touch-none my-[1px]',
             'transition-colors duration-200 z-10 hover:z-30',
             roundedClass,
             isDragging
@@ -207,17 +227,21 @@ export const EventBlock = React.memo(function EventBlock({
             gridRowEnd:   rowEnd,
             gridColumnStart,
             gridColumnEnd,
-            minHeight: MIN_BLOCK_PX,
-            borderLeft:       `3px solid ${catFill}`,
-            backgroundColor:  catBg,
-            padding:          '4px 6px',
-            borderRadius:     'var(--radius-s)',
+            minHeight: dense ? 2 : MIN_BLOCK_PX,
+            borderLeft:       `${dense ? 2 : 3}px solid ${catFill}`,
+            backgroundColor:  dense
+              ? `color-mix(in srgb, ${catBg} ${sleepEvent ? '64%' : '82%'}, var(--surface-raised))`
+              : catBg,
+            padding:          dense ? '2px 5px' : '4px 6px',
+            borderRadius:     dense ? 4 : 'var(--radius-s)',
             opacity:          isDragging ? 0.85 : 1,
             zIndex:           isDragging ? 50   : undefined,
             transform:        isCardOpen ? 'translateY(-3px)' : 'translateY(0)',
             boxShadow:        isCardOpen ? 'var(--shadow-card-float)' : 'none',
             transition:       'transform 250ms var(--ease-spring), box-shadow 250ms ease-out, opacity 200ms ease-out',
           }}
+          data-density={densityMode}
+          data-sleep={sleepEvent ? 'true' : 'false'}
           onPointerDown={onDragPointerDown}
           onClick={(e) => {
             e.stopPropagation()
@@ -230,7 +254,7 @@ export const EventBlock = React.memo(function EventBlock({
             // Not yet measured, or very short block: title only
             if (blockH === 0 || !showCompact && !showFull) {
               return (
-                <div className="flex items-center gap-1 min-w-0 h-full">
+                <div className="event-block-copy flex items-center gap-1 min-w-0 h-full">
                   {iconHandler && (
                     <span
                       className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
@@ -240,7 +264,7 @@ export const EventBlock = React.memo(function EventBlock({
                   )}
                   <p
                     className="flex-1 font-ui truncate min-w-0 leading-tight"
-                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}
+                    style={{ fontSize: dense ? 10 : 12, fontWeight: 600, color: 'var(--ink)' }}
                   >
                     {event.title || <span className="opacity-50 italic">Untitled</span>}
                   </p>
@@ -251,7 +275,7 @@ export const EventBlock = React.memo(function EventBlock({
             // Compact: single row, title left + time right (28–40px)
             if (showCompact) {
               return (
-                <div className="flex items-center gap-1 min-w-0">
+                <div className="event-block-copy flex items-center gap-1 min-w-0">
                   {iconHandler && (
                     <span
                       className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
@@ -265,12 +289,12 @@ export const EventBlock = React.memo(function EventBlock({
                   >
                     {event.title || <span className="opacity-50 italic">Untitled</span>}
                   </p>
-                  {!startsBeforeDay && !endsAfterDay && (
+                  {showCompactTime && !startsBeforeDay && !endsAfterDay && (
                     <span
                       className="flex-shrink-0 leading-tight whitespace-nowrap"
                       style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)' }}
                     >
-                      {`${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
+                      {`${fmtHM(segStart)}–${fmtHM(segEnd)}`}
                     </span>
                   )}
                 </div>
@@ -280,7 +304,7 @@ export const EventBlock = React.memo(function EventBlock({
             // Full: title row + time row + optional description (≥40px)
             return (
               <>
-                <div className="flex items-center gap-1 min-w-0">
+                <div className="event-block-copy flex items-center gap-1 min-w-0">
                   {iconHandler && (
                     <span
                       className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
@@ -298,16 +322,16 @@ export const EventBlock = React.memo(function EventBlock({
 
                 {showFull && !startsBeforeDay && !endsAfterDay && (
                   <p
-                    className="leading-tight"
+                    className="event-block-copy leading-tight"
                     style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', marginTop: 2 }}
                   >
-                    {`${fmtHM(segStart)} – ${fmtHM(segEnd)}`}
+                    {fullTimeLabel}
                   </p>
                 )}
 
                 {showDescription && event.description && (
                   <div
-                    className="leading-tight truncate"
+                    className="event-block-copy leading-tight truncate"
                     style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}
                   >
                     {event.description}

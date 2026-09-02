@@ -59,20 +59,51 @@ describe('FloatingEventCard', () => {
   it('新建模式真的画出：输入框 + 6 个分类点 + 记录/继续按钮', () => {
     renderCard()
     expect(screen.getByPlaceholderText('这段时间在做什么？')).toBeTruthy()
-    // 6 个分类点，title 形如「… · ⌥1」～「… · ⌥6」
-    expect(screen.getAllByTitle(/⌥[1-6]/)).toHaveLength(6)
-    // 默认分类 accent(⌥1) 高亮
-    expect(screen.getByTitle(/⌥1/).getAttribute('aria-pressed')).toBe('true')
+    // 6 个分类点，title 形如「… · Alt+1」～「… · Alt+6」
+    expect(screen.getAllByTitle(/Alt\+[1-6]/)).toHaveLength(6)
+    // 默认分类 accent(Alt+1) 高亮
+    expect(screen.getByTitle(/Alt\+1/).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByRole('button', { name: /继续/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: '记录' })).toBeTruthy()
   })
 
   it('点击分类点切换高亮：aria-pressed 跟随', () => {
     renderCard()
-    const dot2 = screen.getByTitle(/⌥2/)
+    const dot2 = screen.getByTitle(/Alt\+2/)
     fireEvent.click(dot2)
     expect(dot2.getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByTitle(/⌥1/).getAttribute('aria-pressed')).toBe('false')
+    expect(screen.getByTitle(/Alt\+1/).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('输入框内可直接切换到只记录食物的饮食模式', () => {
+    renderCard()
+
+    fireEvent.click(screen.getByRole('button', { name: '记录吃了什么' }))
+
+    expect(screen.getByPlaceholderText('牛肉面、鸡蛋、青菜')).toBeTruthy()
+    expect(screen.getByText('记下这一顿')).toBeTruthy()
+    expect(screen.queryAllByTitle(/Alt\+[1-6]/)).toHaveLength(0)
+    expect(screen.getByRole('button', { name: '记下' })).toBeTruthy()
+  })
+
+  it('“午餐 + 食物”可在普通输入框中一次保存为饮食记录', async () => {
+    const { onSave } = renderCard()
+    const input = screen.getByPlaceholderText('这段时间在做什么？')
+
+    fireEvent.change(input, { target: { value: '午餐 牛肉面' } })
+    fireEvent.click(screen.getByRole('button', { name: '记录' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      title: '牛肉面',
+      color: 'sand',
+      categoryId: 'sand',
+      typedKey: 'meal',
+      typedData: expect.objectContaining({
+        type: 'meal',
+        mealOrder: 'lunch',
+      }),
+    }))
   })
 
   it('点「继续」：保存后 onContinue 接力——开始=上条结束、时长沿用', async () => {
@@ -90,5 +121,36 @@ describe('FloatingEventCard', () => {
     renderCard({ editingEvent: makeEvent() })
     expect(screen.queryByRole('button', { name: /继续/ })).toBeNull()
     expect(screen.getByRole('button', { name: '删除' })).toBeTruthy()
+  })
+
+  it('编辑饮食标题时保留原有餐次、来源和标签', async () => {
+    const editingEvent = makeEvent({
+      title: '鸡蛋',
+      typedKey: 'meal',
+      typedData: {
+        type: 'meal',
+        mealOrder: 'breakfast',
+        source: 'takeout',
+        foodTags: ['protein'],
+      },
+    })
+    const { onUpdate } = renderCard({ editingEvent })
+
+    fireEvent.change(screen.getByDisplayValue('鸡蛋'), { target: { value: '鸡蛋三明治' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存' }))
+
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledTimes(1))
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      id: editingEvent.id,
+      title: '鸡蛋三明治',
+      color: 'sand',
+      categoryId: 'sand',
+      typedData: {
+        type: 'meal',
+        mealOrder: 'breakfast',
+        source: 'takeout',
+        foodTags: ['protein'],
+      },
+    }))
   })
 })

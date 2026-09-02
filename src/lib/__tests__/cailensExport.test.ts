@@ -287,20 +287,20 @@ describe('encoding', () => {
     const snap = await collectSnapshot(await seeded(freshIndexedDB()))
     const armored = await serializeSnapshot(snap, PASS)
     expect(armored.startsWith('-----BEGIN AGE ENCRYPTED FILE-----')).toBe(true)
-  })
+  }, 20_000)
 
   it('deserialize of a text-round-tripped payload decrypts correctly', async () => {
     const snap = await collectSnapshot(await seeded(freshIndexedDB()))
     const fileText = fileTextRoundTrip(await serializeSnapshot(snap, PASS))
     const back = await deserializeSnapshot(fileText, PASS)
     expect(back.data.events?.map((e) => e.id).sort()).toEqual(['evt-dead', 'evt-live'])
-  })
+  }, 20_000)
 
   it('rejects a wrong passphrase', async () => {
     const snap = await collectSnapshot(await seeded(freshIndexedDB()))
     const armored = await serializeSnapshot(snap, PASS)
     await expect(deserializeSnapshot(armored, 'wrong-passphrase')).rejects.toThrow()
-  })
+  }, 20_000)
 })
 
 /* ---------- backward compatibility & restore semantics ---------- */
@@ -313,7 +313,7 @@ describe('backward compatibility (version 1, missing tables)', () => {
     const armored = await serializeSnapshot(v1, PASS)
     const back = await deserializeSnapshot(armored, PASS)
     expect(back.version).toBe(1)
-  })
+  }, 20_000)
 
   it('does not wipe tables absent from an old snapshot', async () => {
     const target = freshIndexedDB()

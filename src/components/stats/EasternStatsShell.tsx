@@ -7,7 +7,7 @@
 
 import { type ReactNode } from 'react'
 
-export type RoutineViewMode = 'trend' | 'heatmap' | 'sleep' | 'diet' | 'hygiene' | 'outfit' | 'mood' | 'chronicle'
+export type RoutineViewMode = 'trend' | 'heatmap' | 'sleep' | 'diet' | 'hygiene'
 
 interface Props {
   children: ReactNode
@@ -37,7 +37,7 @@ const SHELL_CSS = `
 .shell-content {
   flex: 1;
   overflow-y: auto;
-  padding: 28px 16px;
+  padding: 12px 14px 18px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;

@@ -24,6 +24,7 @@ import { MobileDayView } from '@/features/day-view/MobileDayView'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { saveSession, useScrollSave, useScrollRestore } from '@/hooks/useSessionRestore'
 import type { CardState } from './types'
+import { computeWeekDensity } from '@/domain/weekDensity'
 
 const EMPTY: CalendarEvent[] = []
 
@@ -46,15 +47,6 @@ export function WeekView() {
     // View mode: derived from URL (single source of truth — no useState)
   const viewMode = (searchParams.get('view') as 'week' | 'month' | null) ?? 'week'
 
-  // ── 周↔月切换径向揭幕 ───────────────────────────────────
-  // toggleGen 初始 -1（首次挂载不播动画）；仅在 viewMode 实际变化后同步递增，
-  // 配合 key 变化触发包裹层重挂载，CSS 动画自然重播。
-  const prevViewModeRef = useRef(viewMode)
-  const [toggleGen, setToggleGen] = useState(-1)
-  if (prevViewModeRef.current !== viewMode) {
-    prevViewModeRef.current = viewMode
-    setToggleGen((g) => g + 1)
-  }
   // ────────────────────────────────────────────────────────
 
   const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null)
@@ -367,6 +359,7 @@ export function WeekView() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   useScrollSave(scrollContainerRef, 'week')
   useScrollRestore(scrollContainerRef, 'week')
+  const weekDensity = useMemo(() => computeWeekDensity(events, weekStart), [events, weekStart])
 
   return (
     <>
@@ -391,18 +384,22 @@ export function WeekView() {
       />
 
       <div className="flex-1 flex min-w-0 min-h-0">
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-surface-raised border border-border-subtle rounded-2xl shadow-lg m-3">
+      <div className="week-canvas flex-1 flex flex-col min-w-0 overflow-hidden bg-surface-raised border border-border-subtle rounded-2xl m-3" data-density={weekDensity.mode}>
         {viewMode === 'week' && !(isMobile && mobileViewMode === 'day') && (
           <WeekDateHeader days={days} highlightedDayMs={highlightedDayMs} onDayClick={handleOpenDrawer} />
         )}
 
-        <div key={`view-anim-${toggleGen}`} className={`${toggleGen >= 0 ? 'cai-flip-in' : ''} flex-1 flex flex-col min-h-0`}>
+        <div className="flex-1 flex flex-col min-h-0">
           {viewMode === 'month' ? (
             <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} onDaySelect={handleDaySelect} />
           ) : isMobile && mobileViewMode === 'day' ? (
-            <MobileDayView weekStart={weekStart} onWeekStartChange={setWeekStart} />
+            <MobileDayView
+              weekStart={weekStart}
+              onWeekStartChange={setWeekStart}
+              onCreateEvent={handleSlotClick}
+            />
           ) : (
-        <div ref={scrollContainerRef} className="relative flex-1 min-h-0 max-md:overflow-x-auto overflow-y-auto">
+        <div ref={scrollContainerRef} className="relative flex-1 min-h-0 overflow-hidden">
           {isLoading && events.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-text-tertiary" />
@@ -420,7 +417,7 @@ export function WeekView() {
             </div>
           ) : (
             <>
-              <div ref={gridRef} className="h-full grid min-w-[540px]" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)', touchAction: 'manipulation' }}>
+              <div ref={gridRef} className="week-grid h-full grid" data-density={weekDensity.mode} style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)', touchAction: 'manipulation' }}>
                 <TimeGrid />
                 {days.map((day) => (
                   <DayColumn
@@ -430,6 +427,7 @@ export function WeekView() {
                     selectedEventId={selectedEventId}
                     highlightedEventId={highlightedEventId}
                     highlightedDayMs={highlightedDayMs}
+                    densityMode={weekDensity.mode}
                     weekDays={days}
                     gridRef={gridRef}
                     onSlotClick={handleSlotClick}
@@ -459,7 +457,7 @@ export function WeekView() {
                 )}
               </div>
               {events.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="week-empty-invitation absolute left-[calc(var(--time-column-width)+2rem)] top-[38%] pointer-events-none">
                   <WeekEmptyState />
                 </div>
               )}

@@ -29,6 +29,7 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-notification = "2"
 notify = { version = "7", features = [] }
+tauri-plugin-http = { version = "2", features = ["unsafe-headers"] }
 
 # 构建提速：对 webview 壳应用，激进 Rust 优化几乎不改善终端体验，却拖慢每次重打。
 # 要最小体积发版包，把 lto 改回 true、codegen-units 改回 1、opt-level 改回 3 即可。

@@ -71,7 +71,7 @@ function getStatsStep(view: string): StatsStep {
     case 'trend':   return 'period'
     case 'heatmap': return 'year'
     case 'sleep':   return 'month'
-    default:        return 'week'  // diet, hygiene, outfit, mood
+    default:        return 'week'  // diet, hygiene
   }
 }
 

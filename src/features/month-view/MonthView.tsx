@@ -128,14 +128,14 @@ export function MonthView({
 
   // ⚠️ 所有 hooks 必须在 early return 之前调用完毕
   return (
-    <div className="flex flex-col h-full p-5 overflow-y-auto bg-surface-base">
+    <div className="flex flex-col h-full p-5 overflow-hidden bg-surface-base">
       {/* Grid — 暖底色，所有周等高 */}
       <div
         className="grid flex-1 min-h-0"
         style={{
           gridTemplateColumns: 'repeat(7, 1fr)',
           gridTemplateRows: 'auto',
-          gridAutoRows: 'minmax(100px, auto)',
+          gridAutoRows: 'minmax(0, 1fr)',
         }}
       >
         {/* Weekday headers */}

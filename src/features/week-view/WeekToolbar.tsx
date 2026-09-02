@@ -7,9 +7,11 @@
 
 import { useState } from 'react'
 import { Menu } from 'lucide-react'
-import { formatMonthDay } from '@/domain/time'
 import { addDays } from 'date-fns'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useAppSettingsStore } from '@/stores/settingsStore'
+import { LANGUAGE_LOCALE } from '@/i18n/types'
+import { useT } from '@/i18n/useT'
 import { MobileMenu } from './MobileMenu'
 
 interface WeekToolbarProps {
@@ -29,9 +31,13 @@ export function WeekToolbar({
 }: WeekToolbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isMobile = useIsMobile()
+  const language = useAppSettingsStore((s) => s.settings.language)
+  const t = useT()
 
   const weekEnd = addDays(weekStart, 6)
-  const rangeLabel = `${formatMonthDay(weekStart)} – ${formatMonthDay(weekEnd)}`
+  const locale = LANGUAGE_LOCALE[language]
+  const dateFormatter = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' })
+  const rangeLabel = `${dateFormatter.format(weekStart)} – ${dateFormatter.format(weekEnd)}`
 
   // 桌面端不渲染（TopNavBar 接管）
   if (!isMobile) return null
@@ -43,7 +49,7 @@ export function WeekToolbar({
         <button
           onClick={() => setMobileMenuOpen(true)}
           className="w-10 h-10 flex items-center justify-center rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors duration-200"
-          aria-label="Menu"
+          aria-label={t('nav.sidebar.toggle')}
         >
           <Menu size={20} strokeWidth={1.75} />
         </button>
@@ -53,7 +59,7 @@ export function WeekToolbar({
           <button
             onClick={onPrev}
             className="w-8 h-8 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer text-lg leading-none"
-            aria-label="Previous week"
+            aria-label={t('hygiene.weekPrev')}
           >
             ‹
           </button>
@@ -65,7 +71,7 @@ export function WeekToolbar({
           <button
             onClick={onNext}
             className="w-8 h-8 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer text-lg leading-none"
-            aria-label="Next week"
+            aria-label={t('hygiene.weekNext')}
           >
             ›
           </button>

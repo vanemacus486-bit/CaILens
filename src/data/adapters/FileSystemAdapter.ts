@@ -8,6 +8,7 @@ import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit } from '@/domain/dailyContext'
 import type { Todo, TodoList } from '@/domain/todo'
 import type { ChroniclePhase, ChronicleTask } from '@/domain/chronicle'
+import type { AiChatRecord } from '@/domain/aiChat'
 import type { StorageAdapter, StorageTable, QueryOptions, HygieneLogRecord } from './StorageAdapter'
 import {
   isTauri,
@@ -81,6 +82,7 @@ interface MemoryIndex {
   todoLists: Map<string, TodoList>
   chroniclePhases: Map<string, ChroniclePhase>
   chronicleTasks: Map<string, ChronicleTask>
+  aiChats: Map<string, AiChatRecord>
 }
 
 function binarySearchLeft(arr: { ts: number }[], value: number): number {
@@ -839,6 +841,84 @@ class GenericFsTable<T extends { id: string }> implements StorageTable<T> {
   async transaction<R>(_mode: 'rw', fn: () => Promise<R>) { return fn() }
 }
 
+// ── AI 对话记录表 (single file: aiChats.json) ────────────
+
+class AiChatsFsTable implements StorageTable<AiChatRecord> {
+  private index: MemoryIndex
+  private filePath: string
+
+  constructor(index: MemoryIndex, rootPath: string) {
+    this.index = index
+    this.filePath = joinPath(rootPath, 'aiChats.json')
+  }
+
+  async get(id: string): Promise<AiChatRecord | undefined> {
+    return this.index.aiChats.get(id)
+  }
+
+  async getAll(): Promise<AiChatRecord[]> {
+    return Array.from(this.index.aiChats.values())
+  }
+
+  async put(item: AiChatRecord): Promise<void> {
+    this.index.aiChats.set(item.id, item)
+    await this.flush()
+  }
+
+  async update(id: string, changes: Partial<AiChatRecord>): Promise<void> {
+    const existing = this.index.aiChats.get(id)
+    if (!existing) return
+    await this.put({ ...existing, ...changes, id: existing.id })
+  }
+
+  async delete(id: string): Promise<void> {
+    this.index.aiChats.delete(id)
+    await this.flush()
+  }
+
+  async bulkGet(ids: string[]): Promise<(AiChatRecord | undefined)[]> {
+    return ids.map((id) => this.index.aiChats.get(id))
+  }
+
+  async bulkPut(items: AiChatRecord[]): Promise<void> {
+    for (const item of items) {
+      this.index.aiChats.set(item.id, item)
+    }
+    await this.flush()
+  }
+
+  async query(opts: QueryOptions<AiChatRecord>): Promise<AiChatRecord[]> {
+    let results = Array.from(this.index.aiChats.values())
+    if (opts.filter) results = results.filter(opts.filter)
+    if (opts.limit !== undefined) results = results.slice(0, opts.limit)
+    return results
+  }
+
+  async transaction<R>(_mode: 'rw', fn: () => Promise<R>): Promise<R> {
+    return fn()
+  }
+
+  private async flush(): Promise<void> {
+    const data = Array.from(this.index.aiChats.values())
+    const content = JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, type: 'aiChats', data }, null, 2)
+    await writeTextFile(this.filePath, content)
+  }
+
+  async loadFromScan(entries: FileEntryWithContent[]): Promise<void> {
+    const file = entries.find((e) => e.path.endsWith('aiChats.json'))
+    if (!file) return // 文件缺失:保留现有内存,避免误清空
+    try {
+      const parsed = JSON.parse(file.content)
+      if (parsed.type === 'aiChats' && Array.isArray(parsed.data)) {
+        this.index.aiChats.clear()
+        for (const item of parsed.data as AiChatRecord[]) {
+          this.index.aiChats.set(item.id, item)
+        }
+      }
+    } catch { /* ignore */ }
+  }
+}
+
 // ── Profile table (single file: profile.json) ─────────────
 
 class ProfileFsTable implements StorageTable<Profile> {
@@ -925,6 +1005,7 @@ export class FileSystemAdapter implements StorageAdapter {
   todoLists: StorageTable<TodoList>
   chroniclePhases: StorageTable<ChroniclePhase>
   chronicleTasks: StorageTable<ChronicleTask>
+  aiChats: StorageTable<AiChatRecord>
 
   private index: MemoryIndex = {
     events: new Map(),
@@ -944,6 +1025,7 @@ export class FileSystemAdapter implements StorageAdapter {
     todoLists: new Map(),
     chroniclePhases: new Map(),
     chronicleTasks: new Map(),
+    aiChats: new Map(),
   }
 
   private rootPath: string | null = null
@@ -970,6 +1052,7 @@ export class FileSystemAdapter implements StorageAdapter {
     this.todoLists = new TodoListsFsTable(this.index, '')
     this.chroniclePhases = new GenericFsTable(this.index, 'chroniclePhases')
     this.chronicleTasks = new GenericFsTable(this.index, 'chronicleTasks')
+    this.aiChats = new AiChatsFsTable(this.index, '')
   }
 
   get initialized(): boolean {
@@ -997,6 +1080,7 @@ export class FileSystemAdapter implements StorageAdapter {
     this.todoLists = new TodoListsFsTable(this.index, this.rootPath)
     this.chroniclePhases = new GenericFsTable(this.index, 'chroniclePhases')
     this.chronicleTasks = new GenericFsTable(this.index, 'chronicleTasks')
+    this.aiChats = new AiChatsFsTable(this.index, this.rootPath)
   }
 
   async initialize(): Promise<void> {
@@ -1043,7 +1127,7 @@ export class FileSystemAdapter implements StorageAdapter {
 
     // 三组独立读盘(单文件表 / estimates / 最近事件)并发发起——async 命令在
     // Rust 阻塞线程池上真正并行,启动等待缩短为最慢一路;读完再按原顺序应用。
-    const SINGLE_FILES = ['categories.json', 'settings.json', 'profile.json', 'todos.json', 'todoLists.json', 'goals.json', 'projects.json']
+    const SINGLE_FILES = ['categories.json', 'settings.json', 'profile.json', 'todos.json', 'todoLists.json', 'goals.json', 'projects.json', 'aiChats.json']
     const [singleEntries, estEntries, recent] = await Promise.all([
       Promise.all(SINGLE_FILES.map(async (name): Promise<FileEntryWithContent | null> => {
         try {
@@ -1066,6 +1150,7 @@ export class FileSystemAdapter implements StorageAdapter {
     await (this.projects as ProjectsFsTable).loadFromScan(metaEntries)
     await (this.todos as TodosFsTable).loadFromScan(metaEntries)
     await (this.todoLists as TodoListsFsTable).loadFromScan(metaEntries)
+    await (this.aiChats as AiChatsFsTable).loadFromScan(metaEntries)
 
     // 最近两个月事件(当前月 + 上月,自动跨年),以「部分加载」标记(markInitialized=false)
     await (this.events as EventsFsTable).loadFromScan(recent, false)
@@ -1110,6 +1195,7 @@ export class FileSystemAdapter implements StorageAdapter {
     await (this.projects as ProjectsFsTable).loadFromScan(entries)
     await (this.todos as TodosFsTable).loadFromScan(entries)
     await (this.todoLists as TodoListsFsTable).loadFromScan(entries)
+    await (this.aiChats as AiChatsFsTable).loadFromScan(entries)
     await (this.events as EventsFsTable).loadFromScan(entries)
   }
 

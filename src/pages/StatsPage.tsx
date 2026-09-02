@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2, AlertCircle } from 'lucide-react'
-import { startOfDay, startOfWeek, startOfMonth, addDays } from 'date-fns'
+import { startOfDay, startOfWeek, startOfMonth } from 'date-fns'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { formatISODate, parseISODate } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
 import { useCategoryStore } from '@/stores/categoryStore'
-import { useDailyContextStore } from '@/stores/dailyContextStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { getDataMaturity } from '@/domain/maturity'
 import type { Granularity } from '@/hooks/useStatsAggregation'
@@ -15,10 +14,7 @@ import { CategoryTrendChart } from '@/components/stats/CategoryTrendChart'
 import { YearHeatmap } from '@/components/stats/YearHeatmap'
 import { SleepScatterChart } from '@/components/stats/SleepScatterChart'
 import { DietView } from '@/components/stats/DietView'
-import { OutfitCard } from '@/components/stats/OutfitCard'
 import { HygieneView } from '@/components/stats/HygieneView'
-import { MoodCard } from '@/components/stats/MoodCard'
-import { ChronicleTimeline } from '@/components/stats/ChronicleTimeline'
 import { HabitTrendCard } from '@/components/stats/HabitTrendCard'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
@@ -28,6 +24,7 @@ import { StatsRail } from '@/components/stats/StatsRail'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
 import type { CategoryId } from '@/domain/category'
 import type { ShortcutAction } from '@/domain/shortcuts'
+import { resolveReviewRoute } from '@/domain/review'
 
 // ── Constants ──────────────────────────────────────────────────
 
@@ -42,9 +39,6 @@ const VIEW_SEGMENTS: Record<RoutineViewMode, SegmentedOption[] | undefined> = {
   sleep:   [{ id: 'month', label: '月' }, { id: 'quarter', label: '季' }, { id: 'year', label: '年' }],
   diet:    [{ id: 'timeline', label: '时间线' }, { id: 'frequency', label: '食物次数' }],
   hygiene: [{ id: 'timeline', label: '时间线' }, { id: 'frequency', label: '活动次数' }],
-  outfit:  undefined,
-  mood:    undefined,
-  chronicle: [{ id: 'month', label: '月' }, { id: 'year', label: '年' }],
 }
 
 /** ════════════════════════════════════════════════════════════
@@ -78,9 +72,6 @@ function getViewTitle(
     }
     case 'diet':    return '饮食'
     case 'hygiene': return '卫生'
-    case 'outfit':  return '穿搭'
-    case 'mood':    return '情绪'
-    case 'chronicle': return '编年'
   }
 }
 
@@ -122,9 +113,6 @@ const VIEW_STEP: Record<RoutineViewMode, 'period' | 'year' | 'month' | 'week'> =
   sleep:   'month',
   diet:    'week',
   hygiene: 'week',
-  outfit:  'week',
-  mood:    'week',
-  chronicle: 'month',
 }
 
 /** 按视图计算当前锚点日期（从 URL date 参数解读） */
@@ -136,9 +124,6 @@ function getViewAnchor(view: RoutineViewMode, period: Granularity, date: Date): 
     case 'week':   return startOfWeek(date, { weekStartsOn: 1 })
   }
 }
-
-/** 按视图步长偏移 date，返回新的 Date（写入 URL） */
-// (delegate to AppHeader/App.tsx keyboard handlers)
 
 // ── 主组件 ────────────────────────────────────────────────
 
@@ -152,12 +137,9 @@ export function StatsPage() {
   const language        = useAppSettingsStore((s) => s.settings.language)
   const hygieneActivities = useAppSettingsStore((s) => s.settings.hygieneActivities) ?? DEFAULT_HYGIENE_ACTIVITIES
 
-  const outfits         = useDailyContextStore((s) => s.outfits)
-  const loadOutfits     = useDailyContextStore((s) => s.loadOutfits)
-
   // ── URL state ────────────────────────────────────────────
 
-  const routineView = (searchParams.get('view') as RoutineViewMode | null) ?? 'trend'
+  const routineView: RoutineViewMode = resolveReviewRoute(searchParams.get('view')).domain
   const period      = (searchParams.get('period') as Granularity | null) ?? 'week'
   const dateStr     = searchParams.get('date') ?? formatISODate(new Date())
 
@@ -182,7 +164,6 @@ export function StatsPage() {
   const [sleepViewMode, setSleepViewMode] = useState<'month' | 'quarter' | 'year'>('month')
   const [dietMode, setDietMode] = useState<'timeline' | 'frequency'>('timeline')
   const [hygieneMode, setHygieneMode] = useState<'timeline' | 'frequency'>('timeline')
-  const [chronicleMode, setChronicleMode] = useState<'month' | 'year'>('month')
 
   // ── Data loading ─────────────────────────────────────────
 
@@ -192,13 +173,6 @@ export function StatsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => {
-    const now = new Date()
-    const end = formatISODate(now)
-    const start = formatISODate(addDays(now, -90))
-    fireAndForget(loadOutfits(start, end), 'load outfits')
-  }, [loadOutfits])
-
   useEffect(() => { document.title = 'CaILens · 复盘' }, [])
 
   // ── Aggregation ───────────────────────────────────────────
@@ -207,25 +181,17 @@ export function StatsPage() {
   const { history } = useStatsAggregation({ granularity: period, anchorDate: anchor, lookbackBuckets: lookback })
   const maturity = useMemo(() => getDataMaturity(rangeEvents), [rangeEvents])
 
-  // ── URL helpers ───────────────────────────────────────────
-
-  const updateParams = (upd: Record<string, string | undefined>) => {
-    const next = new URLSearchParams(searchParams)
-    for (const [k, v] of Object.entries(upd)) {
-      if (v === undefined || v === '') next.delete(k)
-      else next.set(k, v)
-    }
-    setSearchParams(next, { replace: true })
-  }
-
-  const setPeriod = (p: Granularity) => updateParams({ period: p === 'week' ? undefined : p })
-
   // ── Segment change handler ─────────────────────────────────
 
   const handleSegmentChange = useCallback((id: string) => {
     switch (routineView) {
       case 'trend':
-        setPeriod(id as Granularity)
+        // 日/周/月趋势由 URL `period` 参数驱动
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev)
+          next.set('period', id)
+          return next
+        }, { replace: true })
         break
       case 'heatmap':
         setHeatmapViewMode(id as 'roll' | 'year')
@@ -239,11 +205,8 @@ export function StatsPage() {
       case 'hygiene':
         setHygieneMode(id as 'timeline' | 'frequency')
         break
-      case 'chronicle':
-        setChronicleMode(id as 'month' | 'year')
-        break
     }
-  }, [routineView, setPeriod])
+  }, [routineView, setSearchParams])
 
   // ── Render helpers ─────────────────────────────────────────
 
@@ -256,10 +219,9 @@ export function StatsPage() {
       case 'sleep':   return sleepViewMode
       case 'diet':    return dietMode
       case 'hygiene': return hygieneMode
-      case 'chronicle': return chronicleMode
       default:        return undefined
     }
-  }, [routineView, period, heatmapViewMode, sleepViewMode, dietMode, hygieneMode, chronicleMode])
+  }, [routineView, period, heatmapViewMode, sleepViewMode, dietMode, hygieneMode])
 
   const title = useMemo(
     () => getViewTitle(routineView, period, segValue, viewAnchor),
@@ -267,7 +229,6 @@ export function StatsPage() {
   )
 
   const railMode = routineView === 'trend' ? 'multi' : routineView === 'heatmap' ? 'single' : 'empty'
-  const railSelected = routineView === 'trend' ? trendSelected : heatmapSelectedId
 
   const handleRailToggle = useCallback((id: CategoryId) => {
     setTrendSelected((prev) => {
@@ -288,8 +249,13 @@ export function StatsPage() {
   const setRoutineView = useCallback((v: RoutineViewMode) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
-      if (v === 'trend') next.delete('view')
-      else next.set('view', v)
+      if (v === 'trend') {
+        next.delete('view')
+      } else {
+        next.set('view', v)
+      }
+      next.delete('lens')
+      next.delete('event')
       return next
     }, { replace: true })
   }, [setSearchParams])
@@ -313,9 +279,6 @@ export function StatsPage() {
     statsTab3:      () => setRoutineView('sleep'),
     statsTab4:      () => setRoutineView('diet'),
     statsTab5:      () => setRoutineView('hygiene'),
-    statsTab6:      () => setRoutineView('outfit'),
-    statsTab7:      () => setRoutineView('mood'),
-    statsTab8:      () => setRoutineView('chronicle'),
     statsColor1:    () => handleColorShortcut(CATEGORY_IDS[0]),
     statsColor2:    () => handleColorShortcut(CATEGORY_IDS[1]),
     statsColor3:    () => handleColorShortcut(CATEGORY_IDS[2]),
@@ -367,9 +330,9 @@ export function StatsPage() {
               railMode !== 'empty' ? (
                 <StatsRail
                   mode={railMode}
-                  selected={railSelected}
-                  onToggle={railMode === 'multi' ? handleRailToggle : undefined}
-                  onSelect={railMode === 'single' ? handleRailSelect : undefined}
+                  selected={railMode === 'multi' ? trendSelected : heatmapSelectedId}
+                  onToggle={handleRailToggle}
+                  onSelect={handleRailSelect}
                 />
               ) : undefined
             }
@@ -379,14 +342,16 @@ export function StatsPage() {
           <div>
             {routineView === 'trend' && (
               <ErrorBoundary key="trend">
-                <CategoryTrendChart
-                  history={history}
-                  categories={categories}
-                  periodType={period}
-                  maturity={maturity}
-                  selected={trendSelected}
-                />
-                <HabitTrendCard />
+                <div className="time-category-stack">
+                  <CategoryTrendChart
+                    history={history}
+                    categories={categories}
+                    periodType={period}
+                    maturity={maturity}
+                    selected={trendSelected}
+                  />
+                  <HabitTrendCard />
+                </div>
               </ErrorBoundary>
             )}
             {routineView === 'heatmap' && (
@@ -435,21 +400,6 @@ export function StatsPage() {
                 />
               </ErrorBoundary>
             )}
-            {routineView === 'outfit' && (
-              <ErrorBoundary key="outfit">
-                <OutfitCard outfits={outfits} language={language} />
-              </ErrorBoundary>
-            )}
-            {routineView === 'mood' && (
-              <ErrorBoundary key="mood">
-                <MoodCard />
-              </ErrorBoundary>
-            )}
-            {routineView === 'chronicle' && (
-              <ErrorBoundary key="chronicle">
-                <ChronicleTimeline mode={chronicleMode} />
-              </ErrorBoundary>
-            )}
           </div>
         </div>
       )}
@@ -462,7 +412,16 @@ export function StatsPage() {
 const STATS_PAGE_CSS = `
 .routine-container {
   width: 100%;
-  max-width: 900px;
+  max-width: none;
   margin: 0 auto;
+  padding: 18px 20px 20px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 84%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-raised) 92%, var(--surface-base));
+  box-shadow: inset 0 1px 0 var(--surface-lit);
+}
+
+@media (max-width: 719px) {
+  .routine-container { padding: 14px 12px; border-radius: 14px; }
 }
 `

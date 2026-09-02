@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { buildDayContextPrompt, parseModelList, type ChatMessage } from '@/domain/aiChat'
+import { buildDayContextPrompt, parseModelList, toLocalDateKey, createAiChatRecord, appendChatMessage, type ChatMessage } from '@/domain/aiChat'
 import type { CalendarEvent } from '@/domain/event'
 import type { Todo } from '@/domain/todo'
 
@@ -165,4 +165,32 @@ describe('parseModelList', () => {
     expect(parseModelList('openai', { data: [{ name: 'no-id-field' }] })).toEqual([])
     expect(parseModelList('google', { models: [{}] })).toEqual([])
   })
+})
+
+describe('toLocalDateKey', () => {
+  it('formats local date as YYYY-MM-DD', () => {
+    expect(toLocalDateKey(new Date(2025, 0, 5))).toBe('2025-01-05')
+    expect(toLocalDateKey(new Date(2025, 11, 31))).toBe('2025-12-31')
+  })
+})
+
+describe('AiChatRecord helpers', () => {
+  it('creates a record with id = dateKey', () => {
+    const rec = createAiChatRecord('2025-06-15', 'OpenAI', 1000)
+    expect(rec.id).toBe('2025-06-15')
+    expect(rec.dateKey).toBe('2025-06-15')
+    expect(rec.messages).toEqual([])
+    expect(rec.providerLabel).toBe('OpenAI')
+    expect(rec.updatedAt).toBe(1000)
+  })
+
+  it('appendChatMessage appends and bumps updatedAt', () => {
+    const rec = createAiChatRecord('2025-06-15', 'OpenAI', 1000)
+    const next = appendChatMessage(rec, { role: 'user', content: 'hi' }, 2000)
+    expect(next.messages).toEqual([{ role: 'user', content: 'hi' }])
+    expect(next.updatedAt).toBe(2000)
+    // 原记录不可变
+    expect(rec.messages).toEqual([])
+  })
+
 })

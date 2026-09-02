@@ -15,9 +15,6 @@ import { formatISODate } from '@/domain/time'
 import { MobileEventEditor, type MobileEditorDefaults } from './MobileEventEditor'
 import { useAndroidBackButton } from './useAndroidBackButton'
 
-const WEEKDAY_ZH = ['日', '一', '二', '三', '四', '五', '六']
-const MONTH_ZH = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
-
 function parseDateParam(param: string | null): Date {
   if (!param) return new Date()
   const parsed = new Date(param)
@@ -73,10 +70,6 @@ export function MobileLayout() {
   }, [])
 
   const selectedDate = useMemo(() => parseDateParam(params.get('date')), [params])
-  const isToday = formatISODate(selectedDate) === formatISODate(new Date())
-  const title = `${MONTH_ZH[selectedDate.getMonth()]} ${selectedDate.getDate()}`
-  const subtitle = `周${WEEKDAY_ZH[selectedDate.getDay()]}`
-
   const closeTopOverlay = useCallback(() => {
     if (editorOpen) {
       setEditorOpen(false)
@@ -97,16 +90,23 @@ export function MobileLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-surface-base text-text-primary overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-      <header className="flex items-center justify-between px-4 pt-3 pb-2 flex-shrink-0">
-        <button onClick={() => navigate(`/day?date=${formatISODate(new Date())}`)} className="min-w-0 text-left">
-          <div className="font-serif text-[34px] leading-none tracking-normal text-text-primary">{title}</div>
-          <div className="mt-1 text-xs text-text-tertiary">{subtitle}{!isToday ? ' · 点按回今天' : ' · 今天'}</div>
-        </button>
+      <header className="mobile-domain-header">
+        <nav className="mobile-domain-nav" aria-label="主要功能">
+          {NAV_ITEMS.map((item) => {
+            const active = item.match(location.pathname)
+            const Icon = item.icon
+            return (
+              <button key={item.path} type="button" onClick={() => navigate(item.path === '/day' ? `/day?date=${formatISODate(selectedDate)}` : item.path)} className={active ? 'is-active' : ''}>
+                <Icon size={15} /><span>{item.label}</span>
+              </button>
+            )
+          })}
+        </nav>
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate('/search')} className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center text-text-secondary" aria-label="搜索">
+          <button onClick={() => navigate('/search')} className="mobile-header-action" aria-label="搜索">
             <Search size={18} />
           </button>
-          <button onClick={() => navigate('/settings')} className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center text-text-secondary" aria-label="设置">
+          <button onClick={() => navigate('/settings')} className="mobile-header-action" aria-label="设置">
             <Settings size={18} />
           </button>
         </div>
@@ -122,31 +122,12 @@ export function MobileLayout() {
       <button
         onClick={openCreate}
         className="fixed right-5 z-40 w-14 h-14 rounded-full bg-accent text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 74px)' }}
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
         aria-label="记录"
       >
         <Plus size={26} />
       </button>
       )}
-
-      <nav className="flex-shrink-0 px-3 pt-2 bg-surface-base/95 border-t border-border-subtle" style={{ paddingBottom: 'env(safe-area-inset-bottom, 10px)' }}>
-        <div className="grid grid-cols-4 gap-1">
-          {NAV_ITEMS.map((item) => {
-            const active = item.match(location.pathname)
-            const Icon = item.icon
-            return (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path === '/day' ? `/day?date=${formatISODate(selectedDate)}` : item.path)}
-                className={active ? 'flex flex-col items-center gap-1 rounded-2xl py-2 text-accent bg-surface-raised' : 'flex flex-col items-center gap-1 rounded-2xl py-2 text-text-tertiary'}
-              >
-                <Icon size={19} />
-                <span className="text-[11px]">{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </nav>
 
       <MobileEventEditor
         key={editorKey}

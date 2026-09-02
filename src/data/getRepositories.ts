@@ -9,6 +9,7 @@ import { DailyContextRepository } from './dailyContextRepository'
 import { TodoRepository } from './todoRepository'
 import { TodoListRepository } from './todoListRepository'
 import { ChronicleRepository } from './chronicleRepository'
+import { AiChatRepository } from './aiChatRepository'
 import type { StorageAdapter } from './adapters/StorageAdapter'
 
 let _eventRepo: EventRepository
@@ -22,6 +23,7 @@ let _dailyContextRepo: DailyContextRepository
 let _todoRepo: TodoRepository
 let _todoListRepo: TodoListRepository
 let _chronicleRepo: ChronicleRepository
+let _aiChatRepo: AiChatRepository
 
 export function initRepositories(adapter: StorageAdapter) {
   _eventRepo = new EventRepository(adapter)
@@ -35,6 +37,7 @@ export function initRepositories(adapter: StorageAdapter) {
   _todoRepo = new TodoRepository(adapter)
   _todoListRepo = new TodoListRepository(adapter)
   _chronicleRepo = new ChronicleRepository(adapter)
+  _aiChatRepo = new AiChatRepository(adapter)
 }
 
 export function getEventRepo(): EventRepository {
@@ -90,4 +93,9 @@ export function getTodoListRepo(): TodoListRepository {
 export function getChronicleRepo(): ChronicleRepository {
   if (!_chronicleRepo) throw new Error('ChronicleRepository not initialized. Call initRepositories() first.')
   return _chronicleRepo
+}
+
+export function getAiChatRepo(): AiChatRepository {
+  if (!_aiChatRepo) throw new Error('AiChatRepository not initialized. Call initRepositories() first.')
+  return _aiChatRepo
 }

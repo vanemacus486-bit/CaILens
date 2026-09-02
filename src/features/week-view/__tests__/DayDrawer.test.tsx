@@ -72,6 +72,17 @@ vi.mock('@/stores/todoStore', () => ({
     selector({ todos: [] }),
 }))
 
+// Mock categoryStore (default categories)
+vi.mock('@/stores/categoryStore', () => ({
+  useCategoryStore: (selector: (s: { categories: { id: string; name: string; color: string; weeklyBudget: number; folders: unknown[] }[] }) => unknown) =>
+    selector({
+      categories: [
+        { id: 'accent', name: '主要矛盾', color: 'accent', weeklyBudget: 20, folders: [] },
+        { id: 'sage', name: '次要矛盾', color: 'sage', weeklyBudget: 10, folders: [] },
+      ],
+    }),
+}))
+
 // Mock todoListStore (empty)
 vi.mock('@/stores/todoListStore', () => ({
   useTodoListStore: (selector: (s: { lists: [] }) => unknown) =>
@@ -92,6 +103,16 @@ vi.mock('@/data/locationService', () => ({
   fetchDailyWeather: vi.fn(() => Promise.resolve(null)),
 }))
 
+// Mock aiChatStore (no persistence in smoke test)
+vi.mock('@/stores/aiChatStore', () => ({
+  useAiChatStore: (selector: (s: Record<string, unknown>) => unknown) =>
+    selector({
+      loadDay: vi.fn(() => Promise.resolve(undefined)),
+      appendMessage: vi.fn(() => Promise.resolve(undefined)),
+      clearDay: vi.fn(() => Promise.resolve()),
+    }),
+}))
+
 // Mock fireAndForget (no-op)
 vi.mock('@/lib/fireAndForget', () => ({
   fireAndForget: vi.fn(),
@@ -100,6 +121,7 @@ vi.mock('@/lib/fireAndForget', () => ({
 // Mock aiChatService (prevent real AI network calls)
 vi.mock('@/data/aiChatService', () => ({
   callAiChat: vi.fn(() => Promise.resolve('ok')),
+  streamAiChat: vi.fn(() => Promise.resolve()),
 }))
 
 describe('DayDrawer', () => {
@@ -110,133 +132,39 @@ describe('DayDrawer', () => {
     vi.clearAllMocks()
   })
 
-  it('renders weather-archive mode by default', () => {
-    const { container } = render(
+  it('renders only the AI panel by default', () => {
+    render(
       <DayDrawer selectedDateMs={dateMs} onClose={onClose} />,
     )
-    // The date label should be visible (now a span, not h2)
-    expect(container.textContent).toContain('15')
-    expect(container.textContent).toContain('6月')
-    // weather-archive panel card is present
-    expect(screen.getByTestId('panel-weather-archive')).toBeInTheDocument()
-  })
-
-  it('renders without crashing (just mount)', () => {
-    // A broader smoke test: just ensure the component mounts and
-    // the date header renders. The content area shows "no city" message
-    // since locationSettings is null in the mock.
-    const { container, unmount } = render(
-      <DayDrawer selectedDateMs={dateMs} onClose={onClose} />,
-    )
-    // The "no city configured" message from location settings
-    expect(container.textContent).toBeTruthy()
-    unmount()
-  })
-
-  it('accepts a different date', () => {
-    const otherMs = new Date(2025, 11, 25).getTime()  // Dec 25
-    const { container } = render(
-      <DayDrawer selectedDateMs={otherMs} onClose={onClose} />,
-    )
-    expect(container.textContent).toContain('25')
-    expect(container.textContent).toContain('12月')
-  })
-
-  it('toggles a second section on and keeps both visible', () => {
-    render(<DayDrawer selectedDateMs={dateMs} onClose={onClose} />)
-    fireEvent.click(screen.getByRole('button', { name: '时间轴' }))
-    // weather-archive (still on) and timeline (newly on) both render their content
-    expect(screen.getByText('请先在搜索框中输入城市名称')).toBeInTheDocument()
-    expect(screen.getByText('这一天没有记录')).toBeInTheDocument()
-  })
-
-  it('closes drawer when turning off the last active section (via toggle)', () => {
-    render(<DayDrawer selectedDateMs={dateMs} onClose={onClose} />)
-    // Only weather-archive is on. Clicking its toggle should close the drawer.
-    fireEvent.click(screen.getByRole('button', { name: '当日概览' }))
-    expect(onClose).toHaveBeenCalledTimes(1)
-  })
-
-  it('closes drawer when clicking ✕ on the last panel card', () => {
-    render(<DayDrawer selectedDateMs={dateMs} onClose={onClose} />)
-    // Only weather-archive panel is shown; click its ✕ button
-    const panel = screen.getByTestId('panel-weather-archive')
-    const closeBtn = within(panel).getByRole('button', { name: /关闭板块/ })
-    fireEvent.click(closeBtn)
-    expect(onClose).toHaveBeenCalledTimes(1)
-  })
-
-  it('closes one panel via ✕ without affecting the other (two panels active)', () => {
-    render(<DayDrawer selectedDateMs={dateMs} onClose={onClose} />)
-    // Turn on timeline
-    fireEvent.click(screen.getByRole('button', { name: '时间轴' }))
-    // Both panels visible
-    expect(screen.getByTestId('panel-weather-archive')).toBeInTheDocument()
-    expect(screen.getByTestId('panel-timeline')).toBeInTheDocument()
-
-    // Close the timeline panel via its ✕
-    const timelinePanel = screen.getByTestId('panel-timeline')
-    const closeBtn = within(timelinePanel).getByRole('button', { name: /关闭板块/ })
-    fireEvent.click(closeBtn)
-
-    // Timeline gone, weather-archive remains, drawer not closed
-    expect(screen.queryByTestId('panel-timeline')).not.toBeInTheDocument()
-    expect(screen.getByTestId('panel-weather-archive')).toBeInTheDocument()
-    expect(onClose).not.toHaveBeenCalled()
-  })
-
-  it('shows three panels in single-column layout when narrow (<1500px)', () => {
-    render(<DayDrawer selectedDateMs={dateMs} onClose={onClose} />)
-    // Turn on all three modes
-    fireEvent.click(screen.getByRole('button', { name: '时间轴' }))
-    fireEvent.click(screen.getByRole('button', { name: 'AI 助手' }))
-    // All three panel cards present
-    expect(screen.getByTestId('panel-weather-archive')).toBeInTheDocument()
-    expect(screen.getByTestId('panel-timeline')).toBeInTheDocument()
     expect(screen.getByTestId('panel-ai')).toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '当日概览' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '时间轴' })).not.toBeInTheDocument()
   })
 
-  it('keeps AI chat input when toggling another panel on/off (no remount)', () => {
+  it('closes the drawer from the AI panel header', () => {
     render(<DayDrawer selectedDateMs={dateMs} onClose={onClose} />)
-    fireEvent.click(screen.getByRole('button', { name: 'AI 助手' }))
+    const panel = screen.getByTestId('panel-ai')
+    const closeBtn = within(panel).getByRole('button', { name: '关闭' })
+    fireEvent.click(closeBtn)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
 
+  it('resets AI chat state when the selected day changes', () => {
+    const { rerender } = render(<DayDrawer selectedDateMs={dateMs} onClose={onClose} />)
     const textarea = within(screen.getByTestId('panel-ai')).getByRole('textbox') as HTMLTextAreaElement
     fireEvent.change(textarea, { target: { value: '今天效率如何' } })
     expect(textarea.value).toBe('今天效率如何')
 
-    // 点亮再熄灭日视图：布局变化，但 AI 卡片是固定 keyed 子节点，不应被重挂载
-    fireEvent.click(screen.getByRole('button', { name: '时间轴' }))
-    fireEvent.click(screen.getByRole('button', { name: '时间轴' }))
-
+    rerender(<DayDrawer selectedDateMs={new Date(2025, 5, 16).getTime()} onClose={onClose} />)
     const after = within(screen.getByTestId('panel-ai')).getByRole('textbox') as HTMLTextAreaElement
-    expect(after.value).toBe('今天效率如何')
+    expect(after.value).toBe('')
   })
 
-  it('panel card stretches to fill its slot (h-full)', () => {
+  it('AI panel stretches to fill the drawer', () => {
     render(<DayDrawer selectedDateMs={dateMs} onClose={onClose} />)
-    expect(screen.getByTestId('panel-weather-archive').className).toContain('h-full')
-  })
-
-  it('shows three panels in two-column layout when wide (≥1500px)', () => {
-    // Override matchMedia to simulate wide viewport
-    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
-      matches: query === '(min-width: 1500px)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }))
-
-    render(<DayDrawer selectedDateMs={dateMs} onClose={onClose} />)
-    // Turn on all three modes
-    fireEvent.click(screen.getByRole('button', { name: '时间轴' }))
-    fireEvent.click(screen.getByRole('button', { name: 'AI 助手' }))
-    // All three panel cards present
-    expect(screen.getByTestId('panel-weather-archive')).toBeInTheDocument()
-    expect(screen.getByTestId('panel-timeline')).toBeInTheDocument()
-    expect(screen.getByTestId('panel-ai')).toBeInTheDocument()
+    expect(screen.getByTestId('day-drawer').className).toContain('flex-shrink-0')
+    expect(screen.getByTestId('day-drawer').className).not.toContain('absolute')
+    expect(screen.getByTestId('panel-ai').className).toContain('flex-1')
   })
 })

@@ -9,14 +9,11 @@ import { AccountMenu } from './AccountMenu'
 import type { RoutineViewMode } from '@/components/stats/EasternStatsShell'
 
 const STATS_PILLS: { id: RoutineViewMode; label: string }[] = [
-  { id: 'trend',   label: '趋势' },
-  { id: 'heatmap', label: '热力' },
-  { id: 'sleep',   label: '睡眠' },
-  { id: 'diet',    label: '饮食' },
-  { id: 'hygiene', label: '卫生' },
-  { id: 'outfit',  label: '穿搭' },
-  { id: 'mood',    label: '情绪' },
-  { id: 'chronicle', label: '编年' },
+  { id: 'trend',    label: '趋势' },
+  { id: 'heatmap',  label: '热力' },
+  { id: 'sleep',    label: '睡眠' },
+  { id: 'diet',     label: '饮食' },
+  { id: 'hygiene',  label: '卫生' },
 ]
 
 export function TopNavBar() {
@@ -35,16 +32,19 @@ export function TopNavBar() {
   }
 
   return (
-    <div className="nav-bar flex items-center px-6 h-[52px] flex-shrink-0" data-tauri-drag-region>
+    <div
+      className={`nav-bar flex h-[52px] flex-shrink-0 items-center px-6${isStats ? ' max-md:h-[100px] max-md:flex-col max-md:px-3 max-md:py-1' : ''}`}
+      data-tauri-drag-region
+    >
       {isStats && (
-        <div className="ml-5 flex-shrink-0">
+        <div className="stats-pills-scroll scrollbar-hide ml-0 flex-shrink-0 md:ml-5 max-md:order-2 max-md:w-full max-md:overflow-x-auto max-md:overscroll-x-contain">
           <SlidingPills items={STATS_PILLS} value={routineView} onChange={setRoutineView} dividerAfter={2} />
         </div>
       )}
 
-      <div className="flex-1" data-tauri-drag-region />
+      <div className={`flex-1${isStats ? ' max-md:hidden' : ''}`} data-tauri-drag-region />
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className={`flex flex-shrink-0 items-center gap-2${isStats ? ' max-md:order-1 max-md:h-11 max-md:w-full max-md:justify-end' : ''}`}>
         <SlideSegmented items={navItems} value={activeMode} onChange={handleModeChange} shareKey="domain" shortcuts={{ calendar: 'Alt+1', plan: 'Alt+2', review: 'Alt+3' }} />
 
         <button
