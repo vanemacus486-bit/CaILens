@@ -29,4 +29,3 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'CaILens ${{ github.ref_name }}'
           releaseDraft: true
-          command: npm run tauri:build

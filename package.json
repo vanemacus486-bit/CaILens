@@ -39,6 +39,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "tauri": "npm run tauri:build",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build && node scripts/copy-release.mjs tauri",
     "android:sync": "npm run build && npx cap sync android",
