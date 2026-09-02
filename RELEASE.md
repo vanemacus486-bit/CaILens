@@ -117,13 +117,15 @@ git push origin vX.Y.Z
 CI 会自动：
 1. 构建 Windows release
 2. 生成 `latest.json`
-3. 创建 GitHub Release Draft（含产物）
+3. 发布 GitHub Release（含可自动更新的安装包、签名和 `latest.json`）
 
 ---
 
-## 5. 建 GitHub Release
+## 5. 确认 GitHub Release
 
-若使用 CI，Release 已自动创建为 Draft，只需检查产物 → 点击 Publish。
+CI 会在构建成功后直接发布 Release，这样已安装的应用才能立刻通过
+`/releases/latest/download/latest.json` 获取更新。确认 Release 页面中同时包含
+安装包、`.sig` 签名文件和 `latest.json`。
 
 若手动发布：
 1. 打开 https://github.com/vanemacus486-bit/CaILens/releases/new
