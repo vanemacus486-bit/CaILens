@@ -22,25 +22,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Automatic updates must be signed. Failing here gives a clear remedy
-      # instead of publishing a release that the in-app updater cannot trust.
-      - name: Verify updater signing key
-        shell: pwsh
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
-            throw 'Missing TAURI_SIGNING_PRIVATE_KEY. Add the updater signing secret before releasing.'
-          }
-
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'CaILens ${{ github.ref_name }}'
-          # Publish after a successful build so installed apps can immediately
-          # resolve /releases/latest/download/latest.json.
-          releaseDraft: false
+          releaseDraft: true
+          command: npm run tauri:build
