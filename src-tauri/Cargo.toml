@@ -1,6 +1,6 @@
 [package]
 name = "CaILens"
-version = "3.23.0"
+version = "3.24.0"
 description = "A local-first time-tracking tool inspired by Lyubishchev"
 authors = ["vanemacus486-bit"]
 license = "AGPL-3.0-or-later"
