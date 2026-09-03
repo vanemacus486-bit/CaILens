@@ -36,11 +36,12 @@ if (target === 'tauri') {
     }
   }
 
-  // Copy MSI and NSIS installer artifacts
+  // Copy installer artifacts. With createUpdaterArtifacts=true Tauri also
+  // creates a matching .sig; both must be published for local/manual releases.
   for (const dir of [msiDir, nsisDir]) {
     if (!existsSync(dir)) continue;
     for (const f of readdirSync(dir)) {
-      if (f.endsWith('.msi') || f.endsWith('.exe')) {
+      if (f.endsWith('.msi') || f.endsWith('.exe') || f.endsWith('.sig')) {
         copyFileSync(join(dir, f), join(releaseDir, f));
         console.log(`Copied ${f} → release/`);
         copied++;

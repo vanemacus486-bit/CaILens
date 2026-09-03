@@ -22,10 +22,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Verify tag matches the single app version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:RELEASE_TAG -ne "v$version") {
+            throw "Tag $env:RELEASE_TAG must match package.json version v$version."
+          }
+
+      # The updater refuses unsigned artifacts. Fail before publishing instead
+      # of creating a release that installed clients can detect but not install.
+      - name: Verify updater signing key
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            throw 'Missing TAURI_SIGNING_PRIVATE_KEY. Add the updater signing secret before releasing.'
+          }
+
+      - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          # Explicitly use the project-pinned CLI; this avoids the old
+          # `npm tauri build`/missing-script failure mode.
+          tauriScript: npm run tauri
           tagName: ${{ github.ref_name }}
           releaseName: 'CaILens ${{ github.ref_name }}'
           releaseDraft: false
+          generateReleaseNotes: true
+          # The client consumes exactly these three signed updater assets.
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true
+          uploadUpdaterSignatures: true

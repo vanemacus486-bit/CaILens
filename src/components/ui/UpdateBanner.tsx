@@ -1,94 +1,96 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUpCircle, ExternalLink, Loader2, X } from 'lucide-react'
-import { checkForUpdate, type UpdateInfo } from '@/lib/appUpdate'
-import { openExternal } from '@/lib/platform'
+import { ArrowUpCircle, Download, Loader2, X } from 'lucide-react'
+import { checkForUpdate, installUpdate, relaunchApp, type UpdateCheckResult } from '@/lib/appUpdate'
 import { useT } from '@/i18n/useT'
 
 const DISMISS_KEY = 'cailens.updateDismissed'
 
-/**
- * 启动时检查新版本（仅桌面端）。有新版本且用户没关过该版本，
- * 在左下角弹一条可关闭的提示。
- *
- * 点击后由系统默认浏览器打开 GitHub Releases 下载页。
- * Web / 移动端不会触发（checkForUpdate 返回 null）。
- */
+/** Startup update UI for desktop builds. It never uses an unsigned download fallback. */
 export function UpdateBanner() {
   const t = useT()
-  const [info, setInfo] = useState<UpdateInfo | null>(null)
-  const [opening, setOpening] = useState(false)
-  const [openFailed, setOpenFailed] = useState(false)
+  const [result, setResult] = useState<UpdateCheckResult | null>(null)
+  const [downloading, setDownloading] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [installing, setInstalling] = useState(false)
+  const [installError, setInstallError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
-    void checkForUpdate().then((u) => {
-      if (!alive || !u) return
-      try {
-        if (localStorage.getItem(DISMISS_KEY) === u.version) return
-      } catch { /* ignore */ }
-      setInfo(u)
+    void checkForUpdate().then((next) => {
+      if (!alive || next.status === 'latest') return
+      if (next.status === 'available') {
+        try {
+          if (localStorage.getItem(DISMISS_KEY) === next.info.version) return
+        } catch { /* Storage is optional. */ }
+      }
+      setResult(next)
     })
     return () => { alive = false }
   }, [])
 
-  if (!info) return null
+  if (!result) return null
 
   const dismiss = () => {
-    try { localStorage.setItem(DISMISS_KEY, info.version) } catch { /* ignore */ }
-    setInfo(null)
+    if (result.status === 'available') {
+      try { localStorage.setItem(DISMISS_KEY, result.info.version) } catch { /* ignore */ }
+    }
+    setResult(null)
   }
 
   const handleUpdate = async () => {
-    setOpening(true)
-    setOpenFailed(false)
+    if (result.status !== 'available') return
+    setDownloading(true)
+    setProgress(0)
+    setInstallError(null)
     try {
-      if (!await openExternal(info.url)) setOpenFailed(true)
-    } finally {
-      setOpening(false)
+      await installUpdate(result.info, setProgress)
+      setDownloading(false)
+      setInstalling(true)
+      await relaunchApp()
+    } catch (error) {
+      setDownloading(false)
+      setInstalling(false)
+      setInstallError(error instanceof Error ? error.message : String(error))
     }
   }
 
+  const error = result.status === 'error' ? result.message : installError
+  const info = result.status === 'available' ? result.info : null
+
   return createPortal(
     <div
-      role="alert"
-      className="fixed bottom-4 left-4 z-[200] flex items-center gap-3 bg-surface-raised border border-border-subtle rounded-lg shadow-lg px-4 py-2.5 font-sans text-sm text-text-primary animate-settings-fade-in"
+      role={error ? 'alert' : 'status'}
+      className="fixed bottom-4 left-4 z-[200] w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border-subtle bg-surface-raised px-4 py-3 shadow-lg font-sans text-sm text-text-primary animate-settings-fade-in"
     >
-      {opening ? (
-        <Loader2 size={16} strokeWidth={1.75} className="text-accent flex-shrink-0 animate-spin" />
-      ) : (
-        <ArrowUpCircle size={16} strokeWidth={1.75} className="text-accent flex-shrink-0" />
-      )}
-      <span>
-        {openFailed
-          ? t('settings.update.browserOpenFailedShort')
-          : (
-              <>
-                {t('settings.update.newVersion')}{' '}
-                <span className="font-mono font-medium">v{info.version}</span>
-              </>
-            )}
-      </span>
-      {!opening && (
-        <button
-          onClick={() => void handleUpdate()}
-          className="font-medium text-accent hover:text-accent-hover transition-colors duration-200 cursor-pointer"
-        >
-          <span className="inline-flex items-center gap-1">
-            <ExternalLink size={13} strokeWidth={1.75} />
-            {t('settings.update.download')}
-          </span>
-        </button>
-      )}
-      {(
-        <button
-          onClick={dismiss}
-          aria-label={t('common.close')}
-          className="text-text-tertiary hover:text-text-secondary transition-colors duration-200 cursor-pointer"
-        >
-          <X size={14} strokeWidth={2} />
-        </button>
-      )}
+      <div className="flex items-start gap-3">
+        {installing ? <Loader2 size={18} className="mt-0.5 shrink-0 text-accent animate-spin" />
+          : downloading ? <Download size={18} className="mt-0.5 shrink-0 text-accent animate-pulse" />
+            : <ArrowUpCircle size={18} className="mt-0.5 shrink-0 text-accent" />}
+        <div className="min-w-0 flex-1">
+          {error ? (
+            <p className="text-xs leading-relaxed text-red-600 dark:text-red-300">{error}</p>
+          ) : installing ? (
+            <p>{t('settings.update.installing')}</p>
+          ) : downloading ? (
+            <p>{t('settings.update.downloading')} {progress}%</p>
+          ) : info ? (
+            <>
+              <p className="font-medium">{t('settings.update.newVersion')} v{info.version}</p>
+              <p className="mt-0.5 text-xs text-text-tertiary">v{info.currentVersion} → v{info.version}</p>
+              <p className="mt-2 max-h-20 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-text-tertiary">{info.notes}</p>
+              <button onClick={() => void handleUpdate()} className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1.5 text-xs font-medium text-white hover:bg-accent-hover transition-colors cursor-pointer">
+                <Download size={13} />{t('settings.update.updateNow')}
+              </button>
+            </>
+          ) : null}
+        </div>
+        {!installing && (
+          <button onClick={dismiss} aria-label={t('common.close')} className="shrink-0 text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer">
+            <X size={15} strokeWidth={2} />
+          </button>
+        )}
+      </div>
     </div>,
     document.body,
   )
