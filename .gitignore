@@ -33,6 +33,11 @@ graphify-out/
 # Codegraph cache
 .codegraph/
 
+# Environment / secrets — NEVER commit
+.env
+.env.*
+!.env.example
+
 # Tauri signing keys (private key — NEVER commit)
 *.key
 *.key.pub
