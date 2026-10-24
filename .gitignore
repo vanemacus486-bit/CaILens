@@ -33,3 +33,7 @@ graphify-out/
 # Codegraph cache
 .codegraph/
 
+# Environment / secrets ¡ª NEVER commit
+.env
+.env.*
+!.env.example
