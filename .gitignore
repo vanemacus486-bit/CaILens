@@ -57,3 +57,6 @@ src.backup-*/
 
 # 换图标前的整套旧图标（本地回滚点，约 1.4M）
 src-tauri/icons-src/old-icons/
+
+# 构建日志
+.build*.log
