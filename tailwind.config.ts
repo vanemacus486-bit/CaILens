@@ -66,11 +66,35 @@ export default {
         'tooltip': 'var(--shadow-tooltip)',
         'dialog':  'var(--shadow-dialog)',
       },
+      // 字号阶梯：只有这 8 档，任何组件不得再写 text-[13px] 这类任意值。
+      // tight 是唯一例外档，限时间轴刻度 / 事件块内时间等极密集场景。
       fontSize: {
-        'xs-alt':   'var(--text-xs-alt)',
-        'body-xs':  'var(--text-body-xs)',
-        'body-sm':  'var(--text-body-sm)',
-        'settings': 'var(--text-settings)',
+        '2xs':   ['var(--text-2xs)', { lineHeight: '14px' }],
+        'tight': ['var(--text-tight)', { lineHeight: '15px' }],
+        'xs':    ['var(--text-xs)', { lineHeight: '16px' }],
+        'sm':    ['var(--text-sm)', { lineHeight: '20px' }],
+        'base':  ['var(--text-base)', { lineHeight: '24px' }],
+        'lg':    ['var(--text-lg)', { lineHeight: '28px' }],
+        'xl':    ['var(--text-xl)', { lineHeight: '32px' }],
+        '2xl':   ['var(--text-2xl)', { lineHeight: '40px' }],
+        // 兼容旧名（逐步淘汰）
+        'xs-alt':   'var(--text-2xs)',
+        'body-xs':  'var(--text-tight)',
+        'body-sm':  'var(--text-sm)',
+        'settings': 'var(--text-base)',
+      },
+      // 圆角：这里刻意 **不** 重映射 Tailwind 默认阶梯。
+      // 原因：全项目有 127 处 rounded-lg，重映射会让它们从 8px 悄悄变成 16px，
+      // 属于静默改视觉。语义档位放在 --radius-* 变量里，新代码用
+      // rounded-[var(--radius-md)] 这类写法显式引用，旧代码逐文件迁移。
+      spacing: {
+        '1': 'var(--space-1)',
+        '2': 'var(--space-2)',
+        '3': 'var(--space-3)',
+        '4': 'var(--space-4)',
+        '5': 'var(--space-5)',
+        '6': 'var(--space-6)',
+        '8': 'var(--space-8)',
       },
       letterSpacing: {
         'label': 'var(--tracking-label)',

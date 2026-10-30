@@ -10,6 +10,22 @@ const BUILD_TIME = new Date().toISOString()
 
 export default defineConfig({
   base: './',
+  // ⚠️ Vite 的 watcher 不读 .gitignore，只认这里的 ignored。
+  // src-tauri/target 里是 Rust 构建产物（8500+ 文件 / 4GB），tauri build 期间
+  // 每个 .rlib/.exe 落地都会触发一次 HMR 重编译，叠加 tailwindcss v4 的全项目
+  // 扫描，会让 Vite 单线程空转到 120% 以上，CPU 温度直冲风扇起转点。
+  server: {
+    watch: {
+      ignored: [
+        '**/src-tauri/target/**',
+        '**/dist/**',
+        '**/release/**',
+        '**/.backup*/**',
+        '**/src.backup*/**',
+        '**/*.log',
+      ],
+    },
+  },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __BUILD_TIME__: JSON.stringify(BUILD_TIME),

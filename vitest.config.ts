@@ -13,6 +13,9 @@ export default defineConfig({
     setupFiles: ['./src/test-setup.ts'],
     globals: true,
     hookTimeout: 60000,
+    // 备份目录（src.backup-*）也带 __tests__，默认 include 会把它们算进来，
+    // 每次跑测试等于跑两遍。显式排除，只测真正参与构建的 src/。
+    exclude: ['**/node_modules/**', '**/dist/**', '**/src.backup-*/**', '**/src/../src.backup-*/**'],
   },
   bench: {
     hookTimeout: 120000,
