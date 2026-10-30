@@ -1,6 +1,3 @@
-import { Capacitor } from '@capacitor/core'
-import { Directory, Encoding, Filesystem } from '@capacitor/filesystem'
-import { Share } from '@capacitor/share'
 import { isTauri } from '@/data/tauriFs'
 
 function browserDownload(content: string, filename: string, mime: string): void {
@@ -11,10 +8,6 @@ function browserDownload(content: string, filename: string, mime: string): void 
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
-}
-
-function safeFilename(filename: string): string {
-  return filename.replace(/[\\/:*?"<>|]/g, '-')
 }
 
 function extFromMime(mime: string): string {
@@ -41,25 +34,6 @@ export async function saveTextFile(content: string, filename: string, mime: stri
     return
   }
 
-  // Capacitor mobile
-  if (Capacitor.isNativePlatform()) {
-    const path = `exports/${safeFilename(filename)}`
-    const result = await Filesystem.writeFile({
-      path,
-      data: content,
-      directory: Directory.Cache,
-      encoding: Encoding.UTF8,
-      recursive: true,
-    })
-
-    await Share.share({
-      title: filename,
-      text: filename,
-      files: [result.uri],
-      dialogTitle: filename,
-    })
-    return
-  }
 
   // Browser
   browserDownload(content, filename, mime)

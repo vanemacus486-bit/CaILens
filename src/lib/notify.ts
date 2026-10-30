@@ -2,14 +2,13 @@
  * # notify — 通知抽象层
  *
  * 唯一碰触原生通知 API 的地方。按平台分流：
- * - 手机（Capacitor）：LocalNotifications.schedule / requestPermissions
  * - 桌面（Tauri）：@tauri-apps/plugin-notification
  * - 网页：Notification API
  *
  * 所有调用包 try/catch，失败不抛（降级到应用内横幅）。
  */
 
-import { isNativeMobile, isTauriDesktop } from './platform'
+import { isTauriDesktop } from './platform'
 
 // ── 权限 ────────────────────────────────────────────────────
 
@@ -19,12 +18,6 @@ import { isNativeMobile, isTauriDesktop } from './platform'
  */
 export async function requestNotifyPermission(): Promise<boolean> {
   try {
-    if (isNativeMobile()) {
-      const { LocalNotifications } = await import('@capacitor/local-notifications')
-      const result = await LocalNotifications.requestPermissions()
-      return result.display === 'granted'
-    }
-
     if (isTauriDesktop()) {
       const { isPermissionGranted, requestPermission } = await import('@tauri-apps/plugin-notification')
       const granted = await isPermissionGranted()
@@ -52,21 +45,6 @@ export async function requestNotifyPermission(): Promise<boolean> {
  */
 export async function fireNotificationNow(title: string, body: string): Promise<void> {
   try {
-    if (isNativeMobile()) {
-      const { LocalNotifications } = await import('@capacitor/local-notifications')
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: Date.now(),
-            title,
-            body,
-            schedule: { at: new Date() },
-          },
-        ],
-      })
-      return
-    }
-
     if (isTauriDesktop()) {
       const { sendNotification, isPermissionGranted } = await import('@tauri-apps/plugin-notification')
       const granted = await isPermissionGranted()

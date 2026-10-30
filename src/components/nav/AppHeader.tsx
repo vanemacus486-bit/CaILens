@@ -24,7 +24,6 @@ import { useT } from '@/i18n/useT'
 import type { AppLanguage } from '@/i18n/types'
 import { LANGUAGE_LOCALE } from '@/i18n/types'
 import { WindowControls } from './WindowControls'
-import { useIsMobile } from '@/hooks/useMediaQuery'
 import { HoverMenu } from '@/components/ui/hover-menu'
 import { cycleActionFilter } from '@/lib/actionFilterCycle'
 import { CompactSidebar } from './CompactSidebar'
@@ -52,7 +51,6 @@ export function AppHeader() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const language = useAppSettingsStore((s) => s.settings.language)
-  const isMobile = useIsMobile()
   const sidebarExpanded = useUIStore((s) => s.sidebarExpanded)
   const isWeek = location.pathname.startsWith('/week')
   const overrides = useAppSettingsStore((s) => s.settings.enabledPlugins)
@@ -235,8 +233,6 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
     }
   }, [viewMode, setSearchParams])
 
-  // 移动端不渲染 — 沿用现有 TopNavBar
-  if (isMobile) return null
 
   // 只有日历域与插件认领的主域需要这个顶栏，其余页面用 TopNavBar
   if (!isWeek && !isPluginDomain) return null

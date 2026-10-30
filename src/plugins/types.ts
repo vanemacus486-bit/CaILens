@@ -2,7 +2,7 @@
  * 插件契约。
  *
  * 设计约束（来自实际技术边界，不是偏好）：
- * 1. 代码同 bundle，不做动态 import —— Tauri CSP 与 Capacitor WebView 都会拦远程加载，
+ * 1. 代码同 bundle，不做动态 import —— Tauri CSP 与浏览器 CSP 都会拦远程加载，
  *    且没有 Node 侧可执行环境。插件靠 `plugins/` 目录隔离 + 开关控制注册。
  * 2. Dexie 的表结构必须在 `data/db.ts` 一次性声明。Dexie 的 version() 是全局单调的，
  *    插件动态增删表会让版本号爆炸且无法回退。所以插件的 `schema` 字段只做**归属声明**

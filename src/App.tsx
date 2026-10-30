@@ -33,15 +33,10 @@ import { computeQuickCaptureSpan } from '@/domain/quickCaptureSpan'
 import { FloatingEventCard } from '@/features/quick-log/FloatingEventCard'
 import type { CreateEventInput, UpdateEventInput } from '@/domain/event'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
-import { useIsMobile } from '@/hooks/useMediaQuery'
 import { parseISO } from 'date-fns'
 import { subscribeCrossWindowWrites } from '@/lib/crossWindowSync'
 import type { ShortcutAction } from '@/domain/shortcuts'
-import { isNativeMobile } from '@/lib/platform'
 import { Loader2 } from 'lucide-react'
-const MobileLayout = lazy(() => import('@/features/mobile/MobileLayout').then((m) => ({ default: m.MobileLayout })))
-const MobileDayPage = lazy(() => import('@/features/mobile/MobileDayPage').then((m) => ({ default: m.MobileDayPage })))
-const MobileSearchPage = lazy(() => import('@/features/mobile/MobileSearchPage').then((m) => ({ default: m.MobileSearchPage })))
 
 /**
  * 懒加载页面切换时的占位。
@@ -92,7 +87,6 @@ function Layout() {
   const enabledPlugins = useAppSettingsStore((s) => s.settings.enabledPlugins)
   const navigate = useNavigate()
   const location = useLocation()
-  const isMobile = useIsMobile()
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Hoisted: load categories + settings + profile once at the layout level
@@ -273,10 +267,10 @@ function Layout() {
       {/* 顶栏单独兜底：它崩了不该拖垮整页，用户还得能切视图 */}
       <ErrorBoundary title="顶栏出错了" compact>
         <AppHeader />
-        {(isMobile || (!isWeek && !inPluginDomain)) && <TopNavBar />}
+        {(!isWeek && !inPluginDomain) && <TopNavBar />}
       </ErrorBoundary>
       <div className="relative flex-1 flex min-h-0">
-        {!isMobile && sidebarExpanded && (
+        {sidebarExpanded && (
           <div className="absolute inset-y-0 left-0 z-40 pointer-events-none">
             <div className="h-full pointer-events-auto">
               <ErrorBoundary title="侧栏出错了" compact>
@@ -285,7 +279,7 @@ function Layout() {
             </div>
           </div>
         )}
-        <main className={`flex-1 h-full overflow-hidden flex flex-col min-w-0${!isMobile && sidebarExpanded ? ' desktop-panel-offset' : ''}`}>
+        <main className={`flex-1 h-full overflow-hidden flex flex-col min-w-0${sidebarExpanded ? ' desktop-panel-offset' : ''}`}>
         {/* 只包 Outlet：单页崩了外壳仍可用，能切到别的页 */}
         <ErrorBoundary title="这个页面出错了">
           <Suspense fallback={<PageFallback />}>
@@ -362,30 +356,6 @@ export default function App() {
   // hook 必须在任何条件返回之前调用（rules-of-hooks）。
   // 返回的是 Route 元素数组，靠 Fragment 让 react-router 认作合法 children。
   const pluginRoutes = usePluginRoutes()
-
-  // Native Capacitor shell → minimal mobile routes only
-  if (isNativeMobile()) {
-    return (
-      <HashRouter>
-        <Suspense fallback={<PageFallback />}>
-          <Routes>
-            <Route element={<MobileLayout />}>
-              <Route path="/" element={<Navigate to={`/day?date=${formatISODate(new Date())}`} replace />} />
-              <Route path="/day" element={<MobileDayPage />} />
-              <Route path="/week" element={<MobileDayPage />} />
-              <Route path="/month" element={<WeekView />} />
-              <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/search" element={<MobileSearchPage />} />
-              <Route path="/quick-capture" element={<Navigate to={`/day?date=${formatISODate(new Date())}`} replace />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              {pluginRoutes}
-            </Route>
-          </Routes>
-        </Suspense>
-      </HashRouter>
-    )
-  }
 
   return (
     <HashRouter>

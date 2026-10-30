@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom'
 import { Search } from 'lucide-react'
 import { useUIStore, type SettingsTab } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { useIsMobile } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/utils'
 import { SettingsCategories } from './SettingsCategories'
 import { SettingsHygiene } from './SettingsHygiene'
@@ -101,7 +100,8 @@ export function SettingsModal() {
   const activeTab = useUIStore((s) => s.activeSettingsTab)
   const setActiveTab = useUIStore((s) => s.setActiveSettingsTab)
   const language = useAppSettingsStore((s) => s.settings.language)
-  const isMobile = useIsMobile()
+  // 桌面单形态：窄窗口不再切换移动布局
+  const isMobile = false
 
   const t = useT()
   const tl = (zh: string, en: string): string => (language === 'zh' ? zh : en)

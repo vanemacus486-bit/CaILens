@@ -1,20 +1,14 @@
-import { Capacitor } from '@capacitor/core'
 import { isTauri } from '@tauri-apps/api/core'
 
-/** True when running inside a native Capacitor shell (Android / iOS). */
-export function isNativeMobile(): boolean {
-  return Capacitor.isNativePlatform()
-}
-
-/** True when running as a Tauri desktop app (not mobile). */
+/** True when running as a Tauri desktop app. */
 export function isTauriDesktop(): boolean {
-  return isTauri() && !isNativeMobile()
+  return isTauri()
 }
 
 /**
  * 在系统浏览器打开外部链接。
  * - Tauri 桌面端通过 opener 插件交给系统默认浏览器
- * - 网页 / Capacitor 移动端使用 window.open
+ * - 网页使用 window.open
  */
 export async function openExternal(url: string): Promise<boolean> {
   if (isTauriDesktop()) {

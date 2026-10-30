@@ -14,15 +14,12 @@ import { useUIStore } from '@/stores/uiStore'
 import { useWeekFromURL } from './hooks/useWeekFromURL'
 import type { DragState } from './hooks/useEventDrag'
 import { WeekDateHeader } from './WeekDateHeader'
-import { WeekToolbar } from './WeekToolbar'
 import { EventDetailCard } from './EventDetailCard'
 import { WeekEmptyState } from './WeekEmptyState'
 import { MonthView } from '@/features/month-view/MonthView'
 import { DayDrawer } from './DayDrawer'
 import { FloatingEventCard } from '@/features/quick-log/FloatingEventCard'
 import { showUndoSnackbar } from '@/components/ui/snackbar'
-import { MobileDayView } from '@/features/day-view/MobileDayView'
-import { useIsMobile } from '@/hooks/useMediaQuery'
 import { saveSession, useScrollSave, useScrollRestore } from '@/hooks/useSessionRestore'
 import type { CardState } from './types'
 import { computeWeekDensity } from '@/domain/weekDensity'
@@ -224,8 +221,6 @@ export function WeekView() {
     : floatingCard.open && floatingCard.editingEvent ? floatingCard.editingEvent.id
     : null
 
-  const isMobile = useIsMobile()
-  const [mobileViewMode, setMobileViewMode] = useState<'day' | 'week'>('day')
 
   const justClosedCardRef = useRef(false)
 
@@ -378,41 +373,16 @@ export function WeekView() {
 
   return (
     <>
-      <WeekToolbar
-        weekStart={weekStart}
-        onPrev={() => {
-          if (viewMode === 'month') {
-            setSelectedDay(new Date(selectedDay.getFullYear(), selectedDay.getMonth() - 1, 1))
-          } else {
-            setWeekStart(addWeeks(weekStart, -1))
-          }
-        }}
-        onNext={() => {
-          if (viewMode === 'month') {
-            setSelectedDay(new Date(selectedDay.getFullYear(), selectedDay.getMonth() + 1, 1))
-          } else {
-            setWeekStart(addWeeks(weekStart, 1))
-          }
-        }}
-        mobileViewMode={isMobile ? mobileViewMode : undefined}
-        onMobileViewModeChange={isMobile ? setMobileViewMode : undefined}
-      />
 
       <div className="flex-1 flex min-w-0 min-h-0">
       <div className="week-canvas week-canvas--calendar flex-1 flex flex-col min-w-0 overflow-hidden bg-surface-raised border border-border-subtle rounded-2xl m-3" data-density={weekDensity.mode}>
-        {viewMode === 'week' && !(isMobile && mobileViewMode === 'day') && (
+        {viewMode === 'week' && (
           <WeekDateHeader days={days} highlightedDayMs={highlightedDayMs} onDayClick={handleOpenDrawer} />
         )}
 
         <div className="flex-1 flex flex-col min-h-0">
           {viewMode === 'month' ? (
             <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} onDaySelect={handleDaySelect} />
-          ) : isMobile && mobileViewMode === 'day' ? (
-            <MobileDayView
-              weekStart={weekStart}
-              onWeekStartChange={setWeekStart}
-              onCreateEvent={handleSlotClick}
-            />
           ) : (
         <div ref={scrollContainerRef} className="relative flex-1 min-h-0 overflow-hidden">
           {isLoading && events.length === 0 ? (

@@ -9,7 +9,7 @@ const BTN_BASE =
 /**
  * 自绘窗口控制按钮（最小化 / 最大化-还原 / 关闭）。
  *
- * 仅在 Tauri 桌面端渲染——网页与 Capacitor 移动端返回 null（它们没有自绘标题栏）。
+ * 仅在 Tauri 桌面端渲染——网页端返回 null（它没有自绘标题栏）。
  * 配合 `tauri.conf.json` 的 `decorations: false` 与顶栏上的 `data-tauri-drag-region`，
  * 把原生标题栏那一行并入应用顶栏。无分隔线，关闭键悬停实心系统红 + 白 ✕。
  */

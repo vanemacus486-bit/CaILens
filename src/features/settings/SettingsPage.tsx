@@ -1,10 +1,8 @@
 import { useCallback } from 'react'
 import { useUIStore, type SettingsTab } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useT } from '@/i18n/useT'
 import { cn } from '@/lib/utils'
-import { MobileSettingsPage } from './MobileSettingsPage'
 import { SettingsCategories } from './SettingsCategories'
 import { SettingsHygiene } from './SettingsHygiene'
 import { SettingsAppearance } from './SettingsAppearance'
@@ -69,7 +67,6 @@ const TAB_CONTENT: Record<SettingsTab, React.FC> = {
 const ALL_TABS = [...SETTINGS_TABS, ...EXTENSION_TABS]
 
 export function SettingsPage() {
-  const isMobile = useIsMobile()
   const activeSettingsTab = useUIStore((s) => s.activeSettingsTab)
   const setActiveSettingsTab = useUIStore((s) => s.setActiveSettingsTab)
   const language = useAppSettingsStore((s) => s.settings.language)
@@ -95,8 +92,6 @@ export function SettingsPage() {
     },
     [activeSettingsTab, setActiveSettingsTab],
   )
-
-  if (isMobile) return <MobileSettingsPage />
 
   return (
     <div className="settings-page flex h-full bg-surface-base">

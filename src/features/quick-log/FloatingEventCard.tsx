@@ -11,7 +11,6 @@ import { inferHygieneActivity, findHygieneActivity, DEFAULT_HYGIENE_ACTIVITIES }
 import { computeQuickCaptureSpan } from '@/domain/quickCaptureSpan'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import type { AutocompleteSuggestion } from './AutocompleteDropdown'
-import { useIsMobile } from '@/hooks/useMediaQuery'
 import eatingCatImage from '@/assets/illustrations/eating-cat.webp'
 
 // ── Types ───────────────────────────────────────────────
@@ -127,7 +126,8 @@ export function FloatingEventCard({
   const categories = useCategoryStore((s) => s.categories)
   const hygieneActivities = useAppSettingsStore((s) => s.settings.hygieneActivities) ?? DEFAULT_HYGIENE_ACTIVITIES
   const isEditing = !!editingEvent
-  const isMobile = useIsMobile()
+  // 桌面单形态：窄窗口不再切换移动布局
+  const isMobile = false
 
   // ── Core state ──────────────────────────────────────
 

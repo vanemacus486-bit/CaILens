@@ -44,7 +44,6 @@ import { LANGUAGE_LOCALE } from '@/i18n/types'
 import { AccountMenu } from '@/components/nav/AccountMenu'
 import { useDomainNav } from '@/components/nav/domainNav'
 import { SlideSegmented } from '@/components/nav/SlideSegmented'
-import { useIsMobile } from '@/hooks/useMediaQuery'
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -343,7 +342,6 @@ function CalendarSection({
 export function UnifiedSidebar() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
-  const isMobile = useIsMobile()
   const t = useT()
 
   // ── 确定当前域 ──
@@ -398,8 +396,6 @@ export function UnifiedSidebar() {
 
   const { activeMode, navItems, handleModeChange } = useDomainNav()
 
-  // 移动端不渲染
-  if (isMobile) return null
 
   return (
     <aside className="floating-side-panel app-sidebar max-md:hidden">
