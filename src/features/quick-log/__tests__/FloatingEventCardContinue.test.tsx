@@ -30,8 +30,6 @@ vi.mock('@/data/getRepositories', () => ({
   getEventRepo: () => ({ search: () => Promise.resolve([]) }),
 }))
 
-vi.mock('@/hooks/useMediaQuery', () => ({ useIsMobile: () => false }))
-
 function setup() {
   const onClose = vi.fn()
   const onSave = vi.fn().mockResolvedValue('new-id')

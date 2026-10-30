@@ -13,7 +13,6 @@ export default defineConfig([
   globalIgnores([
     'dist',
     'src-tauri/target/**',
-    'android/app/build/**',
     '.claude',
     '.backup/**',
     '.backup-*/**',

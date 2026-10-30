@@ -13,7 +13,7 @@ No account, no server, no telemetry.
 
 ![version](https://img.shields.io/badge/version-3.23.0-c47a5a?style=flat-square)
 ![tests](https://img.shields.io/badge/tests-744_passing-2D7D46?style=flat-square)
-![platform](https://img.shields.io/badge/platform-Windows_·_Android_·_Web-3A5A80?style=flat-square)
+![platform](https://img.shields.io/badge/platform-Windows_·_Web-3A5A80?style=flat-square)
 ![typescript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square)
 ![license](https://img.shields.io/badge/license-AGPL--3.0-3A5A80?style=flat-square)
 
@@ -35,13 +35,12 @@ npx cailens
 One command runs the latest build (pulled from npm, no install, needs Node 20+).
 
 [![Windows](https://img.shields.io/badge/Windows-.exe-c47a5a?style=for-the-badge)](https://github.com/vanemacus486-bit/CaILens/releases/latest)
-[![Android](https://img.shields.io/badge/Android-.apk-6B7A4F?style=for-the-badge)](https://github.com/vanemacus486-bit/CaILens/releases/latest)
 [![Source](https://img.shields.io/badge/GitHub-source-1C1814?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vanemacus486-bit/CaILens)
 
 </div>
 
 > **Note:** the prebuilt exe / apk lag behind the latest code. For the newest features use `npx cailens` or build from source.
-> **Platform maturity:** the Windows desktop build is complete and polished; the Android build is early — usable, but still being refined.
+> **Platform maturity:** the Windows desktop build is complete and polished; the web build is usable.
 
 ---
 
@@ -127,7 +126,7 @@ Alexander Lyubishchev logged every hour of every day for 56 years, until his dea
 - **One-way layered architecture** — `use-cases → domain → data → stores → features`, no reverse dependencies. The `domain/` layer is side-effect-free (no React, no IndexedDB), so it's fully covered by 744 unit tests.
 - **Hand-written week view, no calendar library** — overlap layout, drag-to-move and drag-to-resize are all custom. The core is a **minute-axis coordinate system** (0..7×1440), so cross-day dragging is just arithmetic; the ghost overlay drives the DOM via `requestAnimationFrame` at 60fps.
 - **Pure-function stats engine** — weekly stats, time-slot aggregation, standard week, steady-state metrics (drift via linear regression), correlation analysis, data-maturity gating — all testable pure functions.
-- **One codebase, three targets** — the same React app ships as a Web bundle (Vite), a Windows desktop exe (Tauri), and an Android apk (Capacitor).
+- **One codebase, two targets** — the same React app ships as a Web bundle (Vite) and a Windows desktop exe (Tauri).
 - **Engineering discipline** — TypeScript strict, no `any` / `as unknown as` / `@ts-ignore`; components reach data only through Zustand stores, never a Repository directly.
 
 ### Stack
@@ -138,7 +137,7 @@ Alexander Lyubishchev logged every hour of every day for 56 years, until his dea
 | State / storage | Zustand v5 · Dexie v4 (IndexedDB), local-first, no backend |
 | Routing / charts / time | react-router-dom v7 (HashRouter) · Recharts 3 · date-fns v4 |
 | Build / test | Vite 8 · Vitest 4 + Testing Library + fake-indexeddb (744 tests / 50 files) |
-| Desktop / mobile | Tauri v2 (Windows exe) · Capacitor v8 (Android apk) |
+| Desktop | Tauri v2 (Windows exe) |
 | Crypto / fonts / icons | age-encryption · Inter / Source Serif 4 / JetBrains Mono / LXGW WenKai · lucide-react |
 
 ### Architecture
@@ -158,7 +157,7 @@ The core is largely done; what's next is expansion outward:
 
 - [ ] **AI time assistant** — multi-provider streaming chat, `@`-mentions that inject structured time data, analyses you can pin to a given day's diary.
 - [ ] **Deeper charts** — more correlation dimensions, customizable review views.
-- [ ] **Mobile polish** — bring the Android experience up to par with desktop.
+- [x] **Desktop focus** — mobile (Capacitor/Android) code removed; Windows desktop and web only.
 - [ ] **End-to-end sync** — local-first sync between desktop ↔ mobile (still no central server).
 
 Completed milestones are in the [Changelog](./CHANGELOG.md).
@@ -183,7 +182,6 @@ npm run dev          # dev server (http://localhost:5173 by default)
 | `npm run test` | Run unit tests once (744) |
 | `npm run lint` | ESLint |
 | `npm run tauri:build` | Build the Windows desktop exe → `release/` |
-| `npm run android:build` | Build the Android apk |
 
 ---
 

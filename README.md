@@ -13,7 +13,7 @@
 
 ![version](https://img.shields.io/badge/version-3.23.0-c47a5a?style=flat-square)
 ![tests](https://img.shields.io/badge/tests-744_passing-2D7D46?style=flat-square)
-![platform](https://img.shields.io/badge/platform-Windows_·_Android_·_Web-3A5A80?style=flat-square)
+![platform](https://img.shields.io/badge/platform-Windows_·_Web-3A5A80?style=flat-square)
 ![typescript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square)
 ![license](https://img.shields.io/badge/license-AGPL--3.0-3A5A80?style=flat-square)
 
@@ -35,13 +35,12 @@ npx cailens
 一行命令启动最新版（自动从 npm 拉取，无需安装，需 Node 20+）。
 
 [![Windows](https://img.shields.io/badge/Windows-.exe-c47a5a?style=for-the-badge)](https://github.com/vanemacus486-bit/CaILens/releases/latest)
-[![Android](https://img.shields.io/badge/Android-.apk-6B7A4F?style=for-the-badge)](https://github.com/vanemacus486-bit/CaILens/releases/latest)
 [![GitHub](https://img.shields.io/badge/GitHub-source-1C1814?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vanemacus486-bit/CaILens)
 
 </div>
 
 > **注意：** 预构建的 exe / apk 会滞后于最新代码。想体验最新功能请用 `npx cailens` 或从源码构建。
-> **平台成熟度：** Windows 桌面版功能完整、体验成熟；Android 移动端尚处早期，基本可用但仍在打磨。
+> **平台成熟度：** Windows 桌面版功能完整、体验成熟；Web 版可用。
 
 ---
 
@@ -127,7 +126,7 @@ npx cailens
 - **单向依赖分层架构** —— `use-cases → domain → data → stores → features`，严禁反向依赖。`domain/` 层零副作用（不碰 React、不碰 IndexedDB），因此可被 744 个单元测试完整覆盖。
 - **手写周视图，不用日历库** —— 重叠事件并排布局、拖拽移动 / 改时长全部自实现。核心是一个**分钟轴坐标系**（0..7×1440），跨天拖拽退化为简单加减法，ghost 浮层用 `requestAnimationFrame` 直接操作 DOM 跑满 60fps。
 - **纯函数统计引擎** —— 周统计、时段聚合、标准周、稳态指标（线性回归算漂移）、关联分析、数据成熟度判定，全部是可测试的纯函数。
-- **一套代码，三端交付** —— 同一份 React 应用通过 Vite 出 Web 包、Tauri 打 Windows 桌面 exe、Capacitor 打 Android apk。
+- **一套代码，双端交付** —— 同一份 React 应用通过 Vite 出 Web 包、Tauri 打 Windows 桌面 exe。
 - **工程纪律** —— TypeScript strict，禁用 `any` / `as unknown as` / `@ts-ignore`；组件只通过 Zustand store 访问数据，从不直接调 Repository。
 
 ### 技术栈
@@ -138,7 +137,7 @@ npx cailens
 | 状态 / 存储 | Zustand v5 · Dexie v4 (IndexedDB)，本地优先无后端 |
 | 路由 / 图表 / 时间 | react-router-dom v7（HashRouter）· Recharts 3 · date-fns v4 |
 | 构建 / 测试 | Vite 8 · Vitest 4 + Testing Library + fake-indexeddb（744 测试 / 50 文件） |
-| 桌面 / 移动 | Tauri v2（Windows exe）· Capacitor v8（Android apk） |
+| 桌面 | Tauri v2（Windows exe） |
 | 加密 / 字体 / 图标 | age-encryption · Inter / Source Serif 4 / JetBrains Mono / LXGW 文楷 · lucide-react |
 
 ### 架构
@@ -158,7 +157,7 @@ use-cases/  ──→  domain/  ──→  data/  ──→  stores/  ──→ 
 
 - [ ] **AI 时间助手** —— 多提供商流式对话，`@` 提及注入结构化时间数据，分析可钉在某一天的日记上。
 - [ ] **图表深化** —— 更多关联维度、可自定义的复盘视图。
-- [ ] **移动端打磨** —— 把 Android 端的交互与视觉做到与桌面端齐平。
+- [x] **专注桌面端** —— 已移除移动端（Capacitor/Android）代码，只维护 Windows 桌面与 Web。
 - [ ] **端到端同步** —— 桌面 ↔ 移动 的本地优先同步（仍坚持无中心服务器的隐私原则）。
 
 已完成的里程碑见 [CHANGELOG](./CHANGELOG.md)。
@@ -183,7 +182,6 @@ npm run dev          # 启动开发服务器（默认 http://localhost:5173）
 | `npm run test` | 跑一次单元测试（744 个） |
 | `npm run lint` | ESLint |
 | `npm run tauri:build` | 打包 Windows 桌面 exe → `release/` |
-| `npm run android:build` | 打包 Android apk |
 
 ---
 

@@ -100,9 +100,6 @@ export function SettingsModal() {
   const activeTab = useUIStore((s) => s.activeSettingsTab)
   const setActiveTab = useUIStore((s) => s.setActiveSettingsTab)
   const language = useAppSettingsStore((s) => s.settings.language)
-  // 桌面单形态：窄窗口不再切换移动布局
-  const isMobile = false
-
   const t = useT()
   const tl = (zh: string, en: string): string => (language === 'zh' ? zh : en)
 
@@ -191,23 +188,21 @@ export function SettingsModal() {
         className={cn(
           'relative flex bg-surface-base rounded-2xl shadow-2xl overflow-hidden border border-border-subtle',
           'animate-settings-scale-in',
-          isMobile
-            ? 'w-[95vw] h-[92vh] flex-col'
-            : 'w-[840px] h-[620px] max-h-[85vh]',
+          'w-[840px] h-[620px] max-h-[85vh]',
         )}
       >
         {/* ── Left sidebar ── */}
         <nav
           className={cn(
             'flex-shrink-0 flex flex-col bg-surface-sunken border-r border-border-subtle',
-            isMobile ? 'w-full border-r-0 border-b h-auto' : 'w-[220px]',
+            'w-[220px]',
           )}
           onKeyDown={handleKeyDown}
           role="tablist"
           aria-orientation="vertical"
         >
           {/* Search — 最上面 */}
-          <div className={cn('flex-shrink-0', isMobile ? 'px-4 pt-3 pb-2' : 'px-3 pt-4 pb-2')}>
+          <div className={cn('flex-shrink-0', 'px-3 pt-4 pb-2')}>
             <div className="relative">
               <Search
                 size={13}
@@ -226,11 +221,11 @@ export function SettingsModal() {
           </div>
 
           {/* Tabs */}
-          <div className={cn('flex-1 overflow-y-auto', isMobile ? 'flex gap-1 px-4 pb-2' : 'flex flex-col gap-0.5 px-2.5 pb-5')}>
+          <div className={cn('flex-1 overflow-y-auto', 'flex flex-col gap-0.5 px-2.5 pb-5')}>
             {/* ── 设置区 ── */}
             {filteredSettings.length > 0 && (
               <div className="flex flex-col gap-0.5">
-                {!isMobile && (
+                {(
                   <span className="px-3 pt-1 pb-0.5 text-2xs font-sans font-medium uppercase tracking-wider text-text-quaternary">
                     {tl('设置', 'Settings')}
                   </span>
@@ -246,9 +241,7 @@ export function SettingsModal() {
                       onClick={() => setActiveTab(tab.key)}
                       className={cn(
                         'text-left rounded-lg transition-colors duration-200 cursor-pointer border-none',
-                        isMobile
-                          ? 'px-3 py-1 text-xs font-sans font-medium whitespace-nowrap flex-shrink-0'
-                          : 'w-full flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5',
+                        'w-full flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5',
                         active
                           ? 'bg-surface-raised shadow-pill'
                           : 'hover:bg-surface-base',
@@ -257,13 +250,13 @@ export function SettingsModal() {
                       <span
                         className={cn(
                           'font-sans font-medium transition-colors duration-200',
-                          isMobile ? 'text-xs' : 'text-sm',
+                          'text-sm',
                           active ? 'text-text-primary' : 'text-text-secondary',
                         )}
                       >
                         {tl(tab.labelZh, tab.labelEn)}
                       </span>
-                      {!isMobile && (
+                      {(
                         <span
                           className={cn(
                             'text-xs font-sans transition-colors duration-200',
@@ -282,7 +275,7 @@ export function SettingsModal() {
             {/* ── 拓展区 ── */}
             {filteredExtensions.length > 0 && (
               <div className="flex flex-col gap-0.5 mt-0.5">
-                {!isMobile && (
+                {(
                   <span className="px-3 pt-1 pb-0.5 text-2xs font-sans font-medium uppercase tracking-wider text-text-quaternary">
                     {tl('拓展', 'Extensions')}
                   </span>
@@ -298,9 +291,7 @@ export function SettingsModal() {
                       onClick={() => setActiveTab(tab.key)}
                       className={cn(
                         'text-left rounded-lg transition-colors duration-200 cursor-pointer border-none',
-                        isMobile
-                          ? 'px-3 py-1 text-xs font-sans font-medium whitespace-nowrap flex-shrink-0'
-                          : 'w-full flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5',
+                        'w-full flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5',
                         active
                           ? 'bg-surface-raised shadow-pill'
                           : 'hover:bg-surface-base',
@@ -309,13 +300,13 @@ export function SettingsModal() {
                       <span
                         className={cn(
                           'font-sans font-medium transition-colors duration-200',
-                          isMobile ? 'text-xs' : 'text-sm',
+                          'text-sm',
                           active ? 'text-text-primary' : 'text-text-secondary',
                         )}
                       >
                         {tl(tab.labelZh, tab.labelEn)}
                       </span>
-                      {!isMobile && (
+                      {(
                         <span
                           className={cn(
                             'text-xs font-sans transition-colors duration-200',
@@ -345,10 +336,9 @@ export function SettingsModal() {
         {/* ── Right content ── */}
         <main className={cn(
           'flex-1 overflow-y-auto min-w-0 bg-surface-base',
-          isMobile && 'flex-1',
         )}>
           <div className={cn(
-            isMobile ? 'px-5 py-5' : 'px-10 py-8',
+            'px-10 py-8',
           )}>
             <div key={activeTab} className="animate-settings-fade-in">
               <ActiveComponent />

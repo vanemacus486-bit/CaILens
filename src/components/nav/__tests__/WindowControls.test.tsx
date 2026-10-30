@@ -17,7 +17,6 @@ const h = vi.hoisted(() => {
 vi.mock('@tauri-apps/api/window', () => ({ getCurrentWindow: () => h.win }))
 vi.mock('@/lib/platform', () => ({
   isTauriDesktop: () => h.state.desktop,
-  isNativeMobile: () => false,
 }))
 
 import { WindowControls } from '../WindowControls'

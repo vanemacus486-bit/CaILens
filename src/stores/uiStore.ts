@@ -16,7 +16,6 @@ export type SettingsTab =
 
 interface UIState {
   sidebarExpanded: boolean
-  mobileSidebarOpen: boolean
   commandPaletteOpen: boolean
   settingsModalOpen: boolean
   activeSettingsTab: SettingsTab
@@ -24,7 +23,6 @@ interface UIState {
   lastFocusedEventId: string | null
   quickCaptureInboxOpen: boolean
   toggleSidebar: () => void
-  setMobileSidebarOpen: (open: boolean) => void
   setCommandPaletteOpen: (open: boolean) => void
   setSettingsModalOpen: (open: boolean) => void
   setActiveSettingsTab: (tab: SettingsTab) => void
@@ -47,7 +45,6 @@ function loadSidebarExpanded(): boolean {
 
 export const useUIStore = create<UIState>()((set) => ({
   sidebarExpanded: loadSidebarExpanded(),
-  mobileSidebarOpen: false,
   commandPaletteOpen: false,
   settingsModalOpen: false,
   activeSettingsTab: 'categories',
@@ -59,7 +56,6 @@ export const useUIStore = create<UIState>()((set) => ({
     try { localStorage.setItem(SIDEBAR_KEY, String(next)) } catch { /* ignore */ }
     return { sidebarExpanded: next }
   }),
-  setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setSettingsModalOpen: (open) => set({ settingsModalOpen: open }),
   setActiveSettingsTab: (tab) => set({ activeSettingsTab: tab }),

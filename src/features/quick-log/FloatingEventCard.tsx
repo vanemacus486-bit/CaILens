@@ -126,8 +126,6 @@ export function FloatingEventCard({
   const categories = useCategoryStore((s) => s.categories)
   const hygieneActivities = useAppSettingsStore((s) => s.settings.hygieneActivities) ?? DEFAULT_HYGIENE_ACTIVITIES
   const isEditing = !!editingEvent
-  // 桌面单形态：窄窗口不再切换移动布局
-  const isMobile = false
 
   // ── Core state ──────────────────────────────────────
 
@@ -948,8 +946,8 @@ export function FloatingEventCard({
     <Popover open>
       <PopoverAnchor virtualRef={virtualRef} />
       <PopoverContent
-        side={isMobile ? 'top' : 'right'}
-        align={isMobile ? 'end' : 'start'}
+        side="right"
+        align="start"
         sideOffset={8}
         collisionPadding={16}
         className={cn(

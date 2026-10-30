@@ -8,7 +8,7 @@ const releaseDir = join(root, 'release');
 
 const target = process.argv[2];
 if (!target) {
-  console.error('Usage: node copy-release.mjs <tauri|android>');
+  console.error('Usage: node copy-release.mjs <tauri>');
   process.exit(1);
 }
 
@@ -53,30 +53,10 @@ if (target === 'tauri') {
   } else {
     console.log(`Done — ${copied} file(s) copied to release/`);
   }
-} else if (target === 'android') {
-  const apkDir = join(root, 'android', 'app', 'build', 'outputs', 'apk');
-  const debugApk = join(apkDir, 'debug', 'app-debug.apk');
-  const releaseApk = join(apkDir, 'release', 'app-release.apk');
-
-  let copied = 0;
-  if (existsSync(debugApk)) {
-    const dest = join(releaseDir, 'CaILens-android-debug.apk');
-    copyFileSync(debugApk, dest);
-    console.log(`Copied app-debug.apk → release/CaILens-android-debug.apk`);
-    copied++;
-  }
-  if (existsSync(releaseApk)) {
-    const dest = join(releaseDir, 'CaILens-android-release.apk');
-    copyFileSync(releaseApk, dest);
-    console.log(`Copied app-release.apk → release/CaILens-android-release.apk`);
-    copied++;
-  }
-  if (copied === 0) {
-    console.log('No APK found. Run `./gradlew assembleDebug` in android/ first.');
-  } else {
+} else {
     console.log(`Done — ${copied} file(s) copied to release/`);
   }
 } else {
-  console.error(`Unknown target: ${target}. Use "tauri" or "android".`);
+  console.error(`Unknown target: ${target}. Use "tauri".`);
   process.exit(1);
 }
