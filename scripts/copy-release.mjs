@@ -54,9 +54,6 @@ if (target === 'tauri') {
     console.log(`Done — ${copied} file(s) copied to release/`);
   }
 } else {
-    console.log(`Done — ${copied} file(s) copied to release/`);
-  }
-} else {
   console.error(`Unknown target: ${target}. Use "tauri".`);
   process.exit(1);
 }
