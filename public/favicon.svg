@@ -1,16 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0.25" y2="1">
-      <stop offset="0" stop-color="#EDA57F"/>
-      <stop offset="0.52" stop-color="#CF7D57"/>
-      <stop offset="1" stop-color="#A5542F"/>
-    </linearGradient>
-    <linearGradient id="ring" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#FBE3D4"/>
-    </linearGradient>
-  </defs>
-  <rect width="1024" height="1024" rx="228" fill="url(#bg)"/>
-  <path d="M673.1 166.9A232 232 0 1 0 673.1 857.1" fill="none" stroke="url(#ring)" stroke-width="104" stroke-linecap="round"/>
-  <circle cx="744" cy="512" r="56" fill="#FFF7F2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs><linearGradient id="bg" x1="0.15" y1="0" x2="0.85" y2="1"><stop offset="0" stop-color="#FBF8F4"/><stop offset="1" stop-color="#F1EAE2"/></linearGradient></defs>
+<rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
+  <circle cx="512.0" cy="512.0" r="250.0" fill="none" stroke="#262229" stroke-width="96" stroke-linecap="round" stroke-dasharray="1195.55 375.25" stroke-dashoffset="-187.62"/>
+  <circle cx="762.0" cy="512.0" r="48" fill="#C9703F"/>
 </svg>
