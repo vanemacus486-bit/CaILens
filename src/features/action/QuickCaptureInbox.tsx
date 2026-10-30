@@ -71,6 +71,8 @@ export function QuickCaptureInbox() {
   }, [title, quickCapture, close])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // 输入法组合中的回车是「选词」，不是「提交」
+    if (e.nativeEvent.isComposing) return
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleCreate()
