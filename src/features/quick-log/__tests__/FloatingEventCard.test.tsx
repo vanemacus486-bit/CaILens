@@ -106,14 +106,14 @@ describe('FloatingEventCard', () => {
     }))
   })
 
-  it('点「继续」：保存后 onContinue 接力——开始=上条结束、时长沿用', async () => {
+  it('点「继续」：保存后 onContinue 接力——开始=上条结束、终点取现在', async () => {
     const { onSave, onContinue, end } = renderCard()
     fireEvent.click(screen.getByRole('button', { name: /继续/ }))
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(onContinue).toHaveBeenCalledTimes(1))
     const [nextStart, nextEnd, color] = onContinue.mock.calls[0]
-    expect(nextStart).toBe(end)                    // 接力：下一条开始 = 上一条结束
-    expect(nextEnd - nextStart).toBe(30 * 60_000)  // 时长沿用 30 分钟
+    expect(nextStart).toBe(end)                     // 接力：下一条开始 = 上一条结束
+    expect(nextEnd).toBeGreaterThan(nextStart)      // 终点推进到「现在」，不再沿用上一条时长
     expect(color).toBe('accent')
   })
 

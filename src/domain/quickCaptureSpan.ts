@@ -18,6 +18,11 @@ export interface QuickCaptureSpanInput {
   lastEventEnd: number | null
   /** 当前时刻（UTC ms） */
   now: number
+  /**
+   * 无条件信任 lastEventEnd（跳过「必须是今天」的检查）。
+   * 刚存完一条就接着记下一条时用这个：此时接力是明确的，补记昨天的时间轴也应该接得上。
+   */
+  trustAnchor?: boolean
 }
 
 export interface QuickCaptureSpan {
@@ -37,15 +42,23 @@ function hourStart(ts: number): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()).getTime()
 }
 
-function isUsableAnchor(lastEventEnd: number | null, now: number): lastEventEnd is number {
+function isUsableAnchor(lastEventEnd: number | null, now: number, trustAnchor: boolean): lastEventEnd is number {
   if (lastEventEnd === null) return false
   if (lastEventEnd > now) return false
+  if (trustAnchor) return true
   // 必须是今天（同一天），避免昨天的事件把区间拉成十几个小时
   return dayStart(lastEventEnd) === dayStart(now)
 }
 
-export function computeQuickCaptureSpan({ lastEventEnd, now }: QuickCaptureSpanInput): QuickCaptureSpan {
-  const start = isUsableAnchor(lastEventEnd, now) ? lastEventEnd : hourStart(now)
-  const end = Math.max(now, start + QUICK_CAPTURE_MIN_MS)
+export function computeQuickCaptureSpan({
+  lastEventEnd, now, trustAnchor = false,
+}: QuickCaptureSpanInput): QuickCaptureSpan {
+  const usable = isUsableAnchor(lastEventEnd, now, trustAnchor)
+  const start = usable ? lastEventEnd : hourStart(now)
+  // 接力补记时，终点取「上一条结束 + 最短区间」——补记历史时「现在」与那段时间无关，
+  // 用真实 now 会把区间拉成几个月。非接力（新开一条）才贴到现在。
+  const end = usable && trustAnchor
+    ? start + QUICK_CAPTURE_MIN_MS
+    : Math.max(now, start + QUICK_CAPTURE_MIN_MS)
   return { start, end }
 }

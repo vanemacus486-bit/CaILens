@@ -34,6 +34,12 @@ describe('computeQuickCaptureSpan', () => {
     expect(span.end).toBe(NOW + QUICK_CAPTURE_MIN_MS)
   })
 
+  it('刚存完一条就接着记（trustAnchor）→ 起点接上一条结束，终点是起点 + 15 分钟', () => {
+    const span = computeQuickCaptureSpan({ lastEventEnd: at(14, 20), now: NOW, trustAnchor: true })
+    expect(span.start).toBe(at(14, 20))
+    expect(span.end).toBe(at(14, 35))
+  })
+
   it('上一条在 20 小时前结束 → 起点不被拉那么远，回落到整点', () => {
     const span = computeQuickCaptureSpan({ lastEventEnd: at(19, 0), now: NOW })
     expect(span.start).toBe(at(15, 0))

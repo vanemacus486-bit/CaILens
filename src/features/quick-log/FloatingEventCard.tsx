@@ -8,6 +8,7 @@ import { classifyEvent } from '@/domain/icsImport'
 import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
 import { inferHygieneActivity, findHygieneActivity, DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
+import { computeQuickCaptureSpan } from '@/domain/quickCaptureSpan'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import type { AutocompleteSuggestion } from './AutocompleteDropdown'
 import { useIsMobile } from '@/hooks/useMediaQuery'
@@ -198,6 +199,11 @@ export function FloatingEventCard({
     catch { return false }
   })
 
+  // 刚存下的那条：用于底部「已存」回执 + Ctrl+Z 撤销
+  const [lastSaved, setLastSaved] = useState<
+    { id: string; title: string; start: number; end: number } | null
+  >(null)
+
   // Refs
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -317,10 +323,10 @@ export function FloatingEventCard({
       return
     }
 
-    // Enter → 直接保存当前文字（Tab 才用来采纳推荐）
+    // Enter → 保存并留在原地接着记（连续补记是主路径）；Esc 才退出
     if (e.key === 'Enter') {
       e.preventDefault()
-      handleSaveRef.current(e.shiftKey)
+      handleSaveRef.current(true)
       return
     }
 
@@ -355,7 +361,7 @@ export function FloatingEventCard({
     return null
   }
 
-  async function handleSave(continueAfter = false) {
+  async function handleSave(stayOpen = false) {
     const effectiveTitle = title
     const parsedMeal = parseMealEntry(effectiveTitle)
     const shouldSaveAsMeal = mode === 'meal-food' || editingEvent?.typedData?.type === 'meal' || parsedMeal.isMeal
@@ -435,17 +441,28 @@ export function FloatingEventCard({
         await onUpdate({ id: editingEvent.id, ...input })
         onClose()
       } else {
-        await onSave(input)
+        const savedId = await onSave(input)
         try {
           const n = Number(localStorage.getItem('cailens.cardHintSeen') ?? '0')
           localStorage.setItem('cailens.cardHintSeen', String(n + 1))
         } catch { /* ignore */ }
-        if (continueAfter && onContinue) {
-          // 下一条接力：开始=本条结束，时长沿用本条，分类沿用
-          onContinue(endTime, endTime + (endTime - startTime), saveCategory as EventColor)
-        } else {
+
+        if (!stayOpen) {
           onClose()
+          return
         }
+
+        // 连续补记：留在原地、清空标题、时间推进到「本条结束 → 现在」
+        const next = computeQuickCaptureSpan({ lastEventEnd: endTime, now: Date.now(), trustAnchor: true })
+        setLastSaved({ id: savedId, title: eventTitle, start: startTime, end: endTime })
+        setTitle('')
+        setSuggestions([])
+        setError(null)
+        setStartStr(tsToStr(next.start))
+        setEndStr(tsToStr(next.end))
+        setCrossDay(new Date(next.end).toDateString() !== new Date(next.start).toDateString())
+        onContinue?.(next.start, next.end, saveCategory as EventColor)
+        requestAnimationFrame(() => inputRef.current?.focus())
       }
     } catch {
       setError('保存失败')
@@ -870,7 +887,15 @@ export function FloatingEventCard({
 
         {showHint && showRecent && (
           <div className="mt-2 flex items-center gap-3 px-1 text-2xs text-text-tertiary/75">
-            <span>Enter 记录</span><span>Shift + Enter 继续</span><span>Tab 补全</span>
+            <span>Enter 记录并继续</span><span>Tab 补全</span><span>Esc 关闭</span>
+          </div>
+        )}
+
+        {lastSaved && (
+          <div className="mt-2 flex items-center gap-2 rounded-lg bg-surface-sunken/70 px-2.5 py-1.5 text-2xs text-text-secondary">
+            <span className="min-w-0 truncate">
+              已存「{lastSaved.title || '未命名'}」 {tsToStr(lastSaved.start)}–{tsToStr(lastSaved.end)}
+            </span>
           </div>
         )}
 
