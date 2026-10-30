@@ -46,4 +46,11 @@ CaILens_keys/
 # Temporary / debug artifacts
 eslint_output.txt
 *.png
+# 构建期工具链（dlltool/windres 等二进制，约 10 MB，由 scripts/*.ps1 现取）
+.build-tools/
 
+# 改动前的文件副本（保留用于回滚，不进版本库）
+# 三种命名都要覆盖：.backup/ 是当前在用的，另两种是带日期戳的历史备份
+.backup/
+.backup-*/
+src.backup-*/

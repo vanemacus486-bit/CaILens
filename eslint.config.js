@@ -6,7 +6,19 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'src-tauri/target/**', 'android/app/build/**', '.claude']),
+  // 备份目录存放改动前的文件副本，不是源码。不忽略会被 projectService
+  // 当成待检查的 TS 文件，报 "was not found by the project service" error；
+  // 带日期戳的备份（.backup-20261029/、src.backup-round2-.../）还会贡献成百上千条
+  // 本不属于本仓库的 lint 问题。三种命名都要忽略。
+  globalIgnores([
+    'dist',
+    'src-tauri/target/**',
+    'android/app/build/**',
+    '.claude',
+    '.backup/**',
+    '.backup-*/**',
+    'src.backup-*/**',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     ignores: ['capacitor.config.ts', 'tailwind.config.ts', 'vitest.config.ts'],
