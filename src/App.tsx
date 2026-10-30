@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HashRouter, Navigate, Route, Routes, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
 import { TopNavBar } from '@/components/nav/TopNavBar'
@@ -7,7 +7,6 @@ import { TopNavBar } from '@/components/nav/TopNavBar'
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const ProjectDetailPage = lazy(() => import('@/pages/project/ProjectDetailPage').then((m) => ({ default: m.ProjectDetailPage })))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
-const QuickCaptureWindow = lazy(() => import('@/features/quick-capture/QuickCaptureWindow').then((m) => ({ default: m.QuickCaptureWindow })))
 const CommandPalette = lazy(() => import('@/features/search/CommandPalette').then((m) => ({ default: m.CommandPalette })))
 const QuickCaptureInbox = lazy(() => import('@/features/action/QuickCaptureInbox').then((m) => ({ default: m.QuickCaptureInbox })))
 // 无条件挂载但内部 closed→null：改为「打开时才挂载」可把加密导出(age)/ics 库移出首屏
@@ -30,6 +29,9 @@ import { SnackbarHost, showErrorSnackbar, showUndoSnackbar } from '@/components/
 import { UpdateBanner } from '@/components/ui/UpdateBanner'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { getWeekStart, formatISODate } from '@/domain/time'
+import { computeQuickCaptureSpan } from '@/domain/quickCaptureSpan'
+import { FloatingEventCard } from '@/features/quick-log/FloatingEventCard'
+import type { CreateEventInput, UpdateEventInput } from '@/domain/event'
 import { useShortcutManager } from '@/hooks/useShortcutManager'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { parseISO } from 'date-fns'
@@ -153,6 +155,16 @@ function Layout() {
     }
   }, [])
 
+  const [capture, setCapture] = useState<{ open: boolean; times: { start: number; end: number } } | null>(null)
+  const captureAnchorRef = useRef<HTMLDivElement>(null)
+
+  // 全局快速记录事件：默认区间「上一条事件结束 → 现在」，一次回车即落库
+  const openQuickCapture = useCallback(() => {
+    const all = useEventStore.getState().allEvents
+    const lastEnd = all.length ? Math.max(...all.map((e) => e.endTime)) : null
+    setCapture({ open: true, times: computeQuickCaptureSpan({ lastEventEnd: lastEnd, now: Date.now() }) })
+  }, [])
+
   const shortcutHandlers = useMemo<Partial<Record<ShortcutAction, () => void>>>(() => ({
     openCommandPalette: () => useUIStore.getState().setCommandPaletteOpen(true),
     copyFocusedEvent: () => {
@@ -210,7 +222,7 @@ function Layout() {
       if (!eventId) return
       fireAndForget(useEventStore.getState().duplicateEvent(eventId), 'duplicate event')
     },
-    quickCaptureEvent: () => useUIStore.getState().setQuickCaptureInboxOpen(true),
+    quickCaptureEvent: openQuickCapture,
     toggleSidebar: () => useUIStore.getState().toggleSidebar(),
     toggleWeekMonthView: () => {
       if (!location.pathname.startsWith('/week')) return
@@ -231,7 +243,7 @@ function Layout() {
         )
       }
     },
-  }), [navigate, searchParams, setTheme, theme, location, setSearchParams])
+  }), [navigate, searchParams, setTheme, theme, location, setSearchParams, openQuickCapture])
 
   useShortcutManager(shortcutHandlers)
 
@@ -302,6 +314,28 @@ function Layout() {
       )}
       <SnackbarHost />
       <UpdateBanner />
+      {/* 全局快速记录入口的锚点：不可见，只给 Popover 定位用 */}
+      <div
+        ref={captureAnchorRef}
+        aria-hidden="true"
+        style={{ position: 'fixed', left: '50%', top: '30%', width: 1, height: 1, pointerEvents: 'none' }}
+      />
+      {capture?.open && captureAnchorRef.current && (
+        <FloatingEventCard
+          open
+          anchorEl={captureAnchorRef.current}
+          defaultTimes={capture.times}
+          onClose={() => setCapture(null)}
+          onSave={(input: CreateEventInput) =>
+            useEventStore.getState().createEvent(input).then((e) => e.id)
+          }
+          onUpdate={async (input: UpdateEventInput) => { await useEventStore.getState().updateEvent(input) }}
+          onDelete={(id: string) => useEventStore.getState().deleteEvent(id)}
+          onContinue={(start: number, end: number) =>
+            setCapture((prev) => (prev ? { open: true, times: { start, end } } : prev))
+          }
+        />
+      )}
     </div>
   )
 }
@@ -362,7 +396,6 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/quick-capture" element={<QuickCaptureWindow />} />
           {/* 已启用插件的路由；无插件时渲染为空。
               注意是 hook 展开而非 <PluginRoutes /> —— react-router 只认 Route/Fragment */}
           {pluginRoutes}
