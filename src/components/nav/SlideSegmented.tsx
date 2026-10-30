@@ -160,7 +160,7 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
             title={showLabel ? undefined : it.label}
             aria-label={it.label}
             className={`relative z-[1] flex items-center justify-center rounded-md cursor-pointer border-none bg-transparent font-sans font-medium transition-colors duration-200 ${
-              stretch ? 'flex-1 min-w-0 flex-col gap-0.5 py-1.5 px-1 text-[11px]' : 'inline-flex h-8 gap-1.5 px-3 text-[13px]'
+              stretch ? 'flex-1 min-w-0 flex-col gap-0.5 py-1.5 px-1 text-xs' : 'inline-flex h-8 gap-1.5 px-3 text-sm'
             } ${
               isActive ? 'text-accent' : 'text-text-tertiary hover:text-text-secondary'
             }`}

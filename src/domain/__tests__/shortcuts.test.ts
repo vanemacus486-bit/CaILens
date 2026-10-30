@@ -240,8 +240,10 @@ describe('eventMatchesBinding', () => {
 // ── Registry completeness ──────────────────────────────
 
 describe('SHORTCUT_REGISTRY', () => {
-  it('has exactly 32 actions', () => {
-    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(32)
+  // 域跳转（goToStats/goToPlan/goToReview）已从静态注册表移除：
+  // Alt+N 现在由插件声明的 shortcutOrder 在 App.tsx 动态分派，关掉插件即失效。
+  it('has exactly 29 actions', () => {
+    expect(Object.keys(SHORTCUT_REGISTRY)).toHaveLength(29)
   })
 
   it('all entries have a label string', () => {

@@ -721,6 +721,7 @@ body {
   height: 46px;
   min-height: 46px;
   padding-block: 4px;
+  background: transparent;
 }
 
 .week-date-content {
@@ -732,22 +733,28 @@ body {
 }
 
 .week-date-weekday {
-  color: var(--text-quaternary);
-  font: 500 9px/1 Inter, sans-serif;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: var(--text-tertiary);
+  font: 500 11px/1 Inter, sans-serif;
+  letter-spacing: 0.02em;
 }
 
 .week-date-number {
   display: grid;
-  width: 50px;
-  height: 21px;
+  min-width: 28px;
+  height: 24px;
+  padding-inline: 7px;
   place-items: center;
   border: 1px solid transparent;
   border-radius: 999px;
   color: var(--text-primary);
   font: 500 14px/1 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out;
+}
+
+/* Only the pointer reveals a container — the paper stays flat otherwise. */
+.week-date-cell:hover .week-date-number:not(.is-today) {
+  background: color-mix(in srgb, var(--surface-sunken) 52%, transparent);
 }
 
 .week-date-number.is-today {
@@ -757,7 +764,8 @@ body {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2);
 }
 
-.week-date-future,
+/* Column bodies keep a faint future tint; the date header does not — a
+   second band above the canvas is exactly what made it look dirty. */
 .week-day-future {
   background-color: color-mix(in srgb, var(--surface-base) 72%, var(--surface-raised));
 }
@@ -837,24 +845,31 @@ body {
   background: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
+/* Header and canvas are one surface: no third band above the grid.
+   The date strip is separated by a hairline only. */
 .week-canvas--calendar .week-date-cell {
   height: 58px;
   min-height: 58px;
   padding-block: 7px;
-  background: color-mix(in srgb, var(--surface-raised) 88%, var(--surface-base));
+  background: transparent;
+}
+
+.week-canvas--calendar .week-date-cell:hover {
+  background: color-mix(in srgb, var(--surface-sunken) 26%, transparent);
 }
 
 .week-canvas--calendar .week-date-weekday {
-  font-size: 9px;
-  letter-spacing: 0.11em;
+  font-size: 11px;
+  letter-spacing: 0.02em;
 }
 
 .week-canvas--calendar .week-date-number {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  font-size: 13px;
-  letter-spacing: -0.03em;
+  min-width: 28px;
+  height: 26px;
+  padding-inline: 8px;
+  border-radius: 999px;
+  font-size: 14px;
+  letter-spacing: -0.02em;
 }
 
 .week-canvas--calendar .week-date-number.is-today {

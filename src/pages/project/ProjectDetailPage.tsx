@@ -90,7 +90,7 @@ export function ProjectDetailPage() {
       {/* 头部 */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="font-serif text-[28px] font-semibold text-text-primary">
+          <h1 className="font-serif text-2xl font-semibold text-text-primary">
             {project.name}
           </h1>
           <div className="flex items-center gap-3 mt-2 text-sm font-sans text-text-tertiary">
@@ -172,7 +172,7 @@ export function ProjectDetailPage() {
                     style={{ width: `${progress.percent}%` }}
                   />
                 </div>
-                <span className="font-mono text-[11px] text-text-tertiary tabular-nums flex-shrink-0">
+                <span className="font-mono text-xs text-text-tertiary tabular-nums flex-shrink-0">
                   {progress.done}/{progress.total}
                 </span>
               </div>

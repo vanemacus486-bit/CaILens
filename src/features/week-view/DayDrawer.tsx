@@ -22,7 +22,7 @@ export function DayDrawer({ selectedDateMs, onClose }: DayDrawerProps) {
         >
           <div className="flex items-center gap-1.5 px-4 py-2 flex-shrink-0">
             <Bot size={12} strokeWidth={1.75} className="text-text-tertiary flex-shrink-0" />
-            <span className="text-[11px] font-sans font-medium text-text-tertiary tracking-wide truncate flex-1">
+            <span className="text-xs font-sans font-medium text-text-tertiary tracking-wide truncate flex-1">
               {t('dayDrawer.aiAssistant')}
             </span>
             <button

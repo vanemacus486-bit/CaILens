@@ -55,7 +55,7 @@ const customComponents: Components = {
     </code>
   ),
   pre: ({ children }) => (
-    <pre className="font-mono text-xs bg-surface-base text-text-primary p-3 rounded-lg overflow-x-auto my-2 border border-border-subtle">
+    <pre className="font-mono text-xs bg-surface-base text-text-primary p-3 rounded-sm overflow-x-auto my-2 border border-border-subtle">
       {children}
     </pre>
   ),
@@ -84,7 +84,7 @@ const customComponents: Components = {
     <tr className="border-b border-border-subtle last:border-0">{children}</tr>
   ),
   th: ({ children }) => (
-    <th className="text-left px-2 py-1.5 font-sans font-medium text-text-secondary text-[11px]">
+    <th className="text-left px-2 py-1.5 font-sans font-medium text-text-secondary text-xs">
       {children}
     </th>
   ),

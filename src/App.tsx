@@ -1,14 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo } from 'react'
 import { HashRouter, Navigate, Route, Routes, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { WeekView } from '@/features/week-view/WeekView'
-import { ReviewLayout } from '@/components/nav/ReviewLayout'
 import { TopNavBar } from '@/components/nav/TopNavBar'
 
 // 路由级懒加载：仅周视图（首屏）同步加载，其余按需拆包，显著减小首屏 JS 体积
-const StatsPage = lazy(() => import('@/pages/StatsPage').then((m) => ({ default: m.StatsPage })))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const ProjectDetailPage = lazy(() => import('@/pages/project/ProjectDetailPage').then((m) => ({ default: m.ProjectDetailPage })))
-const ActionPage = lazy(() => import('@/pages/action/ActionPage').then((m) => ({ default: m.ActionPage })))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const QuickCaptureWindow = lazy(() => import('@/features/quick-capture/QuickCaptureWindow').then((m) => ({ default: m.QuickCaptureWindow })))
 const CommandPalette = lazy(() => import('@/features/search/CommandPalette').then((m) => ({ default: m.CommandPalette })))
@@ -20,13 +17,16 @@ import { AppHeader } from '@/components/nav/AppHeader'
 import { UnifiedSidebar } from '@/components/nav/UnifiedSidebar'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { collectDomains, findDomainPlugin } from '@/plugins/registry'
 import { useEventStore } from '@/stores/eventStore'
 import { useProfileStore } from '@/stores/profileStore'
+import { useProjectStore } from '@/stores/projectStore'
 import { useTodoStore } from '@/stores/todoStore'
 import { useTodoListStore } from '@/stores/todoListStore'
 import { useLocationStore } from '@/stores/locationStore'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
-import { SnackbarHost } from '@/components/ui/snackbar'
+import { usePluginRoutes } from '@/plugins/PluginRoutes'
+import { SnackbarHost, showErrorSnackbar, showUndoSnackbar } from '@/components/ui/snackbar'
 import { UpdateBanner } from '@/components/ui/UpdateBanner'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { getWeekStart, formatISODate } from '@/domain/time'
@@ -36,13 +36,49 @@ import { parseISO } from 'date-fns'
 import { subscribeCrossWindowWrites } from '@/lib/crossWindowSync'
 import type { ShortcutAction } from '@/domain/shortcuts'
 import { isNativeMobile } from '@/lib/platform'
+import { Loader2 } from 'lucide-react'
 const MobileLayout = lazy(() => import('@/features/mobile/MobileLayout').then((m) => ({ default: m.MobileLayout })))
 const MobileDayPage = lazy(() => import('@/features/mobile/MobileDayPage').then((m) => ({ default: m.MobileDayPage })))
 const MobileSearchPage = lazy(() => import('@/features/mobile/MobileSearchPage').then((m) => ({ default: m.MobileSearchPage })))
 
-/** 懒加载页面切换时的占位（与背景同色，避免闪烁突兀）。 */
+/**
+ * 懒加载页面切换时的占位。
+ *
+ * 原来是纯色块 —— 切 Tab 时画面先变成一整块背景色再出现内容，视觉上就是「闪白」。
+ * 现在给三条极淡的脉动骨架：底色不变（不刺眼），但用户看得出「在加载」而不是「空了」。
+ * 不做精确布局，因为每个页面布局都不同，做错比不做更跳。
+ */
 function PageFallback() {
-  return <div className="flex-1 bg-surface-base" />
+  return (
+    <div className="flex flex-1 items-center justify-center bg-surface-base" aria-busy="true">
+      <div className="flex w-full max-w-[240px] flex-col gap-2.5 px-6">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-2 animate-pulse rounded-full bg-surface-sunken"
+            style={{ animationDelay: `${i * 120}ms`, width: `${100 - i * 18}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 浮层类懒加载（命令面板 / 设置弹窗 / 快速收集）的占位。
+ *
+ * 这几处原本是 `fallback={null}`：慢机器上按下 Ctrl+K 之后界面毫无反应，
+ * 用户会以为快捷键失效。给一个轻量 spinner，让「正在加载」可见。
+ */
+function OverlayFallback() {
+  return (
+    <div
+      className="pointer-events-none fixed inset-0 z-[150] flex items-center justify-center bg-black/10"
+      aria-busy="true"
+    >
+      <Loader2 size={18} className="animate-spin text-text-tertiary" />
+    </div>
+  )
 }
 
 function Layout() {
@@ -51,6 +87,7 @@ function Layout() {
   const settingsModalOpen = useUIStore((s) => s.settingsModalOpen)
   const theme = useAppSettingsStore((s) => s.settings.theme)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
+  const enabledPlugins = useAppSettingsStore((s) => s.settings.enabledPlugins)
   const navigate = useNavigate()
   const location = useLocation()
   const isMobile = useIsMobile()
@@ -72,6 +109,30 @@ function Layout() {
     fireAndForget(loadLists(), 'load lists')
     fireAndForget(loadLocation(), 'load location')
     fireAndForget(loadDayLocations(), 'load day locations')
+  }, [])
+
+  // store 的 error 字段此前无人消费：保存失败界面完全无感，刷新后才发现没存上。
+  // 这里统一订阅，一处兜住 category / project / todo / event 四类失败。
+  useEffect(() => {
+    const watch = <T,>(
+      store: { subscribe: (fn: (s: T) => void) => () => void; getState: () => T },
+      pick: (s: T) => string | null,
+      label: string,
+    ) => {
+      let last = pick(store.getState())
+      return store.subscribe((s) => {
+        const next = pick(s)
+        if (next && next !== last) showErrorSnackbar(`${label}：${next}`)
+        last = next
+      })
+    }
+    const unsubs = [
+      watch(useCategoryStore, (s) => s.error, '分类加载失败'),
+      watch(useProjectStore, (s) => s.error, '项目加载失败'),
+      watch(useTodoStore, (s) => s.error, '待办操作失败'),
+      watch(useEventStore, (s) => s.loadError, '事件加载失败'),
+    ]
+    return () => { for (const unsub of unsubs) unsub() }
   }, [])
 
   // 跨窗口同步：QuickCapture 等独立 WebView 写入后，主窗口无感刷新。
@@ -124,10 +185,7 @@ function Layout() {
       const ws = getWeekStart(today, 1)
       navigate(`/week?week=${formatISODate(ws)}&highlight=${formatISODate(today)}`)
     },
-    goToStats: () => navigate('/stats'),
     goToCalendar: () => navigate('/week'),
-    goToPlan: () => navigate('/action'),
-    goToReview: () => navigate('/stats'),
     openSettings: () => useUIStore.getState().setSettingsModalOpen(true),
     toggleTheme: () => fireAndForget(
       setTheme(theme === 'dark' ? 'light' : 'dark'),
@@ -136,7 +194,16 @@ function Layout() {
     deleteFocusedEvent: () => {
       const eventId = useUIStore.getState().lastFocusedEventId
       if (!eventId) return
-      fireAndForget(useEventStore.getState().deleteEvent(eventId), 'delete event')
+      const st = useEventStore.getState()
+      // events 只含当前周；冷启动或跨周聚焦时回落到 allEvents
+      const target = st.events.find((e) => e.id === eventId)
+        ?? st.allEvents.find((e) => e.id === eventId)
+      fireAndForget(
+        st.deleteEvent(eventId).then(() => {
+          if (target) showUndoSnackbar(target.id, target.title || '未命名记录')
+        }),
+        'delete event',
+      )
     },
     duplicateFocusedEvent: () => {
       const eventId = useUIStore.getState().lastFocusedEventId
@@ -168,24 +235,47 @@ function Layout() {
 
   useShortcutManager(shortcutHandlers)
 
+  // 域切换快捷键：Alt+N 由插件声明的 shortcutOrder 决定。
+  // 关闭插件后该域不在 collectDomains 里，快捷键自然失效，主体不需要知道是哪个域。
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
+      const n = Number(e.key)
+      if (!Number.isInteger(n) || n < 2) return
+      const hit = collectDomains(enabledPlugins ?? {}).find((d) => d.domain.shortcutOrder === n)
+      if (!hit) return
+      e.preventDefault()
+      navigate(hit.domain.to)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [enabledPlugins, navigate])
+
   const sidebarExpanded = useUIStore((s) => s.sidebarExpanded)
   const isWeek = location.pathname.startsWith('/week')
-  const isActionOrStats = location.pathname.startsWith('/action') || location.pathname.startsWith('/stats')
+  // 当前路径是否由某个域插件认领（决定顶栏/侧栏形态）
+  const inPluginDomain = findDomainPlugin(location.pathname, enabledPlugins ?? {}) !== undefined
 
   return (
     <div className="h-screen flex flex-col bg-surface-base text-text-primary overflow-hidden">
-      <AppHeader />
-      {(isMobile || (!isWeek && !isActionOrStats)) && <TopNavBar />}
+      {/* 顶栏单独兜底：它崩了不该拖垮整页，用户还得能切视图 */}
+      <ErrorBoundary title="顶栏出错了" compact>
+        <AppHeader />
+        {(isMobile || (!isWeek && !inPluginDomain)) && <TopNavBar />}
+      </ErrorBoundary>
       <div className="relative flex-1 flex min-h-0">
         {!isMobile && sidebarExpanded && (
           <div className="absolute inset-y-0 left-0 z-40 pointer-events-none">
             <div className="h-full pointer-events-auto">
-              <UnifiedSidebar />
+              <ErrorBoundary title="侧栏出错了" compact>
+                <UnifiedSidebar />
+              </ErrorBoundary>
             </div>
           </div>
         )}
         <main className={`flex-1 h-full overflow-hidden flex flex-col min-w-0${!isMobile && sidebarExpanded ? ' desktop-panel-offset' : ''}`}>
-        <ErrorBoundary>
+        {/* 只包 Outlet：单页崩了外壳仍可用，能切到别的页 */}
+        <ErrorBoundary title="这个页面出错了">
           <Suspense fallback={<PageFallback />}>
             <Outlet />
           </Suspense>
@@ -193,18 +283,20 @@ function Layout() {
       </main>
       </div>
 
+      {/* 这三处原本 fallback={null}：慢机器上按 Ctrl+K 后界面毫无反应，
+          用户会以为快捷键失效。给一个轻量 spinner，让「正在加载」可见。 */}
       {commandPaletteOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OverlayFallback />}>
           <CommandPalette />
         </Suspense>
       )}
       {settingsModalOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OverlayFallback />}>
           <SettingsModal />
         </Suspense>
       )}
       {quickCaptureInboxOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OverlayFallback />}>
           <QuickCaptureInbox />
         </Suspense>
       )}
@@ -233,24 +325,27 @@ function RedirectToWeek() {
 }
 
 export default function App() {
+  // hook 必须在任何条件返回之前调用（rules-of-hooks）。
+  // 返回的是 Route 元素数组，靠 Fragment 让 react-router 认作合法 children。
+  const pluginRoutes = usePluginRoutes()
+
   // Native Capacitor shell → minimal mobile routes only
   if (isNativeMobile()) {
     return (
       <HashRouter>
-        <Suspense fallback={null}>
+        <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route element={<MobileLayout />}>
               <Route path="/" element={<Navigate to={`/day?date=${formatISODate(new Date())}`} replace />} />
               <Route path="/day" element={<MobileDayPage />} />
               <Route path="/week" element={<MobileDayPage />} />
               <Route path="/month" element={<WeekView />} />
-              <Route path="/action" element={<ActionPage />} />
-              <Route path="/stats" element={<StatsPage />} />
               <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/search" element={<MobileSearchPage />} />
               <Route path="/quick-capture" element={<Navigate to={`/day?date=${formatISODate(new Date())}`} replace />} />
               <Route path="/settings" element={<SettingsPage />} />
+              {pluginRoutes}
             </Route>
           </Routes>
         </Suspense>
@@ -264,14 +359,13 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<RedirectToWeek />} />
           <Route path="/week" element={<WeekView />} />
-          <Route element={<ReviewLayout />}>
-            <Route path="/action" element={<ActionPage />} />
-            <Route path="/stats"  element={<StatsPage />} />
-          </Route>
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/quick-capture" element={<QuickCaptureWindow />} />
+          {/* 已启用插件的路由；无插件时渲染为空。
+              注意是 hook 展开而非 <PluginRoutes /> —— react-router 只认 Route/Fragment */}
+          {pluginRoutes}
         </Route>
       </Routes>
     </HashRouter>

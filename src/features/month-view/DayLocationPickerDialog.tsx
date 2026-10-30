@@ -95,7 +95,7 @@ export function DayLocationPickerDialog({
         {/* Saved cities list */}
         {savedCities.length > 0 && (
           <div className="px-2 pb-1">
-            <div className="font-sans text-[11px] text-text-tertiary font-medium px-2 py-1">
+            <div className="font-sans text-xs text-text-tertiary font-medium px-2 py-1">
               {t('dayLocation.savedCities')}
             </div>
             <div className="flex flex-col gap-0.5">
@@ -116,7 +116,7 @@ export function DayLocationPickerDialog({
                   <span className="truncate">{city.cityName}</span>
                   {locationSettings &&
                     city.cityName === locationSettings.cityName && (
-                      <span className="text-[10px] text-text-tertiary ml-auto shrink-0">
+                      <span className="text-2xs text-text-tertiary ml-auto shrink-0">
                         {t('dayLocation.active')}
                       </span>
                     )}
@@ -130,14 +130,14 @@ export function DayLocationPickerDialog({
         {savedCities.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-1">
             <div className="flex-1 h-px bg-border-subtle" />
-            <span className="font-sans text-[10px] text-text-quaternary">{t('dayLocation.orCustom')}</span>
+            <span className="font-sans text-2xs text-text-quaternary">{t('dayLocation.orCustom')}</span>
             <div className="flex-1 h-px bg-border-subtle" />
           </div>
         )}
 
         {/* Custom input */}
         <div className="px-3 pb-3">
-          <div className="font-sans text-[11px] text-text-tertiary font-medium px-1 py-1">
+          <div className="font-sans text-xs text-text-tertiary font-medium px-1 py-1">
             {t('dayLocation.customName')}
           </div>
           <div className="flex gap-2">

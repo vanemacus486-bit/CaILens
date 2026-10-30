@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { getAdapter } from '@/data/adapterFactory'
 import { initRepositories } from '@/data/getRepositories'
 import { useEventStore } from '@/stores/eventStore'
+import { installBuiltinPlugins } from '@/plugins'
 import type { FileSystemAdapter } from '@/data/adapters/FileSystemAdapter'
 import './index.css'
 import './styles/tokens.css'
@@ -42,6 +43,9 @@ function installGlobalErrorHandlers() {
 
 async function bootstrap() {
   installGlobalErrorHandlers()
+
+  // 插件注册表必须在首次渲染前填充，否则首帧拿不到插件路由 / 导航
+  installBuiltinPlugins()
 
   const adapter = await getAdapter()
   initRepositories(adapter)

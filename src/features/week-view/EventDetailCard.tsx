@@ -88,7 +88,7 @@ function MoonPip({ filled }: { filled: boolean }) {
 function SleepChip({ children }: { children: string }) {
   return (
     <span
-      className="px-1.5 py-px rounded text-[10px]"
+      className="px-1.5 py-px rounded text-2xs"
       style={{ backgroundColor: 'var(--cat-sleep-bg)', color: 'var(--ink-2)', fontFamily: 'var(--font-ui)' }}
     >
       {children}
@@ -178,7 +178,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
                 className="w-3 h-3 rounded-sm flex-shrink-0 mt-[3px]"
                 style={{ backgroundColor: `var(--event-${event.color}-fill)` }}
               />
-              <p className={`flex-1 text-[16px] font-serif leading-snug min-w-0 ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary font-medium'}`}>
+              <p className={`flex-1 text-base font-serif leading-snug min-w-0 ${isEmpty ? 'text-text-tertiary italic' : 'text-text-primary font-medium'}`}>
                 {isEmpty ? '(无标题)' : event.title}
               </p>
               <div className="flex items-center gap-0.5 flex-shrink-0 -mt-0.5 -mr-1">
@@ -200,7 +200,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
             </div>
 
             {/* Date / time */}
-            <p className="text-[12px] text-text-secondary font-sans leading-relaxed pl-[22px]">
+            <p className="text-xs text-text-secondary font-sans leading-relaxed pl-[22px]">
               {fmtDateLine(event.startTime, event.endTime)}
             </p>
 
@@ -218,7 +218,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
                   ].filter(Boolean).join(' · ')
 
               return (
-                <p className="text-[11px] text-text-tertiary font-sans leading-relaxed pl-[22px] animate-fadeIn">
+                <p className="text-xs text-text-tertiary font-sans leading-relaxed pl-[22px] animate-fadeIn">
                   {line}
                 </p>
               )
@@ -251,7 +251,7 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
 
             {/* Description */}
             {event.description && (
-              <p className="text-[13px] text-text-secondary line-clamp-3 font-sans leading-relaxed pl-[22px]">
+              <p className="text-sm text-text-secondary line-clamp-3 font-sans leading-relaxed pl-[22px]">
                 {event.description}
               </p>
             )}

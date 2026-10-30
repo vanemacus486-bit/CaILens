@@ -73,9 +73,13 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   },
 
   loadProjects: async () => {
-    set({ isLoading: true })
-    const projects = await getProjectRepo().getAll()
-    set({ projects, isLoaded: true, isLoading: false })
+    set({ isLoading: true, error: null })
+    try {
+      const projects = await getProjectRepo().getAll()
+      set({ projects, isLoaded: true, isLoading: false })
+    } catch (e) {
+      set({ error: (e as Error).message, isLoaded: true, isLoading: false })
+    }
   },
 
   loadRecentProjects: async (limit = 6) => {

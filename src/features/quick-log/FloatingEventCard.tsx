@@ -552,7 +552,7 @@ export function FloatingEventCard({
                 )}
               >
                 <span className="text-base leading-none">{q === 1 ? '😫' : q === 2 ? '😞' : q === 3 ? '😐' : q === 4 ? '🙂' : '😊'}</span>
-                <span className="text-[10px] leading-tight">
+                <span className="text-2xs leading-tight">
                   {quality === q ? ['', '较差', '不好', '一般', '良好', '很好'][q] : ''}
                 </span>
               </button>
@@ -643,7 +643,7 @@ export function FloatingEventCard({
             <button
               type="button"
               onClick={() => setShowTimeEdit(!showTimeEdit)}
-              className="inline-flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 font-mono text-[11px] text-text-secondary transition-colors duration-150 hover:text-text-primary"
+              className="inline-flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 font-mono text-xs text-text-secondary transition-colors duration-150 hover:text-text-primary"
             >
               <span className="h-2 w-2 flex-shrink-0 rounded-full bg-event-sand-fill" />
               <span className="truncate">{timeRange}</span>
@@ -660,8 +660,8 @@ export function FloatingEventCard({
           </div>
 
           <div className="absolute bottom-3 left-5 z-10">
-            <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-event-sand-text/80">Meal note</div>
-            <div className="mt-1 font-serif text-[17px] font-medium text-text-primary">记下这一顿</div>
+            <div className="text-2xs font-medium uppercase tracking-[0.16em] text-event-sand-text/80">Meal note</div>
+            <div className="mt-1 font-serif text-lg font-medium text-text-primary">记下这一顿</div>
           </div>
 
           <img
@@ -705,7 +705,7 @@ export function FloatingEventCard({
           </div>
         )}
 
-        <label className="mb-2 block text-[11px] font-medium tracking-[0.06em] text-text-secondary" htmlFor="meal-food-input">
+        <label className="mb-2 block text-xs font-medium tracking-[0.06em] text-text-secondary" htmlFor="meal-food-input">
           吃了什么
         </label>
         <div className="flex items-center gap-2.5 rounded-xl border border-border-default bg-surface-raised/75 px-3 shadow-[inset_0_1px_0_var(--surface-lit)] transition-[border-color,box-shadow] duration-150 focus-within:border-event-sand-fill focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--event-sand-fill)_13%,transparent),inset_0_1px_0_var(--surface-lit)]">
@@ -718,7 +718,7 @@ export function FloatingEventCard({
             onChange={(event) => setTitle(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="牛肉面、鸡蛋、青菜"
-            className="h-12 min-w-0 flex-1 bg-transparent font-sans text-[15px] text-text-primary outline-none placeholder:text-text-tertiary/70"
+            className="h-12 min-w-0 flex-1 bg-transparent font-sans text-base text-text-primary outline-none placeholder:text-text-tertiary/70"
           />
         </div>
 
@@ -729,7 +729,7 @@ export function FloatingEventCard({
               event.preventDefault()
               acceptSuggestion(topSuggestion)
             }}
-            className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg bg-surface-raised/55 px-2.5 py-1.5 text-left text-[11px] text-text-secondary transition-[transform,background-color,color] duration-150 hover:bg-surface-raised hover:text-text-primary active:scale-[0.98]"
+            className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg bg-surface-raised/55 px-2.5 py-1.5 text-left text-xs text-text-secondary transition-[transform,background-color,color] duration-150 hover:bg-surface-raised hover:text-text-primary active:scale-[0.98]"
           >
             <span className="truncate">补全为「{topSuggestion.title}」</span>
             <span className="flex-shrink-0 font-mono text-text-quaternary">{topSuggestion.count} 次 · Tab</span>
@@ -739,7 +739,7 @@ export function FloatingEventCard({
         {error && <p className="mt-2 text-xs text-color-text-danger">{error}</p>}
 
         <div className="mt-4 flex items-center gap-2">
-          <span className="min-w-0 flex-1 text-[10px] text-text-tertiary">只写食物名称，按 Enter 也可记下</span>
+          <span className="min-w-0 flex-1 text-2xs text-text-tertiary">只写食物名称，按 Enter 也可记下</span>
           {isEditing && (
             <button
               type="button"
@@ -775,13 +775,13 @@ export function FloatingEventCard({
             <button
               type="button"
               onClick={() => setShowTimeEdit(!showTimeEdit)}
-              className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 font-mono text-[11px] text-text-secondary transition-colors duration-150 hover:text-text-primary"
+              className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 font-mono text-xs text-text-secondary transition-colors duration-150 hover:text-text-primary"
             >
               <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: catColor }} />
               <span className="truncate">{headerTime}</span>
               {durationMin > 0 && <span className="flex-shrink-0 text-text-tertiary">{formatDuration(durationMin)}</span>}
             </button>
-            <span className="max-w-[76px] truncate rounded-full border border-border-subtle bg-surface-base/60 px-2 py-1 text-[10px] font-medium text-text-secondary" title={activeCategoryName}>
+            <span className="max-w-[76px] truncate rounded-full border border-border-subtle bg-surface-base/60 px-2 py-1 text-2xs font-medium text-text-secondary" title={activeCategoryName}>
               {activeCategoryName}
             </span>
             <button
@@ -817,7 +817,7 @@ export function FloatingEventCard({
                   type="button"
                   onClick={() => applyDuration(minutes)}
                   className={cn(
-                    'flex-1 rounded-md border py-1 text-[10px] transition-[transform,background-color,color,border-color] duration-150 active:scale-[0.97]',
+                    'flex-1 rounded-md border py-1 text-2xs transition-[transform,background-color,color,border-color] duration-150 active:scale-[0.97]',
                     durationMin === minutes ? 'border-border-default bg-surface-raised text-text-primary' : 'border-transparent bg-surface-sunken text-text-tertiary',
                   )}
                 >
@@ -836,7 +836,7 @@ export function FloatingEventCard({
             <div className={cn('pointer-events-none absolute inset-0 z-0 flex h-12 items-center overflow-hidden whitespace-nowrap pl-3', showMealShortcut ? 'pr-[98px]' : 'pr-3')} aria-hidden="true">
               <span className="text-text-primary">{title}</span>
               <span className="text-sm italic text-text-quaternary">{completionSuffix}</span>
-              <span className="ml-1 text-[10px] text-text-quaternary">{topSuggestion!.count}</span>
+              <span className="ml-1 text-2xs text-text-quaternary">{topSuggestion!.count}</span>
             </div>
           )}
           <input
@@ -847,7 +847,7 @@ export function FloatingEventCard({
             onKeyDown={handleKeyDown}
             placeholder={placeholderText}
             className={cn(
-              'relative z-10 h-12 w-full bg-transparent pl-3 font-sans text-[15px] outline-none placeholder:text-text-tertiary/75',
+              'relative z-10 h-12 w-full bg-transparent pl-3 font-sans text-base outline-none placeholder:text-text-tertiary/75',
               showMealShortcut ? 'pr-[98px]' : 'pr-3',
               showInlineCompletion ? 'text-transparent' : 'text-text-primary',
             )}
@@ -858,7 +858,7 @@ export function FloatingEventCard({
               type="button"
               onPointerDown={(event) => event.preventDefault()}
               onClick={() => { setMode('meal-food'); setTitle(''); setSuggestions([]); inputRef.current?.focus() }}
-              className="absolute right-1.5 top-1/2 z-20 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-lg border border-event-sand-fill/30 bg-event-sand-bg/80 px-2.5 py-1.5 text-[11px] font-medium text-event-sand-text transition-[transform,background-color,border-color] duration-150 hover:border-event-sand-fill/50 hover:bg-event-sand-bg active:scale-[0.97]"
+              className="absolute right-1.5 top-1/2 z-20 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-lg border border-event-sand-fill/30 bg-event-sand-bg/80 px-2.5 py-1.5 text-xs font-medium text-event-sand-text transition-[transform,background-color,border-color] duration-150 hover:border-event-sand-fill/50 hover:bg-event-sand-bg active:scale-[0.97]"
               aria-label="记录吃了什么"
             >
               <Utensils size={12} aria-hidden="true" />饮食
@@ -866,10 +866,10 @@ export function FloatingEventCard({
           )}
         </div>
 
-        {hygieneHint && <div className="mt-2 inline-flex items-center rounded-lg bg-surface-raised/55 px-2.5 py-1.5 text-[11px] text-text-secondary">将记录为卫生 · {hygieneHint.name}</div>}
+        {hygieneHint && <div className="mt-2 inline-flex items-center rounded-lg bg-surface-raised/55 px-2.5 py-1.5 text-xs text-text-secondary">将记录为卫生 · {hygieneHint.name}</div>}
 
         {showHint && showRecent && (
-          <div className="mt-2 flex items-center gap-3 px-1 text-[10px] text-text-tertiary/75">
+          <div className="mt-2 flex items-center gap-3 px-1 text-2xs text-text-tertiary/75">
             <span>Enter 记录</span><span>Shift + Enter 继续</span><span>Tab 补全</span>
           </div>
         )}

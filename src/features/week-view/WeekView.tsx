@@ -20,6 +20,7 @@ import { WeekEmptyState } from './WeekEmptyState'
 import { MonthView } from '@/features/month-view/MonthView'
 import { DayDrawer } from './DayDrawer'
 import { FloatingEventCard } from '@/features/quick-log/FloatingEventCard'
+import { showUndoSnackbar } from '@/components/ui/snackbar'
 import { MobileDayView } from '@/features/day-view/MobileDayView'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { saveSession, useScrollSave, useScrollRestore } from '@/hooks/useSessionRestore'
@@ -33,6 +34,7 @@ export function WeekView() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const events             = useEventStore((s) => s.events)
+  const allEvents          = useEventStore((s) => s.allEvents)
   const isLoading          = useEventStore((s) => s.isLoading)
   const loadError          = useEventStore((s) => s.loadError)
   const loadWeek           = useEventStore((s) => s.loadWeek)
@@ -262,7 +264,11 @@ export function WeekView() {
 
   const handleDetailDelete = useCallback(() => {
     if (cardState.mode !== 'detail') return
-    fireAndForget(deleteEvent(cardState.event.id), 'delete event (detail)')
+    const ev = cardState.event
+    fireAndForget(
+      deleteEvent(ev.id).then(() => showUndoSnackbar(ev.id, ev.title || '未命名记录')),
+      'delete event (detail)',
+    )
     closeCard()
   }, [cardState, deleteEvent, closeCard])
 
@@ -281,7 +287,13 @@ export function WeekView() {
   }, [])
 
   const handleContextDelete = useCallback((eventId: string) => {
-    fireAndForget(deleteEvent(eventId), 'delete event (context)')
+    const ev = events.find((e) => e.id === eventId)
+    fireAndForget(
+      deleteEvent(eventId).then(() => {
+        if (ev) showUndoSnackbar(ev.id, ev.title || '未命名记录')
+      }),
+      'delete event (context)',
+    )
     const cs = cardStateRef.current
     if (cs.mode !== 'none' && cs.event.id === eventId) {
       setCardState({ mode: 'none' })
@@ -335,8 +347,11 @@ export function WeekView() {
   }, [updateEvent])
 
   const handleFloatingCardDelete = useCallback(async (id: string) => {
+    // 浮卡删除此前是全项目唯一没有撤销入口的删除路径
+    const ev = events.find((e) => e.id === id) ?? allEvents.find((e) => e.id === id)
     await deleteEvent(id)
-  }, [deleteEvent])
+    if (ev) showUndoSnackbar(ev.id, ev.title || '未命名记录')
+  }, [allEvents, deleteEvent, events])
 
   // 记录并继续：保持卡片打开，用上一条的结束时间开下一条
   const handleFloatingCardContinue = useCallback((nextStart: number, nextEnd: number, color: EventColor) => {

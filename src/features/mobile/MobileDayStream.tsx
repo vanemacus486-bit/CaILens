@@ -55,16 +55,16 @@ function EventRow({
         style={{ backgroundColor: event.barColor }}
       />
       {/* Title */}
-      <span className="text-[13px] text-text-primary truncate flex-1 min-w-0">
+      <span className="text-sm text-text-primary truncate flex-1 min-w-0">
         {event.title || <span className="italic text-text-tertiary">无标题</span>}
       </span>
       {/* Time range + duration, or an all-day tag */}
       {event.isAllDay ? (
-        <span className="font-mono text-[11px] tracking-wider text-text-tertiary whitespace-nowrap flex-shrink-0 uppercase">
+        <span className="font-mono text-xs tracking-wider text-text-tertiary whitespace-nowrap flex-shrink-0 uppercase">
           全天
         </span>
       ) : (
-        <span className="font-mono text-[11px] text-text-tertiary whitespace-nowrap flex-shrink-0">
+        <span className="font-mono text-xs text-text-tertiary whitespace-nowrap flex-shrink-0">
           {event.startStr}
           <span className="mx-0.5">→</span>
           {event.endStr}
@@ -295,10 +295,10 @@ export function MobileDayStream({
               <div className="flex">
                 {/* Left rail — sticky within segment */}
                 <div className="sticky top-0 z-10 w-12 flex-shrink-0 self-start flex flex-col items-center pt-3 bg-surface-base">
-                  <span className="text-[11px] text-text-tertiary leading-none">{wd}</span>
+                  <span className="text-xs text-text-tertiary leading-none">{wd}</span>
                   <span
                     className={cn(
-                      'text-[20px] leading-tight mt-0.5',
+                      'text-lg leading-tight mt-0.5',
                       today ? 'text-accent font-bold' : 'text-text-primary font-medium',
                     )}
                   >
@@ -309,7 +309,7 @@ export function MobileDayStream({
                 {/* Content area */}
                 <div className="flex-1 min-w-0 pb-2 pr-3">
                   {rows.length === 0 ? (
-                    <p className="text-[12px] text-text-quaternary italic py-3">无记录</p>
+                    <p className="text-xs text-text-quaternary italic py-3">无记录</p>
                   ) : (
                     rows.map((row) => (
                       <EventRow key={row.id} event={row} onTap={onEditEvent} />
@@ -333,7 +333,7 @@ export function MobileDayStream({
         className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-6 flex justify-center pointer-events-none select-none"
         style={{ writingMode: 'vertical-rl' }}
       >
-        <span className="text-[10px] tracking-[0.25em] text-text-tertiary/80 font-medium uppercase">
+        <span className="text-2xs tracking-[0.25em] text-text-tertiary/80 font-medium uppercase">
           {formatMonthLabel(visibleMonthTs)}
         </span>
       </div>

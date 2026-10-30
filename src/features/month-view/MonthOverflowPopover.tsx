@@ -88,7 +88,7 @@ export function MonthOverflowPopover({
                       >
                         {ev.title}
                       </div>
-                      <div className="font-mono text-[11px] text-text-tertiary">
+                      <div className="font-mono text-xs text-text-tertiary">
                         {fmtTime(ev.startTime)} – {fmtTime(ev.endTime)}
                       </div>
                     </div>

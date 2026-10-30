@@ -212,3 +212,58 @@ export function bucketEventsByLocalDay(
 
   return buckets
 }
+
+const ALL_CATEGORY_IDS: CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
+
+/** 年度热力图的一格：按分类的时长与相对周预算的比值 */
+export interface DayCell {
+  byCategory: Record<CategoryId, number>  // hours per category
+  byRatio: Record<CategoryId, number>     // hours / (weeklyBudget/7)
+}
+
+/**
+ * 逐日汇总分类时长。单遍分桶，O(N) 替代 365 × O(N)。
+ * 热力图与性能基准共用，所以放在 domain 层。
+ */
+export function computeDailyGrid(
+  events: readonly CalendarEvent[],
+  categories: readonly Category[],
+  rangeStart: number,
+  rangeEnd: number,
+): DayCell[] {
+  const budgetMap = new Map<CategoryId, number>()
+  for (const c of categories) {
+    budgetMap.set(c.id, c.weeklyBudget)
+  }
+
+  const dayBuckets = bucketEventsByLocalDay(events, rangeStart, rangeEnd)
+
+  const days: DayCell[] = []
+  for (let d = 0; d < dayBuckets.length; d++) {
+    const dayStart = rangeStart + d * DAY_MS
+    const dayEnd = dayStart + DAY_MS
+    const dayStats = computeDayStats(dayBuckets[d], categories, { start: dayStart, end: dayEnd })
+
+    const byCategory: Record<string, number> = {}
+    const byRatio: Record<string, number> = {}
+    for (const stat of dayStats.byCategory) {
+      const hours = stat.minutes / 60
+      byCategory[stat.categoryId] = hours
+      const budget = budgetMap.get(stat.categoryId) ?? 0
+      byRatio[stat.categoryId] = budget > 0 ? hours / (budget / 7) : 0
+    }
+    for (const id of ALL_CATEGORY_IDS) {
+      if (!(id in byCategory)) {
+        byCategory[id] = 0
+        byRatio[id] = 0
+      }
+    }
+
+    days.push({
+      byCategory: byCategory as Record<CategoryId, number>,
+      byRatio: byRatio as Record<CategoryId, number>,
+    })
+  }
+
+  return days
+}

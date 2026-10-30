@@ -6,23 +6,15 @@
  * 移动端隐藏（由 Layout 控制）。
  */
 
+import { PluginDomainPanel } from '@/plugins/PluginSidebar'
+import { PluginNav } from '@/plugins/PluginNav'
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import {
-  TrendingUp,
-  LayoutGrid,
-  CheckCircle,
   ChevronLeft,
   ChevronRight,
-  Star,
   Trash2,
   X,
-  Plus,
-  Edit3,
-  Palette,
-  Moon,
-  Utensils,
-  Droplets,
 } from 'lucide-react'
 import {
   startOfMonth,
@@ -41,15 +33,11 @@ import type { DayMark } from '@/domain/dayMark'
 import { marksOnDay, upcomingMarks, formatRelativeDay } from '@/domain/dayMark'
 import { startOfLocalDay } from '@/domain/habitPlan'
 import type { EventColor } from '@/domain/event'
-import { EVENT_COLORS, EVENT_COLOR_LABELS } from '@/domain/event'
+import { EVENT_COLORS } from '@/domain/event'
 import { formatISODate, getWeekStart, parseISODate } from '@/domain/time'
 import { activeLocationAt } from '@/domain/location'
-import type { RoutineViewMode } from '@/components/stats/EasternStatsShell'
-import type { CategoryId } from '@/domain/category'
 import { useLocationStore } from '@/stores/locationStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { useTodoListStore } from '@/stores/todoListStore'
-import { DragSortableList } from '@/components/ui/DragSortableList'
 import { useT } from '@/i18n/useT'
 import type { TranslationKey } from '@/i18n/translations'
 import { LANGUAGE_LOCALE } from '@/i18n/types'
@@ -63,9 +51,6 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuSub,
-  ContextMenuSubTrigger,
-  ContextMenuSubContent,
 } from '@/components/ui/context-menu'
 import {
   Dialog,
@@ -73,27 +58,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '@/components/ui/alert-dialog'
 import { DayLocationPickerDialog } from '@/features/month-view/DayLocationPickerDialog'
 
 const WEEKDAYS_EN = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
-const STATS_VIEWS: { id: RoutineViewMode; labelKey: string; description: string; icon: typeof TrendingUp; spark: number[] }[] = [
-  { id: 'trend', labelKey: 'stats.trend', description: '分类趋势对比', icon: TrendingUp, spark: [2, 7, 4, 10, 6, 8] },
-  { id: 'heatmap', labelKey: 'stats.heatmap', description: '时间分布密度', icon: LayoutGrid, spark: [5, 3, 6, 8, 4, 7] },
-  { id: 'sleep', labelKey: 'stats.sleep', description: '平均与节律稳定', icon: Moon, spark: [5, 4, 3, 5, 7, 6] },
-  { id: 'diet', labelKey: 'stats.diet', description: '记录与规律', icon: Utensils, spark: [3, 6, 6, 4, 7, 5] },
-  { id: 'hygiene', labelKey: 'stats.hygiene', description: '频率与稳定性', icon: Droplets, spark: [4, 4, 6, 5, 6, 6] },
-]
 
-const CATEGORY_IDS: readonly CategoryId[] = ['accent', 'sage', 'sand', 'sky', 'rose', 'stone']
 
 // ═══════════════════════════════════════════════════════════════
 // 手绘装饰组件（从 WeekSidebar 移植）
@@ -292,7 +261,7 @@ function CalendarSection({
           <button onClick={handlePrevMonth}
             className="w-6 h-6 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-base transition-colors cursor-pointer border-none bg-transparent">
             <ChevronLeft size={14} strokeWidth={1.75} /></button>
-          <span className="font-serif text-[13px] font-medium text-text-primary select-none">{monthLabel}</span>
+          <span className="font-serif text-sm font-medium text-text-primary select-none">{monthLabel}</span>
           <button onClick={handleNextMonth}
             className="w-6 h-6 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-base transition-colors cursor-pointer border-none bg-transparent">
             <ChevronRight size={14} strokeWidth={1.75} /></button>
@@ -300,7 +269,7 @@ function CalendarSection({
         <div className="grid grid-cols-7 mb-0.5">
           {WEEKDAYS_EN.map((w, i) => (
             <div key={i}
-              className="h-6 flex items-center justify-center font-sans text-[10px] text-text-quaternary select-none">{w}</div>
+              className="h-6 flex items-center justify-center font-sans text-2xs text-text-quaternary select-none">{w}</div>
           ))}
         </div>
         <div className="grid grid-cols-7">
@@ -380,8 +349,6 @@ export function UnifiedSidebar() {
   // ── 确定当前域 ──
   const currentPath = location.pathname
   const isWeek = currentPath.startsWith('/week')
-  const isAction = currentPath.startsWith('/action')
-  const isStats = currentPath.startsWith('/stats')
 
   // ── Week 域共享数据 ──
   const dayMarks = useAppSettingsStore((s) => s.settings.dayMarks) ?? []
@@ -429,41 +396,6 @@ export function UnifiedSidebar() {
   // Week: day location picker
   const handleLocationPickerClose = useCallback(() => setLocationPickerDay(null), [])
 
-  // ── Action 域数据 ──
-  const lists = useTodoListStore((s) => s.lists)
-  const visibleListIds = useTodoListStore((s) => s.visibleListIds)
-  const toggleVisibility = useTodoListStore((s) => s.toggleListVisibility)
-  const renameListStore = useTodoListStore((s) => s.renameList)
-  const changeListCategory = useTodoListStore((s) => s.changeListCategory)
-  const deleteListStore = useTodoListStore((s) => s.deleteList)
-  const createList = useTodoListStore((s) => s.createList)
-  const reorderLists = useTodoListStore((s) => s.reorderLists)
-
-  const todoFilter = (searchParams.get('filter') as 'all' | 'starred' | null) ?? 'all'
-  const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [renameDraft, setRenameDraft] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [createDraft, setCreateDraft] = useState('')
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
-
-  const setTodoFilter = useCallback((v: 'all' | 'starred') => {
-    const next = new URLSearchParams(searchParams)
-    if (v === 'all') next.delete('filter')
-    else next.set('filter', v)
-    setSearchParams(next, { replace: true })
-  }, [searchParams, setSearchParams])
-
-  // ── Stats 域数据 ──
-  const rawView = (searchParams.get('view') as RoutineViewMode | null) ?? 'trend'
-  const routineView = rawView
-
-  const setRoutineView = useCallback((v: RoutineViewMode) => {
-    const next = new URLSearchParams(searchParams)
-    if (v === 'trend') next.delete('view')
-    else next.set('view', v)
-    setSearchParams(next, { replace: true })
-  }, [searchParams, setSearchParams])
-
   const { activeMode, navItems, handleModeChange } = useDomainNav()
 
   // 移动端不渲染
@@ -497,7 +429,7 @@ export function UnifiedSidebar() {
             {/* 提醒列表 */}
             {reminders.length > 0 && (
               <div>
-                <div className="text-[11px] font-sans font-medium text-text-secondary mb-1.5 tracking-wide">
+                <div className="text-xs font-sans font-medium text-text-secondary mb-1.5 tracking-wide">
                   {t('dayMark.reminders')}
                 </div>
                 <div className="flex flex-col gap-0.5 max-h-[180px] overflow-y-auto">
@@ -527,143 +459,13 @@ export function UnifiedSidebar() {
           </>
         )}
 
-        {/* ── 规划域内容 ── */}
-        {isAction && (
-          <>
-            {/* 任务筛选 */}
-            <div className="flex flex-col gap-0.5">
-              {([
-                { id: 'all' as const, labelKey: 'sidebar.allTasks', icon: CheckCircle },
-                { id: 'starred' as const, labelKey: 'sidebar.starred', icon: Star },
-              ]).map((v) => {
-                const Icon = v.icon
-                const selected = v.id === todoFilter
-                return (
-                  <button key={v.id} type="button" onClick={() => setTodoFilter(v.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] cursor-pointer border-none transition-all duration-200 ease-out font-sans leading-none ${
-                      selected
-                        ? 'bg-accent text-white font-medium'
-                        : 'text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/8'
-                    }`}>
-                    <Icon size={16} strokeWidth={1.75} className={selected ? 'text-white' : 'text-text-tertiary'} />
-                    <span>{t(v.labelKey)}</span>
-                  </button>
-                )
-              })}
-            </div>
+        {/* 当前域内容由插件提供；关闭插件后为空 */}
+        <PluginDomainPanel />
 
-            {/* 任务列表 */}
-            <div className="flex flex-col gap-0.5 mt-6">
-              <div className="px-3 py-1 text-[11px] font-sans font-medium text-text-tertiary uppercase tracking-wider">
-                {t('sidebar.lists')}
-              </div>
-              <DragSortableList items={lists} keyExtractor={(list) => list.id} onReorder={reorderLists}>
-                {(list, _index, { isDragging, dropPosition, dragEventHandlers }) => {
-                  const checked = visibleListIds.includes(list.id)
-                  const isDefault = list.id === 'default'
-                  return (
-                    <div key={list.id} className="relative">
-                      {dropPosition === 'before' && (
-                        <div className="absolute top-0 left-2 right-2 h-0.5 bg-accent rounded-full -translate-y-1/2 z-10 pointer-events-none" />)}
-                      <ContextMenu>
-                        <ContextMenuTrigger asChild>
-                          <button type="button" {...dragEventHandlers} onClick={() => toggleVisibility(list.id)}
-                            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] cursor-pointer border-none transition-all duration-200 ease-out font-sans leading-none select-none ${
-                              isDragging ? 'opacity-40' : ''} ${
-                              checked ? 'text-text-primary font-medium' : 'text-text-tertiary'} 
-                              hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/8`}>
-                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                              checked ? 'bg-accent border-accent text-white' : 'border-text-tertiary/40'}`}>
-                              {checked && (
-                                <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-current">
-                                  <path d="M3 6l2 2 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                                </svg>)}
-                            </div>
-                            {list.categoryId && (
-                              <span className="w-2 h-2 rounded-full shrink-0"
-                                style={{ backgroundColor: `var(--event-${list.categoryId}-fill)` }} />)}
-                            {renamingId === list.id ? (
-                              <input value={renameDraft} onChange={(e) => setRenameDraft(e.target.value)}
-                                onBlur={() => { const t = renameDraft.trim(); if (t && t !== list.name) renameListStore(list.id, t); setRenamingId(null) }}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { const t = renameDraft.trim(); if (t && t !== list.name) renameListStore(list.id, t); setRenamingId(null); (e.target as HTMLInputElement).blur() }; if (e.key === 'Escape') setRenamingId(null) }}
-                                className="flex-1 bg-surface-sunken border border-border-subtle rounded px-1 py-0.5 text-[13px] font-sans text-text-primary outline-none focus-visible:ring-1 focus-visible:ring-accent" autoFocus
-                                onClick={(e) => e.stopPropagation()} />
-                            ) : (
-                              <span className="truncate">{list.name}</span>)}
-                          </button>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent className="w-44">
-                          <ContextMenuSub>
-                            <ContextMenuSubTrigger><Palette size={14} /><span>{t('sidebar.changeCategory')}</span></ContextMenuSubTrigger>
-                            <ContextMenuSubContent className="w-auto p-2">
-                              <div className="flex items-center gap-1.5">
-                                {CATEGORY_IDS.map((cid) => {
-                                  const active = list.categoryId === cid
-                                  return (
-                                    <ContextMenuItem key={cid} aria-label={EVENT_COLOR_LABELS[cid]}
-                                      onSelect={() => changeListCategory(list.id, active ? null : cid)}
-                                      className={`w-5 h-5 p-0 justify-center rounded-full border-2 transition-transform focus:scale-110 ${active ? 'border-text-primary scale-110' : 'border-transparent'}`}
-                                      style={{ backgroundColor: `var(--event-${cid}-fill)` }} />)
-                                })}
-                              </div>
-                            </ContextMenuSubContent>
-                          </ContextMenuSub>
-                          {!isDefault && (
-                            <>
-                              <ContextMenuSeparator />
-                              <ContextMenuItem onSelect={() => { setRenamingId(list.id); setRenameDraft(list.name) }}>
-                                <Edit3 size={14} /><span>{t('sidebar.rename')}</span></ContextMenuItem>
-                              <ContextMenuItem onSelect={() => setDeleteConfirmId(list.id)} className="text-danger focus:text-danger">
-                                <Trash2 size={14} /><span>{t('sidebar.deleteList')}</span></ContextMenuItem>
-                            </>
-                          )}
-                        </ContextMenuContent>
-                      </ContextMenu>
-                      {dropPosition === 'after' && (
-                        <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full translate-y-1/2 z-10 pointer-events-none" />)}
-                    </div>
-                  )
-                }}
-              </DragSortableList>
+        {/* 插件贡献的独立入口（非域页面，如补记）。
+            与 PluginDomainPanel 分开挂：域面板占满域内导航，这里放域外的单页入口。 */}
+        <PluginNav className="mt-2" />
 
-              {creating ? (
-                <div className="px-3 py-1">
-                  <input value={createDraft} onChange={(e) => setCreateDraft(e.target.value)}
-                    onBlur={() => { const t = createDraft.trim(); if (t) createList(t); setCreating(false); setCreateDraft('') }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { const t = createDraft.trim(); if (t) createList(t); setCreating(false); setCreateDraft('') }; if (e.key === 'Escape') { setCreating(false); setCreateDraft('') } }}
-                    placeholder={t('sidebar.newList')}
-                    className="w-full bg-surface-sunken border border-border-subtle rounded px-2 py-1 text-[13px] font-sans text-text-primary placeholder:text-text-tertiary outline-none focus-visible:ring-1 focus-visible:ring-accent" autoFocus />
-                </div>
-              ) : (
-                <button type="button" onClick={() => setCreating(true)}
-                  className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-sans text-text-tertiary hover:text-accent hover:bg-black/5 dark:hover:bg-white/8 transition-colors cursor-pointer border-none">
-                  <Plus size={14} /><span>{t('sidebar.newList')}</span></button>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ── 复盘域内容 ── */}
-        {isStats && (
-          <>
-            <div className="review-ledger-nav">
-              {STATS_VIEWS.map((v) => {
-                const Icon = v.icon
-                const selected = v.id === routineView
-                return (
-                  <button key={v.id} type="button" onClick={() => setRoutineView(v.id)}
-                    className={selected ? 'is-active' : ''}>
-                    <Icon size={17} strokeWidth={1.7} />
-                    <span><strong>{t(v.labelKey as TranslationKey)}</strong><small>{v.description}</small></span>
-                    <i className="review-ledger-spark" aria-hidden="true">
-                      {v.spark.map((height, index) => <b key={index} style={{ height: `${height}px` }} />)}
-                    </i>
-                  </button>
-                )
-              })}
-            </div>
-          </>
-        )}
       </div>
 
       {/* ── 底部固定：账户 ── */}
@@ -679,28 +481,6 @@ export function UnifiedSidebar() {
           onClose={handleLocationPickerClose} />
       )}
 
-      {/* 删除确认弹窗 */}
-      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null) }}>
-        <AlertDialogContent>
-          <AlertDialogTitle>{t('sidebar.deleteList')}</AlertDialogTitle>
-          <AlertDialogDescription>{t('sidebar.deleteListDesc')}</AlertDialogDescription>
-          <div className="flex justify-end gap-2 mt-4">
-            <AlertDialogCancel className="px-3 py-1.5 text-sm font-sans rounded-lg border border-border-subtle text-text-secondary hover:bg-surface-sunken transition-colors">
-              {t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={async () => {
-              if (deleteConfirmId) {
-                const { getTodoRepo } = await import('@/data/getRepositories')
-                const todos = await getTodoRepo().getByListId(deleteConfirmId)
-                await Promise.all(todos.map((t) => getTodoRepo().delete(t.id)))
-                deleteListStore(deleteConfirmId)
-                setDeleteConfirmId(null)
-              }
-            }}
-              className="px-3 py-1.5 text-sm font-sans rounded-lg bg-danger text-white hover:bg-danger/80 transition-colors">
-              {t('common.delete')}</AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </aside>
   )
 }

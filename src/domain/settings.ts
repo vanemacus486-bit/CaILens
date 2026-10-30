@@ -8,7 +8,20 @@ import type { LocationSettings, SavedCity, DayLocation, WeatherData } from './lo
 export type AppLanguage = 'zh' | 'en' | 'es' | 'ar' | 'fr' | 'ru'
 export type AppTheme = 'light' | 'dark' | 'auto'
 export type UiFont = 'default' | 'sourcehan' | 'wenkai'
-export type VisualStyle = 'graphite' | 'nocturne' | 'carbon' | 'tide' | 'indigo'
+/**
+ * 视觉风格只保留两套：
+ * - graphite 石墨：默认暖纸底，日常长时间阅读
+ * - tide 浸染：全画布深青，沉浸式
+ * 旧值 nocturne / carbon / indigo 已废弃，读取时由 settingsStore 回退到 graphite。
+ */
+export type VisualStyle = 'graphite' | 'tide'
+
+/** 已废弃的风格值 → 新值映射，供迁移使用 */
+export const DEPRECATED_VISUAL_STYLES: Record<string, VisualStyle> = {
+  nocturne: 'graphite',
+  carbon: 'graphite',
+  indigo: 'tide',
+}
 export type FontScale = 'sm' | 'default' | 'lg' | 'xl'
 export type DefaultView = 'week' | 'month'
 
@@ -74,6 +87,11 @@ export interface AppSettings {
   activeCityIndex?: number
   /** 各城市最近一次成功获取的天气（key = cityWeatherKey）：启动水合 + 断网时兜底显示 */
   weatherCache?: Record<string, WeatherData>
+  /**
+   * 插件启用状态覆盖。缺省时回落到插件的 defaultEnabled。
+   * 只记录用户显式开关过的插件，避免插件增删后残留大量无意义条目。
+   */
+  enabledPlugins?: Record<string, boolean>
   updatedAt?: number
 }
 

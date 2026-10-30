@@ -144,8 +144,8 @@ export function SettingsAbout() {
         </div>
       </div>
 
-      <p className="text-[11px] text-text-tertiary font-sans leading-relaxed">{t('settings.footer')}</p>
-      <p className="text-[11px] text-text-tertiary font-sans leading-relaxed">
+      <p className="text-xs text-text-tertiary font-sans leading-relaxed">{t('settings.footer')}</p>
+      <p className="text-xs text-text-tertiary font-sans leading-relaxed">
         <button
           onClick={() => openExternal('https://github.com/vanemacus486-bit/CaILens/blob/main/PRIVACY.md')}
           className="underline hover:text-text-secondary transition-colors cursor-pointer"

@@ -441,7 +441,7 @@ export function SettingsAI() {
 
             <div className="mt-5 flex items-start gap-2 rounded-lg bg-surface-sunken px-3 py-3">
               <Info size={13} className="mt-0.5 shrink-0 text-text-tertiary" />
-              <p className="text-[11px] leading-relaxed font-sans text-text-tertiary">
+              <p className="text-xs leading-relaxed font-sans text-text-tertiary">
                 {tl('系统提示词只保存在本地设置里。日程、待办等上下文仍会在对话时追加到提示词后。', 'The system prompt is stored locally. Schedule and task context is still appended when you chat.')}
               </p>
             </div>
@@ -530,14 +530,14 @@ export function SettingsAI() {
                       style={{ width: `${Math.max(pct, 2)}%` }}
                     />
                   </div>
-                  <p className={cn('mt-2 text-[11px] font-sans', exceeded ? 'text-danger' : 'text-text-tertiary')}>
+                  <p className={cn('mt-2 text-xs font-sans', exceeded ? 'text-danger' : 'text-text-tertiary')}>
                     {used.toLocaleString()} / {ai.monthlyBudget.toLocaleString()} tokens · {pct}%
                     {exceeded ? ` · ${tl('已超限', 'exceeded')}` : ''}
                   </p>
                 </div>
               )
             })() : (
-              <p className="mt-4 text-[11px] font-sans text-text-tertiary">
+              <p className="mt-4 text-xs font-sans text-text-tertiary">
                 {tl('未设置预算（不限量）。', 'No budget set (unlimited).')}
               </p>
             )}
@@ -597,11 +597,11 @@ export function SettingsAI() {
                             placeholder={tl('例如：DeepSeek 官方', 'e.g. DeepSeek official')}
                             className="min-w-[180px] max-w-[260px] rounded-lg border border-transparent bg-transparent px-0 py-1 text-lg font-sans font-semibold text-text-primary placeholder-text-tertiary focus:border-border-subtle focus:bg-surface-raised focus:px-2 focus:outline-none"
                           />
-                          <span className="rounded-full border border-border-subtle px-2 py-0.5 text-[11px] font-sans text-text-secondary">
+                          <span className="rounded-full border border-border-subtle px-2 py-0.5 text-xs font-sans text-text-secondary">
                             {provider.provider === 'custom' ? tl('自定义', 'Custom') : tl('官方', 'Official')}
                           </span>
                           {isReady && (
-                            <span className="rounded-full border border-success/40 px-2 py-0.5 text-[11px] font-sans text-success">
+                            <span className="rounded-full border border-success/40 px-2 py-0.5 text-xs font-sans text-success">
                               {tl('已设密钥', 'Key set')}
                             </span>
                           )}
@@ -700,7 +700,7 @@ export function SettingsAI() {
 
           <div className="px-5 py-3 border-t border-border-subtle flex items-start gap-2">
             <Settings2 size={13} className="text-text-tertiary mt-0.5 flex-shrink-0" />
-            <p className="text-[11px] text-text-tertiary font-sans leading-relaxed">
+            <p className="text-xs text-text-tertiary font-sans leading-relaxed">
               {tl('API 密钥仅保存在本地数据库中，不会上传至 CaILens 服务器。多个模型名可以用英文逗号分隔展示，但对话会使用第一个有效模型名。', 'API keys are stored only in your local database. Multiple model names can be comma-separated for display; chat uses the first valid model name.')}
             </p>
           </div>

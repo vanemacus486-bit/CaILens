@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { BarChart3, CalendarDays, CheckSquare, Plus, Search, Settings, User } from 'lucide-react'
+import { Plus, Search, Settings, User } from 'lucide-react'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useProfileStore } from '@/stores/profileStore'
@@ -12,6 +12,7 @@ import { SnackbarHost } from '@/components/ui/snackbar'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { formatISODate } from '@/domain/time'
+import { useDomainNav } from '@/components/nav/domainNav'
 import { MobileEventEditor, type MobileEditorDefaults } from './MobileEventEditor'
 import { useAndroidBackButton } from './useAndroidBackButton'
 
@@ -32,13 +33,6 @@ function nextHalfHour(date: Date): number {
   if (minutes >= 30) now.setHours(now.getHours() + 1)
   return now.getTime()
 }
-
-const NAV_ITEMS = [
-  { path: '/day', label: '日历', icon: CalendarDays, match: (p: string) => p === '/day' || p === '/week' || p === '/month' || p === '/' },
-  { path: '/action', label: '规划', icon: CheckSquare, match: (p: string) => p.startsWith('/action') || p.startsWith('/projects') },
-  { path: '/stats', label: '复盘', icon: BarChart3, match: (p: string) => p.startsWith('/stats') },
-  { path: '/profile', label: '档案', icon: User, match: (p: string) => p.startsWith('/profile') },
-]
 
 export function MobileLayout() {
   const navigate = useNavigate()
@@ -79,6 +73,13 @@ export function MobileLayout() {
   }, [editorOpen])
   useAndroidBackButton({ closeTopOverlay })
 
+  // 域项来自 registry（关闭插件后自动消失）；档案是主体固定页
+  const { activeMode, navItems: domainItems } = useDomainNav()
+  const navItems = useMemo(
+    () => [...domainItems, { id: 'profile', label: '档案', icon: User, path: '/profile', to: '/profile', shortcutOrder: 99 }],
+    [domainItems],
+  )
+
   const showGlobalFab = location.pathname !== '/day' && !editorOpen
 
   const openCreate = useCallback(() => {
@@ -92,11 +93,12 @@ export function MobileLayout() {
     <div className="h-screen flex flex-col bg-surface-base text-text-primary overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <header className="mobile-domain-header">
         <nav className="mobile-domain-nav" aria-label="主要功能">
-          {NAV_ITEMS.map((item) => {
-            const active = item.match(location.pathname)
+          {navItems.map((item) => {
+            const active = item.id === 'profile' ? location.pathname.startsWith('/profile') : activeMode === item.id
             const Icon = item.icon
+            const target = item.id === 'calendar' ? `/day?date=${formatISODate(selectedDate)}` : item.to
             return (
-              <button key={item.path} type="button" onClick={() => navigate(item.path === '/day' ? `/day?date=${formatISODate(selectedDate)}` : item.path)} className={active ? 'is-active' : ''}>
+              <button key={item.id} type="button" onClick={() => navigate(target)} className={active ? 'is-active' : ''}>
                 <Icon size={15} /><span>{item.label}</span>
               </button>
             )

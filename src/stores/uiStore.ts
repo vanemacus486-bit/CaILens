@@ -12,6 +12,7 @@ export type SettingsTab =
   | 'about'
   | 'support'
   | 'ai'
+  | 'plugins'
 
 interface UIState {
   sidebarExpanded: boolean

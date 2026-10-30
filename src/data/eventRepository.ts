@@ -117,6 +117,20 @@ export class EventRepository {
     await this.adapter.events.put({ ...existing, deletedAt: this.clock.now(), updatedAt: this.clock.now() })
   }
 
+  /** 撤销软删除：清除 deletedAt 并保留原 id，使既有引用（lastFocusedEventId / openEvent 参数）继续有效。 */
+  async restore(id: string): Promise<CalendarEvent | undefined> {
+    const existing = await this.adapter.events.get(id)
+    if (!existing) return undefined
+    if (!existing.deletedAt) return existing
+    const restored: CalendarEvent = {
+      ...existing,
+      deletedAt: undefined,
+      updatedAt: this.clock.now(),
+    }
+    await this.adapter.events.put(restored)
+    return restored
+  }
+
   async bulkCreate(inputs: CreateEventInput[]): Promise<CalendarEvent[]> {
     if (inputs.length === 0) return []
     const now = this.clock.now()

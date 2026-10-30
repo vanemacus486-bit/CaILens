@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useUIStore } from '@/stores/uiStore'
 import { formatISODate } from '@/domain/time'
 import { cn } from '@/lib/utils'
+import { PluginNav } from '@/plugins/PluginNav'
 
 interface MobileMenuProps {
   open: boolean
@@ -33,7 +34,7 @@ export function MobileMenu({ open, onClose, mobileViewMode, onMobileViewModeChan
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-border-subtle">
-          <span className="font-serif text-[20px] font-semibold text-text-primary tracking-[-0.01em]">
+          <span className="font-serif text-lg font-semibold text-text-primary">
             CaILens
           </span>
           <button
@@ -49,6 +50,12 @@ export function MobileMenu({ open, onClose, mobileViewMode, onMobileViewModeChan
           <MenuItem icon={Search} label={'搜索事件'} onClick={() => { useUIStore.getState().setCommandPaletteOpen(true); onClose() }} />
           <MenuItem icon={Calendar} label={'日视图'} onClick={() => { navigate(`/day?date=${formatISODate(new Date())}`); onClose() }} />
           <MenuItem icon={Settings} label={'设置'} onClick={() => { navigate('/settings'); onClose() }} />
+
+          {/* 插件贡献的独立入口（非域页面，如补记）。
+              走 PluginNav 而不是写死菜单项：关掉插件后入口自动消失。 */}
+          <div className="px-2 py-1">
+            <PluginNav onClickItem={onClose} />
+          </div>
 
           <div className="h-px bg-border-subtle my-2 mx-4" />
 

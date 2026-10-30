@@ -28,12 +28,13 @@ export function ProfilePage() {
     document.title = translate('profile.title', language)
   }, [language])
 
-  // Esc → 回复盘
+  // Esc → 返回上一页（域无关：主体不再知道复盘域的路径）
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
-        navigate('/stats')
+        if (window.history.length > 1) navigate(-1)
+        else navigate('/week')
       }
     }
     document.addEventListener('keydown', onKeyDown)

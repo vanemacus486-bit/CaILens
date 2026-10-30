@@ -125,7 +125,7 @@ export function AddTaskComposer({ open, onOpenChange, onSave, defaultRepeat, foc
         <div className="flex items-center gap-2 pl-7 flex-wrap">
           <button
             onClick={() => setDueDate(tomorrowStart)}
-            className={`text-[11px] font-sans px-2 py-0.5 rounded-full transition-colors
+            className={`text-xs font-sans px-2 py-0.5 rounded-full transition-colors
               ${dueDate === tomorrowStart
                 ? 'bg-accent/10 text-accent'
                 : 'bg-surface-sunken text-text-tertiary hover:bg-accent/10 hover:text-accent'}`}
@@ -136,7 +136,7 @@ export function AddTaskComposer({ open, onOpenChange, onSave, defaultRepeat, foc
             value={dueDate}
             onChange={(d) => setDueDate(d)}
             trigger={
-              <button className={`text-[11px] font-sans px-2 py-0.5 rounded-full transition-colors
+              <button className={`text-xs font-sans px-2 py-0.5 rounded-full transition-colors
                 ${dueDate && dueDate !== tomorrowStart
                   ? 'bg-accent/10 text-accent'
                   : 'bg-surface-sunken text-text-tertiary hover:bg-accent/10 hover:text-accent'}`}
@@ -154,25 +154,25 @@ export function AddTaskComposer({ open, onOpenChange, onSave, defaultRepeat, foc
               onChange={(e) => setRepeat(e.target.checked ? 'daily' : null)}
               className="accent-accent"
             />
-            <span className="text-[11px] font-sans text-text-tertiary">每日重复</span>
+            <span className="text-xs font-sans text-text-tertiary">每日重复</span>
           </label>
         </div>
 
         {/* 操作提示 + 按钮 */}
         <div className="flex items-center justify-between pl-7 pt-1">
-          <span className="text-[10px] font-sans text-text-quaternary">
+          <span className="text-2xs font-sans text-text-quaternary">
             Enter 保存 · Esc 取消
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={handleCancel}
-              className="text-[11px] font-sans px-2.5 py-1 rounded-md text-text-secondary hover:bg-surface-sunken transition-colors"
+              className="text-xs font-sans px-2.5 py-1 rounded-md text-text-secondary hover:bg-surface-sunken transition-colors"
             >
               取消
             </button>
             <button
               onClick={handleSave}
-              className="text-[11px] font-sans px-2.5 py-1 rounded-md bg-accent text-white hover:bg-accent/90 transition-colors"
+              className="text-xs font-sans px-2.5 py-1 rounded-md bg-accent text-white hover:bg-accent/90 transition-colors"
             >
               保存
             </button>

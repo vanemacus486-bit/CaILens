@@ -405,7 +405,7 @@ export function TaskRow({ todo, now, lists, sortMode = 'manual', onReorder, onTo
               )}
               {todo.dueDate && !isCompleting && (
                 <span
-                  className={`ml-2 inline-flex items-center text-[11px] font-sans px-1.5 py-0.5 rounded-full
+                  className={`ml-2 inline-flex items-center text-xs font-sans px-1.5 py-0.5 rounded-full
                     ${isOverdue ? 'bg-danger/10 text-danger' : 'bg-surface-sunken text-text-tertiary'}`}
                 >
                   {chipLabel}
@@ -415,7 +415,7 @@ export function TaskRow({ todo, now, lists, sortMode = 'manual', onReorder, onTo
                 <div className="text-xs font-sans text-text-tertiary mt-0.5 truncate">{todo.description}</div>
               )}
               {todo.repeatPattern && !isCompleting && (
-                <span className="ml-1 text-[10px] text-text-quaternary font-sans">⟳每日</span>
+                <span className="ml-1 text-2xs text-text-quaternary font-sans">⟳每日</span>
               )}
             </div>
 
@@ -484,7 +484,7 @@ export function TaskRow({ todo, now, lists, sortMode = 'manual', onReorder, onTo
             {chipLabel && (
               <button
                 onClick={() => onUpdate(todo.id, { dueDate: null })}
-                className={`text-[11px] font-sans px-2 py-0.5 rounded-full
+                className={`text-xs font-sans px-2 py-0.5 rounded-full
                   ${isOverdue ? 'bg-danger/10 text-danger' : 'bg-surface-sunken text-text-tertiary'}
                   hover:opacity-70 transition-opacity`}
               >
@@ -497,7 +497,7 @@ export function TaskRow({ todo, now, lists, sortMode = 'manual', onReorder, onTo
                 e.stopPropagation()
                 onUpdate(todo.id, { dueDate: tomorrow })
               }}
-              className="text-[11px] font-sans px-2 py-0.5 rounded-full bg-surface-sunken text-text-tertiary hover:bg-accent/10 hover:text-accent transition-colors"
+              className="text-xs font-sans px-2 py-0.5 rounded-full bg-surface-sunken text-text-tertiary hover:bg-accent/10 hover:text-accent transition-colors"
             >
               明天
             </button>
@@ -505,14 +505,14 @@ export function TaskRow({ todo, now, lists, sortMode = 'manual', onReorder, onTo
               value={todo.dueDate}
               onChange={(d) => onUpdate(todo.id, { dueDate: d })}
               trigger={
-                <button className="text-[11px] font-sans px-2 py-0.5 rounded-full bg-surface-sunken text-text-tertiary hover:bg-accent/10 hover:text-accent transition-colors">
+                <button className="text-xs font-sans px-2 py-0.5 rounded-full bg-surface-sunken text-text-tertiary hover:bg-accent/10 hover:text-accent transition-colors">
                   🕐
                 </button>
               }
             />
             <button
               onClick={handleToggleRepeat}
-              className={`text-[11px] font-sans px-2 py-0.5 rounded-full transition-colors
+              className={`text-xs font-sans px-2 py-0.5 rounded-full transition-colors
                 ${todo.repeatPattern
                   ? 'bg-accent/10 text-accent'
                   : 'bg-surface-sunken text-text-tertiary hover:bg-accent/10 hover:text-accent'}`}

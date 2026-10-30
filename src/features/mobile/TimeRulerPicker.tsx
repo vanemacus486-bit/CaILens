@@ -113,7 +113,7 @@ export function TimeRulerPicker({ startTime, endTime, activeEdge, onChange, disa
           >
             <div className={cn('w-px bg-text-tertiary/50', tick.isMajor ? 'h-5' : 'h-2.5')} />
             {tick.label && (
-              <span className="mt-1 text-[9px] font-mono text-text-tertiary whitespace-nowrap">
+              <span className="mt-1 text-2xs font-mono text-text-tertiary whitespace-nowrap">
                 {tick.label}
               </span>
             )}

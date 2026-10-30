@@ -43,7 +43,7 @@ export function TimeGrid({
             {showLabel && (
               <span
                 className={cn(
-                  'absolute left-2 top-0.5 text-[9px] font-mono leading-none select-none',
+                  'absolute left-2 top-0.5 text-2xs font-mono leading-none select-none',
                   isAnchor
                     ? 'font-medium text-text-primary'
                     : 'font-normal text-text-secondary',

@@ -9,6 +9,9 @@ import { getEventRepo } from '@/data/getRepositories'
 import { useUIStore } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { resolveBindings, bindingToDisplayString } from '@/domain/shortcuts'
+import { collectDomains } from '@/plugins/registry'
+import { translate } from '@/i18n/useT'
+import type { TranslationKey } from '@/i18n/translations'
 
 function fmtHM(ts: number): string {
   const d = new Date(ts)
@@ -91,12 +94,13 @@ export function CommandPalette() {
       shortcut: shortcutDisplay.goToThisWeek,
       invoke: () => { navigate('/'); close() },
     },
-    {
-      id: 'stats',
-      label: '前往统计',
-      shortcut: shortcutDisplay.goToStats,
-      invoke: () => { navigate('/stats'); close() },
-    },
+    // 域跳转命令由 registry 生成：关闭插件后对应命令自动消失
+    ...collectDomains(settings.enabledPlugins ?? {}).map(({ domain }) => ({
+      id: `domain-${domain.id}`,
+      label: `前往${domain.labelKey ? translate(domain.labelKey as TranslationKey, settings.language) : domain.label}`,
+      shortcut: `Alt+${domain.shortcutOrder}`,
+      invoke: () => { navigate(domain.to); close() },
+    })),
     {
       id: 'settings',
       label: '打开设置',
@@ -112,7 +116,7 @@ export function CommandPalette() {
         close()
       },
     },
-  ], [navigate, close, setTheme, settings.theme, shortcutDisplay])
+  ], [navigate, close, setTheme, settings.theme, settings.enabledPlugins, settings.language, shortcutDisplay])
 
   // Filter commands based on query
   const matchedCommands = useMemo(() => {

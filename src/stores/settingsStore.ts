@@ -6,7 +6,7 @@ import type { HabitPlan } from '@/domain/habitPlan'
 import type { DayMark } from '@/domain/dayMark'
 import type { EventColor } from '@/domain/event'
 import { makePhase, startOfLocalDay } from '@/domain/habitPlan'
-import { DEFAULT_SETTINGS, resolveTheme } from '@/domain/settings'
+import { DEFAULT_SETTINGS, DEPRECATED_VISUAL_STYLES, resolveTheme } from '@/domain/settings'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
 
 const THEME_KEY  = 'cailens-theme'
@@ -24,7 +24,7 @@ function applyFont(font: UiFont) {
   document.documentElement.setAttribute('data-font', font)
 }
 
-const VALID_VISUAL_STYLES: VisualStyle[] = ['graphite', 'nocturne', 'carbon', 'tide', 'indigo']
+const VALID_VISUAL_STYLES: VisualStyle[] = ['graphite', 'tide']
 
 function isValidVisualStyle(value: string): value is VisualStyle {
   return VALID_VISUAL_STYLES.includes(value as VisualStyle)
@@ -89,6 +89,8 @@ interface AppSettingsState {
   updateDayMark: (mark: DayMark) => Promise<void>
   deleteDayMark: (id: string) => Promise<void>
   setDefaultView: (view: DefaultView) => Promise<void>
+  /** 开关插件；enabled=true 时写入显式覆盖，false 时也写 false（不回落默认值） */
+  setPluginEnabled: (pluginId: string, enabled: boolean) => Promise<void>
   setAiSettings: (ai: AiSettings) => Promise<void>
   /** 累加当月 token 用量（按自然月，跨月自动归零） */
   recordAiUsage: (tokens: number) => Promise<void>
@@ -139,9 +141,9 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     let style = styleResult.value
     const scale = scaleResult.value
 
-    // 回退已废弃的视觉风格（aurora/slate/amber → graphite）
+    // 回退已废弃的视觉风格：nocturne/carbon → graphite，indigo → tide，其余 → graphite
     if (!isValidVisualStyle(style)) {
-      style = 'graphite'
+      style = DEPRECATED_VISUAL_STYLES[style as string] ?? 'graphite'
       settings = await getSettingsRepo().update({ visualStyle: style })
     }
 
@@ -287,6 +289,14 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
 
   setAiSettings: async (ai) => {
     const settings = await getSettingsRepo().update({ ai })
+    set({ settings })
+  },
+
+  setPluginEnabled: async (pluginId, enabled) => {
+    const current = (await getSettingsRepo().get()).enabledPlugins ?? {}
+    const settings = await getSettingsRepo().update({
+      enabledPlugins: { ...current, [pluginId]: enabled },
+    })
     set({ settings })
   },
 

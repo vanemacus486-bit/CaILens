@@ -19,6 +19,12 @@ export function UpdateBanner() {
     let alive = true
     void checkForUpdate().then((next) => {
       if (!alive || next.status === 'latest') return
+      // 检查更新失败属于后台可选行为：主界面彻底不出声，只在控制台留痕。
+      // 想看失败原因 + 手动重试：设置 → 关于（SettingsAbout 里有完整信息）。
+      if (next.status === 'error') {
+        console.error('[UpdateCheck]', next.message)
+        return
+      }
       if (next.status === 'available') {
         try {
           if (localStorage.getItem(DISMISS_KEY) === next.info.version) return
@@ -29,7 +35,8 @@ export function UpdateBanner() {
     return () => { alive = false }
   }, [])
 
-  if (!result) return null
+  // 兜底：error 状态永远不进 state，这里再挡一次，防止将来被别处写进来。
+  if (!result || result.status === 'error') return null
 
   const dismiss = () => {
     if (result.status === 'available') {
@@ -55,13 +62,15 @@ export function UpdateBanner() {
     }
   }
 
-  const error = result.status === 'error' ? result.message : installError
+  // 只有「用户主动点了更新、下载/安装失败」才提示——那是主动操作的反馈，静默会像卡死。
+  // 后台检查失败的提示已移除：设置 → 关于 里能看到原因并手动重试。
+  const error = installError
   const info = result.status === 'available' ? result.info : null
 
   return createPortal(
     <div
       role={error ? 'alert' : 'status'}
-      className="fixed bottom-4 left-4 z-[200] w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border-subtle bg-surface-raised px-4 py-3 shadow-lg font-sans text-sm text-text-primary animate-settings-fade-in"
+      className="fixed bottom-4 left-4 z-[200] w-[min(28rem,calc(100vw-2rem))] rounded-md border border-border-subtle bg-surface-raised px-4 py-3 shadow-lg font-sans text-sm text-text-primary animate-settings-fade-in"
     >
       <div className="flex items-start gap-3">
         {installing ? <Loader2 size={18} className="mt-0.5 shrink-0 text-accent animate-spin" />

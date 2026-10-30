@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { getEventRepo } from '@/data/getRepositories'
+import { useEventStore } from '@/stores/eventStore'
 
-type Listener = (eventId: string) => void
+type UndoPayload = { eventId: string; title: string }
+type Listener = (payload: UndoPayload) => void
 let listener: Listener | null = null
 
 type ErrorListener = (message: string) => void
 let errorListener: ErrorListener | null = null
 
-export function showUndoSnackbar(eventId: string): void {
-  listener?.(eventId)
+/** 显示「已删除 · 撤销」。eventId 必须是软删除的 id（restore 依赖它）。 */
+export function showUndoSnackbar(eventId: string, title = '记录'): void {
+  listener?.({ eventId, title })
 }
 
 export function showErrorSnackbar(message: string): void {
@@ -17,16 +19,16 @@ export function showErrorSnackbar(message: string): void {
 }
 
 export function SnackbarHost() {
-  const [eventId, setEventId] = useState<string | null>(null)
+  const [payload, setPayload] = useState<UndoPayload | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null)
   const errorTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   useEffect(() => {
-    listener = (id: string) => {
+    listener = (p: UndoPayload) => {
       if (timerRef.current) clearTimeout(timerRef.current)
-      setEventId(id)
-      timerRef.current = setTimeout(() => setEventId(null), 3000)
+      setPayload(p)
+      timerRef.current = setTimeout(() => setPayload(null), 6000)
     }
     errorListener = (msg: string) => {
       if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
@@ -41,19 +43,25 @@ export function SnackbarHost() {
     }
   }, [])
 
+  // 撤销 = 清除软删除标记（保留原 id），不是再删一次
   const undo = useCallback(async () => {
-    if (!eventId) return
+    if (!payload) return
     if (timerRef.current) clearTimeout(timerRef.current)
-    await getEventRepo().delete(eventId)
-    setEventId(null)
-  }, [eventId])
+    const { eventId } = payload
+    setPayload(null)
+    try {
+      await useEventStore.getState().restoreEvent(eventId)
+    } catch (err) {
+      showErrorSnackbar(err instanceof Error ? err.message : '撤销失败')
+    }
+  }, [payload])
 
   return createPortal(
     <div className="fixed bottom-4 right-4 z-[200] flex flex-col gap-2">
       {errorMsg && (
         <div
           role="alert"
-          className="flex items-center gap-3 bg-color-text-danger border border-border-subtle rounded-lg shadow-lg px-4 py-2.5 font-sans text-sm text-white"
+          className="flex items-center gap-3 bg-color-text-danger border border-border-subtle rounded-sm shadow-lg px-4 py-2.5 font-sans text-sm text-white"
         >
           <span>{errorMsg}</span>
           <button
@@ -64,12 +72,12 @@ export function SnackbarHost() {
           </button>
         </div>
       )}
-      {eventId && (
+      {payload && (
         <div
           role="alert"
-          className="flex items-center gap-3 bg-surface-raised border border-border-subtle rounded-lg shadow-lg px-4 py-2.5 font-sans text-sm text-text-primary"
+          className="flex items-center gap-3 bg-surface-raised border border-border-subtle rounded-sm shadow-lg px-4 py-2.5 font-sans text-sm text-text-primary"
         >
-          <span>{'已保存'}</span>
+          <span className="truncate max-w-[16rem]">{`已删除「${payload.title}」`}</span>
           <span className="text-text-tertiary">·</span>
           <button
             onClick={undo}

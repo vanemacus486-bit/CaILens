@@ -27,6 +27,7 @@ import { isAllDayEvent } from '@/domain/dayStream'
 import { DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import type { RulerEdge } from '@/domain/timeRuler'
 import { TimeRulerPicker } from './TimeRulerPicker'
+import { showErrorSnackbar, showUndoSnackbar } from '@/components/ui/snackbar'
 
 export interface MobileEditorDefaults {
   startTime: number
@@ -157,6 +158,8 @@ export function MobileEventEditor({ open, defaults, editingEvent, onClose }: Mob
   const [precisionMode, setPrecisionMode] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  /** 空标题不再静默吞掉：点保存必须给反馈，否则用户以为按钮坏了 */
+  const [titleError, setTitleError] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 100)
@@ -175,6 +178,7 @@ export function MobileEventEditor({ open, defaults, editingEvent, onClose }: Mob
 
   const handleTitleChange = useCallback((v: string) => {
     setTitle(v)
+    if (titleError) setTitleError(null)
     if (!isEditing) {
       const classified = classifyEvent(v, categories)
       if (classified) setColor(classified as EventColor)
@@ -211,10 +215,23 @@ export function MobileEventEditor({ open, defaults, editingEvent, onClose }: Mob
   }, [color, description, goalId, hasAwakening, hygieneActivity, location, mealOrder, mealSource, mealTags, projectId, sleepQuality, sleepType, startTime, title, typedMode])
 
   const save = useCallback(async (continueAfter = false) => {
-    if (!title.trim()) return
+    // 防重入：Enter 连按 / 保存中再点按钮都会走到这里
+    if (saving) return
+    if (!title.trim()) {
+      setTitleError('写点什么再保存')
+      inputRef.current?.focus()
+      return
+    }
+    setTitleError(null)
     setSaving(true)
     try {
-      const finalEnd = endTime <= startTime ? startTime + 30 * 60_000 : endTime
+      // 时间倒置不再静默改写：明确告知用户被调整成了什么
+      let finalEnd = endTime
+      if (endTime <= startTime) {
+        finalEnd = startTime + 30 * 60_000
+        setEndTime(finalEnd)
+        showErrorSnackbar(`结束时间早于开始，已调整为 ${tsToTimeStr(startTime)}–${tsToTimeStr(finalEnd)}`)
+      }
       const input = buildInput(finalEnd)
       if (isEditing && editingEvent) {
         await updateEvent({ id: editingEvent.id, ...input })
@@ -228,10 +245,13 @@ export function MobileEventEditor({ open, defaults, editingEvent, onClose }: Mob
         return
       }
       onClose()
+    } catch (err) {
+      // 保存失败必须留在编辑器里，否则用户以为记上了
+      showErrorSnackbar(err instanceof Error ? err.message : '保存失败，请重试')
     } finally {
       setSaving(false)
     }
-  }, [buildInput, createEvent, editingEvent, endTime, isEditing, onClose, startTime, title, updateEvent])
+  }, [buildInput, createEvent, editingEvent, endTime, isEditing, onClose, saving, startTime, title, updateEvent])
 
   const toggleAllDay = useCallback(() => {
     setIsAllDay((prev) => {
@@ -260,19 +280,28 @@ export function MobileEventEditor({ open, defaults, editingEvent, onClose }: Mob
 
   const handleDelete = useCallback(async () => {
     if (!editingEvent) return
+    if (saving) return
+    const ev = editingEvent
     setSaving(true)
     try {
-      await deleteEvent(editingEvent.id)
+      await deleteEvent(ev.id)
+      // 删除后给一次撤销机会（软删除 + restore，保留原 id）
+      showUndoSnackbar(ev.id, ev.title || '未命名记录')
       onClose()
+    } catch (err) {
+      showErrorSnackbar(err instanceof Error ? err.message : '删除失败')
     } finally {
       setSaving(false)
     }
-  }, [deleteEvent, editingEvent, onClose])
+  }, [deleteEvent, editingEvent, onClose, saving])
 
   return (
     <div className={cn('fixed inset-0 z-50 flex flex-col bg-surface-base transition-transform duration-250 ease-out', open ? 'translate-y-0' : 'translate-y-full')} style={{ paddingTop: 'env(safe-area-inset-top, 12px)' }}>
       <div className="flex-1 overflow-y-auto px-5 pt-6 pb-32 flex flex-col gap-5">
         <input ref={inputRef} value={title} onChange={(e) => handleTitleChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void save(false) }} placeholder="做了什么？" className="w-full bg-transparent text-2xl font-medium text-text-primary placeholder:text-text-tertiary outline-none text-center" />
+        {titleError && (
+          <p role="alert" className="-mt-3 text-center text-xs text-color-text-danger">{titleError}</p>
+        )}
 
         <div className="flex flex-wrap items-center justify-center gap-2">
           {EVENT_COLORS.map((c) => (

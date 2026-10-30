@@ -13,46 +13,26 @@ interface StyleDef {
   descZh: string
 }
 
+/**
+ * 只有两套视觉风格。加第三套的代价是每个组件都要多验一遍所有 token，
+ * 收益远小于把这两套做扎实——所以这里的清单刻意保持短。
+ */
 const STYLES: StyleDef[] = [
   {
     key: 'graphite',
     name: 'Graphite',
     nameZh: '石墨',
-    badge: '利落',
+    badge: '默认',
     swatches: ['#F1EBE0', '#FBFAF6', '#c47a5a'],
-    descZh: '纸面白配石墨文字与橙色强调，利落、克制，贴近编辑器工作台。',
-  },
-  {
-    key: 'nocturne',
-    name: 'Nocturne',
-    nameZh: '柔和',
-    badge: '呼吸',
-    swatches: ['#EFEEF6', '#FCFBFE', '#6B6FE8'],
-    descZh: '柔紫夜色与云白表面配大圆角留白，阅读更安静，节奏更舒缓。',
-  },
-  {
-    key: 'carbon',
-    name: 'Carbon',
-    nameZh: '深邃',
-    badge: '高级',
-    swatches: ['#ECEAE4', '#F8F7F4', '#1F9E8E'],
-    descZh: '暖炭黑与米灰表面配青绿强调，质感更厚、对比更足，适合长时间专注。',
+    descZh: '暖纸底配石墨文字与陶土橙强调。日常记录、长时间阅读都在这套上。',
   },
   {
     key: 'tide',
     name: 'Tide',
     nameZh: '浸染',
-    badge: '大胆',
+    badge: '沉浸',
     swatches: ['#10645B', '#156E64', '#F2B279'],
-    descZh: '整面画布浸入深青，文字与卡片浮于其上——全色沉浸，浅色模式也刻意保持深底。',
-  },
-  {
-    key: 'indigo',
-    name: 'Indigo',
-    nameZh: '靛蓝',
-    badge: '典雅',
-    swatches: ['#16294F', '#24407A', '#F0C36B'],
-    descZh: '深邃靛蓝铺满整个画布，文字与卡片浮于其上——克制而醒目的全屏沉浸感。',
+    descZh: '整面画布沉入深青，卡片浮于其上。浅色模式也刻意保持深底。',
   },
 ]
 
@@ -61,7 +41,7 @@ export function VisualStyleGrid() {
   const setVisualStyle = useAppSettingsStore((s) => s.setVisualStyle)
 
   return (
-    <div className="visual-style-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    <div className="visual-style-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
       {STYLES.map((style) => {
         const selected = visualStyle === style.key
         return (
@@ -69,7 +49,7 @@ export function VisualStyleGrid() {
             key={style.key}
             onClick={() => fireAndForget(setVisualStyle(style.key), 'set visual style')}
             className={cn(
-              'visual-style-card relative text-left rounded-xl p-3.5 border transition-all duration-200 cursor-pointer',
+              'visual-style-card relative text-left rounded-md p-4 border transition-colors duration-200 cursor-pointer',
               'bg-surface-raised',
               selected
                 ? 'border-accent ring-2 ring-accent/20'
@@ -78,14 +58,14 @@ export function VisualStyleGrid() {
           >
             {selected && (
               <div
-                className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: style.swatches[2] }}
               >
                 <Check size={11} color="white" strokeWidth={2.5} />
               </div>
             )}
 
-            <div className="flex items-baseline gap-1.5 mb-1.5 pr-7">
+            <div className="flex items-baseline gap-2 mb-2 pr-8">
               <span className="text-sm font-sans font-semibold text-text-primary leading-tight">
                 {style.name}
               </span>
@@ -95,27 +75,27 @@ export function VisualStyleGrid() {
             </div>
 
             <div className="mb-3">
-              <span className="text-[11px] font-sans px-1.5 py-0.5 rounded bg-surface-sunken text-text-tertiary">
+              <span className="text-xs font-sans px-2 py-0.5 rounded-xs bg-surface-sunken text-text-tertiary">
                 {style.badge}
               </span>
             </div>
 
-            <div className="flex gap-1.5 mb-3">
+            <div className="flex gap-2 mb-3">
               <div
-                className="h-8 rounded-md border border-black/5 flex-1"
+                className="h-8 rounded-sm border border-black/5 flex-1"
                 style={{ backgroundColor: style.swatches[0] }}
               />
               <div
-                className="h-8 rounded-md border border-black/5 flex-1"
+                className="h-8 rounded-sm border border-black/5 flex-1"
                 style={{ backgroundColor: style.swatches[1] }}
               />
               <div
-                className="h-8 rounded-md border border-black/5"
+                className="h-8 rounded-sm border border-black/5"
                 style={{ backgroundColor: style.swatches[2], flex: '1.5' }}
               />
             </div>
 
-            <p className="text-[11px] font-sans text-text-tertiary leading-relaxed line-clamp-3">
+            <p className="text-xs font-sans text-text-tertiary leading-relaxed">
               {style.descZh}
             </p>
           </button>

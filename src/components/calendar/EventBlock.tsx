@@ -258,7 +258,7 @@ export const EventBlock = React.memo(function EventBlock({
                 <div className="event-block-copy flex items-center gap-1 min-w-0 h-full">
                   {iconHandler && (
                     <span
-                      className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
+                      className="flex-shrink-0 cursor-pointer text-2xs leading-none opacity-60 hover:opacity-100 transition-opacity"
                       title={`点击编辑${event.typedData?.type === 'meal' ? '饮食' : '睡眠'}详情`}
                       {...iconHandler}
                     >{typedIcon}</span>
@@ -279,7 +279,7 @@ export const EventBlock = React.memo(function EventBlock({
                 <div className="event-block-copy flex items-center gap-1 min-w-0">
                   {iconHandler && (
                     <span
-                      className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
+                      className="flex-shrink-0 cursor-pointer text-2xs leading-none opacity-60 hover:opacity-100 transition-opacity"
                       title={`点击编辑${event.typedData?.type === 'meal' ? '饮食' : '睡眠'}详情`}
                       {...iconHandler}
                     >{typedIcon}</span>
@@ -308,7 +308,7 @@ export const EventBlock = React.memo(function EventBlock({
                 <div className="event-block-copy flex items-center gap-1 min-w-0">
                   {iconHandler && (
                     <span
-                      className="flex-shrink-0 cursor-pointer text-[10px] leading-none opacity-60 hover:opacity-100 transition-opacity"
+                      className="flex-shrink-0 cursor-pointer text-2xs leading-none opacity-60 hover:opacity-100 transition-opacity"
                       title={`点击编辑${event.typedData?.type === 'meal' ? '饮食' : '睡眠'}详情`}
                       {...iconHandler}
                     >{typedIcon}</span>

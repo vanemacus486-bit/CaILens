@@ -75,6 +75,8 @@ interface EventState {
   createEvent: (input: CreateEventInput) => Promise<CalendarEvent>
   updateEvent: (input: UpdateEventInput) => Promise<CalendarEvent>
   deleteEvent: (id: string) => Promise<void>
+  /** 撤销软删除：清除 deletedAt，保留原 id 并同步到已加载列表 */
+  restoreEvent: (id: string) => Promise<void>
   shiftCurrentWeek: (direction: -1 | 1) => Promise<void>
   importEvents: (icsText: string, categoryId: CategoryId) => Promise<ImportResult>
   importParsedEvents: (parsedEvents: ImportedEvent[], resolveCategory: (event: ImportedEvent, index: number) => CategoryId) => Promise<void>
@@ -155,8 +157,10 @@ export const useEventStore = create<EventState>()((set, get) => ({
         _eventCache.set(ALL_KEY, allEvents)
       }
       set({ allEvents })
-    } catch {
-      // silent — standard week will show empty buckets
+    } catch (err) {
+      // 补全失败不再静默：否则周视图/统计/自动补全全部表现为「空」
+      const message = err instanceof Error ? err.message : '加载全部事件失败'
+      set({ loadError: message })
     }
   },
 
@@ -180,8 +184,9 @@ export const useEventStore = create<EventState>()((set, get) => ({
       const allEvents = await getEventRepo().getByTimeRange(0, Date.now() + 365 * 24 * 60 * 60 * 1000)
       _eventCache.set(ALL_KEY, allEvents)
       set({ allEvents })
-    } catch {
-      // silent
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '同步事件失败'
+      set({ loadError: message })
     }
   },
 
@@ -236,6 +241,18 @@ export const useEventStore = create<EventState>()((set, get) => ({
     clearEventCache()
     broadcastWrite('events')
     set((state) => patchAll(state, (l) => l.filter((e) => e.id !== id)))
+  },
+
+  restoreEvent: async (id) => {
+    const restored = await getEventRepo().restore(id)
+    if (!restored) return
+    clearEventCache()
+    broadcastWrite('events')
+    const insert = (l: CalendarEvent[]) =>
+      l.some((e) => e.id === restored.id)
+        ? l.map((e) => (e.id === restored.id ? restored : e))
+        : [...l, restored].sort((a, b) => a.startTime - b.startTime)
+    set((state) => patchAll(state, insert))
   },
 
   shiftCurrentWeek: async (direction) => {

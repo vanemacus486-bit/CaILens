@@ -29,7 +29,7 @@ const AlertDialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2',
-        'w-full max-w-sm rounded-2xl border border-border-subtle bg-surface-raised p-6 shadow-lg',
+        'w-full max-w-sm rounded-lg border border-border-subtle bg-surface-raised p-6 shadow-lg',
         'outline-none',
         className,
       )}

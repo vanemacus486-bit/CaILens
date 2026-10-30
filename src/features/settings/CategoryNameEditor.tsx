@@ -57,7 +57,7 @@ export function CategoryNameEditor({ id, name, onCommit }: CategoryNameEditorPro
       />
       {editing && (
         <span className={cn(
-          'absolute -bottom-4 right-0 text-[10px] font-mono pointer-events-none transition-colors duration-150',
+          'absolute -bottom-4 right-0 text-2xs font-mono pointer-events-none transition-colors duration-150',
           charCount >= CATEGORY_NAME_MAX_LENGTH
             ? 'text-color-text-danger'
             : 'text-text-tertiary',

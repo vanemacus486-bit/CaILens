@@ -1,36 +1,71 @@
 /* ══════════════════════════════════════════════════════════════
-   CalLens Design Tokens — 唯一颜色/字体/圆角来源
+   CaILens Design Tokens — 唯一颜色 / 字号 / 圆角 / 间距来源
+   ────────────────────────────────────────────────────────────
+   视觉风格只有两套：graphite（默认暖纸）/ tide（深青沉浸）
+   字号 7 档（tight 仅限时间轴等极密集场景），圆角 4 档 + full。
+   组件里不得再出现 text-[11px] / rounded-2xl 这类自由取值。
    ══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* 纸 */
+  /* ── 字号阶梯 ── */
+  --text-2xs: 10px;   /* 角标、热力图格子、极小辅助文字 */
+  --text-tight: 11px; /* 例外档：时间轴刻度、事件块内时间，仅此一处 */
+  --text-xs: 12px;    /* 次要元信息、标签 */
+  --text-sm: 14px;    /* 正文 */
+  --text-base: 16px;  /* 强调正文 */
+  --text-lg: 20px;    /* 区块标题 */
+  --text-xl: 24px;    /* 页面标题 */
+  --text-2xl: 32px;   /* 大数字、统计主值 */
+
+  /* ── 圆角阶梯 ── */
+  --radius-xs: 4px;   /* 角标、色块、时间轴小格子 */
+  --radius-sm: 8px;   /* 输入框、小按钮、菜单项 */
+  --radius-md: 12px;  /* 卡片、面板、事件块 */
+  --radius-lg: 16px;  /* 页面级容器、模态框 */
+  --radius-xl: 20px;  /* 仅大容器，慎用 */
+  --radius-full: 9999px;
+  /* 兼容旧变量名 */
+  --radius-s: var(--radius-sm);
+  --radius-m: var(--radius-md);
+
+  /* ── 间距阶梯 ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ── 布局尺寸 ── */
+  --header-h: 52px;   /* 顶栏高度，唯一来源 */
+  --icon-btn: 32px;   /* 图标按钮边长 */
+
+  /* ── 纸 ── */
   --paper: #F2EEE3;
   --surface: #FAF7EF;
   --surface-raised: #FFFDF7;
-  /* 墨 */
+  /* ── 墨 ── */
   --ink: #2B2620;
   --ink-2: #6A6354;
   --ink-3: #A39B87;
-  /* 线 */
+  /* ── 线 ── */
   --line: #E2DBC9;
   --line-strong: #C8BFA8;
-  /* 强调 */
+  /* ── 强调 ── */
   --accent: #BC4A26;
   --accent-soft: #F2DDD2;
-  /* 分类色:strong 用于色条/描边,bg 用于底色 */
+  /* ── 分类色 ── */
   --cat-major: #BC4A26;   --cat-major-bg: #F4DCD1;
   --cat-minor: #66793F;   --cat-minor-bg: #E3E8D3;
   --cat-chore: #A87B23;   --cat-chore-bg: #F0E3C4;
   --cat-growth: #4F6B80;  --cat-growth-bg: #DCE5EA;
   --cat-leisure: #9A5468; --cat-leisure-bg: #ECDAE0;
   --cat-sleep: #7E776A;   --cat-sleep-bg: #E7E2D7;
-  /* 字体 */
+  /* ── 字体 ── */
   --font-display: "Noto Serif SC", "Source Han Serif SC", serif;
   --font-ui: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
-  /* 几何 */
-  --radius-s: 6px;
-  --radius-m: 10px;
 
   /* ══ 饮食标签色 ══ */
   --tag-diet-protein: #E8734A;
@@ -59,38 +94,26 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   深色模式 — 与 src/index.css 的 .dark（中性灰）保持一致
-   ────────────────────────────────────────────────────────────
-   tokens.css 在 index.css 之后加载，因此这里的 .dark 必须显式
-   覆盖所有颜色变量；否则 :root 的浅色值会在深色模式下「漏出」
-   （白色卡片、浅色事件块、深墨文字看不见）。
-   分类色 cat-* 与 index.css 的 event-* 是同一套 6 类的两种命名，
-   深色取值逐一对齐，保证两套消费者渲染一致。
+   深色模式 — 与 src/index.css 的 .dark（中性暖炭）保持一致
    ══════════════════════════════════════════════════════════════ */
 .dark {
-  /* 纸 — 对齐 index.css --surface-base / raised（暖炭） */
   --paper: #2A2722;
   --surface: #322E28;
   --surface-raised: #000000;
-  /* 墨 — 对齐 --text-primary / secondary / tertiary（柔米白） */
   --ink: #ECE7DD;
   --ink-2: #B5ADA0;
   --ink-3: #8C8478;
-  /* 线 — 对齐 --border-subtle / default */
   --line: #46413A;
   --line-strong: #565045;
-  /* 强调 — 对齐 --accent（深色提亮款） */
   --accent: #DE9270;
   --accent-soft: #3A2C22;
-  /* 分类色:strong 提亮识别 / bg 深色微染（逐一对齐 index.css event-*） */
-  --cat-major: #E0966F;   --cat-major-bg: var(--surface);   /* ≙ event-accent */
-  --cat-minor: #9DBE93;   --cat-minor-bg: var(--surface);   /* ≙ event-sage */
-  --cat-chore: #CDB87C;   --cat-chore-bg: var(--surface);   /* ≙ event-sand */
-  --cat-growth: #94AEBC;  --cat-growth-bg: var(--surface);  /* ≙ event-sky */
-  --cat-leisure: #D09AA0; --cat-leisure-bg: var(--surface); /* ≙ event-rose */
-  --cat-sleep: #ADA89F;   --cat-sleep-bg: var(--surface);   /* ≙ event-stone */
+  --cat-major: #E0966F;   --cat-major-bg: var(--surface);
+  --cat-minor: #9DBE93;   --cat-minor-bg: var(--surface);
+  --cat-chore: #CDB87C;   --cat-chore-bg: var(--surface);
+  --cat-growth: #94AEBC;  --cat-growth-bg: var(--surface);
+  --cat-leisure: #D09AA0; --cat-leisure-bg: var(--surface);
+  --cat-sleep: #ADA89F;   --cat-sleep-bg: var(--surface);
 
-  /* ══ 饮食标签色（深色微提亮，保持识别度） ══ */
   --tag-diet-protein: #ef8259;
   --tag-diet-staple: #dcad58;
   --tag-diet-vegetable: #6cab6c;
@@ -100,7 +123,6 @@
   --tag-diet-alcohol: #ad7cad;
   --tag-diet-fried: #b29371;
 
-  /* ══ 卫生活动色（深色） ══ */
   --tag-hygiene-shower: #6cabca;
   --tag-hygiene-brush-teeth: #8cd090;
   --tag-hygiene-skincare: #dcaccc;
@@ -108,7 +130,6 @@
   --tag-hygiene-hair-wash: #a896ca;
   --tag-hygiene-nail-care: #ccac88;
 
-  /* ══ 时段色（深色） ══ */
   --tag-period-morning: #8cd090;
   --tag-period-noon: #dcad58;
   --tag-period-afternoon: #ef8259;
@@ -117,15 +138,14 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   视觉风格 — [data-style] 覆盖块
-   必须放在 tokens.css 末尾，以赢过上方 :root / .dark 同级层叠。
-   每块同时覆盖 index.css 体系（--surface-* / --accent*）
-   与 tokens.css 体系（--paper / --ink* / --line*），保证两套
-   消费者（Tailwind 类 + body/shell CSS）同步换肤。
+   视觉风格 — 只保留两套
+   ────────────────────────────────────────────────────────────
+   每块同时覆盖 index.css 体系（--surface-* / --accent*）与
+   tokens.css 体系（--paper / --ink* / --line*），保证两套消费者同步。
    事件分类色 --event-* / --cat-* 语义色不动。
    ══════════════════════════════════════════════════════════════ */
 
-/* ── Graphite 石墨（= 项目默认暖色，老用户零感知切换） ── */
+/* ── Graphite 石墨（默认暖纸） ── */
 [data-style="graphite"] {
   --surface-base: #F1EBE0; --surface-raised: #FBFAF6; --surface-sunken: #F4F1E9;
   --border-subtle: #e2ddd5; --border-default: #ccc7be;
@@ -145,49 +165,7 @@
   --line: #46413A; --line-strong: #565045; --accent-soft: #3A2C22;
 }
 
-/* ── Carbon 深邃（暖炭 + 青绿） ── */
-[data-style="carbon"] {
-  --surface-base: #ECEAE4; --surface-raised: #F8F7F4; --surface-sunken: #EEECE7;
-  --border-subtle: #E0DDD6; --border-default: #C8C5BE;
-  --grid-line: rgba(0,0,0,0.12); --grid-line-date-sep: rgba(0,0,0,0.18);
-  --accent: #1F9E8E; --accent-hover: #198075; --accent-light: #E4F4F2; --time-line: #1F9E8E;
-  --paper: #ECEAE4; --surface: #F8F7F4;
-  --ink: #24201A; --ink-2: #5E5A52; --ink-3: #9C9890;
-  --line: #E0DDD6; --line-strong: #C8C5BE; --accent-soft: #E4F4F2;
-}
-.dark[data-style="carbon"] {
-  --surface-base: #1F2426; --surface-raised: #000000; --surface-sunken: #191E20;
-  --border-subtle: #3A4543; --border-default: #4A5452;
-  --grid-line: rgba(225,242,238,0.08); --grid-line-date-sep: rgba(225,242,238,0.13);
-  --accent: #4DC9B6; --accent-hover: #60D6C4; --accent-light: #16302C; --time-line: #4DC9B6;
-  --text-primary: #E4EAE8; --text-secondary: #A6B0AD; --text-tertiary: #7C8682; --text-quaternary: #555E5B;
-  --paper: #1F2426; --surface: #272F2D;
-  --ink: #E4EAE8; --ink-2: #A6B0AD; --ink-3: #7C8682;
-  --line: #3A4543; --line-strong: #4A5452; --accent-soft: #16302C;
-}
-
-/* ── Nocturne 柔和（柔紫夜 + 靛蓝） ── */
-[data-style="nocturne"] {
-  --surface-base: #EFEEF6; --surface-raised: #FCFBFE; --surface-sunken: #F2F1F8;
-  --border-subtle: #E4E2EE; --border-default: #CECCE0;
-  --grid-line: rgba(0,0,0,0.10); --grid-line-date-sep: rgba(0,0,0,0.16);
-  --accent: #6B6FE8; --accent-hover: #595ED6; --accent-light: #EDEDFA; --time-line: #6B6FE8;
-  --paper: #EFEEF6; --surface: #FCFBFE;
-  --ink: #26244A; --ink-2: #625E80; --ink-3: #9E9AB6;
-  --line: #E4E2EE; --line-strong: #CECCE0; --accent-soft: #EDEDFA;
-}
-.dark[data-style="nocturne"] {
-  --surface-base: #222230; --surface-raised: #000000; --surface-sunken: #1B1B24;
-  --border-subtle: #3E3F52; --border-default: #4E5064;
-  --grid-line: rgba(230,230,250,0.08); --grid-line-date-sep: rgba(230,230,250,0.13);
-  --accent: #989BF5; --accent-hover: #A8ABF8; --accent-light: #222438; --time-line: #989BF5;
-  --text-primary: #E7E8F0; --text-secondary: #ABADBC; --text-tertiary: #7F8190; --text-quaternary: #585A68;
-  --paper: #222230; --surface: #2A2A38;
-  --ink: #E7E8F0; --ink-2: #ABADBC; --ink-3: #7F8190;
-  --line: #3E3F52; --line-strong: #4E5064; --accent-soft: #222438;
-}
-
-/* ── Tide 浸染（全画布深青 + 暖沙橙强调，Timepage 式沉浸；浅色模式刻意也是深底） ── */
+/* ── Tide 浸染（全画布深青 + 暖沙橙；浅色模式也刻意是深底） ── */
 [data-style="tide"] {
   --surface-base: #10645B; --surface-raised: #156E64; --surface-sunken: #0C554D;
   --border-subtle: #20776C; --border-default: #2C867A;
@@ -197,7 +175,7 @@
   --paper: #10645B; --surface: #146A60;
   --ink: #EAF4F1; --ink-2: #A9CEC7; --ink-3: #7FA9A2;
   --line: #20776C; --line-strong: #2C867A; --accent-soft: #1D6D62;
-  /* 深底浅色模式：复盘/热力 token 须跟随主题文字色，否则纸面用的深棕墨在深底上不可读 */
+  /* 深底浅色模式：复盘/热力 token 须跟随主题文字色 */
   --stats-shell-bg: var(--surface-base); --stats-shell-pill-bg: var(--surface-raised); --stats-shell-pill-text: var(--text-tertiary);
   --stats-shell-ink-1: var(--text-primary); --stats-shell-ink-2: var(--text-secondary); --stats-shell-ink-3: var(--text-tertiary);
   --stats-shell-rule: rgba(255,255,255,0.10);
@@ -217,36 +195,4 @@
   --line: #175249; --line-strong: #216056; --accent-soft: #12483F;
   --stats-shell-rule: rgba(226,244,239,0.08); --heatmap-rule: rgba(226,244,239,0.08);
   --heatmap-bg-cell-empty: #0E4A42; --bg-cell-empty: #0E4A42;
-}
-
-/* ── Indigo 靛蓝（全画布深靛墨蓝 + 暖金强调，Timepage 式沉浸；浅色模式刻意也是深底） ── */
-[data-style="indigo"] {
-  --surface-base: #16294F; --surface-raised: #24407A; --surface-sunken: #101F3E;
-  --border-subtle: #2E4E8C; --border-default: #3B5CA0;
-  --grid-line: rgba(255,255,255,0.10); --grid-line-date-sep: rgba(255,255,255,0.16);
-  --accent: #F0C36B; --accent-hover: #F4CE85; --accent-light: #27437E; --time-line: #F0C36B;
-  --text-primary: #F2F6FD; --text-secondary: #C2D2EC; --text-tertiary: #90A8CE; --text-quaternary: #647FA8;
-  --paper: #16294F; --surface: #1B3160;
-  --ink: #F2F6FD; --ink-2: #C2D2EC; --ink-3: #90A8CE;
-  --line: #2E4E8C; --line-strong: #3B5CA0; --accent-soft: #27437E;
-  /* 深底浅色模式：复盘/热力 token 须跟随主题文字色，否则纸面用的深棕墨在深底上不可读 */
-  --stats-shell-bg: var(--surface-base); --stats-shell-pill-bg: var(--surface-raised); --stats-shell-pill-text: var(--text-tertiary);
-  --stats-shell-ink-1: var(--text-primary); --stats-shell-ink-2: var(--text-secondary); --stats-shell-ink-3: var(--text-tertiary);
-  --stats-shell-rule: rgba(255,255,255,0.10);
-  --heatmap-bg: var(--surface-base); --heatmap-bg-card: var(--surface-raised);
-  --heatmap-ink-1: var(--text-primary); --heatmap-ink-2: var(--text-secondary); --heatmap-ink-3: var(--text-tertiary);
-  --heatmap-rule: rgba(255,255,255,0.10);
-  --heatmap-bg-cell-empty: #21375F; --bg-cell-empty: #21375F;
-}
-.dark[data-style="indigo"] {
-  --surface-base: #131F3C; --surface-raised: #000000; --surface-sunken: #0C162E;
-  --border-subtle: #263A66; --border-default: #30487C;
-  --grid-line: rgba(234,242,255,0.08); --grid-line-date-sep: rgba(234,242,255,0.13);
-  --accent: #EEBE63; --accent-hover: #F2C97C; --accent-light: #1B2C52; --time-line: #EEBE63;
-  --text-primary: #E9F0FB; --text-secondary: #A9BEDD; --text-tertiary: #7E96BC; --text-quaternary: #58729A;
-  --paper: #131F3C; --surface: #182848;
-  --ink: #E9F0FB; --ink-2: #A9BEDD; --ink-3: #7E96BC;
-  --line: #263A66; --line-strong: #30487C; --accent-soft: #1B2C52;
-  --stats-shell-rule: rgba(234,242,255,0.08); --heatmap-rule: rgba(234,242,255,0.08);
-  --heatmap-bg-cell-empty: #1A2A4E; --bg-cell-empty: #1A2A4E;
 }

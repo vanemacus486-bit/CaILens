@@ -1,7 +1,7 @@
 import { bench, describe, beforeAll } from 'vitest'
 import { generateSyntheticEvents } from '@/test-utils/generateSyntheticEvents'
 import { computeBucket } from '@/hooks/useStatsAggregation'
-import { computeDailyGrid } from '@/components/stats/YearHeatmap'
+import { computeDailyGrid } from '@/domain/stats'
 import { DEFAULT_CATEGORIES } from '@/domain/category'
 import { CailensDB } from '@/data/db'
 import { IndexedDBAdapter } from '@/data/adapters/IndexedDBAdapter'

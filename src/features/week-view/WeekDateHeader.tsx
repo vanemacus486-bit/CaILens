@@ -12,8 +12,8 @@ export function WeekDateHeader({ days, highlightedDayMs, onDayClick }: WeekDateH
   return (
     <div className="grid flex-shrink-0 min-w-[540px]" style={{ gridTemplateColumns: 'var(--time-column-width) repeat(7, 1fr)' }}>
       {/* Spacer — aligns with TimeGrid's label column */}
-      <div className="flex items-end justify-center pb-2 bg-surface-base border-l border-grid-line">
-        <span className="text-[9px] font-mono text-text-tertiary leading-none whitespace-nowrap select-none">
+      <div className="flex items-end justify-center pb-2 border-l border-grid-line">
+        <span className="text-2xs font-mono text-text-tertiary leading-none whitespace-nowrap select-none">
           &nbsp;
         </span>
       </div>
@@ -24,7 +24,7 @@ export function WeekDateHeader({ days, highlightedDayMs, onDayClick }: WeekDateH
           <div
             key={day.getTime()}
             className={cn(
-              'week-date-cell flex flex-col items-center justify-center select-none cursor-default bg-surface-base hover:bg-surface-base/70 transition-colors duration-150 border-b border-grid-line-date-sep relative',
+              'week-date-cell flex flex-col items-center justify-center select-none cursor-default bg-transparent hover:bg-surface-sunken/25 transition-colors duration-150 border-b border-grid-line-date-sep relative',
               day.getTime() > new Date().setHours(23, 59, 59, 999) && 'week-date-future',
               highlightedDayMs != null && day.getTime() === highlightedDayMs && 'bg-accent/15 ring-1 ring-accent/40',
             )}

@@ -433,3 +433,32 @@ describe('delete', () => {
     await expect(repo.delete('nonexistent-id')).resolves.toBeUndefined()
   })
 })
+
+// ── restore (撤销软删除) ───────────────────────────────────
+
+describe('restore', () => {
+  it('clears deletedAt and keeps the original id', async () => {
+    await repo.create(makeInput())
+    await repo.delete(FIXED_UUID)
+
+    const restored = await repo.restore(FIXED_UUID)
+
+    expect(restored?.id).toBe(FIXED_UUID)
+    expect(restored?.deletedAt).toBeUndefined()
+    // 原 id 可再次被查询到，引用（lastFocusedEventId / openEvent）继续有效
+    const found = await repo.getById(FIXED_UUID)
+    expect(found?.id).toBe(FIXED_UUID)
+  })
+
+  it('returns undefined for a nonexistent id', async () => {
+    await expect(repo.restore('nonexistent-id')).resolves.toBeUndefined()
+  })
+
+  it('is a no-op on a live event (does not bump deletedAt back in)', async () => {
+    await repo.create(makeInput())
+    const restored = await repo.restore(FIXED_UUID)
+
+    expect(restored?.deletedAt).toBeUndefined()
+    expect(await repo.getById(FIXED_UUID)).toBeDefined()
+  })
+})

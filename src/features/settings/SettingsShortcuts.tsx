@@ -148,7 +148,7 @@ export function SettingsShortcuts() {
           <p className="text-xs font-sans font-medium text-accent animate-pulse">
             按下组合键以绑定…
           </p>
-          <p className="text-[10px] font-sans text-text-tertiary mt-0.5">
+          <p className="text-2xs font-sans text-text-tertiary mt-0.5">
             按 ESC 取消
           </p>
         </div>

@@ -83,12 +83,12 @@ export function EventCard({ event, category, compact, hovered, onNotes }: { even
     >
       <div className="flex items-baseline gap-2 pl-2">
         {/* Time range */}
-        <span className="font-mono text-[13px] font-medium text-text-secondary tabular-nums">
+        <span className="font-mono text-sm font-medium text-text-secondary tabular-nums">
           {fmtTime(displayStart)} – {fmtTime(displayEnd)}
         </span>
 
         {/* Duration */}
-        <span className="font-mono text-[12px] text-text-tertiary ml-auto tabular-nums">
+        <span className="font-mono text-xs text-text-tertiary ml-auto tabular-nums">
           · {fmtShortDuration(durationMs)}
         </span>
       </div>
@@ -100,11 +100,11 @@ export function EventCard({ event, category, compact, hovered, onNotes }: { even
         {/* Title + category label */}
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="font-serif text-[15px] font-semibold text-text-primary leading-snug truncate">
+            <span className="font-serif text-base font-semibold text-text-primary leading-snug truncate">
               {event.title || <span className="italic font-normal opacity-50 text-text-tertiary">无标题</span>}
             </span>
             {category && (
-              <span className="text-[10px] text-text-tertiary font-sans flex-shrink-0">
+              <span className="text-2xs text-text-tertiary font-sans flex-shrink-0">
                 {category.name}
               </span>
             )}
@@ -112,11 +112,11 @@ export function EventCard({ event, category, compact, hovered, onNotes }: { even
 
           {/* Notes */}
           {hasNotes ? (
-            <div className="font-serif text-[13px] text-text-secondary leading-[1.65] mt-2 whitespace-pre-wrap line-clamp-3 italic">
+            <div className="font-serif text-sm text-text-secondary leading-[1.65] mt-2 whitespace-pre-wrap line-clamp-3 italic">
               {event.description}
             </div>
           ) : (
-            <div className="font-serif text-[11px] text-text-tertiary/0 group-hover:text-text-tertiary/50 italic mt-1.5 transition-colors duration-200">
+            <div className="font-serif text-xs text-text-tertiary/0 group-hover:text-text-tertiary/50 italic mt-1.5 transition-colors duration-200">
               添加备注…
             </div>
           )}

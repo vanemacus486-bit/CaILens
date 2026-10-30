@@ -5,12 +5,23 @@ import { formatISODate, getWeekStart } from '@/domain/time'
 import { useEventStore } from '@/stores/eventStore'
 import { useTodoStore } from '@/stores/todoStore'
 import { useProjectStore } from '@/stores/projectStore'
+import { useAppSettingsStore } from '@/stores/settingsStore'
+import { collectDomains } from '@/plugins/registry'
 
 export function MobileSearchPage() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const events = useEventStore((s) => s.allEvents)
   const todos = useTodoStore((s) => s.todos)
+  const enabledPlugins = useAppSettingsStore((s) => s.settings.enabledPlugins)
+  // 任务列表属于某个插件认领的主域。这里不写死域 id：取第一个非日历域即可——
+  // 日历域由主体独占（Alt+1），其余域都是插件认领的，注册顺序由 shortcutOrder 决定。
+  // 该域被关掉时回退首页。
+  const planPath = useMemo(() => {
+    const domains = collectDomains(enabledPlugins ?? {})
+    const owner = domains.find((d) => d.domain.shortcutOrder !== 1) ?? domains[0]
+    return owner?.domain.to ?? '/'
+  }, [enabledPlugins])
   const projects = useProjectStore((s) => s.projects)
   const loadAllEvents = useEventStore((s) => s.loadAllEvents)
 
@@ -67,7 +78,7 @@ export function MobileSearchPage() {
                 return (
                   <button key={e.id} onClick={() => navigate(`/day?date=${formatISODate(day)}&openEvent=${e.id}&week=${week}`)} className="block w-full px-4 py-3 text-left border-b border-border-subtle last:border-b-0">
                     <div className="text-sm text-text-primary truncate">{e.title}</div>
-                    <div className="mt-0.5 font-mono text-[11px] text-text-tertiary">{day.toLocaleString()}</div>
+                    <div className="mt-0.5 font-mono text-xs text-text-tertiary">{day.toLocaleString()}</div>
                   </button>
                 )
               })}
@@ -80,7 +91,7 @@ export function MobileSearchPage() {
             <h2 className="px-1 text-xs font-medium text-text-tertiary">任务</h2>
             <div className="mt-2 overflow-hidden rounded-2xl bg-surface-raised border border-border-subtle">
               {todoResults.map((t) => (
-                <button key={t.id} onClick={() => navigate('/action')} className="block w-full px-4 py-3 text-left text-sm text-text-primary border-b border-border-subtle last:border-b-0">
+                <button key={t.id} onClick={() => navigate(planPath)} className="block w-full px-4 py-3 text-left text-sm text-text-primary border-b border-border-subtle last:border-b-0">
                   {t.title}
                 </button>
               ))}

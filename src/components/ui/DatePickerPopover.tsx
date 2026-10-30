@@ -119,7 +119,7 @@ export function DatePickerPopover({
           {WEEKDAYS.map((w) => (
             <div
               key={w}
-              className="h-7 flex items-center justify-center font-sans text-[10px] text-text-quaternary select-none"
+              className="h-7 flex items-center justify-center font-sans text-2xs text-text-quaternary select-none"
             >
               {w}
             </div>
@@ -138,7 +138,7 @@ export function DatePickerPopover({
                 key={day.getTime()}
                 onClick={() => handleSelect(day)}
                 className={`
-                  h-8 w-full rounded-lg text-xs font-sans cursor-pointer border-none transition-all duration-150
+                  h-8 w-full rounded-sm text-xs font-sans cursor-pointer border-none transition-all duration-150
                   ${!inMonth ? 'text-text-quaternary/30' : ''}
                   ${isSelected
                     ? 'bg-accent text-white font-medium'
@@ -162,7 +162,7 @@ export function DatePickerPopover({
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-subtle/50">
           <button
             onClick={handleToday}
-            className="flex items-center gap-1 h-7 px-2 rounded-md text-[10px] font-sans text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors cursor-pointer border-none bg-transparent"
+            className="flex items-center gap-1 h-7 px-2 rounded-md text-2xs font-sans text-text-secondary hover:text-text-primary hover:bg-surface-sunken transition-colors cursor-pointer border-none bg-transparent"
           >
             <CalendarDays size={12} strokeWidth={1.75} />
             今天
@@ -171,7 +171,7 @@ export function DatePickerPopover({
           {allowClear && value !== null && (
             <button
               onClick={handleClear}
-              className="flex items-center gap-1 h-7 px-2 rounded-md text-[10px] font-sans text-text-tertiary hover:text-color-text-danger hover:bg-color-bg-danger transition-colors cursor-pointer border-none bg-transparent"
+              className="flex items-center gap-1 h-7 px-2 rounded-md text-2xs font-sans text-text-tertiary hover:text-color-text-danger hover:bg-color-bg-danger transition-colors cursor-pointer border-none bg-transparent"
             >
               <X size={12} strokeWidth={1.75} />
               清除

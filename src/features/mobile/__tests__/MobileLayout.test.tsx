@@ -3,10 +3,15 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { MobileLayout } from '../MobileLayout'
+import { installBuiltinPlugins } from '@/plugins'
 
 vi.mock('@/stores/categoryStore', () => ({ useCategoryStore: { getState: () => ({ loadCategories: vi.fn().mockResolvedValue(undefined) }) } }))
 vi.mock('@/stores/settingsStore', () => ({
-  useAppSettingsStore: { getState: () => ({ loadSettings: vi.fn().mockResolvedValue(undefined) }) },
+  useAppSettingsStore: Object.assign(
+    (selector: (s: { settings: { language: string; enabledPlugins: Record<string, boolean> } }) => unknown) =>
+      selector({ settings: { language: 'zh', enabledPlugins: {} } }),
+    { getState: () => ({ loadSettings: vi.fn().mockResolvedValue(undefined) }) },
+  ),
 }))
 vi.mock('@/stores/profileStore', () => ({ useProfileStore: { getState: () => ({ loadProfile: vi.fn().mockResolvedValue(undefined) }) } }))
 vi.mock('@/stores/todoStore', () => ({ useTodoStore: { getState: () => ({ loadTodos: vi.fn().mockResolvedValue(undefined) }) } }))
@@ -32,6 +37,9 @@ function renderLayout(initialEntry = '/day?date=2026-07-05') {
     </MemoryRouter>,
   )
 }
+
+// 底部导航的域项来自 registry，测试里必须先注册内置插件
+installBuiltinPlugins()
 
 describe('MobileLayout', () => {
   it('renders primary Android navigation and search entry', async () => {

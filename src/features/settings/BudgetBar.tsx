@@ -20,15 +20,15 @@ export function BudgetBar({ categories }: BudgetBarProps) {
     <div className="rounded-xl bg-surface-raised border border-border-subtle px-4 py-3">
       {/* Stats row */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-sans font-medium text-text-tertiary">
+        <span className="text-xs font-sans font-medium text-text-tertiary">
           已分配 {totalBudgeted} / {WEEK_TOTAL}h
         </span>
         {overBudget ? (
-          <span className="text-[11px] font-sans text-color-text-danger font-medium">
+          <span className="text-xs font-sans text-color-text-danger font-medium">
             超出 {Math.abs(remaining)}h
           </span>
         ) : (
-          <span className="text-[11px] font-sans text-text-tertiary/60">
+          <span className="text-xs font-sans text-text-tertiary/60">
             剩余 {remaining}h
           </span>
         )}

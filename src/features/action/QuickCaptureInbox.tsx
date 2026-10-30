@@ -99,7 +99,7 @@ export function QuickCaptureInbox() {
           className="w-full bg-transparent border-none focus-visible:outline-none rounded-sm text-lg font-sans text-text-primary placeholder:text-text-tertiary"
         />
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-subtle/50">
-          <span className="text-[10px] font-sans text-text-quaternary">
+          <span className="text-2xs font-sans text-text-quaternary">
             {'Enter 保存 · Esc 取消'}
           </span>
         </div>

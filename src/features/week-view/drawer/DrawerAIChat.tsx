@@ -50,14 +50,14 @@ function MiniBarChart({ chart }: { chart: ChartBlock }) {
     <div className="flex flex-col gap-1.5 mt-2">
       {chart.items.map((it, idx) => (
         <div key={idx} className="flex items-center gap-2">
-          <span className="text-[10px] font-sans text-text-tertiary w-16 truncate shrink-0">{it.label}</span>
+          <span className="text-2xs font-sans text-text-tertiary w-16 truncate shrink-0">{it.label}</span>
           <div className="flex-1 h-2.5 rounded bg-surface-sunken overflow-hidden">
             <div
               className="h-full rounded bg-accent/70 transition-all duration-300"
               style={{ width: `${Math.max((it.value / max) * 100, 4)}%` }}
             />
           </div>
-          <span className="text-[10px] font-mono text-text-secondary w-12 text-right shrink-0">{it.value}</span>
+          <span className="text-2xs font-mono text-text-secondary w-12 text-right shrink-0">{it.value}</span>
         </div>
       ))}
     </div>
@@ -412,7 +412,7 @@ export function DrawerAIChat({ selectedDateMs }: DrawerAIChatProps) {
     <div className="flex flex-col h-full min-h-0">
       {/* 预算超限提示 */}
       {overBudget && (
-        <div className="px-4 py-1.5 bg-danger/10 text-danger text-[11px] font-sans border-b border-danger/20">
+        <div className="px-4 py-1.5 bg-danger/10 text-danger text-xs font-sans border-b border-danger/20">
           {t('dayDrawer.aiBudgetExceeded')}
         </div>
       )}
@@ -421,7 +421,7 @@ export function DrawerAIChat({ selectedDateMs }: DrawerAIChatProps) {
       {anomalies.length > 0 && (
         <div className="px-4 py-2 flex flex-col gap-1 border-b border-border-subtle/50 bg-info/5">
           {anomalies.map((a, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[11px] font-sans text-info">
+            <div key={i} className="flex items-start gap-1.5 text-xs font-sans text-info">
               <AlertCircle size={11} className="mt-0.5 shrink-0" />
               <span>{a.summary}</span>
             </div>
@@ -433,13 +433,13 @@ export function DrawerAIChat({ selectedDateMs }: DrawerAIChatProps) {
         <div className="flex items-center justify-between gap-2 px-4 py-1.5 border-b border-border-subtle/50">
           {enabledProviders.length > 1 ? (
             <span className="flex items-center gap-2 min-w-0">
-              <span className="text-[10px] font-sans text-text-quaternary shrink-0">
+              <span className="text-2xs font-sans text-text-quaternary shrink-0">
                 {t('dayDrawer.aiSelectProvider')}:
               </span>
               <select
                 value={selectedProviderIndex}
                 onChange={(e) => setSelectedProviderIndex(Number(e.target.value))}
-                className="text-[11px] font-sans text-text-secondary bg-surface-base border border-border-subtle rounded-md px-2 py-1 focus:ring-1 focus:ring-accent/30 focus:outline-none cursor-pointer min-w-0"
+                className="text-xs font-sans text-text-secondary bg-surface-base border border-border-subtle rounded-md px-2 py-1 focus:ring-1 focus:ring-accent/30 focus:outline-none cursor-pointer min-w-0"
               >
                 {enabledProviders.map((p, i) => (
                   <option key={i} value={i}>
@@ -455,7 +455,7 @@ export function DrawerAIChat({ selectedDateMs }: DrawerAIChatProps) {
             <button
               onClick={handleClear}
               disabled={sending}
-              className="flex items-center gap-1 text-[10px] font-sans text-text-tertiary hover:text-danger transition-colors cursor-pointer border-none bg-transparent shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 text-2xs font-sans text-text-tertiary hover:text-danger transition-colors cursor-pointer border-none bg-transparent shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label={t('dayDrawer.aiClearHistory')}
             >
               <Trash2 size={11} />
@@ -546,7 +546,7 @@ export function DrawerAIChat({ selectedDateMs }: DrawerAIChatProps) {
                           <button
                             onClick={() => void handleAddSuggestion(s, i)}
                             disabled={done}
-                            className="flex items-center gap-1 shrink-0 text-[11px] font-sans rounded-md border border-border-subtle px-2 py-1 transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-default"
+                            className="flex items-center gap-1 shrink-0 text-xs font-sans rounded-md border border-border-subtle px-2 py-1 transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-default"
                           >
                             {done ? (
                               <>

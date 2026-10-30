@@ -37,7 +37,7 @@ function ChannelCard({ channel, t, language }: { channel: SponsorChannel; t: T; 
           <h2 className="text-sm font-sans font-medium text-text-primary">
             {language === 'zh' ? channel.nameZh : channel.nameEn}
           </h2>
-          <span className="text-[11px] font-sans text-text-tertiary">
+          <span className="text-xs font-sans text-text-tertiary">
             {channel.region === 'cn' ? t('support.regionChina') : t('support.regionInternational')}
           </span>
         </div>
@@ -53,7 +53,7 @@ function ChannelCard({ channel, t, language }: { channel: SponsorChannel; t: T; 
               onError={() => setQrFailed(true)}
               className="w-40 h-40 rounded-lg border border-border-subtle bg-white object-contain p-2"
             />
-            <span className="text-[11px] text-text-tertiary font-sans">
+            <span className="text-xs text-text-tertiary font-sans">
               {t('support.scanToSupport')}
             </span>
           </div>
@@ -108,7 +108,7 @@ export function SettingsSupport() {
         <ChannelCard key={channel.id} channel={channel} t={t} language={language} />
       ))}
 
-      <p className="text-[11px] text-text-tertiary font-sans leading-relaxed">
+      <p className="text-xs text-text-tertiary font-sans leading-relaxed">
         {t('support.footer')}
       </p>
     </div>

@@ -6,10 +6,7 @@ export type ShortcutAction =
   | 'pasteEvent'
   | 'goToThisWeek'
   | 'goToDayView'
-  | 'goToStats'
   | 'goToCalendar'
-  | 'goToPlan'
-  | 'goToReview'
   | 'openSettings'
   | 'toggleTheme'
   | 'deleteFocusedEvent'
@@ -60,10 +57,7 @@ export const SHORTCUT_REGISTRY: Record<ShortcutAction, ShortcutDefinition> = {
   pasteEvent:         { action: 'pasteEvent',          label: '粘贴事件',    defaultBinding: { key: 'v', ctrl: true, alt: false, shift: false } },
   goToThisWeek:       { action: 'goToThisWeek',        label: '回到周视图',  defaultBinding: { key: 'Escape', ctrl: false, alt: false, shift: false } },
   goToDayView:        { action: 'goToDayView',         label: '前往日视图',  defaultBinding: { key: 't', ctrl: false, alt: false, shift: false } },
-  goToStats:          { action: 'goToStats',           label: '前往统计',    defaultBinding: null },
   goToCalendar:       { action: 'goToCalendar',        label: '切换日历',    defaultBinding: { key: '1', ctrl: false, alt: true, shift: false } },
-  goToPlan:           { action: 'goToPlan',            label: '切换规划',    defaultBinding: { key: '2', ctrl: false, alt: true, shift: false } },
-  goToReview:         { action: 'goToReview',          label: '切换复盘',    defaultBinding: { key: '3', ctrl: false, alt: true, shift: false } },
   openSettings:       { action: 'openSettings',        label: '打开设置',     defaultBinding: { key: ',', ctrl: true, alt: false, shift: false } },
   toggleTheme:        { action: 'toggleTheme',         label: '切换主题',     defaultBinding: { key: 'T', ctrl: true, alt: false, shift: true } },
   deleteFocusedEvent: { action: 'deleteFocusedEvent',  label: '删除事件',    defaultBinding: { key: 'Delete', ctrl: false, alt: false, shift: false } },

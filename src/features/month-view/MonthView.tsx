@@ -142,7 +142,7 @@ export function MonthView({
         {weekdayHeaders.map((name, i) => (
           <div
             key={i}
-            className="font-sans text-[11px] text-text-tertiary/80 font-medium text-center pb-1.5 border-b border-border-subtle"
+            className="font-sans text-xs text-text-tertiary/80 font-medium text-center pb-1.5 border-b border-border-subtle"
           >
             {name}
           </div>
@@ -182,7 +182,7 @@ export function MonthView({
                     <div
                       className={`
                         flex items-center gap-0.5 mt-0.5 px-0.5 rounded-sm
-                        font-sans text-[10px] leading-tight
+                        font-sans text-2xs leading-tight
                         ${locChanged ? 'text-accent font-medium' : 'text-text-tertiary'}
                       `}
                     >
@@ -205,7 +205,7 @@ export function MonthView({
                           className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                           style={{ backgroundColor: color }}
                         />
-                        <span className="truncate font-sans text-[11px] text-text-secondary leading-normal" style={{ color }}>
+                        <span className="truncate font-sans text-xs text-text-secondary leading-normal" style={{ color }}>
                           {fmtTime(ev.startTime)} {ev.title}
                         </span>
                       </div>
@@ -216,7 +216,7 @@ export function MonthView({
                   {overflow > 0 && (
                     <span
                       onClick={(e) => handleOverflowClick(e, cell.date, cell.events)}
-                      className="font-sans text-[11px] text-text-tertiary pl-0.5 leading-tight mt-px cursor-pointer hover:text-accent transition-colors"
+                      className="font-sans text-xs text-text-tertiary pl-0.5 leading-tight mt-px cursor-pointer hover:text-accent transition-colors"
                     >
                       {t('month.moreEvents', overflow)}
                     </span>

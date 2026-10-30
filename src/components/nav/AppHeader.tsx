@@ -2,9 +2,12 @@
  * # AppHeader — 统一桌面端顶栏
  *
  * 始终渲染 ☰（侧栏切换）+ 🔍（搜索）。
- * - /week: ← → 导航周/月 + 年月标签 + W/M 切换
- * - /stats: ← → 按当前复盘视图的时间步长导航（趋势=日/周/月, 热力=年, 睡眠=月, 其他=周）
- * - /action: ← → 浏览器历史导航
+ *
+ * ← → 的语义完全由插件在 `PluginDomain.headerStepKind` 里声明，主体只按语义分派：
+ * - 日历域（主体）：导航周 / 月 + 年月标签 + W/M 切换
+ * - 'date-step'：按域内子视图的时间步长步进日期（趋势=日/周/月，热力=年，睡眠=月，其他=周）
+ * - 'filter-cycle'：循环切换域内的 ?filter= 参数
+ * - 'history'（默认）：前进/后退一条浏览器历史
  *
  * 移动端用原有的 TopNavBar，本组件仅在桌面端渲染。
  */
@@ -15,6 +18,7 @@ import { ChevronLeft, ChevronRight, Search, Menu } from 'lucide-react'
 import { addMonths, addYears, addDays } from 'date-fns'
 import { addWeeks, formatISODate, getWeekStart, parseISODate } from '@/domain/time'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { findDomainPlugin } from '@/plugins/registry'
 import { useUIStore } from '@/stores/uiStore'
 import { useT } from '@/i18n/useT'
 import type { AppLanguage } from '@/i18n/types'
@@ -30,6 +34,19 @@ function formatYearMonth(date: Date, language: AppLanguage): string {
   return date.toLocaleDateString(locale, { year: 'numeric', month: 'long' })
 }
 
+/**
+ * 顶栏图标按钮的唯一尺寸：32×32，圆角 sm，图标 16 / strokeWidth 1.75。
+ * 之前这里是 w-9 / w-8 / w-7 三种混用 + strokeWidth 1.75 与 2 混用，
+ * 一排按钮看起来「不齐」就是尺寸没有阶梯造成的。
+ */
+const ICON_BTN =
+  'w-[var(--icon-btn)] h-[var(--icon-btn)] flex items-center justify-center rounded-sm text-text-secondary ' +
+  'hover:text-text-primary hover:bg-surface-sunken active:bg-surface-sunken ' +
+  'cursor-pointer transition-colors duration-200 flex-shrink-0'
+const ICON_BTN_QUIET = ICON_BTN.replace('text-text-secondary', 'text-text-tertiary')
+const ICON_SIZE = 16
+const ICON_STROKE = 1.75
+
 export function AppHeader() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -38,9 +55,20 @@ export function AppHeader() {
   const isMobile = useIsMobile()
   const sidebarExpanded = useUIStore((s) => s.sidebarExpanded)
   const isWeek = location.pathname.startsWith('/week')
-  const isStats = location.pathname.startsWith('/stats')
-  const isAction = location.pathname.startsWith('/action')
-  const isActionOrStats = isAction || isStats
+  const overrides = useAppSettingsStore((s) => s.settings.enabledPlugins)
+
+  // 域内导航语义由插件显式声明，主体只按语义分派，不认识具体是哪个插件：
+  // - date-step：按域内子视图步长步进日期
+  // - filter-cycle：循环切换 ?filter= 参数
+  // - history（默认）：前进/后退
+  // 之前这里用「非 date-step 即 action」反推语义，等于主体知道规划插件的存在。
+  const pluginDomain = findDomainPlugin(location.pathname, overrides ?? {})
+  const isPluginDomain = pluginDomain !== undefined
+  const stepKind = pluginDomain?.domain.headerStepKind ?? 'history'
+  const isStats = stepKind === 'date-step'
+  const isFilterCycle = stepKind === 'filter-cycle'
+  // 箭头按钮在「不步进日期」的插件域里降为次要色：那两个箭头不是导航，而是域内筛选/历史
+  const isQuietArrows = isPluginDomain && !isStats
 
   const t = useT()
 
@@ -120,7 +148,7 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
       const next = new URLSearchParams(searchParams)
       next.set('date', formatISODate(prev))
       setSearchParams(next, { replace: true })
-    } else if (isAction) {
+    } else if (isFilterCycle) {
       // ← 循环：archive → starred → all
       const next = new URLSearchParams(searchParams)
       const nextFilter = cycleActionFilter((searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? null, -1)
@@ -129,7 +157,7 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
       next.delete('archiveDate')
       setSearchParams(next, { replace: true })
     }
-  }, [isWeek, isStats, isAction, viewMode, searchParams, setSearchParams, navigate])
+  }, [isWeek, isStats, isFilterCycle, viewMode, searchParams, setSearchParams, navigate])
 
   const handleNext = useCallback(() => {
     if (isWeek) {
@@ -159,7 +187,7 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
       const next = new URLSearchParams(searchParams)
       next.set('date', formatISODate(nextDate))
       setSearchParams(next, { replace: true })
-    } else if (isAction) {
+    } else if (isFilterCycle) {
       // → 循环：all → starred → archive
       const next = new URLSearchParams(searchParams)
       const nextFilter = cycleActionFilter((searchParams.get('filter') as 'all' | 'starred' | 'archive' | null) ?? null, 1)
@@ -168,7 +196,7 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
       next.delete('archiveDate')
       setSearchParams(next, { replace: true })
     }
-  }, [isWeek, isStats, isAction, viewMode, searchParams, setSearchParams, navigate])
+  }, [isWeek, isStats, isFilterCycle, viewMode, searchParams, setSearchParams, navigate])
 
   // ── W/M 切换（仅 /week） ──
   const toggleViewMode = useCallback(() => {
@@ -210,59 +238,59 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
   // 移动端不渲染 — 沿用现有 TopNavBar
   if (isMobile) return null
 
-  // 只有 /week、/action、/stats 需要显示这个顶栏，其余页面用 TopNavBar
-  if (!isWeek && !isActionOrStats) return null
+  // 只有日历域与插件认领的主域需要这个顶栏，其余页面用 TopNavBar
+  if (!isWeek && !isPluginDomain) return null
 
   return (
-    <div className="nav-bar app-header flex items-center px-3 h-[52px] flex-shrink-0" data-tauri-drag-region>
+    <div className="nav-bar app-header flex items-center gap-1 px-3 h-[var(--header-h)] flex-shrink-0" data-tauri-drag-region>
       {/* ── Left: ☰ | 🔍 | ‹ › | label ── */}
       {sidebarExpanded ? (
         <button
           onClick={() => useUIStore.getState().toggleSidebar()}
-          className="w-9 h-9 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-sunken active:bg-surface-sunken cursor-pointer transition-colors duration-200 flex-shrink-0"
+          className={ICON_BTN}
           aria-label={t('nav.sidebar.toggle')}
         >
-          <Menu size={18} strokeWidth={1.75} />
+          <Menu size={ICON_SIZE} strokeWidth={ICON_STROKE} />
         </button>
       ) : (
         <HoverMenu content={<CompactSidebar />} delay={300}>
           <button
             onClick={() => useUIStore.getState().toggleSidebar()}
-            className="w-9 h-9 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-sunken active:bg-surface-sunken cursor-pointer transition-colors duration-200 flex-shrink-0"
+            className={ICON_BTN}
             aria-label={t('nav.sidebar.toggle')}
           >
-            <Menu size={18} strokeWidth={1.75} />
+            <Menu size={ICON_SIZE} strokeWidth={ICON_STROKE} />
           </button>
         </HoverMenu>
       )}
 
         <button
           onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-          className="w-8 h-8 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-sunken active:bg-surface-sunken cursor-pointer transition-colors duration-200 flex-shrink-0"
+          className={ICON_BTN_QUIET}
           aria-label={t('nav.search')}
         >
-          <Search size={15} strokeWidth={1.75} />
+          <Search size={ICON_SIZE} strokeWidth={ICON_STROKE} />
         </button>
 
-      <div className="flex items-center gap-1 ml-1">
+      <div className="flex items-center gap-0.5 ml-1">
         <button
           onClick={handlePrev}
-          className={`w-7 h-7 flex items-center justify-center rounded-md hover:text-text-primary hover:bg-surface-sunken active:bg-surface-sunken cursor-pointer transition-colors duration-200 ${isAction ? 'text-text-tertiary' : 'text-text-secondary'}`}
+          className={isQuietArrows ? ICON_BTN_QUIET : ICON_BTN}
           aria-label={t('nav.prev')}
         >
-          <ChevronLeft size={15} strokeWidth={2} />
+          <ChevronLeft size={ICON_SIZE} strokeWidth={2} />
         </button>
         <button
           onClick={handleNext}
-          className={`w-7 h-7 flex items-center justify-center rounded-md hover:text-text-primary hover:bg-surface-sunken active:bg-surface-sunken cursor-pointer transition-colors duration-200 ${isAction ? 'text-text-tertiary' : 'text-text-secondary'}`}
+          className={isQuietArrows ? ICON_BTN_QUIET : ICON_BTN}
           aria-label={t('nav.next')}
         >
-          <ChevronRight size={15} strokeWidth={2} />
+          <ChevronRight size={ICON_SIZE} strokeWidth={2} />
         </button>
         {yearMonthLabel && (
           <button
             onClick={handleBackToToday}
-            className="inline-flex items-center h-7 px-2 ml-1 rounded-md font-sans text-sm text-text-secondary hover:text-text-primary hover:bg-surface-sunken active:bg-surface-sunken cursor-pointer transition-colors duration-200 select-none"
+            className="inline-flex items-center h-8 px-2.5 ml-1 rounded-sm font-sans text-sm text-text-secondary hover:text-text-primary hover:bg-surface-sunken active:bg-surface-sunken cursor-pointer transition-colors duration-200 select-none"
             aria-label={t('nav.jumpToday')}
           >
             {yearMonthLabel}
@@ -277,14 +305,14 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
         {isWeek && (
           <button
             onClick={toggleViewMode}
-            className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-sunken active:bg-surface-sunken cursor-pointer transition-colors duration-200 bg-transparent flex-shrink-0"
+            className={ICON_BTN}
             aria-label={viewMode === 'month'
               ? t('nav.weekView')
               : t('nav.monthView')
             }
           >
             <span
-              className="font-sans font-bold text-[13px] select-none"
+              className="font-sans font-semibold text-sm select-none"
               style={{
                 display: 'inline-block',
                 transform: viewMode === 'month'

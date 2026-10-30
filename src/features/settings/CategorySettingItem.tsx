@@ -112,7 +112,7 @@ export function CategorySettingItem({
             name={category.name}
             onCommit={onNameCommit}
           />
-          <p className="text-[11px] text-text-tertiary mt-0.5 font-sans leading-relaxed">
+          <p className="text-xs text-text-tertiary mt-0.5 font-sans leading-relaxed">
             {translate('category.autoClassify', language)}
             {allKeywords.length > 0 && ` · ${allKeywords.length} ${translate('common.keywords', language)}`}
           </p>
@@ -151,7 +151,7 @@ export function CategorySettingItem({
               title={translate('category.editBudget', language)}
             >
               <span className="font-medium text-text-primary">{category.weeklyBudget}</span>
-              <span className="text-[10px] text-text-tertiary">h</span>
+              <span className="text-2xs text-text-tertiary">h</span>
             </button>
           )}
         </div>
@@ -161,7 +161,7 @@ export function CategorySettingItem({
           <span className="text-xs font-mono text-text-tertiary">
             {fmtH(trackedHours)}h
           </span>
-          <span className="block text-[10px] text-text-tertiary/60 font-sans">
+          <span className="block text-2xs text-text-tertiary/60 font-sans">
             {translate('category.thisWeek', language)}
           </span>
         </div>
@@ -177,7 +177,7 @@ export function CategorySettingItem({
           )}
         >
           <span className={cn(
-            'inline-block transition-transform duration-200 text-[9px]',
+            'inline-block transition-transform duration-200 text-2xs',
             keywordsExpanded && 'rotate-90',
           )}>
             ▶
@@ -225,7 +225,7 @@ export function CategorySettingItem({
                 })}
               </div>
             ) : (
-              <p className="text-[11px] text-text-tertiary font-sans mb-3">
+              <p className="text-xs text-text-tertiary font-sans mb-3">
                 {translate('category.noKeywords', language)}
               </p>
             )}

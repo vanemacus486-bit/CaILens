@@ -15,6 +15,7 @@ import { SettingsAbout } from './SettingsAbout'
 import { SettingsSupport } from './SettingsSupport'
 import { SettingsAccount } from './SettingsAccount'
 import { SettingsAI } from './SettingsAI'
+import { SettingsPlugins } from './SettingsPlugins'
 import { isSponsorConfigured } from '@/lib/sponsor'
 
 /* ── Tab 分组定义 ── */
@@ -44,6 +45,7 @@ const SETTINGS_TABS: TabDef[] = [
 const EXTENSION_TABS: TabDef[] = [
   { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
   { key: 'ai', labelZh: '模型', labelEn: 'Models', descZh: '默认模型与接入配置', descEn: 'Default models & providers' },
+  { key: 'plugins', labelZh: '插件', labelEn: 'Plugins', descZh: '可选模块开关', descEn: 'Optional modules' },
 ]
 
 /* ── Tab → 组件映射 ── */
@@ -57,6 +59,7 @@ const TAB_CONTENT: Record<SettingsTab, React.FC> = {
   data:        SettingsData,
   storage:     SettingsStorage,
   ai:          SettingsAI,
+  plugins:     SettingsPlugins,
   about:       SettingsAbout,
   support:     SettingsSupport,
 }
@@ -107,7 +110,7 @@ export function SettingsPage() {
       >
         <div className="flex flex-col gap-0.5 px-2.5 pt-7 pb-6">
           {/* ── 设置区 ── */}
-          <span className="px-3 pb-0.5 text-[10px] font-sans font-medium uppercase tracking-wider text-text-quaternary">
+          <span className="px-3 pb-0.5 text-2xs font-sans font-medium uppercase tracking-wider text-text-quaternary">
             {tl('设置', 'Settings')}
           </span>
           {SETTINGS_TABS.map((tab) => {
@@ -138,7 +141,7 @@ export function SettingsPage() {
                 </span>
                 <span
                   className={cn(
-                    'text-[11px] font-sans transition-colors duration-200',
+                    'text-xs font-sans transition-colors duration-200',
                     active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
                   )}
                 >
@@ -149,7 +152,7 @@ export function SettingsPage() {
           })}
 
           {/* ── 拓展区 ── */}
-          <span className="px-3 pt-2 pb-0.5 text-[10px] font-sans font-medium uppercase tracking-wider text-text-quaternary">
+          <span className="px-3 pt-2 pb-0.5 text-2xs font-sans font-medium uppercase tracking-wider text-text-quaternary">
             {tl('拓展', 'Extensions')}
           </span>
           {EXTENSION_TABS.map((tab) => {
@@ -180,7 +183,7 @@ export function SettingsPage() {
                 </span>
                 <span
                   className={cn(
-                    'text-[11px] font-sans transition-colors duration-200',
+                    'text-xs font-sans transition-colors duration-200',
                     active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
                   )}
                 >
