@@ -11,7 +11,7 @@ export type ShortcutAction =
   | 'toggleTheme'
   | 'deleteFocusedEvent'
   | 'duplicateFocusedEvent'
-  | 'quickCaptureTodo'
+  | 'quickCaptureEvent'
   | 'toggleSidebar'
   // ── Stats page ──
   | 'statsTab1'
@@ -62,7 +62,7 @@ export const SHORTCUT_REGISTRY: Record<ShortcutAction, ShortcutDefinition> = {
   toggleTheme:        { action: 'toggleTheme',         label: '切换主题',     defaultBinding: { key: 'T', ctrl: true, alt: false, shift: true } },
   deleteFocusedEvent: { action: 'deleteFocusedEvent',  label: '删除事件',    defaultBinding: { key: 'Delete', ctrl: false, alt: false, shift: false } },
   duplicateFocusedEvent: { action: 'duplicateFocusedEvent', label: '复制并创建事件', defaultBinding: { key: 'd', ctrl: true, alt: false, shift: false } },
-  quickCaptureTodo:     { action: 'quickCaptureTodo',      label: '快速录入待办', defaultBinding: { key: 'n', ctrl: true, alt: true, shift: false } },
+  quickCaptureEvent:    { action: 'quickCaptureEvent',     label: '快速记录事件', defaultBinding: { key: 'n', ctrl: true, alt: true, shift: false } },
   toggleSidebar:       { action: 'toggleSidebar',        label: '切换侧栏',     defaultBinding: { key: 'b', ctrl: true, alt: false, shift: false } },
 
   // ── Stats page ──
@@ -139,12 +139,34 @@ export function bindingsMatch(a: KeyBinding, b: KeyBinding): boolean {
   return a.key === b.key && a.ctrl === b.ctrl && a.alt === b.alt && a.shift === b.shift
 }
 
+/**
+ * 已改名的动作：旧键名 → 新键名。
+ * 用户 settings 里存着旧数据时，读的时候自动搬过来，否则他们自定义的键位会静默失效。
+ */
+const RENAMED_ACTIONS: Record<string, ShortcutAction> = {
+  quickCaptureTodo: 'quickCaptureEvent',
+}
+
+function migrateOverrides(overrides: ShortcutOverrides): ShortcutOverrides {
+  const raw = overrides as Record<string, ShortcutString | undefined>
+  let out: Record<string, ShortcutString | undefined> | null = null
+  for (const [oldName, newName] of Object.entries(RENAMED_ACTIONS)) {
+    if (raw[oldName] === undefined) continue
+    if (out === null) out = { ...raw }
+    // 新键名已存在时以新键名为准，不被旧值覆盖
+    if (out[newName] === undefined) out[newName] = raw[oldName]
+    delete out[oldName]
+  }
+  return (out ?? raw) as ShortcutOverrides
+}
+
 export function resolveBindings(
   overrides: ShortcutOverrides,
 ): Record<ShortcutAction, KeyBinding | null> {
+  const source = migrateOverrides(overrides)
   const result = {} as Record<ShortcutAction, KeyBinding | null>
   for (const [action, def] of Object.entries(SHORTCUT_REGISTRY)) {
-    const override = overrides[action as ShortcutAction]
+    const override = source[action as ShortcutAction]
     if (override !== undefined) {
       result[action as ShortcutAction] = parseShortcutString(override)
     } else {

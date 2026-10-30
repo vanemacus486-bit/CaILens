@@ -210,7 +210,7 @@ function Layout() {
       if (!eventId) return
       fireAndForget(useEventStore.getState().duplicateEvent(eventId), 'duplicate event')
     },
-    quickCaptureTodo: () => useUIStore.getState().setQuickCaptureInboxOpen(true),
+    quickCaptureEvent: () => useUIStore.getState().setQuickCaptureInboxOpen(true),
     toggleSidebar: () => useUIStore.getState().toggleSidebar(),
     toggleWeekMonthView: () => {
       if (!location.pathname.startsWith('/week')) return
