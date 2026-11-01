@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { getCategoryRepo } from '@/data/getRepositories'
+import { broadcastWrite } from '@/lib/crossWindowSync'
 import type { Category, CategoryId } from '@/domain/category'
 
 interface CategoryState {
@@ -32,6 +33,7 @@ export const useCategoryStore = create<CategoryState>()((set) => ({
         categories: state.categories.map((c) => (c.id === id ? updated : c)),
         error: null,
       }))
+      broadcastWrite('categories')
     } catch (e) {
       set({ error: (e as Error).message })
     }

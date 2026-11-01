@@ -17,6 +17,10 @@ export default defineConfig([
     '.backup/**',
     '.backup-*/**',
     'src.backup-*/**',
+    // DSH 会话自动落盘的改动前副本（.dsh-backup-<时间戳>/）同样不是源码。
+    // 命名里带点，`**/*.{ts,tsx}` 仍然会匹配到，必须显式忽略。
+    '.dsh-backup-*/**',
+    '.dsh-probe*',
   ]),
   {
     files: ['**/*.{ts,tsx}'],

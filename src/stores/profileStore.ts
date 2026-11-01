@@ -10,6 +10,7 @@ import { create } from 'zustand'
 import type { Profile } from '@/domain/profile'
 import { DEFAULT_PROFILE } from '@/domain/profile'
 import { getProfileRepo } from '@/data/getRepositories'
+import { broadcastWrite } from '@/lib/crossWindowSync'
 
 const PROFILE_KEY = 'cailens-profile'
 
@@ -63,5 +64,6 @@ export const useProfileStore = create<ProfileState>()((set) => ({
     const updatedAt = new Date().toISOString().slice(0, 10)
     const updated = await getProfileRepo().update({ ...patch, updatedAt })
     set({ profile: updated })
+    broadcastWrite('profile')
   },
 }))

@@ -9,8 +9,10 @@ import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, Typ
 import type { CategoryId } from '@/domain/category'
 import { inferHygieneActivity, findHygieneActivity, DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
 import { computeQuickCaptureSpan } from '@/domain/quickCaptureSpan'
+import { parseEventDraft } from '@/domain/eventDraft'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import type { AutocompleteSuggestion } from './AutocompleteDropdown'
+import { CardInput } from './CardInput'
 import eatingCatImage from '@/assets/illustrations/eating-cat.webp'
 
 // ── Types ───────────────────────────────────────────────
@@ -117,6 +119,31 @@ function inferMealOrder(timeMs: number): 'breakfast' | 'lunch' | 'dinner' | 'nig
   return 'night_snack'
 }
 
+// ── 睡眠时间横轴 ────────────────────────────────────────
+// 轴把「时钟盘」展开成直线：20:00 → 次日 12:00，共 16 小时。
+// 轴本身不携带日期，跨天由「醒来 < 入睡」自动判定。
+const BAND_BASE_MIN = 20 * 60
+const BAND_SPAN_MIN = 16 * 60
+
+/** 新建睡眠时的默认时长：从锚点倒推 8 小时 */
+const SLEEP_DEFAULT_SPAN_MIN = 8 * 60
+
+/** "HH:MM" → 轴上的分钟偏移（0…960），跨零点的时刻归到轴的后半段 */
+function clockToBandOffset(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number)
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return 0
+  const sinceBase = (h * 60 + m - BAND_BASE_MIN + 1440) % 1440
+  return Math.max(0, Math.min(BAND_SPAN_MIN, sinceBase))
+}
+
+/** 轴上的分钟偏移 → "HH:MM" */
+function bandOffsetToClock(offset: number): string {
+  const total = (BAND_BASE_MIN + offset + 1440) % 1440
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
 // ── Component ───────────────────────────────────────────
 
 export function FloatingEventCard({
@@ -155,6 +182,8 @@ export function FloatingEventCard({
   const [endStr, setEndStr] = useState(tsToStr(defaultTimes.end))
   const [showTimeEdit, setShowTimeEdit] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** 用户手动改过时间后，输入框里的时间不再覆盖它 */
+  const [timeTouched, setTimeTouched] = useState(false)
 
   // Cross-day flag
   const [crossDay, setCrossDay] = useState(() => {
@@ -178,6 +207,52 @@ export function FloatingEventCard({
     return new Date(base.getFullYear(), base.getMonth(), base.getDate(), sh, sm).getTime()
   })()
   const durationMin = Math.max(0, Math.round((effectiveEndTs - effectiveStartTs) / 60_000))
+
+  // ── 输入即事件块：整句话解析成标题 + 起止 ──────────────
+  // 用户没动过时间控件时，输入里的「9:00-10:30」或「45分钟」直接决定块的区间。
+  const draft = useMemo(
+    () => parseEventDraft(title, {
+      baseDate: new Date(defaultTimes.start).setHours(0, 0, 0, 0),
+      now: Date.now(),
+      defaultCategoryId: categoryId,
+      categories,
+      defaultSpan: { start: effectiveStartTs, end: effectiveEndTs },
+    }),
+    // effectiveStartTs/effectiveEndTs 由 startStr/endStr 派生，已在下面依赖里
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [title, defaultTimes.start, categoryId, categories, startStr, endStr, crossDay],
+  )
+
+  // 解析出显式/时长时间时，把时间控件同步过去（输入框与头部时间条保持一致）
+  useEffect(() => {
+    if (timeTouched) return
+    if (draft.timeSource === 'default') return
+    const nextStart = tsToStr(draft.startTime)
+    const nextEnd = tsToStr(draft.endTime)
+    setStartStr((prev) => (prev === nextStart ? prev : nextStart))
+    setEndStr((prev) => (prev === nextEnd ? prev : nextEnd))
+    setCrossDay(new Date(draft.endTime).toDateString() !== new Date(draft.startTime).toDateString())
+  }, [draft, timeTouched])
+
+  // 跨天自动判定：醒来时刻早于入睡即视为次日，不再要用户点「次日」开关
+  useEffect(() => {
+    if (!timeTouched) return
+    const [sh, sm] = startStr.split(':').map(Number)
+    const [eh, em] = endStr.split(':').map(Number)
+    if (![sh, sm, eh, em].every(Number.isFinite)) return
+    setCrossDay(eh * 60 + em < sh * 60 + sm)
+  }, [startStr, endStr, timeTouched])
+
+  // 睡眠的默认区间：新建时一打开就是「昨晚」——从锚点倒推 8 小时。
+  // E 版主张「打开即答案」：早上补记昨晚只需一次回车，不用先填两个时刻。
+  useEffect(() => {
+    if (isEditing || mode !== 'sleep' || timeTouched) return
+    const end = defaultTimes.start
+    const start = end - SLEEP_DEFAULT_SPAN_MIN * 60_000
+    setStartStr(tsToStr(start))
+    setEndStr(tsToStr(end))
+    setCrossDay(new Date(end).toDateString() !== new Date(start).toDateString())
+  }, [isEditing, mode, timeTouched, defaultTimes.start])
 
   // Autocomplete suggestions + inline completion
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([])
@@ -204,6 +279,8 @@ export function FloatingEventCard({
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null)
+  /** 睡眠时间横轴的轨道元素，拖拽时按它的宽度换算时间 */
+  const sleepBandRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const handleSaveRef = useRef(handleSave)
   handleSaveRef.current = handleSave
@@ -360,7 +437,8 @@ export function FloatingEventCard({
   }
 
   async function handleSave(stayOpen = false) {
-    const effectiveTitle = title
+    // 标题里被解析掉的时间/时长片段不再进标题
+    const effectiveTitle = draft.title
     const parsedMeal = parseMealEntry(effectiveTitle)
     const shouldSaveAsMeal = mode === 'meal-food' || editingEvent?.typedData?.type === 'meal' || parsedMeal.isMeal
 
@@ -475,6 +553,7 @@ export function FloatingEventCard({
     const startD = new Date(effectiveStartTs)
     setEndStr(`${String(endD.getHours()).padStart(2, '0')}:${String(endD.getMinutes()).padStart(2, '0')}`)
     setCrossDay(endD.toDateString() !== startD.toDateString())
+    setTimeTouched(true)
     setError(null)
   }
 
@@ -502,120 +581,376 @@ export function FloatingEventCard({
     }
   })()
 
-  const timeRange = `${startStr} – ${
-    crossDay ? dateLabel(effectiveEndTs) + ' ' : ''
-  }${endStr}`
-
   // ── Sleep mode ───────────────────────────────────────
 
   function renderSleepMode() {
+    const SLEEP_TYPES = [
+      { key: 'main' as const, label: '睡觉' },
+      { key: 'nap' as const, label: '小睡' },
+      { key: 'insomnia' as const, label: '失眠' },
+    ]
+    const QUALITY_LABELS = ['', '很差', '差', '一般', '好', '很好']
+    // 五档从左到右：很好 → 很差（好端在左），quality 5 在最左
+    const QUALITY_ORDER: Array<1 | 2 | 3 | 4 | 5> = [5, 4, 3, 2, 1]
+
+    // 主数字：时长按 8h00m 排版，不足 1 小时只留分钟
+    const heroDuration =
+      durationMin <= 0
+        ? '—'
+        : durationMin < 60
+          ? `${durationMin}m`
+          : `${Math.floor(durationMin / 60)}h${String(durationMin % 60).padStart(2, '0')}m`
+
+    const heroCaption =
+      sleepType === 'nap'
+        ? '小睡一会儿'
+        : sleepType === 'insomnia'
+          ? '躺着没睡着'
+          : durationMin >= 7 * 60
+            ? '这一觉睡够了'
+            : durationMin > 0
+              ? '睡得有点少'
+              : '还没填时间'
+
+    // 微调：只动醒来时刻，跨天由「入睡 > 醒来」自动判定
+    function nudgeSleep(deltaMin: number) {
+      const [sh, sm] = startStr.split(':').map(Number)
+      const [eh, em] = endStr.split(':').map(Number)
+      const startD = new Date(defaultTimes.start)
+      const startTs = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate(), sh, sm).getTime()
+      const endD = new Date(startD)
+      endD.setHours(eh, em, 0, 0)
+      let endTs = endD.getTime()
+      if (crossDay) endTs += 24 * 60 * 60 * 1000
+      endTs = Math.max(startTs + 10 * 60_000, endTs + deltaMin * 60_000)
+      const next = new Date(endTs)
+      setEndStr(`${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`)
+      setCrossDay(next.toDateString() !== new Date(startTs).toDateString())
+      setTimeTouched(true)
+      setError(null)
+    }
+
+    // 横轴上的位置（0–100%）
+    const startPct = (clockToBandOffset(startStr) / BAND_SPAN_MIN) * 100
+    const endPct = (clockToBandOffset(endStr) / BAND_SPAN_MIN) * 100
+
+    // 拖动横轴上的圆点：5 分钟粒度，入睡与醒来至少隔 30 分钟
+    function beginSleepDrag(which: 'start' | 'end') {
+      return (ev: React.PointerEvent<HTMLButtonElement>) => {
+        ev.preventDefault()
+        const el = sleepBandRef.current
+        if (!el) return
+
+        const apply = (clientX: number) => {
+          const rect = el.getBoundingClientRect()
+          if (rect.width <= 0) return
+          const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+          const off = Math.round((ratio * BAND_SPAN_MIN) / 5) * 5
+          if (which === 'start') {
+            const curEnd = clockToBandOffset(endStr)
+            setStartStr(bandOffsetToClock(Math.max(0, Math.min(off, curEnd - 30))))
+          } else {
+            const curStart = clockToBandOffset(startStr)
+            setEndStr(bandOffsetToClock(Math.min(BAND_SPAN_MIN, Math.max(off, curStart + 30))))
+          }
+          setTimeTouched(true)
+          setError(null)
+        }
+
+        apply(ev.clientX)
+
+        const onMove = (e: PointerEvent) => apply(e.clientX)
+        const onUp = () => {
+          window.removeEventListener('pointermove', onMove)
+          window.removeEventListener('pointerup', onUp)
+        }
+        window.addEventListener('pointermove', onMove)
+        window.addEventListener('pointerup', onUp)
+      }
+    }
+
     return (
       <>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: catColor }} />
-            <button
-              onClick={() => setShowTimeEdit(!showTimeEdit)}
-              className="font-mono text-xs text-text-secondary cursor-pointer hover:text-text-primary transition-colors truncate"
-            >
-              {timeRange}
-              {durationMin > 0 && (
-                <span className="text-text-tertiary">{` · ${formatDuration(durationMin)}`}</span>
-              )}
-            </button>
-          </div>
-          <button onClick={onClose} className="text-text-tertiary hover:text-text-primary cursor-pointer p-1 flex-shrink-0" aria-label="关闭">
-            <X size={16} />
+        {/* 纸头：与默认模式同构 */}
+        <div
+          data-card-head="paper"
+          className="flex items-baseline gap-2 border-b px-[15px] pb-[7px] pt-[9px]"
+          style={{ borderColor: 'var(--paper-card-rule)' }}
+        >
+          <button
+            type="button"
+            onClick={() => setShowTimeEdit(!showTimeEdit)}
+            className="inline-flex min-w-0 flex-1 items-baseline gap-2 text-left font-mono text-[10.5px] tracking-[0.01em] transition-opacity duration-150 hover:opacity-70"
+            style={{ color: 'var(--paper-card-ink)' }}
+          >
+            <span
+              className="inline-block h-[5px] w-[5px] flex-shrink-0"
+              style={{ backgroundColor: catColor, borderRadius: '50%' }}
+            />
+            <span className="truncate">{headerTime}</span>
+            {durationMin > 0 && (
+              <span className="flex-shrink-0 text-[9px]" style={{ color: 'var(--paper-card-ink-3)' }}>
+                {formatDuration(durationMin)}
+              </span>
+            )}
+          </button>
+          <span
+            data-card-cat="paper"
+            className="max-w-[86px] truncate font-serif text-[9.5px] tracking-[0.04em]"
+            style={{ color: 'var(--paper-card-accent)' }}
+          >
+            睡眠
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-150 hover:opacity-60"
+            style={{ color: 'var(--paper-card-ink-3)' }}
+            aria-label="关闭"
+          >
+            <X size={14} />
           </button>
         </div>
 
-        {/* Sleep type */}
-        <div className="flex gap-1 mb-4">
-          {([
-            { key: 'main' as const, label: '睡觉' },
-            { key: 'nap' as const, label: '小睡' },
-            { key: 'insomnia' as const, label: '失眠' },
-          ]).map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setSleepType(t.key)}
-              className={cn(
-                'flex-1 py-2 rounded-lg text-xs font-sans font-medium transition-all duration-200 cursor-pointer border',
-                sleepType === t.key
-                  ? 'border-border-default text-text-primary bg-surface-raised'
-                  : 'border-transparent text-text-tertiary hover:bg-surface-sunken bg-surface-sunken',
-              )}
+        <div className="px-[15px] pb-1 pt-[10px]">
+          {/* 主数字：这一觉的时长 */}
+          <div className="relative py-4 text-center">
+            {/* Zzz 漂浮：沿用 index.css 里 EventDetailCard 那套 sleep-zzz，
+                自带 prefers-reduced-motion 保护，纯装饰故 aria-hidden */}
+            <span
+              aria-hidden="true"
+              className="animate-sleep-zzz pointer-events-none absolute select-none"
+              style={{ left: 'calc(50% + 50px)', top: 20, fontFamily: 'var(--font-display)', fontSize: 11, color: 'var(--paper-card-ink-4)', animationDelay: '0s' }}
             >
-              {t.label}
-            </button>
-          ))}
-        </div>
+              z
+            </span>
+            <span
+              aria-hidden="true"
+              className="animate-sleep-zzz pointer-events-none absolute select-none"
+              style={{ left: 'calc(50% + 62px)', top: 10, fontFamily: 'var(--font-display)', fontSize: 14, color: 'var(--paper-card-ink-4)', animationDelay: '0.9s' }}
+            >
+              z
+            </span>
+            <span
+              aria-hidden="true"
+              className="animate-sleep-zzz pointer-events-none absolute select-none"
+              style={{ left: 'calc(50% + 76px)', top: 2, fontFamily: 'var(--font-display)', fontSize: 17, color: 'var(--paper-card-ink-4)', animationDelay: '1.8s' }}
+            >
+              Z
+            </span>
+            <div
+              className="font-mono text-[34px] leading-none tracking-[-0.02em]"
+              style={{ color: 'var(--paper-card-ink)' }}
+            >
+              {heroDuration}
+            </div>
+            <div
+              className="mt-2 font-serif text-[10.5px] tracking-[0.04em]"
+              style={{ color: 'var(--paper-card-ink-3)' }}
+            >
+              {heroCaption}
+            </div>
+          </div>
 
-        {/* Quality */}
-        <div className="mb-4">
-          <div className="text-xs text-text-tertiary mb-2 font-sans">睡眠质量</div>
-          <div className="flex justify-between gap-1">
-            {([1, 2, 3, 4, 5] as const).map((q) => (
+          {/* 时间横轴：拖两个圆点直接定区间 */}
+          <div className="pb-4">
+            <div
+              className="mb-2 flex items-baseline justify-between font-mono text-[9px] tracking-[0.06em]"
+              style={{ color: 'var(--paper-card-ink-3)' }}
+            >
+              <span>入睡 {startStr}</span>
+              <span>
+                醒来 {endStr}
+                {crossDay ? ' · 次日' : ''}
+              </span>
+            </div>
+
+            <div ref={sleepBandRef} data-sleep-band="" className="relative mx-2 h-7 touch-none select-none">
+              <div
+                className="absolute left-0 right-0 top-1/2 h-[2px] -translate-y-1/2 rounded-full"
+                style={{ backgroundColor: 'var(--paper-card-rule)' }}
+              />
+              <div
+                className="absolute top-1/2 h-[2px] -translate-y-1/2 rounded-full"
+                style={{
+                  left: `${startPct}%`,
+                  width: `${Math.max(0, endPct - startPct)}%`,
+                  backgroundColor: 'color-mix(in srgb, var(--paper-card-accent) 50%, transparent)',
+                }}
+              />
+              {([
+                ['start', startPct, startStr],
+                ['end', endPct, endStr],
+              ] as const).map(([which, pct, clock]) => (
+                <button
+                  key={which}
+                  type="button"
+                  onPointerDown={beginSleepDrag(which)}
+                  aria-label={`调整${which === 'start' ? '入睡' : '醒来'}时间，当前 ${clock}`}
+                  className="absolute top-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center active:cursor-grabbing"
+                  style={{ left: `${pct}%` }}
+                >
+                  <span
+                    className="block h-[11px] w-[11px] rounded-full"
+                    style={{
+                      backgroundColor: 'var(--paper-card-bg)',
+                      border: '1.5px solid var(--paper-card-accent)',
+                      boxShadow: '0 0 0 3px var(--paper-card-bg)',
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <div
+              className="mt-1 flex justify-between px-2 font-mono text-[8px] tracking-[0.06em]"
+              style={{ color: 'var(--paper-card-ink-4)' }}
+            >
+              <span>20:00</span>
+              <span>0:00</span>
+              <span>4:00</span>
+              <span>8:00</span>
+              <span>12:00</span>
+            </div>
+          </div>
+
+          {/* 质量：五档刻度，好端在最左 */}
+          <div className="px-1 pb-3">
+            <div
+              className="relative mx-2 h-[2px] rounded-full"
+              style={{ backgroundColor: 'var(--paper-card-rule)' }}
+            >
+              {QUALITY_ORDER.map((q, i) => {
+                const active = quality === q
+                return (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setQuality(active ? null : q)}
+                    aria-pressed={active}
+                    aria-label={QUALITY_LABELS[q]}
+                    className="absolute top-1/2 flex h-[22px] w-[22px] -translate-x-1/2 -translate-y-1/2 items-center justify-center transition-transform duration-200 hover:scale-110"
+                    style={{ left: `${(i / (QUALITY_ORDER.length - 1)) * 100}%` }}
+                  >
+                    <span
+                      className="block rounded-full transition-all duration-200"
+                      style={{
+                        width: active ? 11 : 4,
+                        height: active ? 11 : 4,
+                        backgroundColor: active ? 'var(--paper-card-bg)' : 'var(--paper-card-ink-4)',
+                        border: active ? '1.5px solid var(--paper-card-accent)' : 'none',
+                        boxShadow: active ? '0 0 0 3px var(--paper-card-bg)' : 'none',
+                      }}
+                    />
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mt-3.5 flex justify-between px-1">
+              {QUALITY_ORDER.map((q) => {
+                const active = quality === q
+                return (
+                  <span
+                    key={q}
+                    className="font-serif text-[9.5px] tracking-[0.02em] transition-colors duration-200"
+                    style={{
+                      color: active ? 'var(--paper-card-ink)' : 'var(--paper-card-ink-4)',
+                      borderBottom: active
+                        ? '1px solid color-mix(in srgb, var(--paper-card-accent) 55%, transparent)'
+                        : '1px solid transparent',
+                      paddingBottom: active ? 2 : 0,
+                    }}
+                  >
+                    {QUALITY_LABELS[q]}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* 微调：±15 / ±30 分钟 */}
+          <div
+            className="flex items-center justify-center gap-1 border-b pb-3"
+            style={{ borderColor: 'var(--paper-card-rule)' }}
+          >
+            {([-30, -15, 15, 30] as const).map((min) => (
               <button
-                key={q}
-                onClick={() => setQuality(q)}
-                className={cn(
-                  'flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer',
-                  quality === q
-                    ? 'bg-surface-raised ring-1 ring-text-secondary scale-105'
-                    : 'bg-surface-sunken text-text-tertiary hover:bg-surface-base',
-                )}
+                key={min}
+                type="button"
+                onClick={() => nudgeSleep(min)}
+                className="rounded-sm px-2.5 py-1 font-mono text-[9.5px] tracking-[0.03em] transition-colors duration-150 hover:opacity-70"
+                style={{ color: 'var(--paper-card-ink-3)' }}
               >
-                <span className="text-base leading-none">{q === 1 ? '😫' : q === 2 ? '😞' : q === 3 ? '😐' : q === 4 ? '🙂' : '😊'}</span>
-                <span className="text-2xs leading-tight">
-                  {quality === q ? ['', '较差', '不好', '一般', '良好', '很好'][q] : ''}
-                </span>
+                {min > 0 ? `+${min}m` : `${min}m`}
               </button>
             ))}
           </div>
+
+          {/* 睡眠类型：居中的三个字，选中的加下划线 */}
+          <div className="flex justify-center gap-4 pt-3">
+            {SLEEP_TYPES.map((t) => {
+              const active = sleepType === t.key
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setSleepType(t.key)}
+                  aria-pressed={active}
+                  className="pb-1 font-serif text-[12px] tracking-[0.02em] transition-colors duration-150"
+                  style={{
+                    color: active ? 'var(--paper-card-ink)' : 'var(--paper-card-ink-3)',
+                    borderBottom: active ? '1px solid var(--paper-card-accent)' : '1px solid transparent',
+                  }}
+                >
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        {/* Collapsible time editor */}
+        {/* 时间编辑：下划线 */}
         {showTimeEdit && (
-          <div className="mb-4 animate-slide-down">
-            <div className="flex items-center gap-1.5">
+          <div
+            className="mb-3 border-b px-[15px] pb-2.5 pt-3"
+            style={{ borderColor: 'var(--paper-card-rule)' }}
+            data-card-time="paper"
+          >
+            <div className="flex items-center gap-2">
               <input
                 type="time"
                 value={startStr}
-                onChange={(e) => { setStartStr(e.target.value); setError(null) }}
-                className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded px-2 py-1.5 focus:border-border-default focus-visible:outline-none"
+                onChange={(e) => { setStartStr(e.target.value); setTimeTouched(true); setError(null) }}
+                className="flex-1 border-0 border-b bg-transparent px-0 py-1 font-mono text-[11px] outline-none"
+                style={{ borderColor: 'var(--paper-card-rule)', color: 'var(--paper-card-ink)' }}
               />
-              <button
-                onClick={() => { setCrossDay(!crossDay); setError(null) }}
-                className={cn(
-                  'px-2 py-1.5 rounded text-xs font-sans border transition-colors cursor-pointer flex-shrink-0',
-                  crossDay
-                    ? 'bg-accent/10 border-accent/40 text-accent'
-                    : 'bg-surface-sunken border-border-subtle text-text-tertiary hover:bg-surface-base',
-                )}
-                title="次日"
+              {/* 跨天不用开关：醒来早于入睡即自动判为次日 */}
+              <span
+                className="flex-shrink-0 px-1 py-1 font-serif text-[10.5px] tracking-[0.02em]"
+                style={{ color: crossDay ? 'var(--paper-card-accent)' : 'var(--paper-card-ink-4)' }}
+                aria-hidden={!crossDay}
               >
-                次日
-              </button>
+                {crossDay ? '次日' : '当天'}
+              </span>
               <input
                 type="time"
                 value={endStr}
-                onChange={(e) => { setEndStr(e.target.value); setError(null) }}
-                className="flex-1 font-mono text-xs text-text-primary bg-surface-sunken border border-border-subtle rounded px-2 py-1.5 focus:border-border-default focus-visible:outline-none"
+                onChange={(e) => { setEndStr(e.target.value); setTimeTouched(true); setError(null) }}
+                className="flex-1 border-0 border-b bg-transparent px-0 py-1 font-mono text-[11px] outline-none"
+                style={{ borderColor: 'var(--paper-card-rule)', color: 'var(--paper-card-ink)' }}
               />
             </div>
-            {/* Duration quick chips */}
-            <div className="flex gap-1.5 mt-1.5">
+            <div className="mt-2 flex gap-1">
               {[15, 30, 60, 120].map((min) => (
                 <button
                   key={min}
+                  type="button"
                   onClick={() => applyDuration(min)}
-                  className={cn(
-                    'flex-1 py-1 rounded text-xs font-sans border transition-colors cursor-pointer',
-                    durationMin === min
-                      ? 'bg-accent/10 border-accent/40 text-accent'
-                      : 'bg-surface-sunken border-border-subtle text-text-tertiary hover:bg-surface-base',
-                  )}
+                  className="flex-1 py-1 font-mono text-[9px] tracking-[0.04em] transition-opacity duration-150 hover:opacity-70"
+                  style={{
+                    color: durationMin === min ? 'var(--paper-card-ink)' : 'var(--paper-card-ink-3)',
+                    borderBottom: durationMin === min ? '1px solid var(--paper-card-ink-3)' : '1px solid transparent',
+                  }}
                 >
                   {min < 60 ? `${min}分` : `${min / 60}时`}
                 </button>
@@ -624,17 +959,29 @@ export function FloatingEventCard({
           </div>
         )}
 
-        {error && <p className="text-xs text-color-text-danger mt-1 font-sans">{error}</p>}
+        {error && (
+          <p className="px-[15px] pt-1 font-serif text-[10.5px]" style={{ color: 'var(--color-text-danger)' }}>
+            {error}
+          </p>
+        )}
 
-        <div className="flex justify-end gap-2 mt-3">
+        {/* 纸脚 */}
+        <div className="mt-2 flex items-center justify-end gap-2 px-[15px] pb-[11px] pt-[6px]">
           {isEditing && (
-            <button onClick={handleDelete} className="font-sans text-xs text-color-text-danger bg-transparent border border-color-text-danger/30 rounded-md px-3 py-1.5 cursor-pointer hover:bg-color-text-danger/10 transition-colors">
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="rounded-sm px-[11px] py-[5px] font-serif text-[11px] tracking-[0.02em] transition-opacity duration-150 hover:opacity-70"
+              style={{ color: 'var(--color-text-danger)' }}
+            >
               删除
             </button>
           )}
           <button
+            type="button"
             onClick={() => handleSave()}
-            className="font-sans text-xs font-medium text-white bg-accent border-none rounded-md px-4 py-1.5 cursor-pointer hover:bg-accent-hover transition-colors"
+            className="rounded-sm px-[11px] py-[5px] font-serif text-[11px] font-medium tracking-[0.02em] transition-[filter] duration-150 hover:brightness-110"
+            style={{ backgroundColor: 'var(--paper-card-accent)', color: 'var(--paper-card-bg)' }}
           >
             {isEditing ? '保存' : '记录'}
           </button>
@@ -648,118 +995,154 @@ export function FloatingEventCard({
   function renderMealMode() {
     return (
       <>
+        {/* 纸头 */}
         <div
-          className="relative -mx-5 -mt-5 mb-4 h-[116px] overflow-hidden border-b border-border-subtle"
-          style={{
-            background: 'linear-gradient(135deg, color-mix(in srgb, var(--event-sand-bg) 84%, var(--surface-raised)), color-mix(in srgb, var(--surface-raised) 88%, transparent))',
-          }}
+          data-card-head="paper"
+          className="flex items-baseline gap-2 border-b px-[15px] pb-[7px] pt-[9px]"
+          style={{ borderColor: 'var(--paper-card-rule)' }}
         >
-          <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pt-3">
-            <button
-              type="button"
-              onClick={() => setShowTimeEdit(!showTimeEdit)}
-              className="inline-flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 font-mono text-xs text-text-secondary transition-colors duration-150 hover:text-text-primary"
-            >
-              <span className="h-2 w-2 flex-shrink-0 rounded-full bg-event-sand-fill" />
-              <span className="truncate">{timeRange}</span>
-              {durationMin > 0 && <span className="flex-shrink-0 text-text-tertiary">{formatDuration(durationMin)}</span>}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-text-tertiary transition-[transform,background-color,color] duration-150 hover:bg-surface-raised/70 hover:text-text-primary active:scale-[0.94]"
-              aria-label="关闭"
-            >
-              <X size={15} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowTimeEdit(!showTimeEdit)}
+            className="inline-flex min-w-0 flex-1 items-baseline gap-2 text-left font-mono text-[10.5px] tracking-[0.01em] transition-opacity duration-150 hover:opacity-70"
+            style={{ color: 'var(--paper-card-ink)' }}
+          >
+            <span
+              className="inline-block h-[5px] w-[5px] flex-shrink-0"
+              style={{ backgroundColor: 'var(--event-sand-fill)', borderRadius: '50%' }}
+            />
+            <span className="truncate">{headerTime}</span>
+            {durationMin > 0 && (
+              <span className="flex-shrink-0 text-[9px]" style={{ color: 'var(--paper-card-ink-3)' }}>
+                {formatDuration(durationMin)}
+              </span>
+            )}
+          </button>
+          <span
+            data-card-cat="paper"
+            className="max-w-[86px] truncate font-serif text-[9.5px] tracking-[0.04em]"
+            style={{ color: 'var(--event-sand-text)' }}
+          >
+            饮食
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-150 hover:opacity-60"
+            style={{ color: 'var(--paper-card-ink-3)' }}
+            aria-label="关闭"
+          >
+            <X size={14} />
+          </button>
+        </div>
 
-          <div className="absolute bottom-3 left-5 z-10">
-            <div className="text-2xs font-medium uppercase tracking-[0.16em] text-event-sand-text/80">Meal note</div>
-            <div className="mt-1 font-serif text-lg font-medium text-text-primary">记下这一顿</div>
+        {/* 纸上的插图带：猫坐在纸上，不是渐变横幅 */}
+        <div className="relative h-[74px] overflow-hidden px-[15px]">
+          <div className="pt-2.5 font-mono text-[8.5px] uppercase tracking-[0.16em]" style={{ color: 'var(--paper-card-ink-4)' }}>
+            Meal note
           </div>
-
+          <div className="mt-0.5 font-serif text-[15px] font-medium" style={{ color: 'var(--paper-card-ink)' }}>
+            记下这一顿
+          </div>
           <img
             src={eatingCatImage}
             alt=""
             width={720}
             height={335}
             draggable={false}
-            className="pointer-events-none absolute -bottom-2 -right-3 h-[92px] w-[198px] select-none object-contain object-bottom opacity-90 dark:opacity-70 dark:brightness-75"
+            className="pointer-events-none absolute -bottom-1 right-2 h-[68px] w-[146px] select-none object-contain object-bottom opacity-80 dark:opacity-55 dark:brightness-75"
           />
         </div>
 
+        {/* 时间编辑：下划线 */}
         {showTimeEdit && (
-          <div className="mb-4 rounded-xl border border-border-subtle bg-surface-raised/55 p-2.5">
-            <div className="flex items-center gap-1.5">
+          <div
+            className="mb-2 border-b px-[15px] pb-2.5"
+            style={{ borderColor: 'var(--paper-card-rule)' }}
+            data-card-time="paper"
+          >
+            <div className="flex items-center gap-2">
               <input
                 type="time"
                 value={startStr}
-                onChange={(event) => { setStartStr(event.target.value); setError(null) }}
-                className="flex-1 rounded-lg border border-border-subtle bg-surface-sunken px-2 py-1.5 font-mono text-xs text-text-primary focus:border-event-sand-fill focus-visible:outline-none"
+                onChange={(event) => { setStartStr(event.target.value); setTimeTouched(true); setError(null) }}
+                className="flex-1 border-0 border-b bg-transparent px-0 py-1 font-mono text-[11px] outline-none"
+                style={{ borderColor: 'var(--paper-card-rule)', color: 'var(--paper-card-ink)' }}
               />
               <button
                 type="button"
-                onClick={() => { setCrossDay(!crossDay); setError(null) }}
-                className={cn(
-                  'flex-shrink-0 rounded-lg border px-2 py-1.5 text-xs transition-[transform,background-color,color,border-color] duration-150 active:scale-[0.97]',
-                  crossDay
-                    ? 'border-event-sand-fill bg-event-sand-bg text-event-sand-text'
-                    : 'border-border-subtle bg-surface-sunken text-text-tertiary',
-                )}
+                onClick={() => { setCrossDay(!crossDay); setTimeTouched(true); setError(null) }}
+                className="flex-shrink-0 px-1 py-1 font-serif text-[10.5px] tracking-[0.02em] transition-opacity duration-150 hover:opacity-70"
+                style={{ color: crossDay ? 'var(--event-sand-text)' : 'var(--paper-card-ink-3)' }}
+                title="次日"
               >
                 次日
               </button>
               <input
                 type="time"
                 value={endStr}
-                onChange={(event) => { setEndStr(event.target.value); setError(null) }}
-                className="flex-1 rounded-lg border border-border-subtle bg-surface-sunken px-2 py-1.5 font-mono text-xs text-text-primary focus:border-event-sand-fill focus-visible:outline-none"
+                onChange={(event) => { setEndStr(event.target.value); setTimeTouched(true); setError(null) }}
+                className="flex-1 border-0 border-b bg-transparent px-0 py-1 font-mono text-[11px] outline-none"
+                style={{ borderColor: 'var(--paper-card-rule)', color: 'var(--paper-card-ink)' }}
               />
             </div>
           </div>
         )}
 
-        <label className="mb-2 block text-xs font-medium tracking-[0.06em] text-text-secondary" htmlFor="meal-food-input">
-          吃了什么
-        </label>
-        <div className="flex items-center gap-2.5 rounded-xl border border-border-default bg-surface-raised/75 px-3 shadow-[inset_0_1px_0_var(--surface-lit)] transition-[border-color,box-shadow] duration-150 focus-within:border-event-sand-fill focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--event-sand-fill)_13%,transparent),inset_0_1px_0_var(--surface-lit)]">
-          <Utensils size={16} className="flex-shrink-0 text-event-sand-text" aria-hidden="true" />
-          <input
+        <div className="px-[15px] pb-1 pt-1">
+          <label
+            className="mb-1 block font-mono text-[9px] tracking-[0.09em]"
+            style={{ color: 'var(--paper-card-ink-3)' }}
+            htmlFor="meal-food-input"
+          >
+            吃了什么
+          </label>
+          <CardInput
             id="meal-food-input"
-            ref={inputRef}
-            type="text"
+            inputRef={inputRef}
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={setTitle}
             onKeyDown={handleKeyDown}
             placeholder="牛肉面、鸡蛋、青菜"
-            className="h-12 min-w-0 flex-1 bg-transparent font-sans text-base text-text-primary outline-none placeholder:text-text-tertiary/70"
+            accent="var(--event-sand-fill)"
+            ghostSuffix={showInlineCompletion ? completionSuffix : ''}
+            rightSlot={<Utensils size={14} className="mr-1 flex-shrink-0" style={{ color: 'var(--event-sand-text)' }} aria-hidden="true" />}
           />
         </div>
 
-        {showInlineCompletion && topSuggestion && (
-          <button
-            type="button"
-            onMouseDown={(event) => {
-              event.preventDefault()
-              acceptSuggestion(topSuggestion)
-            }}
-            className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg bg-surface-raised/55 px-2.5 py-1.5 text-left text-xs text-text-secondary transition-[transform,background-color,color] duration-150 hover:bg-surface-raised hover:text-text-primary active:scale-[0.98]"
-          >
-            <span className="truncate">补全为「{topSuggestion.title}」</span>
-            <span className="flex-shrink-0 font-mono text-text-quaternary">{topSuggestion.count} 次 · Tab</span>
-          </button>
-        )}
+        {(showInlineCompletion && topSuggestion) || error ? (
+          <div className="px-[15px]">
+            {showInlineCompletion && topSuggestion && (
+              <button
+                type="button"
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                  acceptSuggestion(topSuggestion)
+                }}
+                className="mt-1 inline-flex max-w-full items-center gap-1.5 py-0.5 text-left font-serif text-[10.5px] italic transition-opacity duration-150 hover:opacity-70"
+                style={{ color: 'var(--paper-card-ink-3)' }}
+              >
+                <span className="truncate">补全为「{topSuggestion.title}」</span>
+                <span className="flex-shrink-0 font-mono text-[9px] not-italic">{topSuggestion.count} 次 · Tab</span>
+              </button>
+            )}
+            {error && (
+              <p className="mt-1 font-serif text-[10.5px]" style={{ color: 'var(--color-text-danger)' }}>{error}</p>
+            )}
+          </div>
+        ) : null}
 
-        {error && <p className="mt-2 text-xs text-color-text-danger">{error}</p>}
-
-        <div className="mt-4 flex items-center gap-2">
-          <span className="min-w-0 flex-1 text-2xs text-text-tertiary">只写食物名称，按 Enter 也可记下</span>
+        {/* 纸脚 */}
+        <div className="mt-3 flex items-center gap-[7px] px-[15px] pb-[11px] pt-[6px]">
+          <span className="min-w-0 flex-1 font-serif text-[10px] italic" style={{ color: 'var(--paper-card-ink-4)' }}>
+            只写食物名称，按 Enter 也可记下
+          </span>
           {isEditing && (
             <button
               type="button"
               onClick={handleDelete}
-              className="rounded-lg px-3 py-2 text-xs text-color-text-danger transition-[transform,background-color] duration-150 hover:bg-color-text-danger/10 active:scale-[0.97]"
+              className="rounded-sm px-[11px] py-[5px] font-serif text-[11px] tracking-[0.02em] transition-opacity duration-150 hover:opacity-70"
+              style={{ color: 'var(--color-text-danger)' }}
             >
               删除
             </button>
@@ -767,7 +1150,8 @@ export function FloatingEventCard({
           <button
             type="button"
             onClick={() => handleSave()}
-            className="rounded-lg bg-event-sand-fill px-5 py-2.5 text-xs font-semibold text-white transition-[transform,filter] duration-150 hover:brightness-95 active:scale-[0.97] dark:text-[#29251e]"
+            className="rounded-sm px-[11px] py-[5px] font-serif text-[11px] font-medium tracking-[0.02em] transition-[filter] duration-150 hover:brightness-110"
+            style={{ backgroundColor: 'var(--event-sand-fill)', color: 'var(--paper-card-bg)' }}
           >
             {isEditing ? '保存' : '记下'}
           </button>
@@ -785,56 +1169,89 @@ export function FloatingEventCard({
 
     return (
       <>
-        <div className="relative -mx-5 -mt-5 mb-4 border-b border-border-subtle bg-surface-raised/55 px-4 py-3 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowTimeEdit(!showTimeEdit)}
-              className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 font-mono text-xs text-text-secondary transition-colors duration-150 hover:text-text-primary"
-            >
-              <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: catColor }} />
-              <span className="truncate">{headerTime}</span>
-              {durationMin > 0 && <span className="flex-shrink-0 text-text-tertiary">{formatDuration(durationMin)}</span>}
-            </button>
-            <span className="max-w-[76px] truncate rounded-full border border-border-subtle bg-surface-base/60 px-2 py-1 text-2xs font-medium text-text-secondary" title={activeCategoryName}>
-              {activeCategoryName}
-            </span>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-text-tertiary transition-[transform,background-color,color] duration-150 hover:bg-surface-sunken hover:text-text-primary active:scale-[0.94]"
-              aria-label="关闭"
-            >
-              <X size={15} />
-            </button>
-          </div>
+        {/* 纸头：时间用等宽字体、分类名用衬线裸文字，没有胶囊也没有底条 */}
+        <div
+          data-card-head="paper"
+          className="flex items-baseline gap-2 border-b px-[15px] pb-[7px] pt-[9px]"
+          style={{ borderColor: 'var(--paper-card-rule)' }}
+        >
+          <button
+            type="button"
+            onClick={() => setShowTimeEdit(!showTimeEdit)}
+            className="inline-flex min-w-0 flex-1 items-baseline gap-2 text-left font-mono text-[10.5px] tracking-[0.01em] transition-opacity duration-150 hover:opacity-70"
+            style={{ color: 'var(--paper-card-ink)' }}
+          >
+            <span
+              className="inline-block h-[5px] w-[5px] flex-shrink-0"
+              style={{ backgroundColor: catColor, borderRadius: '50%' }}
+            />
+            <span className="truncate">{headerTime}</span>
+            {durationMin > 0 && (
+              <span className="flex-shrink-0 text-[9px]" style={{ color: 'var(--paper-card-ink-3)' }}>
+                {formatDuration(durationMin)}
+              </span>
+            )}
+          </button>
+          <span
+            data-card-cat="paper"
+            className="max-w-[86px] truncate font-serif text-[9.5px] tracking-[0.04em]"
+            style={{ color: 'var(--paper-card-accent)' }}
+            title={activeCategoryName}
+          >
+            {activeCategoryName}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-150 hover:opacity-60"
+            style={{ color: 'var(--paper-card-ink-3)' }}
+            aria-label="关闭"
+          >
+            <X size={14} />
+          </button>
         </div>
 
+        {/* 时间编辑也是纸上的：下划线输入 + 文字按钮，没有圆角盒子 */}
         {showTimeEdit && (
-          <div className="mb-4 rounded-xl border border-border-subtle bg-surface-raised/55 p-2.5">
-            <div className="flex items-center gap-1.5">
-              <input type="time" value={startStr} onChange={(event) => { setStartStr(event.target.value); setError(null) }} className="flex-1 rounded-lg border border-border-subtle bg-surface-sunken px-2 py-1.5 font-mono text-xs text-text-primary focus:border-border-default focus-visible:outline-none" />
+          <div
+            className="mb-3 border-b px-[15px] pb-2.5 pt-3"
+            style={{ borderColor: 'var(--paper-card-rule)' }}
+            data-card-time="paper"
+          >
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={startStr}
+                onChange={(event) => { setStartStr(event.target.value); setTimeTouched(true); setError(null) }}
+                className="flex-1 border-0 border-b bg-transparent px-0 py-1 font-mono text-[11px] outline-none"
+                style={{ borderColor: 'var(--paper-card-rule)', color: 'var(--paper-card-ink)' }}
+              />
               <button
                 type="button"
-                onClick={() => { setCrossDay(!crossDay); setError(null) }}
-                className={cn(
-                  'flex-shrink-0 rounded-lg border px-2 py-1.5 text-xs transition-[transform,background-color,color,border-color] duration-150 active:scale-[0.97]',
-                  crossDay ? 'border-accent/40 bg-accent/10 text-accent' : 'border-border-subtle bg-surface-sunken text-text-tertiary',
-                )}
+                onClick={() => { setCrossDay(!crossDay); setTimeTouched(true); setError(null) }}
+                className="flex-shrink-0 px-1 py-1 font-serif text-[10.5px] tracking-[0.02em] transition-opacity duration-150 hover:opacity-70"
+                style={{ color: crossDay ? 'var(--paper-card-accent)' : 'var(--paper-card-ink-3)' }}
                 title="次日"
               >次日</button>
-              <input type="time" value={endStr} onChange={(event) => { setEndStr(event.target.value); setError(null) }} className="flex-1 rounded-lg border border-border-subtle bg-surface-sunken px-2 py-1.5 font-mono text-xs text-text-primary focus:border-border-default focus-visible:outline-none" />
+              <input
+                type="time"
+                value={endStr}
+                onChange={(event) => { setEndStr(event.target.value); setTimeTouched(true); setError(null) }}
+                className="flex-1 border-0 border-b bg-transparent px-0 py-1 font-mono text-[11px] outline-none"
+                style={{ borderColor: 'var(--paper-card-rule)', color: 'var(--paper-card-ink)' }}
+              />
             </div>
-            <div className="mt-2 flex gap-1.5">
+            <div className="mt-2 flex gap-1">
               {[15, 30, 60, 120].map((minutes) => (
                 <button
                   key={minutes}
                   type="button"
                   onClick={() => applyDuration(minutes)}
-                  className={cn(
-                    'flex-1 rounded-md border py-1 text-2xs transition-[transform,background-color,color,border-color] duration-150 active:scale-[0.97]',
-                    durationMin === minutes ? 'border-border-default bg-surface-raised text-text-primary' : 'border-transparent bg-surface-sunken text-text-tertiary',
-                  )}
+                  className="flex-1 py-1 font-mono text-[9px] tracking-[0.04em] transition-opacity duration-150 hover:opacity-70"
+                  style={{
+                    color: durationMin === minutes ? 'var(--paper-card-ink)' : 'var(--paper-card-ink-3)',
+                    borderBottom: durationMin === minutes ? '1px solid var(--paper-card-ink-3)' : '1px solid transparent',
+                  }}
                 >
                   {minutes < 60 ? `${minutes}分` : `${minutes / 60}时`}
                 </button>
@@ -843,64 +1260,60 @@ export function FloatingEventCard({
           </div>
         )}
 
-        <div
-          className="relative rounded-xl border border-border-default bg-surface-raised/75 shadow-[inset_0_1px_0_var(--surface-lit)] transition-[border-color,box-shadow] duration-150 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_10%,transparent),inset_0_1px_0_var(--surface-lit)]"
-          style={{ borderLeftWidth: 3, borderLeftColor: catColor }}
-        >
-          {showInlineCompletion && (
-            <div className={cn('pointer-events-none absolute inset-0 z-0 flex h-12 items-center overflow-hidden whitespace-nowrap pl-3', showMealShortcut ? 'pr-[98px]' : 'pr-3')} aria-hidden="true">
-              <span className="text-text-primary">{title}</span>
-              <span className="text-sm italic text-text-quaternary">{completionSuffix}</span>
-              <span className="ml-1 text-2xs text-text-quaternary">{topSuggestion!.count}</span>
-            </div>
-          )}
-          <input
-            ref={inputRef}
-            type="text"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholderText}
-            className={cn(
-              'relative z-10 h-12 w-full bg-transparent pl-3 font-sans text-base outline-none placeholder:text-text-tertiary/75',
-              showMealShortcut ? 'pr-[98px]' : 'pr-3',
-              showInlineCompletion ? 'text-transparent' : 'text-text-primary',
-            )}
-            style={{ caretColor: 'var(--text-primary)' }}
-          />
-          {showMealShortcut && (
+        <div className="px-[15px] pb-1 pt-[10px]">
+        <CardInput
+          inputRef={inputRef}
+          value={title}
+          onChange={setTitle}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholderText}
+          accent={catColor}
+          ghostSuffix={showInlineCompletion ? completionSuffix : ''}
+          ghostCount={showInlineCompletion ? topSuggestion!.count : undefined}
+          rightSlot={showMealShortcut ? (
             <button
               type="button"
               onPointerDown={(event) => event.preventDefault()}
               onClick={() => { setMode('meal-food'); setTitle(''); setSuggestions([]); inputRef.current?.focus() }}
-              className="absolute right-1.5 top-1/2 z-20 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-lg border border-event-sand-fill/30 bg-event-sand-bg/80 px-2.5 py-1.5 text-xs font-medium text-event-sand-text transition-[transform,background-color,border-color] duration-150 hover:border-event-sand-fill/50 hover:bg-event-sand-bg active:scale-[0.97]"
+              className="inline-flex flex-shrink-0 items-center gap-1 px-1.5 py-1 font-serif text-[10.5px] tracking-[0.02em] transition-opacity duration-150 hover:opacity-70"
+              style={{ color: 'var(--paper-card-ink-3)' }}
               aria-label="记录吃了什么"
             >
-              <Utensils size={12} aria-hidden="true" />饮食
+              <Utensils size={11} aria-hidden="true" />饮食
             </button>
-          )}
+          ) : undefined}
+        />
         </div>
 
-        {hygieneHint && <div className="mt-2 inline-flex items-center rounded-lg bg-surface-raised/55 px-2.5 py-1.5 text-xs text-text-secondary">将记录为卫生 · {hygieneHint.name}</div>}
+        {(hygieneHint || (showHint && showRecent) || lastSaved || error) && (
+          <div className="px-[15px]">
+            {hygieneHint && (
+              <div className="mt-1 font-serif text-[10.5px] italic" style={{ color: 'var(--paper-card-ink-3)' }}>
+                将记录为卫生 · {hygieneHint.name}
+              </div>
+            )}
 
-        {showHint && showRecent && (
-          <div className="mt-2 flex items-center gap-3 px-1 text-2xs text-text-tertiary/75">
-            <span>Enter 记录并继续</span><span>Tab 补全</span><span>Esc 关闭</span>
+            {showHint && showRecent && (
+              <div className="mt-1 flex items-center gap-3 font-mono text-[9px] tracking-[0.03em]" style={{ color: 'var(--paper-card-ink-3)' }}>
+                <span>Enter 记录并继续</span><span>Tab 补全</span><span>Esc 关闭</span>
+              </div>
+            )}
+
+            {lastSaved && (
+              <div className="mt-1 flex items-center gap-2 font-mono text-[9px]" style={{ color: 'var(--paper-card-ink-2)' }}>
+                <span className="min-w-0 truncate">
+                  已存「{lastSaved.title || '未命名'}」 {tsToStr(lastSaved.start)}–{tsToStr(lastSaved.end)}
+                </span>
+              </div>
+            )}
+
+            {error && <p className="mt-1 font-serif text-[10.5px]" style={{ color: 'var(--color-text-danger)' }}>{error}</p>}
           </div>
         )}
 
-        {lastSaved && (
-          <div className="mt-2 flex items-center gap-2 rounded-lg bg-surface-sunken/70 px-2.5 py-1.5 text-2xs text-text-secondary">
-            <span className="min-w-0 truncate">
-              已存「{lastSaved.title || '未命名'}」 {tsToStr(lastSaved.start)}–{tsToStr(lastSaved.end)}
-            </span>
-          </div>
-        )}
-
-        {error && <p className="mt-2 text-xs text-color-text-danger">{error}</p>}
-
-        <div className="mt-4 flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        {/* 纸脚：裸圆点 + 文字按钮，没有方块边框 */}
+        <div className="mt-3 flex items-center gap-[7px] px-[15px] pb-[11px] pt-[6px]">
+          <div data-card-dots="paper" className="flex min-w-0 flex-1 items-center gap-[7px]">
             {CATEGORY_BARS.map(({ id, altKey }) => {
               const name = categories.find((category) => category.id === id)?.name ?? id
               const active = id === categoryId
@@ -912,21 +1325,56 @@ export function FloatingEventCard({
                   title={`${name} · Alt+${altKey}`}
                   aria-label={name}
                   aria-pressed={active}
-                  className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-lg border transition-[transform,background-color,border-color] duration-150 active:scale-[0.94]',
-                    active ? 'border-border-default bg-surface-raised' : 'border-transparent bg-transparent hover:bg-surface-sunken',
-                  )}
+                  className="grid h-[13px] w-[13px] place-items-center rounded-full p-0 transition-all duration-150"
+                  style={{
+                    border: active ? '1px solid var(--paper-card-edge)' : '1px solid transparent',
+                    background: active ? 'color-mix(in srgb, var(--paper-card-lit) 80%, transparent)' : 'transparent',
+                  }}
                 >
-                  <span className={cn('rounded-full transition-[width,height,opacity] duration-150', active ? 'h-3.5 w-3.5 opacity-100' : 'h-2.5 w-2.5 opacity-60')} style={{ backgroundColor: `var(--event-${id}-fill)` }} />
+                  <span
+                    className="block rounded-full transition-all duration-150"
+                    style={{
+                      width: active ? 8 : 6,
+                      height: active ? 8 : 6,
+                      opacity: active ? 1 : 0.42,
+                      backgroundColor: `var(--event-${id}-fill)`,
+                    }}
+                  />
                 </button>
               )
             })}
           </div>
-          {isEditing && <button type="button" onClick={handleDelete} className="rounded-lg px-3 py-2 text-xs text-color-text-danger transition-[transform,background-color] duration-150 hover:bg-color-text-danger/10 active:scale-[0.97]">删除</button>}
-          {!isEditing && <button type="button" onClick={() => handleSave(true)} title="记录并继续下一条 (Shift+Enter)" className="rounded-lg border border-border-default bg-surface-raised/55 px-3 py-2 text-xs font-medium text-text-secondary transition-[transform,background-color,color] duration-150 hover:bg-surface-raised hover:text-text-primary active:scale-[0.97]">继续</button>}
-          <button type="button" onClick={() => handleSave()} className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white transition-[transform,background-color] duration-150 hover:bg-accent-hover active:scale-[0.97]">
-            {isEditing ? '保存' : '记录'}
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            {isEditing && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="rounded-sm px-[11px] py-[5px] font-serif text-[11px] tracking-[0.02em] transition-colors duration-150 hover:opacity-70"
+                style={{ color: 'var(--color-text-danger)' }}
+              >
+                删除
+              </button>
+            )}
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={() => handleSave(true)}
+                title="记录并继续下一条 (Shift+Enter)"
+                className="rounded-sm border border-transparent px-[11px] py-[5px] font-serif text-[11px] tracking-[0.02em] transition-colors duration-150 hover:opacity-70"
+                style={{ color: 'var(--paper-card-ink-2)' }}
+              >
+                继续
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleSave()}
+              className="rounded-sm px-[11px] py-[5px] font-serif text-[11px] font-medium tracking-[0.02em] transition-[filter] duration-150 hover:brightness-110"
+              style={{ backgroundColor: 'var(--paper-card-accent)', color: 'var(--paper-card-bg)' }}
+            >
+              {isEditing ? '保存' : '记录'}
+            </button>
+          </div>
         </div>
       </>
     )
@@ -950,15 +1398,30 @@ export function FloatingEventCard({
         align="start"
         sideOffset={8}
         collisionPadding={16}
+        data-skin="paper"
         className={cn(
-          'p-5 rounded-xl border-border-default max-md:!w-[calc(100vw-1rem)]',
+          'max-md:!w-[calc(100vw-1rem)]',
           mode === 'meal-food' ? 'w-[352px] max-md:max-w-[352px] overflow-hidden' : 'w-[352px] max-md:max-w-[352px]',
         )}
-        style={{
-          background: mode === 'meal-food'
-            ? 'var(--event-sand-bg)'
-            : `color-mix(in srgb, var(--surface-raised) 92%, var(--event-${visualCategoryId}-bg))`,
-        }}
+        style={mode === 'meal-food'
+          ? {
+              ['--paper-card-accent' as string]: catColor,
+              background: 'var(--event-sand-bg)',
+              padding: '20px',
+              borderRadius: 3,
+              border: '1px solid var(--paper-card-edge)',
+            }
+          : {
+              // 纸：容器自己不留 padding，由各区块负责 —— 否则 20px + 15px 叠成 35px
+              // 强调色由当前分类注入，覆盖 tokens.css 里的兜底值
+              ['--paper-card-accent' as string]: catColor,
+              background: 'var(--paper-card-bg)',
+              padding: 0,
+              borderRadius: 3,
+              border: '1px solid var(--paper-card-edge)',
+              borderLeft: '3px solid var(--paper-card-accent)',
+              boxShadow: 'inset 0 1px 0 var(--paper-card-lit), 0 2px 8px rgba(43,38,32,0.045)',
+            }}
         onPointerDownOutside={onClose}
         onEscapeKeyDown={onClose}
         onOpenAutoFocus={(e) => e.preventDefault()}

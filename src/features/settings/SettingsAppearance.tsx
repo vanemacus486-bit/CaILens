@@ -2,8 +2,6 @@ import { cn } from '@/lib/utils'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import type { AppTheme, FontScale, UiFont, DefaultView } from '@/domain/settings'
-import type { AppLanguage } from '@/i18n/types'
-import { LANGUAGE_LABELS, LANGUAGE_ORDER } from '@/i18n/types'
 import { useT } from '@/i18n/useT'
 import { SlideSegmented } from '@/components/nav/SlideSegmented'
 import { VisualStyleGrid } from './VisualStyleGrid'
@@ -40,7 +38,6 @@ export function SettingsAppearance() {
   const setFontScale = useAppSettingsStore((s) => s.setFontScale)
   const setUiFont = useAppSettingsStore((s) => s.setUiFont)
   const setDefaultView = useAppSettingsStore((s) => s.setDefaultView)
-  const setLanguage = useAppSettingsStore((s) => s.setLanguage)
 
   const t = useT()
 
@@ -105,7 +102,7 @@ export function SettingsAppearance() {
         </SettingsRow>
 
         {/* 初始视图 */}
-        <SettingsRow label={t('settings.defaultView')}>
+        <SettingsRow label={t('settings.defaultView')} last>
           <SlideSegmented<DefaultView>
             items={[
               { id: 'week',  label: t('settings.weekView')  },
@@ -114,26 +111,6 @@ export function SettingsAppearance() {
             value={settings.defaultView ?? 'week'}
             onChange={(v) => fireAndForget(setDefaultView(v), 'set default view')}
           />
-        </SettingsRow>
-
-        {/* 界面语言 */}
-        <SettingsRow label={t('settings.language')} last>
-          <div className="flex gap-0.5 bg-surface-sunken rounded-lg p-0.5 flex-wrap">
-            {LANGUAGE_ORDER.map((lang) => (
-              <button
-                key={lang}
-                onClick={() => fireAndForget(setLanguage(lang as AppLanguage), 'set language')}
-                className={cn(
-                  'px-3 py-1 rounded-md text-xs font-sans font-medium transition-all duration-200 cursor-pointer border-none whitespace-nowrap',
-                  settings.language === lang
-                    ? 'bg-surface-raised text-text-primary shadow-pill'
-                    : 'text-text-secondary hover:text-text-primary',
-                )}
-              >
-                {LANGUAGE_LABELS[lang]}
-              </button>
-            ))}
-          </div>
         </SettingsRow>
       </div>
     </div>

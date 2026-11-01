@@ -1,4 +1,4 @@
-@import '@fontsource/inter/400.css';
+﻿@import '@fontsource/inter/400.css';
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/600.css';
 @import '@fontsource/source-serif-4/400.css';
@@ -1262,6 +1262,88 @@ body {
 
 .stats-lens-tabs button:active { transform: scale(.97); }
 .stats-header-b3-rail { display: flex; justify-content: flex-end; }
+/* ── 趋势视图：tabs 收进右上角 + 周期步进 ─────────────── */
+.stats-header-subtitle {
+  margin-top: 5px;
+  color: var(--text-tertiary);
+  font: 400 11px/1.2 'JetBrains Mono', monospace;
+  letter-spacing: .02em;
+}
+
+.stats-header-b3.is-inline {
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: start;
+}
+
+.stats-header-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/*
+ * tabs + 步进合成一个胶囊。
+ * 内部形成对比：tab 是方形实底（主角），箭头是圆形淡底（配角）。
+ */
+.stats-lens-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-raised) 82%, transparent);
+}
+
+/* 胶囊内部：tabs 去掉自己的外框，避免双层边框 */
+.stats-lens-cluster .stats-lens-tabs {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.stats-lens-cluster .stats-lens-tabs button {
+  border-radius: 8px;
+}
+
+.stats-step-btn {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--text-tertiary);
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface-sunken) 38%, transparent);
+  transition:
+    color 200ms ease-out,
+    background-color 200ms ease-out,
+    transform 160ms ease-out;
+}
+
+.stats-step-btn:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--surface-sunken) 80%, transparent);
+  transform: scale(1.04);
+}
+
+.stats-step-btn:active {
+  transform: scale(.94);
+}
+
+.stats-step-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 760px) {
+  .stats-header-b3.is-inline { grid-template-columns: 1fr; }
+  .stats-header-controls { align-items: flex-start; }
+}
 
 @media (max-width: 760px) {
   .stats-header-b3 { grid-template-columns: 1fr; align-items: start; gap: 10px; }

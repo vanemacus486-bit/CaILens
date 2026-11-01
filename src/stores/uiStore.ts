@@ -1,17 +1,27 @@
 import { create } from 'zustand'
 import type { CreateEventInput } from '@/domain/event'
 
+/**
+ * 设置选项卡 key。
+ *
+  * 前七个是侧栏可见项（顺序见 `features/settings/settingsTabs.ts`）；
+ * 其余是**隐藏子页**：从父页进入，不出现在侧栏 —— 保留是为了不丢已有功能。
+ */
 export type SettingsTab =
-  | 'account'
-  | 'categories'
-  | 'hygiene'
+  // 侧栏可见
+  | 'about'
   | 'appearance'
+  | 'interface'
+  | 'file'
   | 'shortcuts'
+  | 'core-plugins'
+  | 'third-party'
+  // 隐藏子页
+  | 'account'
   | 'data'
   | 'storage'
-  | 'about'
   | 'support'
-  | 'ai'
+  // 旧 key（历史值 / 旧调用点）
   | 'plugins'
 
 interface UIState {
@@ -25,6 +35,17 @@ interface UIState {
   toggleSidebar: () => void
   setCommandPaletteOpen: (open: boolean) => void
   setSettingsModalOpen: (open: boolean) => void
+  /**
+   * 打开设置。
+   *
+   * 桌面端（Tauri）走独立窗口 `open_settings_window`：和主窗口平级、
+   * 自带标题栏、可最小化/最大化/全屏/缩放。网页端没有多窗口能力，
+   * 回落成原来的模态弹窗。
+   *
+   * `tab` 会同时写进本窗口的 activeSettingsTab（窗口内导航用），
+   * 并作为参数传给 Rust——已存在的窗口靠 `settings:set-tab` 事件切过去。
+   */
+  openSettings: (tab?: SettingsTab) => Promise<void>
   setActiveSettingsTab: (tab: SettingsTab) => void
   setClipboardEvent: (event: CreateEventInput | null) => void
   setLastFocusedEventId: (id: string | null) => void
@@ -47,7 +68,7 @@ export const useUIStore = create<UIState>()((set) => ({
   sidebarExpanded: loadSidebarExpanded(),
   commandPaletteOpen: false,
   settingsModalOpen: false,
-  activeSettingsTab: 'categories',
+  activeSettingsTab: 'about',
   clipboardEvent: null,
   lastFocusedEventId: null,
   quickCaptureInboxOpen: false,
@@ -58,6 +79,20 @@ export const useUIStore = create<UIState>()((set) => ({
   }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setSettingsModalOpen: (open) => set({ settingsModalOpen: open }),
+  openSettings: async (tab) => {
+    if (tab) set({ activeSettingsTab: tab })
+    const { isTauriDesktop } = await import('@/lib/platform')
+    if (isTauriDesktop()) {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('open_settings_window', { tab: tab ?? null })
+        return
+      } catch (e) {
+        console.error('[openSettings] 独立窗口打开失败，回落为弹窗', e)
+      }
+    }
+    set({ settingsModalOpen: true })
+  },
   setActiveSettingsTab: (tab) => set({ activeSettingsTab: tab }),
   setClipboardEvent: (event) => set({ clipboardEvent: event }),
   setLastFocusedEventId: (id) => set({ lastFocusedEventId: id }),

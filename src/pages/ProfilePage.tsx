@@ -11,6 +11,7 @@ import { fireAndForget } from '@/lib/fireAndForget'
 import { translate } from '@/i18n/useT'
 import { useProfileStore } from '@/stores/profileStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
+import { useUIStore } from '@/stores/uiStore'
 
 export function ProfilePage() {
   const navigate = useNavigate()
@@ -61,7 +62,7 @@ export function ProfilePage() {
         {/* 编辑入口 — 指向设置页 */}
         <div className="flex justify-center" style={{ marginTop: 48 }}>
           <button
-            onClick={() => navigate('/settings')}
+            onClick={() => { void useUIStore.getState().openSettings('account') }}
             className="font-sans cursor-pointer bg-transparent border-none transition-colors duration-150"
             style={{ fontSize: 12, color: 'var(--ink-2)' }}
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.textDecoration = 'underline' }}

@@ -1,4 +1,4 @@
-import type { PluginDefinition, PluginDomain } from './types'
+import type { PluginDefinition, PluginDomain, PluginDomainView } from './types'
 
 /**
  * 插件注册表。
@@ -124,6 +124,39 @@ export function collectLayouts(
     if (p.layout) map.set(p.id, p.layout)
   }
   return map
+}
+
+/**
+ * 收集某个域下所有子视图，按 order 升序。
+ *
+ * 三条过滤规则：
+ * 1. 贡献者插件必须启用（关掉一个视图插件，那一格就消失）
+ * 2. 域必须被某个**启用**插件认领（域主插件关掉后，子视图没有落脚处）
+ * 3. 同域内 id 重复时保留先出现者并告警 —— 静默取后者会让启用顺序决定行为
+ */
+export function collectDomainViews(
+  domainId: string,
+  enabledOverrides: Record<string, boolean> = {},
+): (PluginDomainView & { pluginId: string })[] {
+  const domainAlive = collectDomains(enabledOverrides).some(
+    (d) => d.domain.id === domainId,
+  )
+  if (!domainAlive) return []
+
+  const seen = new Set<string>()
+  const out: (PluginDomainView & { pluginId: string })[] = []
+  for (const p of activePlugins(enabledOverrides)) {
+    for (const v of p.domainViews ?? []) {
+      if (v.domainId !== domainId) continue
+      if (seen.has(v.id)) {
+        console.warn(`[plugin] duplicate domain view "${domainId}/${v.id}", skipping "${p.id}"`)
+        continue
+      }
+      seen.add(v.id)
+      out.push({ ...v, pluginId: p.id })
+    }
+  }
+  return out.sort((a, b) => a.order - b.order)
 }
 
 /** 测试用：清空注册表。生产代码不应调用。 */

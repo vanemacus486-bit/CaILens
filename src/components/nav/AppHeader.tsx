@@ -66,7 +66,14 @@ export function AppHeader() {
   const isStats = stepKind === 'date-step'
   const isFilterCycle = stepKind === 'filter-cycle'
   // 箭头按钮在「不步进日期」的插件域里降为次要色：那两个箭头不是导航，而是域内筛选/历史
-  const isQuietArrows = isPluginDomain && !isStats
+  // history 只对插件域成立：日历域由主体独占（不在 collectDomains 里），
+  // stepKind 会回落到默认值 'history'；若不守卫，/week 的 ← → 会变成浏览器后退，
+  // 翻周翻月彻底失效。
+  const isHistory = isPluginDomain && stepKind === 'history'
+  // 只有 filter-cycle 的箭头是域内筛选而非导航，才降为次要色。
+  // 不能写成 `isPluginDomain && !isStats` 反推：那会把 history 语义也判成「不重要的箭头」，
+  // 既让主体替插件决定箭头重要性，又掩盖了 history 分支没实现这件事。
+  const isQuietArrows = isFilterCycle
 
   const t = useT()
 
@@ -119,6 +126,11 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
 }
 
   const handlePrev = useCallback(() => {
+    // history 语义：插件声明它只要前进/后退，主体不该在这条路径上什么都不做
+    if (isHistory) {
+      navigate(-1)
+      return
+    }
     if (isWeek) {
       if (viewMode === 'month') {
         const dateParam = searchParams.get('date')
@@ -155,9 +167,13 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
       next.delete('archiveDate')
       setSearchParams(next, { replace: true })
     }
-  }, [isWeek, isStats, isFilterCycle, viewMode, searchParams, setSearchParams, navigate])
+  }, [isWeek, isStats, isFilterCycle, isHistory, viewMode, searchParams, setSearchParams, navigate])
 
   const handleNext = useCallback(() => {
+    if (isHistory) {
+      navigate(1)
+      return
+    }
     if (isWeek) {
       if (viewMode === 'month') {
         const dateParam = searchParams.get('date')
@@ -194,7 +210,7 @@ function shiftStatsDate(date: Date, step: StatsStep, period: string, dir: 1 | -1
       next.delete('archiveDate')
       setSearchParams(next, { replace: true })
     }
-  }, [isWeek, isStats, isFilterCycle, viewMode, searchParams, setSearchParams, navigate])
+  }, [isWeek, isStats, isFilterCycle, isHistory, viewMode, searchParams, setSearchParams, navigate])
 
   // ── W/M 切换（仅 /week） ──
   const toggleViewMode = useCallback(() => {

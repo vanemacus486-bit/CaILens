@@ -41,13 +41,27 @@ describe('get', () => {
 describe('update', () => {
   it('updates the language field', async () => {
     await repo.update({ language: 'en' })
-    await repo.get()
-    })
+    expect((await repo.get()).language).toBe('en')
+  })
 
   it('persists across successive get calls', async () => {
-    await repo.update({ language: 'en' });
-    expect((await repo.get()).language).toBe('zh');
-    expect((await repo.get()).language).toBe('zh');
+    await repo.update({ language: 'en' })
+    expect((await repo.get()).language).toBe('en')
+    expect((await repo.get()).language).toBe('en')
+  })
+
+  it('keeps every supported language intact', async () => {
+    for (const lang of ['en', 'es', 'ar', 'fr', 'ru', 'zh'] as const) {
+      await repo.update({ language: lang })
+      expect((await repo.get()).language).toBe(lang)
+    }
+  })
+
+  it('falls back to zh for an unknown language', async () => {
+    await db.open()
+    const seeded = await repo.get()
+    await db.settings.put({ ...seeded, language: 'xx' as typeof seeded.language })
+    expect((await repo.get()).language).toBe('zh')
   })
 
   it('does not overwrite the id field', async () => {
@@ -61,7 +75,7 @@ describe('update', () => {
     expect(returned.id).toBe('default')
   })
 
-  it('language is always zh', async () => {
+  it('language round-trips back to zh', async () => {
     await repo.update({ language: 'en' })
     await repo.update({ language: 'zh' })
     expect((await repo.get()).language).toBe('zh')
@@ -91,10 +105,10 @@ describe('update', () => {
     expect((await repo.get()).theme).toBe('light')
   })
 
-  it('updates theme', async () => {
+  it('updates theme and language together', async () => {
     await repo.update({ theme: 'dark', language: 'en' })
     const result = await repo.get()
     expect(result.theme).toBe('dark')
-    
+    expect(result.language).toBe('en')
   })
 })

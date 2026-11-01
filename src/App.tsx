@@ -11,6 +11,9 @@ const CommandPalette = lazy(() => import('@/features/search/CommandPalette').the
 const QuickCaptureInbox = lazy(() => import('@/features/action/QuickCaptureInbox').then((m) => ({ default: m.QuickCaptureInbox })))
 // 无条件挂载但内部 closed→null：改为「打开时才挂载」可把加密导出(age)/ics 库移出首屏
 const SettingsModal = lazy(() => import('@/features/settings/SettingsModal').then((m) => ({ default: m.SettingsModal })))
+// 独立设置窗口（Tauri label=`settings`）的入口。它在 Layout 之外渲染：
+// 那个窗口没有主界面的顶栏/侧栏，只有一个自绘标题栏 + 设置正文。
+const SettingsWindow = lazy(() => import('@/features/settings/SettingsWindow').then((m) => ({ default: m.SettingsWindow })))
 import { useUIStore } from '@/stores/uiStore'
 import { AppHeader } from '@/components/nav/AppHeader'
 import { UnifiedSidebar } from '@/components/nav/UnifiedSidebar'
@@ -131,20 +134,36 @@ function Layout() {
     return () => { for (const unsub of unsubs) unsub() }
   }, [])
 
-  // 跨窗口同步：QuickCapture 等独立 WebView 写入后，主窗口无感刷新。
+  // 跨窗口同步：其他 WebView（快速记录浮窗、独立设置窗口）写入后，主窗口无感刷新。
   // 200ms 合并连续写入（浮窗「记录并继续」会连发多条），避免每条都全量重读。
+  //
+  // 设置窗口是另一个 WebView，store 不共享：在那边改主题/语言/插件开关/分类名，
+  // 主窗口必须重读才看得到。各表刷新代价不同，所以分开合并计时——
+  // 不能共用一个 timer，否则改一个分类会把事件全量重读也顺带触发一遍。
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null
+    const timers = new Map<string, ReturnType<typeof setTimeout>>()
+    const schedule = (key: string, run: () => void) => {
+      const prev = timers.get(key)
+      if (prev) clearTimeout(prev)
+      timers.set(key, setTimeout(() => {
+        timers.delete(key)
+        run()
+      }, 200))
+    }
     const unsubscribe = subscribeCrossWindowWrites((table) => {
-      if (table !== 'events') return
-      if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
-        timer = null
-        void useEventStore.getState().reloadVisible()
-      }, 200)
+      if (table === 'events') {
+        schedule('events', () => { void useEventStore.getState().reloadVisible() })
+      } else if (table === 'settings') {
+        schedule('settings', () => { void useAppSettingsStore.getState().loadSettings() })
+      } else if (table === 'categories') {
+        schedule('categories', () => { void useCategoryStore.getState().loadCategories() })
+      } else if (table === 'profile') {
+        schedule('profile', () => { void useProfileStore.getState().loadProfile() })
+      }
     })
     return () => {
-      if (timer) clearTimeout(timer)
+      for (const t of timers.values()) clearTimeout(t)
+      timers.clear()
       unsubscribe()
     }
   }, [])
@@ -192,7 +211,8 @@ function Layout() {
       navigate(`/week?week=${formatISODate(ws)}&highlight=${formatISODate(today)}`)
     },
     goToCalendar: () => navigate('/week'),
-    openSettings: () => useUIStore.getState().setSettingsModalOpen(true),
+    // 桌面端开独立设置窗口，网页端回落弹窗；失败会自己吞掉并回落，不抛给快捷键层
+    openSettings: () => { void useUIStore.getState().openSettings() },
     toggleTheme: () => fireAndForget(
       setTheme(theme === 'dark' ? 'light' : 'dark'),
       'toggle theme',
@@ -265,10 +285,16 @@ function Layout() {
   return (
     <div className="h-screen flex flex-col bg-surface-base text-text-primary overflow-hidden">
       {/* 顶栏单独兜底：它崩了不该拖垮整页，用户还得能切视图 */}
+      {/* 顶栏与备用导航各自兜底：共用一个边界时，TopNavBar 崩了会被报成「顶栏出错了」，
+          把排查方向直接带偏；两者也不会同时渲染，拆开没有额外成本。 */}
       <ErrorBoundary title="顶栏出错了" compact>
         <AppHeader />
-        {(!isWeek && !inPluginDomain) && <TopNavBar />}
       </ErrorBoundary>
+      {(!isWeek && !inPluginDomain) && (
+        <ErrorBoundary title="导航栏出错了" compact>
+          <TopNavBar />
+        </ErrorBoundary>
+      )}
       <div className="relative flex-1 flex min-h-0">
         {sidebarExpanded && (
           <div className="absolute inset-y-0 left-0 z-40 pointer-events-none">
@@ -293,17 +319,23 @@ function Layout() {
           用户会以为快捷键失效。给一个轻量 spinner，让「正在加载」可见。 */}
       {commandPaletteOpen && (
         <Suspense fallback={<OverlayFallback />}>
-          <CommandPalette />
+          <ErrorBoundary title="搜索面板出错了" compact>
+            <CommandPalette />
+          </ErrorBoundary>
         </Suspense>
       )}
       {settingsModalOpen && (
         <Suspense fallback={<OverlayFallback />}>
-          <SettingsModal />
+          <ErrorBoundary title="设置弹窗出错了" compact>
+            <SettingsModal />
+          </ErrorBoundary>
         </Suspense>
       )}
       {quickCaptureInboxOpen && (
         <Suspense fallback={<OverlayFallback />}>
-          <QuickCaptureInbox />
+          <ErrorBoundary title="快速收集出错了" compact>
+            <QuickCaptureInbox />
+          </ErrorBoundary>
         </Suspense>
       )}
       <SnackbarHost />
@@ -360,6 +392,18 @@ export default function App() {
   return (
     <HashRouter>
       <Routes>
+        {/* 独立设置窗口。必须在 Layout 之外：它不是主界面的一页，
+            而是另一个 WebView 的整个内容。 */}
+        <Route
+          path="/settings-window"
+          element={
+            <Suspense fallback={null}>
+              <ErrorBoundary title="设置窗口出错了">
+                <SettingsWindow />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
         <Route element={<Layout />}>
           <Route path="/" element={<RedirectToWeek />} />
           <Route path="/week" element={<WeekView />} />

@@ -1,4 +1,4 @@
-﻿import Dexie, { type Table } from 'dexie'
+import Dexie, { type Table } from 'dexie'
 import type { CalendarEvent } from '@/domain/event'
 import type { Category, CategoryId } from '@/domain/category'
 import { DEFAULT_CATEGORIES } from '@/domain/category'
@@ -10,7 +10,6 @@ import type { Profile } from '@/domain/profile'
 import type { Todo } from '@/domain/todo'
 import type { TodoList } from '@/domain/todo'
 import type { ChroniclePhase, ChronicleTask } from '@/domain/chronicle'
-import type { AiChatRecord } from '@/domain/aiChat'
 import { DEFAULT_SETTINGS } from '@/domain/settings'
 import { upgradeV3, upgradeV4, upgradeV5, upgradeV16, upgradeV21, upgradeV24 } from './migrations/upgrades'
 
@@ -32,7 +31,6 @@ export class CailensDB extends Dexie {
   todoLists!: Table<TodoList, string>
   chroniclePhases!: Table<ChroniclePhase, string>
   chronicleTasks!: Table<ChronicleTask, string>
-  aiChats!: Table<AiChatRecord, string>
 
   constructor(name = 'cailens') {
     super(name)
@@ -379,6 +377,11 @@ export class CailensDB extends Dexie {
     // v34: 新增 aiChats 表（AI 对话记录，按本地日期一条，id = dateKey）
     this.version(34).stores({
       aiChats: 'id, dateKey, updatedAt',
+    })
+
+    // v35: AI 助手功能整体移除，删除 aiChats 表
+    this.version(35).stores({
+      aiChats: null,
     })
 
     // 鍏ㄦ柊 DB 棣栨鍒涘缓鏃惰Е鍙戯紙version 0 鈫?any锛?

@@ -17,7 +17,6 @@ import { WeekDateHeader } from './WeekDateHeader'
 import { EventDetailCard } from './EventDetailCard'
 import { WeekEmptyState } from './WeekEmptyState'
 import { MonthView } from '@/features/month-view/MonthView'
-import { DayDrawer } from './DayDrawer'
 import { FloatingEventCard } from '@/features/quick-log/FloatingEventCard'
 import { showUndoSnackbar } from '@/components/ui/snackbar'
 import { saveSession, useScrollSave, useScrollRestore } from '@/hooks/useSessionRestore'
@@ -74,9 +73,6 @@ export function WeekView() {
 
   const [highlightedDayMs, setHighlightedDayMs] = useState<number | null>(null)
 
-  // 右侧信息面板选中的日期
-  const [drawerDayMs, setDrawerDayMs] = useState<number | null>(null)
-
   // Parse ?highlight=<date> from URL on mount or param change
   useEffect(() => {
     const highlightParam = searchParams.get('highlight')
@@ -106,19 +102,6 @@ export function WeekView() {
       { replace: true },
     )
   }, [setWeekStart, setSearchParams])
-
-  // 月视图点击某天 / 周视图双击日期 → 打开右侧信息面板
-  const handleDaySelect = useCallback((dateMs: number) => {
-    setDrawerDayMs(dateMs)
-  }, [])
-
-  const handleOpenDrawer = useCallback((date: Date) => {
-    setDrawerDayMs(date.getTime())
-  }, [])
-
-  const handleCloseDrawer = useCallback(() => {
-    setDrawerDayMs(null)
-  }, [])
 
   const [cardState, setCardState] = useState<CardState>({ mode: 'none' })
   const [activeDragState, setActiveDragState] = useState<DragState>({ phase: 'idle', ghostStyle: null })
@@ -377,12 +360,12 @@ export function WeekView() {
       <div className="flex-1 flex min-w-0 min-h-0">
       <div className="week-canvas week-canvas--calendar flex-1 flex flex-col min-w-0 overflow-hidden bg-surface-raised border border-border-subtle rounded-2xl m-3" data-density={weekDensity.mode}>
         {viewMode === 'week' && (
-          <WeekDateHeader days={days} highlightedDayMs={highlightedDayMs} onDayClick={handleOpenDrawer} />
+          <WeekDateHeader days={days} highlightedDayMs={highlightedDayMs} />
         )}
 
         <div className="flex-1 flex flex-col min-h-0">
           {viewMode === 'month' ? (
-            <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} onDaySelect={handleDaySelect} />
+            <MonthView onNavigateToWeek={handleNavigateToWeek} monthDate={selectedDay} />
           ) : (
         <div ref={scrollContainerRef} className="relative flex-1 min-h-0 overflow-hidden">
           {isLoading && events.length === 0 ? (
@@ -452,13 +435,6 @@ export function WeekView() {
         )}
       </div>
     </div>
-
-        {drawerDayMs != null && (
-          <DayDrawer
-            selectedDateMs={drawerDayMs}
-            onClose={handleCloseDrawer}
-          />
-        )}
       </div>
 
       {cardState.mode === 'detail' && (

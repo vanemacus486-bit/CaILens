@@ -25,7 +25,14 @@ const _senderId: string =
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random()}`
 
-type Tables = 'events' | 'todos' | 'dailyContext'
+/**
+ * 可跨窗口同步的数据表。
+ *
+ * 独立设置窗口和主窗口是两个 WebView，各自的 Zustand store 互不知情，
+ * 必须靠广播让对面重读。events / todos / dailyContext 是快速记录窗口写的，
+ * settings / categories / profile 是设置窗口写的。
+ */
+type Tables = 'events' | 'todos' | 'dailyContext' | 'settings' | 'categories' | 'profile'
 
 interface SyncMessage {
   table: Tables

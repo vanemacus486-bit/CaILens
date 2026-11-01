@@ -20,6 +20,7 @@
  *   - `@/plugins/PluginSidebar` 侧栏插槽
  *   - `@/plugins/PluginTopBar`  顶栏插槽
  *   - `@/plugins/PluginNav`     导航入口渲染
+ *   - `@/plugins/marketplace`   设置页的展示层模型（纯函数，不碰 registry）
  *
  * **禁止** import 任何 `@/plugins/<id>/...` 内部路径。那会让主体重新知道某个插件的
  * 存在与内部结构，「关掉插件主路径不受影响」也随之失效（import 是静态的，插件关不掉）。
@@ -85,6 +86,48 @@ export interface PluginDomain {
   shortcutOrder: number
 }
 
+/**
+ * 域内子视图。一个已被某插件认领的域（`PluginDomain`）可以再被多个插件
+ * 各自贡献一格子视图，用于「一个域、多个可独立开关的页面」这种场景。
+ *
+ * 典型例子：复盘域（review）下有趋势 / 热力 / 睡眠 / 饮食 / 卫生五格，
+ * 每格由一个独立插件提供，用户可以只留其中几格。
+ *
+ * 约束：
+ * - `domainId` 必须已被某个**已启用**插件通过 `domain` 认领；否则整格忽略
+ *   （域都不存在了，子视图没有落脚处）。
+ * - `id` 在同一个域内唯一，作为 `?view=` 的取值，因此不要用保留词。
+ * - 子视图只声明元数据与正文组件；外壳（layout / 顶栏 / 侧栏）仍归域主插件。
+ */
+export interface PluginDomainView {
+  /** 归属域 id，必须是某个插件的 `PluginDomain.id` */
+  domainId: string
+  /** 域内唯一标识，同时作为 `?view=` 的参数值 */
+  id: string
+  /** i18n key，缺失时回落到 label */
+  labelKey?: string
+  /** 展示名兜底（无翻译时用） */
+  label: string
+  /** lucide 图标名，由渲染侧白名单映射 */
+  icon: string
+  /** 排序权重，越小越靠前 */
+  order: number
+  /** 子视图正文，懒加载 */
+  component: () => Promise<{ default: React.ComponentType }>
+}
+
+/**
+ * 插件来源，决定设置页把它归到哪一组。
+ *
+ * - `core`：随应用一起编译的内置插件（`plugins/index.ts` 的 `BUILTIN_PLUGINS`）。
+ * - `third-party`：外部来源的插件。⚠️ 当前**没有**运行时加载通道（见文件头约束 1），
+ *   所以现在只可能有「核心」这一组；这个取值先定义好，让注册与设置页的分组
+ *   从第一天起就是数据驱动的，将来接入外部插件时不用再改主体代码。
+ *
+ * 缺省（不写）= `core`，避免既有插件定义全部要补一行。
+ */
+export type PluginOrigin = 'core' | 'third-party'
+
 export interface PluginDefinition {
   /** 全局唯一，小写短横线，例：quick-backfill */
   id: string
@@ -96,6 +139,8 @@ export interface PluginDefinition {
   version: string
   /** 首次安装时是否默认开启 */
   defaultEnabled: boolean
+  /** 来源分组，缺省视为 `core` */
+  origin?: PluginOrigin
 
   /**
    * 表归属声明。仅用于文档与数据导出时标注来源，不参与建表。
@@ -108,6 +153,14 @@ export interface PluginDefinition {
 
   /** 注册到侧栏 / 移动端菜单的入口 */
   navItems?: PluginNavItem[]
+
+  /**
+   * 贡献给某个已有域的子视图。
+   *
+   * 与 `domain` 的分工：`domain` 是「认领一整格主域」，`domainViews` 是
+   * 「往别人的域里加一格」。复盘域用后者把五个图表拆成五个可独立开关的插件。
+   */
+  domainViews?: PluginDomainView[]
 
   /**
    * 主域认领。认领后该插件成为域切换器上的一格，

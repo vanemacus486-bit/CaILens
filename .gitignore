@@ -59,3 +59,33 @@ src-tauri/icons-src/old-icons/
 
 # 构建日志
 .build*.log
+
+design-preview
+
+# DSH 会话备份 / 手工回滚副本（本地回滚点，不进版本库）
+.dsh-backup-*/
+backup/
+*.bak
+.gitignore.bak
+tmp-*.txt
+
+# 一次性设计稿与原型（本地实验，不进版本库）
+mockups/
+prototype/
+
+# 上面 *.png 默认全忽略；文档截图要能进库，单独放行
+docs/screenshots/*.png
+
+# DSH 会话备份 / 手工回滚副本（本地回滚点，不进版本库）
+.dsh-backup-*/
+backup/
+*.bak
+.gitignore.bak
+tmp-*.txt
+
+# 一次性设计稿与原型（本地实验，不进版本库）
+mockups/
+prototype/
+
+# 上面 *.png 默认全忽略；文档截图要能进库，单独放行
+docs/screenshots/*.png

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowUpCircle, Download, Loader2, X } from 'lucide-react'
 import { checkForUpdate, installUpdate, relaunchApp, type UpdateCheckResult } from '@/lib/appUpdate'
+import { useAppSettingsStore } from '@/stores/settingsStore'
 import { useT } from '@/i18n/useT'
 
 const DISMISS_KEY = 'cailens.updateDismissed'
@@ -15,7 +16,12 @@ export function UpdateBanner() {
   const [installing, setInstalling] = useState(false)
   const [installError, setInstallError] = useState<string | null>(null)
 
+  const autoUpdateCheck = useAppSettingsStore((s) => s.settings.autoUpdateCheck)
+  const settingsLoaded = useAppSettingsStore((s) => s.isLoaded)
+
   useEffect(() => {
+    // 关掉自动更新就别在启动时联网；等设置加载完再判断，避免默认值抢跑。
+    if (!settingsLoaded || autoUpdateCheck === false) return
     let alive = true
     void checkForUpdate().then((next) => {
       if (!alive || next.status === 'latest') return
@@ -33,7 +39,7 @@ export function UpdateBanner() {
       setResult(next)
     })
     return () => { alive = false }
-  }, [])
+  }, [settingsLoaded, autoUpdateCheck])
 
   // 兜底：error 状态永远不进 state，这里再挡一次，防止将来被别处写进来。
   if (!result || result.status === 'error') return null

@@ -122,10 +122,19 @@ use-cases/  →  domain/  →  data/  →  stores/  →  features/ + components/
 2. **Dexie 表结构必须一次性在 `data/db.ts` 声明** —— `version()` 全局单调，插件动态增删表会让版本号爆炸且无法回退。`PluginDefinition.tables` 只是**归属声明**，不参与建表。
 3. **插件不得反向依赖主体 UI** —— 插件可依赖 `domain/`、`stores/` 与 `components/ui/` 这类无业务原语，但不得 import 主体页面与业务组件。
 4. **主体不得知道插件内部** —— 两个方向都要守，缺一个就漏：
-   - **不 import**：主体只允许 import `@/plugins/types`、`registry`、`PluginRoutes`、`PluginSidebar`、`PluginTopBar`、`PluginNav` 六个入口；`plugins/<id>/...` 内部路径一律禁止（`@/plugins/index` 只给 `main.tsx` 的 `installBuiltinPlugins()` 用）。import 是静态的——主体一旦 import 了插件内部，那个插件就再也关不掉了。
+   - **不 import**：主体只允许 import `@/plugins/types`、`registry`、`PluginRoutes`、`PluginSidebar`、`PluginTopBar`、`PluginNav`、`DomainViewNav`、`marketplace` 八个入口；`plugins/<id>/...` 内部路径一律禁止（`@/plugins/index` 只给 `main.tsx` 的 `installBuiltinPlugins()` 用）。import 是静态的——主体一旦 import 了插件内部，那个插件就再也关不掉了。
    - **不硬编码**：不 import 也不等于安全。按插件 id、路径或内部概念分支同样是越界。**已踩过两次**：`AppHeader` 曾用 `isAction = isPluginDomain && !isStats` 反推「不是复盘就是规划」，还直接 import 规划插件的 `cycleActionFilter`；`MobileSearchPage` 曾写死 `domain.id === 'plan'`。正确做法是让插件在契约里声明语义（如 `headerStepKind: 'filter-cycle'`），主体只按语义分派。写主体代码前先自问：把这个插件关掉，这段代码还成立吗？
 
 开关语义：`settings.enabledPlugins[id] ?? plugin.defaultEnabled`（只记录用户显式开关过的，插件增删不残留垃圾条目）。关闭只隐藏入口与路由，**不删数据**。
+
+**来源分组（核心 / 第三方）**：`PluginDefinition.origin`（缺省 `core`）+ `plugins/marketplace.ts` 的 `PLUGIN_GROUPS` 与 `groupPluginCards()`。设置页按组渲染，且**恒定输出所有组**（含空组）——分组是「应用有哪些种类的插件」的结构声明，不是当前数据的投影，别写成「有卡片才显示组头」，否则第三方组会一直看起来像没做。当前没有运行时加载通道，第三方组必然是空的，用 `emptyHint` 说明；将来接外部插件只补 `origin` 与 `PLUGIN_GROUPS`，不动主体。
+
+5. **`domain` vs `domainViews`（一域多格）** —— 复盘域是两者并用的范例，动手前先分清：
+   - `domain`：**认领一整格主域**（域切换器一格、一个 Alt+N、一个路径前缀）。一个域只能有一个认领者。
+   - `domainViews`：**往别人的域里加一格子视图**（`?view=` 的取值），可被多个插件各自贡献。
+   - 复盘域 = `review`（只留 `domain` + `layout` + `/stats` 宿主页）+ 五个 `review-*` 插件各贡献一格。关掉 `review` 整个域消失；只关 `review-sleep` 则睡眠那格消失，其余照旧。
+   - 因此**域主插件不得声明 `topBar` / `sidebarPanel` 来写死子视图导航**——那会让已关闭的子视图仍留在导航里。导航由 registry 汇总 `domainViews` 生成（`DomainViewNav`）；只有域主插件要自定义导航时才提供 `topBar` / `sidebarPanel`。
+   - 子视图正文各自调自己的 store，但**数据拉取（`loadRange`）留在宿主页**，别让每格各拉一遍全量事件。
 
 ## Design System
 

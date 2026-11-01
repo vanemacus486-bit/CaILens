@@ -41,8 +41,23 @@ const sharedPillRects = new Map<string, { left: number; width: number; time: num
 const SHARE_TTL = 1200
 const EASE = 'transform 0.26s cubic-bezier(0.32,0.72,0,1), width 0.26s cubic-bezier(0.32,0.72,0,1)'
 
+/**
+ * 这些能力检测不是洁癖：`matchMedia` / `ResizeObserver` 在部分 WebView 里缺失
+ * （旧 Android WebView、某些 Linux webkit 构建）。它们在本组件的 useLayoutEffect
+ * 里被直接调用，一旦缺失就是 render 期 TypeError，而本组件是顶栏域切换器、
+ * CompactSidebar、TopNavBar 共用的——一崩就是「顶栏出错了」。
+ * 缺失时降级为「无动画 / 无快捷键提示」，而不是把整个顶栏带下水。
+ */
+function supportsMatchMedia(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+}
+
+function supportsResizeObserver(): boolean {
+  return typeof ResizeObserver === 'function'
+}
+
 function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined') return false
+  if (!supportsMatchMedia()) return false
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
@@ -59,11 +74,17 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
   const itemsKey = items.map((it) => `${it.id}:${it.label}`).join('|')
 
   useEffect(() => {
+    if (!supportsMatchMedia()) return
     const mq = window.matchMedia('(max-width: 767px), (pointer: coarse)')
     const sync = () => setShowShortcutHints(!mq.matches)
     sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
+    // 老 Safari/WebView 只有 addListener/removeListener，没有 addEventListener
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', sync)
+      return () => mq.removeEventListener('change', sync)
+    }
+    mq.addListener(sync)
+    return () => mq.removeListener(sync)
   }, [])
 
   // 测量激活按钮位置 → 定位滑块；ResizeObserver 处理字体/断点变化后的重对齐
@@ -77,6 +98,7 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
       setPos({ left: btn.offsetLeft, width: btn.offsetWidth })
     }
     measure()
+    if (!supportsResizeObserver()) return
     const ro = new ResizeObserver(measure)
     ro.observe(track)
     return () => ro.disconnect()
@@ -97,9 +119,16 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 首帧定位后开启过渡：无 entry 直接开；有 entry 用双 rAF 让起点先画一帧再滑到 pos
+  // 首帧定位后开启过渡：无 entry 直接开；有 entry 先画一帧起点再滑到 pos。
+  //
+  // 用 ref 锁死「每次挂载只跑一次」。原先靠 [pos, animated, entry] 三元组自身收敛，
+  // 但 entry 会被 setEntry(null) 清掉、pos 又会在每次 measure 时换成新对象，
+  // 两者交替变化会让这个 effect 在 setAnimated 提交前反复重入，最终抛
+  // "Maximum update depth exceeded" —— 跨域切换（shareKey 接力）时必现。
+  const startedRef = useRef(false)
   useLayoutEffect(() => {
-    if (!pos || animated) return
+    if (startedRef.current || !pos) return
+    startedRef.current = true
     if (prefersReducedMotion() || !entry) {
       setAnimated(true)
       return
@@ -115,7 +144,7 @@ export function SlideSegmented<T extends string>({ items, value, onChange, expan
       cancelAnimationFrame(raf1)
       if (raf2) cancelAnimationFrame(raf2)
     }
-  }, [pos, animated, entry])
+  }, [pos, entry])
 
   // 卸载时保存当前滑块屏幕位置，供下一处接力
   useLayoutEffect(() => {

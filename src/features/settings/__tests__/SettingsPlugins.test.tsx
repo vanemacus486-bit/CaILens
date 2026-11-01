@@ -140,3 +140,55 @@ describe('SettingsPlugins — 搜索与筛选', () => {
     expect(within(counts).getByText('2')).toBeTruthy()
   })
 })
+
+describe('SettingsPlugins — 核心 / 第三方分组', () => {
+  it('两组标题都渲染，默认插件全落在核心插件组', async () => {
+    await renderPage()
+    const core = screen.getByTestId('plugin-group-core')
+    const thirdParty = screen.getByTestId('plugin-group-third-party')
+
+    expect(within(core).getByText('补记模式')).toBeTruthy()
+    expect(within(core).getByText('编年史')).toBeTruthy()
+    expect(within(core).getByText('灵感箱')).toBeTruthy()
+    expect(within(thirdParty).queryByText('补记模式')).toBeNull()
+  })
+
+  it('第三方插件组为空时给出「暂未支持」说明，而不是整组消失', async () => {
+    await renderPage()
+    const thirdParty = screen.getByTestId('plugin-group-third-party')
+    expect(within(thirdParty).getByText('第三方插件')).toBeTruthy()
+    expect(within(thirdParty).getByText(/暂未支持第三方插件/)).toBeTruthy()
+  })
+
+  it('声明 origin=third-party 的插件渲染在第三方插件组下', async () => {
+    registry._resetRegistry()
+    registry.registerPlugins([
+      plugin({ id: 'core-one', name: '核心甲' }),
+      plugin({ id: 'ext-one', name: '外部乙', origin: 'third-party' }),
+    ])
+    await renderPage()
+
+    const core = screen.getByTestId('plugin-group-core')
+    const thirdParty = screen.getByTestId('plugin-group-third-party')
+    expect(within(core).getByText('核心甲')).toBeTruthy()
+    expect(within(thirdParty).getByText('外部乙')).toBeTruthy()
+    expect(within(core).queryByText('外部乙')).toBeNull()
+  })
+
+  it('有筛选条件时空组提示改成「没有匹配的插件」，不再说「暂未支持」', async () => {
+    await renderPage()
+    fireEvent.click(screen.getByRole('radio', { name: '已停用' }))
+    const thirdParty = screen.getByTestId('plugin-group-third-party')
+    expect(within(thirdParty).getByText('没有匹配的插件')).toBeTruthy()
+    expect(within(thirdParty).queryByText(/暂未支持第三方插件/)).toBeNull()
+  })
+
+  it('筛选后某组为空，组头保留但不再显示该组插件', async () => {
+    await renderPage()
+    fireEvent.click(screen.getByRole('radio', { name: '已停用' }))
+    const core = screen.getByTestId('plugin-group-core')
+    expect(within(core).getByText('编年史')).toBeTruthy()
+    expect(within(core).queryByText('补记模式')).toBeNull()
+    expect(screen.getByTestId('plugin-group-third-party')).toBeTruthy()
+  })
+})

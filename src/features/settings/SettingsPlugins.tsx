@@ -2,10 +2,13 @@ import { useMemo, useState } from 'react'
 import { Package, Puzzle, Search } from 'lucide-react'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { listPlugins } from '@/plugins/registry'
+import type { PluginOrigin } from '@/plugins/types'
 import {
   buildPluginCards,
   countPlugins,
   filterPluginCards,
+  groupPluginCards,
+  type PluginCard,
   type PluginStatusFilter,
 } from '@/plugins/marketplace'
 import { cn } from '@/lib/utils'
@@ -24,18 +27,30 @@ const STATUS_TABS: { id: PluginStatusFilter; label: string }[] = [
   { id: 'disabled', label: '已停用' },
 ]
 
-export function SettingsPlugins() {
+interface SettingsPluginsProps {
+  /** 只渲染某个来源分组；缺省渲染全部（带分组头）。 */
+  onlyOrigin?: PluginOrigin
+}
+
+export function SettingsPlugins({ onlyOrigin }: SettingsPluginsProps = {}) {
   const overrides = useAppSettingsStore((s) => s.settings.enabledPlugins)
   const setPluginEnabled = useAppSettingsStore((s) => s.setPluginEnabled)
 
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<PluginStatusFilter>('all')
 
-  const cards = useMemo(() => buildPluginCards(listPlugins(), overrides ?? {}), [overrides])
+  const cards = useMemo(() => {
+    const all = buildPluginCards(listPlugins(), overrides ?? {})
+    return onlyOrigin ? all.filter((c) => c.origin === onlyOrigin) : all
+  }, [overrides, onlyOrigin])
   const counts = useMemo(() => countPlugins(cards), [cards])
   const visible = useMemo(() => filterPluginCards(cards, { status, query }), [cards, status, query])
+  const sections = useMemo(() => groupPluginCards(visible), [visible])
+  const hasFilter = status !== 'all' || query.trim().length > 0
 
-  if (cards.length === 0) {
+  // 指定来源时不做整体空态 —— 交给分组渲染走 emptyHint，
+  // 否则「第三方插件」页只会说「还没有可用的插件」，看不出这一类将来是什么。
+  if (cards.length === 0 && !onlyOrigin) {
     return (
       <div className="flex items-start gap-3 text-text-tertiary">
         <Puzzle size={18} className="mt-0.5 shrink-0" />
@@ -105,66 +120,111 @@ export function SettingsPlugins() {
         {counts.disabled > 0 && ` · 已停用 ${counts.disabled} 个`}
       </p>
 
-      {/* 列表 / 空态 */}
+      {/* 分组列表 / 空态 */}
       {visible.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border-subtle px-4 py-6 text-center text-sm text-text-tertiary">
-          没有匹配的插件
+          {hasFilter ? '没有匹配的插件' : '没有可用的插件'}
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {visible.map((plugin) => (
-            <li
-              key={plugin.id}
-              className={cn(
-                'flex items-start justify-between gap-4 rounded-lg border px-4 py-3 transition-colors duration-200',
-                plugin.enabled
-                  ? 'border-border-subtle bg-surface-raised'
-                  : 'border-border-subtle bg-surface-base',
-              )}
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-sans text-sm font-medium text-text-primary">{plugin.name}</span>
-                  <span className="font-mono text-xs text-text-tertiary">v{plugin.version}</span>
-                  {!plugin.isOverridden && (
-                    <span className="rounded px-1 py-0.5 text-2xs text-text-quaternary ring-1 ring-border-subtle">
-                      默认
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs leading-relaxed text-text-tertiary">{plugin.description}</p>
-                {plugin.tables.length > 0 && (
-                  <p className="mt-1 font-mono text-xs text-text-tertiary">
-                    表：{plugin.tables.join(', ')}
-                  </p>
-                )}
-                <p className="mt-1 font-mono text-xs text-text-quaternary">
-                  {plugin.routeCount} 个页面 · {plugin.navCount} 个入口
-                </p>
-              </div>
+        sections.map((section) => (
+          <section
+            key={section.meta.id}
+            data-testid={`plugin-group-${section.meta.id}`}
+            className="flex flex-col gap-2"
+          >
+            <div>
+              <h3 className="font-sans text-sm font-medium text-text-secondary">
+                {section.meta.label}
+                <span className="ml-2 font-mono text-xs text-text-tertiary">
+                  {section.cards.length}
+                </span>
+              </h3>
+              <p className="mt-0.5 text-xs leading-relaxed text-text-tertiary">
+                {section.meta.description}
+              </p>
+            </div>
 
-              <button
-                type="button"
-                role="switch"
-                aria-checked={plugin.enabled}
-                aria-label={`${plugin.name} ${plugin.enabled ? '已启用' : '已停用'}`}
-                onClick={() => { void setPluginEnabled(plugin.id, !plugin.enabled) }}
-                className={cn(
-                  'relative mt-1 h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200',
-                  plugin.enabled ? 'bg-accent' : 'bg-surface-sunken',
-                )}
-              >
-                <span
-                  className={cn(
-                    'absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform duration-200',
-                    plugin.enabled ? 'left-[18px]' : 'left-0.5',
-                  )}
-                />
-              </button>
-            </li>
-          ))}
-        </ul>
+            {section.cards.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border-subtle px-4 py-3 text-xs leading-relaxed text-text-tertiary">
+                {hasFilter ? '没有匹配的插件' : section.meta.emptyHint}
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {section.cards.map((plugin) => (
+                  <PluginRow
+                    key={plugin.id}
+                    plugin={plugin}
+                    onToggle={() => { void setPluginEnabled(plugin.id, !plugin.enabled) }}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
+        ))
       )}
     </div>
+  )
+}
+
+interface PluginRowProps {
+  plugin: PluginCard
+  onToggle: () => void
+}
+
+/** 单个插件卡片：名称 / 版本 / 默认标记 / 说明 / 表 / 计数 + 右侧开关。 */
+function PluginRow({ plugin, onToggle }: PluginRowProps) {
+  return (
+    <li
+      className={cn(
+        'flex items-start justify-between gap-4 rounded-lg border px-4 py-3 transition-colors duration-200',
+        plugin.enabled
+          ? 'border-border-subtle bg-surface-raised'
+          : 'border-border-subtle bg-surface-base',
+      )}
+    >
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-sans text-sm font-medium text-text-primary">{plugin.name}</span>
+          <span className="font-mono text-xs text-text-tertiary">v{plugin.version}</span>
+          {!plugin.isOverridden && (
+            <span className="rounded px-1 py-0.5 text-2xs text-text-quaternary ring-1 ring-border-subtle">
+              默认
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-xs leading-relaxed text-text-tertiary">{plugin.description}</p>
+        {plugin.tables.length > 0 && (
+          <p className="mt-1 font-mono text-xs text-text-tertiary">
+            表：{plugin.tables.join(', ')}
+          </p>
+        )}
+        <p className="mt-1 font-mono text-xs text-text-quaternary">
+          {[
+            plugin.routeCount > 0 ? `${plugin.routeCount} 个页面` : null,
+            plugin.navCount > 0 ? `${plugin.navCount} 个入口` : null,
+            plugin.viewCount > 0 ? `${plugin.viewCount} 个视角` : null,
+          ].filter(Boolean).join(' · ') || '无独立入口'}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={plugin.enabled}
+        aria-label={`${plugin.name} ${plugin.enabled ? '已启用' : '已停用'}`}
+        onClick={onToggle}
+        className={cn(
+          'relative mt-1 h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200',
+          plugin.enabled ? 'bg-accent' : 'bg-surface-sunken',
+        )}
+      >
+        <span
+          className={cn(
+            'absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform duration-200',
+            plugin.enabled ? 'left-[18px]' : 'left-0.5',
+          )}
+        />
+      </button>
+    </li>
   )
 }

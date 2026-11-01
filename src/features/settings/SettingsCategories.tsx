@@ -9,7 +9,15 @@ import type { CategoryId } from '@/domain/category'
 import { BudgetBar } from './BudgetBar'
 import { CategorySettingItem } from './CategorySettingItem'
 
-export function SettingsCategories() {
+interface SettingsCategoriesProps {
+  /**
+   * 内嵌在「核心插件」页里时置 true：不渲染自己的 h1 大标题，
+   * 改用与其它 section 一致的 h3，避免一个页面出现两级主标题。
+   */
+  embedded?: boolean
+}
+
+export function SettingsCategories({ embedded = false }: SettingsCategoriesProps = {}) {
   const categories = useCategoryStore((s) => s.categories)
   const rangeEvents = useEventStore((s) => s.rangeEvents)
   const language = useAppSettingsStore((s) => s.settings.language)
@@ -66,9 +74,11 @@ export function SettingsCategories() {
     <div className="flex flex-col gap-5">
       {/* Header */}
       <div>
-        <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
-          分类
-        </h1>
+        {embedded ? (
+          <h3 className="font-sans text-sm font-medium text-text-secondary">分类</h3>
+        ) : (
+          <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">分类</h1>
+        )}
         <p className="text-sm text-text-tertiary mt-1 font-sans">
           每周 168 小时如何分配 · 管理关键词自动分类
         </p>

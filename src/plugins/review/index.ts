@@ -1,23 +1,23 @@
 import type { PluginDefinition } from '../types'
 
 /**
- * 复盘插件（review）。
+ * 复盘域（review）——**只剩外壳**。
  *
- * 从主体迁入：`/stats` 路由、满高滚动外壳（layout）、侧栏的复盘子视图导航、
- * Alt+3 快捷键、以及全部复盘图表。
+ * 五个视角（趋势 / 热力 / 睡眠 / 饮食 / 卫生）已各自成为独立插件，通过
+ * `PluginDomainView` 往这个域里加格子。所以：
  *
- * - 数据全部读主体的 `events`，`tables` 留空
- * - 只依赖 `domain/`、`stores/`、`components/`，不 import 主体页面
- * - 关闭插件只隐藏入口与路由，数据不动
+ * - 这里保留 `domain`（域切换器上的一格、Alt+3、顶栏 ← → 的 date-step 语义）
+ * - 保留 `layout`（满高滚动外壳）与 `/stats` 宿主路由
+ * - **不再**声明 `topBar` / `sidebarPanel`：子视图导航由 registry 汇总生成
+ *   （见 `DomainViewNav`），否则关掉某个视图插件后顶栏仍会显示它的名字
  *
- * 与主体共享的 `EasternStatsShell` / `ExportSection` / `ImportSection` / `SlidingPills`
- * 留在 `src/components/stats/`：设置页与顶栏也在用，搬进插件会造成主体→插件反向依赖。
+ * 关闭本插件 = 整个复盘域消失（含其下所有子视图格），数据不动。
  */
 export const reviewPlugin: PluginDefinition = {
   id: 'review',
   name: '复盘',
-  description: '分类趋势、年度热力、睡眠 / 饮食 / 卫生节律。',
-  version: '1.0.0',
+  description: '复盘域外壳：承载趋势 / 热力 / 睡眠 / 饮食 / 卫生五个可独立开关的视角。',
+  version: '2.0.0',
   defaultEnabled: true,
   domain: {
     id: 'review',
@@ -32,10 +32,8 @@ export const reviewPlugin: PluginDefinition = {
   routes: [
     {
       path: '/stats',
-      component: () => import('./StatsPage').then((m) => ({ default: m.StatsPage })),
+      component: () => import('./ReviewPage').then((m) => ({ default: m.ReviewPage })),
     },
   ],
   layout: () => import('./ReviewLayout').then((m) => ({ default: m.ReviewLayout })),
-  sidebarPanel: () => import('./SidebarPanel').then((m) => ({ default: m.ReviewSidebarPanel })),
-  topBar: () => import('./TopBar').then((m) => ({ default: m.ReviewTopBar })),
 }

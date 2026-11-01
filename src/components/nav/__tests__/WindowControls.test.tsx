@@ -10,6 +10,11 @@ const h = vi.hoisted(() => {
     close: vi.fn(() => Promise.resolve()),
     isMaximized: vi.fn(() => Promise.resolve(false)),
     onResized: vi.fn(() => Promise.resolve(() => {})),
+    // 全屏按钮只在 fullscreenToggle 打开时渲染（独立设置窗口），但 sync()
+    // 无条件读窗口状态——mock 少了这两个方法，组件在 effect 里就会抛
+    // "win.isFullscreen is not a function"，连带两个用例一起失败。
+    isFullscreen: vi.fn(() => Promise.resolve(false)),
+    setFullscreen: vi.fn(() => Promise.resolve()),
   }
   return { win, state: { desktop: true } }
 })

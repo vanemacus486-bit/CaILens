@@ -50,8 +50,7 @@ export function AccountMenu({ variant }: AccountMenuProps) {
   const language = useAppSettingsStore((s) => s.settings.language)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
   const setLanguage = useAppSettingsStore((s) => s.setLanguage)
-  const setActiveSettingsTab = useUIStore((s) => s.setActiveSettingsTab)
-  const setSettingsModalOpen = useUIStore((s) => s.setSettingsModalOpen)
+  const openSettings = useUIStore((s) => s.openSettings)
 
   const t = useT()
   const { name, avatar } = profile
@@ -68,10 +67,10 @@ export function AccountMenu({ variant }: AccountMenuProps) {
   }, [])
 
   const handleOpenSettings = useCallback(() => {
-    setActiveSettingsTab('account')
-    setSettingsModalOpen(true)
+    // openSettings 自己会写 activeSettingsTab，桌面端走独立窗口
+    void openSettings('account')
     setOpen(false)
-  }, [setActiveSettingsTab, setSettingsModalOpen])
+  }, [openSettings])
 
   const handleSwitchTheme = useCallback(
     (nextTheme: AppTheme) => {

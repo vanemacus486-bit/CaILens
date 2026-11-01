@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { getSettingsRepo } from '@/data/getRepositories'
-import type { AppSettings, AppLanguage, AppTheme, UiFont, VisualStyle, FontScale, DefaultView, AiSettings } from '@/domain/settings'
+import type { AppSettings, AppLanguage, AppTheme, UiFont, VisualStyle, FontScale, DefaultView } from '@/domain/settings'
 import type { HygieneActivityDef } from '@/domain/hygieneActivity'
 import type { HabitPlan } from '@/domain/habitPlan'
 import type { DayMark } from '@/domain/dayMark'
@@ -8,6 +8,7 @@ import type { EventColor } from '@/domain/event'
 import { makePhase, startOfLocalDay } from '@/domain/habitPlan'
 import { DEFAULT_SETTINGS, DEPRECATED_VISUAL_STYLES, resolveTheme } from '@/domain/settings'
 import type { ShortcutAction, ShortcutString } from '@/domain/shortcuts'
+import { broadcastWrite } from '@/lib/crossWindowSync'
 
 const THEME_KEY  = 'cailens-theme'
 const FONT_KEY   = 'cailens-font'
@@ -91,13 +92,23 @@ interface AppSettingsState {
   setDefaultView: (view: DefaultView) => Promise<void>
   /** 开关插件；enabled=true 时写入显式覆盖，false 时也写 false（不回落默认值） */
   setPluginEnabled: (pluginId: string, enabled: boolean) => Promise<void>
-  setAiSettings: (ai: AiSettings) => Promise<void>
-  /** 累加当月 token 用量（按自然月，跨月自动归零） */
-  recordAiUsage: (tokens: number) => Promise<void>
-
+  /** 开关启动时自动检查更新 */
+  setAutoUpdateCheck: (enabled: boolean) => Promise<void>
 }
 
-export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
+export const useAppSettingsStore = create<AppSettingsState>()((set) => {
+  /**
+   * 写盘成功后的统一出口：更新本窗口 store + 通知其他窗口重读。
+   *
+   * 独立设置窗口和主窗口是两个 WebView，store 不共享。少了广播，
+   * 在设置里改主题/语言/插件开关，主窗口要重启才看得到。
+   */
+  const commit = (next: AppSettings) => {
+    set({ settings: next })
+    broadcastWrite('settings')
+  }
+
+  return {
   settings: DEFAULT_SETTINGS,
   isLoaded: false,
 
@@ -166,7 +177,7 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
 
   setLanguage: async (lang) => {
     const settings = await getSettingsRepo().update({ language: lang })
-    set({ settings })
+    commit(settings)
   },
 
   setTheme: async (theme) => {
@@ -174,21 +185,21 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const settings = await getSettingsRepo().update({ theme })
     localStorage.setItem(THEME_KEY, theme)
     applyTheme(theme)
-    set({ settings })
+    commit(settings)
   },
 
   setVisualStyle: async (style) => {
     const settings = await getSettingsRepo().update({ visualStyle: style })
     localStorage.setItem(STYLE_KEY, style)
     applyVisualStyle(style)
-    set({ settings })
+    commit(settings)
   },
 
   setFontScale: async (scale) => {
     const settings = await getSettingsRepo().update({ fontScale: scale })
     localStorage.setItem(SCALE_KEY, scale)
     applyFontScale(scale)
-    set({ settings })
+    commit(settings)
   },
 
   setShortcut: async (action, binding) => {
@@ -202,24 +213,24 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const updated = await getSettingsRepo().update({
       shortcuts: Object.keys(shortcuts).length > 0 ? shortcuts : undefined,
     })
-    set({ settings: updated })
+    commit(updated)
   },
 
   resetAllShortcuts: async () => {
     const updated = await getSettingsRepo().update({ shortcuts: undefined })
-    set({ settings: updated })
+    commit(updated)
   },
 
   setUiFont: async (font) => {
     const settings = await getSettingsRepo().update({ uiFont: font })
     localStorage.setItem(FONT_KEY, font)
     applyFont(font)
-    set({ settings })
+    commit(settings)
   },
 
   setHygieneActivities: async (activities) => {
     const settings = await getSettingsRepo().update({ hygieneActivities: activities })
-    set({ settings })
+    commit(settings)
   },
 
   createHabitPlan: async (title) => {
@@ -241,7 +252,7 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     }
     const current = (await getSettingsRepo().get()).habitPlans ?? []
     const settings = await getSettingsRepo().update({ habitPlans: [...current, plan] })
-    set({ settings })
+    commit(settings)
     return plan
   },
 
@@ -249,13 +260,13 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const current = (await getSettingsRepo().get()).habitPlans ?? []
     const next = current.map((p) => (p.id === plan.id ? { ...plan, updatedAt: Date.now() } : p))
     const settings = await getSettingsRepo().update({ habitPlans: next })
-    set({ settings })
+    commit(settings)
   },
 
   deleteHabitPlan: async (id) => {
     const current = (await getSettingsRepo().get()).habitPlans ?? []
     const settings = await getSettingsRepo().update({ habitPlans: current.filter((p) => p.id !== id) })
-    set({ settings })
+    commit(settings)
   },
 
   addDayMark: async (date, label, color) => {
@@ -270,7 +281,7 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     }
     const current = (await getSettingsRepo().get()).dayMarks ?? []
     const settings = await getSettingsRepo().update({ dayMarks: [...current, mark] })
-    set({ settings })
+    commit(settings)
     return mark
   },
 
@@ -278,18 +289,13 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const current = (await getSettingsRepo().get()).dayMarks ?? []
     const next = current.map((m) => (m.id === mark.id ? { ...mark, updatedAt: Date.now() } : m))
     const settings = await getSettingsRepo().update({ dayMarks: next })
-    set({ settings })
+    commit(settings)
   },
 
   setDefaultView: async (view) => {
     const settings = await getSettingsRepo().update({ defaultView: view })
     localStorage.setItem(DEFAULT_VIEW_KEY, view)
-    set({ settings })
-  },
-
-  setAiSettings: async (ai) => {
-    const settings = await getSettingsRepo().update({ ai })
-    set({ settings })
+    commit(settings)
   },
 
   setPluginEnabled: async (pluginId, enabled) => {
@@ -297,28 +303,19 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => ({
     const settings = await getSettingsRepo().update({
       enabledPlugins: { ...current, [pluginId]: enabled },
     })
-    set({ settings })
+    commit(settings)
   },
 
-  recordAiUsage: async (tokens) => {
-    const current = await getSettingsRepo().get()
-    const ai = current.ai ?? { enabled: false, providers: [] }
-    const now = new Date()
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    const sameMonth = ai.usageMonth === monthKey
-    const next: AiSettings = {
-      ...ai,
-      usageMonth: monthKey,
-      monthlyTokens: (sameMonth ? (ai.monthlyTokens ?? 0) : 0) + tokens,
-    }
-    const settings = await getSettingsRepo().update({ ai: next })
-    set({ settings })
+  setAutoUpdateCheck: async (enabled) => {
+    const settings = await getSettingsRepo().update({ autoUpdateCheck: enabled })
+    commit(settings)
   },
 
   deleteDayMark: async (id) => {
     const current = (await getSettingsRepo().get()).dayMarks ?? []
     const settings = await getSettingsRepo().update({ dayMarks: current.filter((m) => m.id !== id) })
-    set({ settings })
+    commit(settings)
   },
 
-}))
+  }
+})

@@ -2,72 +2,18 @@ import { useT } from '@/i18n/useT'
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Search } from 'lucide-react'
-import { useUIStore, type SettingsTab } from '@/stores/uiStore'
+import { useUIStore } from '@/stores/uiStore'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { cn } from '@/lib/utils'
-import { SettingsCategories } from './SettingsCategories'
-import { SettingsHygiene } from './SettingsHygiene'
-import { SettingsAppearance } from './SettingsAppearance'
-import { SettingsShortcuts } from './SettingsShortcuts'
-import { SettingsData } from './SettingsData'
-import { SettingsStorage } from './SettingsStoragePage'
-import { SettingsAbout } from './SettingsAbout'
-import { SettingsSupport } from './SettingsSupport'
-import { SettingsAccount } from './SettingsAccount'
-import { SettingsAI } from './SettingsAI'
-import { SettingsPlugins } from './SettingsPlugins'
-import { isSponsorConfigured } from '@/lib/sponsor'
+import { NAV_TABS, type TabDef } from './settingsTabs'
+import { TAB_CONTENT, FALLBACK_TAB } from './settingsTabContent'
 
-/* ── Tab 分组定义 ── */
-
-interface TabDef {
-  key: SettingsTab
-  labelZh: string
-  labelEn: string
-  descZh: string
-  descEn: string
-}
-
-// 「支持」入口：配置了真实收款 URL 才在正式构建显示；开发模式始终显示便于预览
-const SHOW_SUPPORT = isSponsorConfigured() || import.meta.env.DEV
-
-const SETTINGS_TABS: TabDef[] = [
-  { key: 'account',     labelZh: '账户',     labelEn: 'Account',     descZh: '头像与名称',                  descEn: 'Avatar & name' },
-  { key: 'categories',  labelZh: '分类',     labelEn: 'Categories',  descZh: '分配每周168小时',              descEn: 'Allocate 168h/week' },
-  { key: 'appearance',  labelZh: '外观',     labelEn: 'Appearance',  descZh: '主题、字体与界面语言',          descEn: 'Theme, font & language' },
-  { key: 'shortcuts',   labelZh: '快捷',     labelEn: 'Shortcuts',   descZh: '键盘操作绑定',                descEn: 'Keyboard bindings' },
-  { key: 'data',        labelZh: '数据',     labelEn: 'Data',        descZh: '导入导出与存储',              descEn: 'Import, export & storage' },
-  { key: 'about',       labelZh: '关于',     labelEn: 'About',       descZh: '版本与更新',                  descEn: 'Version & updates' },
-  ...(SHOW_SUPPORT
-    ? [{ key: 'support' as SettingsTab, labelZh: '支持', labelEn: 'Support', descZh: '赞助与持续更新', descEn: 'Sponsor & updates' }]
-    : []),
-]
-
-const EXTENSION_TABS: TabDef[] = [
-  { key: 'hygiene', labelZh: '卫生', labelEn: 'Hygiene', descZh: '自定义记录的活动与颜色', descEn: 'Tracked activities & colors' },
-  { key: 'ai', labelZh: '模型', labelEn: 'Models', descZh: '默认模型与接入配置', descEn: 'Default models & providers' },
-  { key: 'plugins', labelZh: '插件', labelEn: 'Plugins', descZh: '可选模块开关', descEn: 'Optional modules' },
-]
-
-/* ── Tab → 组件映射 ── */
-
-const TAB_CONTENT: Record<SettingsTab, React.FC> = {
-  account:     SettingsAccount,
-  categories: SettingsCategories,
-  hygiene: SettingsHygiene,
-  appearance: SettingsAppearance,
-  shortcuts: SettingsShortcuts,
-  data:        SettingsData,
-  storage:     SettingsStorage,
-  ai:          SettingsAI,
-  plugins:     SettingsPlugins,
-  about:       SettingsAbout,
-  support:     SettingsSupport,
-}
-
-/* ── 全部 tab（用于键盘导航） ── */
-
-const ALL_TABS = [...SETTINGS_TABS, ...EXTENSION_TABS]
+/**
+ * 网页端设置弹窗。
+ *
+ * 导航结构来自 `settingsTabs.tsx` —— 与桌面独立窗口的 `SettingsPage`
+ * 共用同一份定义，避免两边各写一张表、改一处漏一处。
+ */
 
 /* ── 简单模糊搜索 ── */
 
@@ -83,8 +29,8 @@ function fuzzyMatch(query: string, text: string): boolean {
   return false
 }
 
-function filterTabs(tabs: TabDef[], query: string): TabDef[] {
-  if (!query.trim()) return tabs
+function filterTabs(tabs: readonly TabDef[], query: string): TabDef[] {
+  if (!query.trim()) return [...tabs]
   return tabs.filter(
     (tab) =>
       fuzzyMatch(query, tab.labelZh) ||
@@ -108,9 +54,8 @@ export function SettingsModal() {
   const cardRef = useRef<HTMLDivElement>(null)
 
   // Filter tabs by search
-  const filteredSettings = useMemo(() => filterTabs(SETTINGS_TABS, searchQuery), [searchQuery])
-  const filteredExtensions = useMemo(() => filterTabs(EXTENSION_TABS, searchQuery), [searchQuery])
-  const showNoResults = searchQuery.trim() && filteredSettings.length === 0 && filteredExtensions.length === 0
+  const visibleTabs = useMemo(() => filterTabs(NAV_TABS, searchQuery), [searchQuery])
+  const showNoResults = searchQuery.trim().length > 0 && visibleTabs.length === 0
 
   // Focus search on open
   useEffect(() => {
@@ -141,15 +86,15 @@ export function SettingsModal() {
   // Arrow key navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      const tabs = ALL_TABS
+      const tabs = NAV_TABS
       if (tabs.length === 0) return
-      const idx = tabs.findIndex((t) => t.key === activeTab)
+      const idx = tabs.findIndex((tab) => tab.key === activeTab)
       let nextIdx = idx
       if (e.key === 'ArrowDown') {
-        nextIdx = (idx + 1) % tabs.length
+        nextIdx = idx < 0 ? 0 : (idx + 1) % tabs.length
         e.preventDefault()
       } else if (e.key === 'ArrowUp') {
-        nextIdx = (idx - 1 + tabs.length) % tabs.length
+        nextIdx = idx < 0 ? tabs.length - 1 : (idx - 1 + tabs.length) % tabs.length
         e.preventDefault()
       }
       if (nextIdx !== idx && nextIdx >= 0) {
@@ -169,7 +114,7 @@ export function SettingsModal() {
 
   if (!open) return null
 
-  const ActiveComponent = TAB_CONTENT[activeTab] ?? SettingsCategories
+  const ActiveComponent = TAB_CONTENT[activeTab] ?? FALLBACK_TAB
 
   return createPortal(
     <div
@@ -194,7 +139,8 @@ export function SettingsModal() {
         {/* ── Left sidebar ── */}
         <nav
           className={cn(
-            'flex-shrink-0 flex flex-col bg-surface-sunken border-r border-border-subtle',
+            'flex-shrink-0 border-r border-border-subtle bg-surface-base',
+            'flex flex-col',
             'w-[220px]',
           )}
           onKeyDown={handleKeyDown}
@@ -222,15 +168,12 @@ export function SettingsModal() {
 
           {/* Tabs */}
           <div className={cn('flex-1 overflow-y-auto', 'flex flex-col gap-0.5 px-2.5 pb-5')}>
-            {/* ── 设置区 ── */}
-            {filteredSettings.length > 0 && (
+            {visibleTabs.length > 0 && (
               <div className="flex flex-col gap-0.5">
-                {(
-                  <span className="px-3 pt-1 pb-0.5 text-2xs font-sans font-medium uppercase tracking-wider text-text-quaternary">
-                    {tl('设置', 'Settings')}
-                  </span>
-                )}
-                {filteredSettings.map((tab) => {
+                <span className="px-3 pt-1 pb-0.5 text-2xs font-sans font-medium uppercase tracking-wider text-text-quaternary">
+                  {tl('选项', 'Options')}
+                </span>
+                {visibleTabs.map((tab) => {
                   const active = activeTab === tab.key
                   return (
                     <button
@@ -256,66 +199,14 @@ export function SettingsModal() {
                       >
                         {tl(tab.labelZh, tab.labelEn)}
                       </span>
-                      {(
-                        <span
-                          className={cn(
-                            'text-xs font-sans transition-colors duration-200',
-                            active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
-                          )}
-                        >
-                          {tl(tab.descZh, tab.descEn)}
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* ── 拓展区 ── */}
-            {filteredExtensions.length > 0 && (
-              <div className="flex flex-col gap-0.5 mt-0.5">
-                {(
-                  <span className="px-3 pt-1 pb-0.5 text-2xs font-sans font-medium uppercase tracking-wider text-text-quaternary">
-                    {tl('拓展', 'Extensions')}
-                  </span>
-                )}
-                {filteredExtensions.map((tab) => {
-                  const active = activeTab === tab.key
-                  return (
-                    <button
-                      key={tab.key}
-                      id={`settings-tab-${tab.key}`}
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={cn(
-                        'text-left rounded-lg transition-colors duration-200 cursor-pointer border-none',
-                        'w-full flex flex-col items-start gap-0.5 pl-3 pr-2 py-1.5',
-                        active
-                          ? 'bg-surface-raised shadow-pill'
-                          : 'hover:bg-surface-base',
-                      )}
-                    >
                       <span
                         className={cn(
-                          'font-sans font-medium transition-colors duration-200',
-                          'text-sm',
-                          active ? 'text-text-primary' : 'text-text-secondary',
+                          'text-xs font-sans transition-colors duration-200',
+                          active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
                         )}
                       >
-                        {tl(tab.labelZh, tab.labelEn)}
+                        {tl(tab.descZh, tab.descEn)}
                       </span>
-                      {(
-                        <span
-                          className={cn(
-                            'text-xs font-sans transition-colors duration-200',
-                            active ? 'text-text-tertiary' : 'text-text-tertiary opacity-60',
-                          )}
-                        >
-                          {tl(tab.descZh, tab.descEn)}
-                        </span>
-                      )}
                     </button>
                   )
                 })}

@@ -105,7 +105,8 @@ export function CommandPalette() {
       id: 'settings',
       label: '打开设置',
       shortcut: shortcutDisplay.openSettings,
-      invoke: () => { navigate('/settings'); close() },
+      // 桌面端开独立设置窗口；网页端 openSettings 内部回落成弹窗
+      invoke: () => { void useUIStore.getState().openSettings(); close() },
     },
     {
       id: 'theme',

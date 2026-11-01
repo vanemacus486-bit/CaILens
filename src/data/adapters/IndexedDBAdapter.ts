@@ -9,7 +9,6 @@ import type { InspirationLog } from '@/domain/inspiration'
 import type { DailyOutfit } from '@/domain/dailyContext'
 import type { Todo, TodoList } from '@/domain/todo'
 import type { ChroniclePhase, ChronicleTask } from '@/domain/chronicle'
-import type { AiChatRecord } from '@/domain/aiChat'
 import type { StorageAdapter, StorageTable, QueryOptions, HygieneLogRecord } from './StorageAdapter'
 import { CailensDB, db as dexieDb } from '../db'
 
@@ -134,7 +133,6 @@ export class IndexedDBAdapter implements StorageAdapter {
   todoLists: StorageTable<TodoList>
   chroniclePhases: StorageTable<ChroniclePhase>
   chronicleTasks: StorageTable<ChronicleTask>
-  aiChats: StorageTable<AiChatRecord>
 
   private db: CailensDB
 
@@ -155,7 +153,6 @@ export class IndexedDBAdapter implements StorageAdapter {
     this.todoLists = new IndexedDBTable(db.todoLists)
     this.chroniclePhases = new IndexedDBTable(db.chroniclePhases)
     this.chronicleTasks = new IndexedDBTable(db.chronicleTasks)
-    this.aiChats = new IndexedDBTable(db.aiChats)
   }
 
   readonly storagePath: string | null = null

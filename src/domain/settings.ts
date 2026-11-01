@@ -25,43 +25,7 @@ export const DEPRECATED_VISUAL_STYLES: Record<string, VisualStyle> = {
 export type FontScale = 'sm' | 'default' | 'lg' | 'xl'
 export type DefaultView = 'week' | 'month'
 
-// ── AI 设置 ──────────────────────────────────────────────
-
-export type AiProvider = 'openai' | 'anthropic' | 'google' | 'custom'
-
-/** 上下文脱敏级别：full=完整标题；category-only=只发分类+时长；summary=仅分类统计摘要 */
-export type AiPrivacy = 'full' | 'category-only' | 'summary'
-
-/** 单个 AI 提供商配置 */
-export interface AiProviderConfig {
-  provider: AiProvider
-  /** 用户自定义标签（如「主力模型」「本地测试」） */
-  label: string
-  apiKey: string
-  /** 自定义 API 端点；缺省使用提供商官方地址 */
-  baseUrl?: string
-  /** 模型名，如 gpt-4o、claude-sonnet-4-20250514 */
-  model?: string
-}
-
-export interface AiSettings {
-  enabled: boolean
-  /** 用户自定义的 AI 系统提示词；为空时使用默认提示词 */
-  systemPrompt?: string
-  providers: AiProviderConfig[]
-  /** 上下文脱敏级别：full（默认）/ category-only / summary */
-  privacy?: AiPrivacy
-  /** 当月累计 token 用量（本地估算，按自然月；月份变化时自动归零） */
-  monthlyTokens?: number
-  /** 当前用量所属月份 'YYYY-MM' */
-  usageMonth?: string
-  /** 月度预算（token 数）；缺省/0 表示不限制 */
-  monthlyBudget?: number
-}
-
 export interface AppSettings {
-  /** AI 功能设置 */
-  ai?: AiSettings
   id: 'default'   // singleton — Dexie primary key is always 'default'
   language: AppLanguage
   theme?: AppTheme
@@ -92,6 +56,8 @@ export interface AppSettings {
    * 只记录用户显式开关过的插件，避免插件增删后残留大量无意义条目。
    */
   enabledPlugins?: Record<string, boolean>
+  /** 启动时自动检查更新；缺省（undefined）视为开启 */
+  autoUpdateCheck?: boolean
   updatedAt?: number
 }
 
@@ -102,6 +68,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   visualStyle: 'graphite',
   fontScale: 'default',
   defaultView: 'week',
+  autoUpdateCheck: true,
   hygieneActivities: [...DEFAULT_HYGIENE_ACTIVITIES],
 }
 

@@ -91,6 +91,17 @@
   --tag-period-afternoon: #E8734A;
   --tag-period-evening: #5B9EBD;
   --tag-period-night: #9B6B9B;
+
+  /* ══ 纸皮肤（录入卡 A 版） ══ */
+  --paper-card-bg: #F8F4E9;
+  --paper-card-edge: #D6CDB5;
+  --paper-card-rule: rgba(214, 205, 181, 0.55);
+  --paper-card-ink: #2B2620;
+  --paper-card-ink-2: #6A6354;
+  --paper-card-ink-3: #A39B87;
+  --paper-card-ink-4: #C2B9A2;
+  --paper-card-accent: #3D5A45;
+  --paper-card-lit: #FFFDF7;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -135,6 +146,17 @@
   --tag-period-afternoon: #ef8259;
   --tag-period-evening: #6cabca;
   --tag-period-night: #ad7cad;
+
+  /* ══ 纸皮肤（录入卡 A 版）— 深色下退成暖炭，不保留纸黄 ══ */
+  --paper-card-bg: #2E2A23;
+  --paper-card-edge: #46413A;
+  --paper-card-rule: rgba(70, 65, 58, 0.7);
+  --paper-card-ink: #ECE7DD;
+  --paper-card-ink-2: #B5ADA0;
+  --paper-card-ink-3: #8C8478;
+  --paper-card-ink-4: #6A6354;
+  --paper-card-accent: #9DBE93;
+  --paper-card-lit: #3A352C;
 }
 
 /* ══════════════════════════════════════════════════════════════

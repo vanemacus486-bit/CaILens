@@ -18,13 +18,24 @@ import { SlideSegmented } from '@/components/nav/SlideSegmented'
 import { PluginDomainPanel } from '@/plugins/PluginSidebar'
 import { PluginNav } from '@/plugins/PluginNav'
 import { upcomingMarks, formatRelativeDay } from '@/domain/dayMark'
+import type { DayMark } from '@/domain/dayMark'
 import { formatISODate, getWeekStart } from '@/domain/time'
+
+/**
+ * 稳定空数组。
+ *
+ * 选择器里绝不能写 `s.settings.dayMarks ?? []`：当 dayMarks 为 undefined 时，
+ * 每次 getSnapshot 都返回一个全新的 `[]`，zustand 据此认为状态一直在变，
+ * 触发无限重渲染 → React 抛 "Maximum update depth exceeded"。
+ * 这张卡是顶栏 ☰ 的悬停内容，所以表现就是「点顶栏就出错」。
+ */
+const EMPTY_DAY_MARKS: DayMark[] = []
 
 export function CompactSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const language = useAppSettingsStore((s) => s.settings.language)
-  const dayMarks = useAppSettingsStore((s) => s.settings.dayMarks ?? [])
+  const dayMarks = useAppSettingsStore((s) => s.settings.dayMarks) ?? EMPTY_DAY_MARKS
   const { activeMode, navItems, handleModeChange, shortcutHints } = useDomainNav()
   const t = useT()
 
@@ -32,7 +43,7 @@ export function CompactSidebar() {
 
   const handleOpenSettings = () => {
     import('@/stores/uiStore').then(({ useUIStore }) => {
-      useUIStore.getState().setSettingsModalOpen(true)
+      void useUIStore.getState().openSettings()
     })
   }
 

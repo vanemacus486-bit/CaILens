@@ -1,4 +1,4 @@
-import type { PluginDefinition } from './types'
+import type { PluginDefinition, PluginOrigin } from './types'
 
 /**
  * 插件市场的展示层模型。
@@ -10,11 +10,44 @@ import type { PluginDefinition } from './types'
  * 开关语义沿用主体约定：`overrides[id] ?? defaultEnabled`。
  */
 
+/**
+ * 设置页里的插件分组。
+ *
+ * 顺序即渲染顺序，且**恒定输出**（哪怕某组一个插件都没有）——
+ * 「第三方插件」这一组现在必然是空的，但空组要显式存在，
+ * 用户才知道这一类将来会有东西，而不是以为分类没做。
+ */
+export interface PluginGroupMeta {
+  id: PluginOrigin
+  label: string
+  /** 组头下的一句话说明 */
+  description: string
+  /** 该组空时的提示 */
+  emptyHint: string
+}
+
+export const PLUGIN_GROUPS: readonly PluginGroupMeta[] = [
+  {
+    id: 'core',
+    label: '核心插件',
+    description: '随应用一起编译的内置模块，开关只影响入口注册。',
+    emptyHint: '没有核心插件。',
+  },
+  {
+    id: 'third-party',
+    label: '第三方插件',
+    description: '由外部提供、在运行时接入的插件。',
+    emptyHint: '暂未支持第三方插件。当前版本没有运行时加载通道，插件需要随应用编译。',
+  },
+]
+
 export interface PluginCard {
   id: string
   name: string
   description: string
   version: string
+  /** 来源分组，缺省为 `core` */
+  origin: PluginOrigin
   /** 当前是否启用 */
   enabled: boolean
   /** 用户是否显式设置过（false 表示仍在吃 defaultEnabled 默认值） */
@@ -23,6 +56,8 @@ export interface PluginCard {
   tables: string[]
   routeCount: number
   navCount: number
+  /** 贡献给其他域的子视图数（`domainViews`）。复盘五格就是靠它显示的。 */
+  viewCount: number
 }
 
 /** 市场筛选状态：全部 / 只看已启用 / 只看已停用 */
@@ -46,11 +81,13 @@ export function buildPluginCards(
       name: p.name,
       description: p.description,
       version: p.version,
+      origin: p.origin ?? 'core',
       enabled: override ?? p.defaultEnabled,
       isOverridden: override !== undefined,
       tables: p.tables ?? [],
       routeCount: p.routes?.length ?? 0,
       navCount: p.navItems?.length ?? 0,
+      viewCount: p.domainViews?.length ?? 0,
     }
   })
 }
@@ -89,4 +126,48 @@ export function countPlugins(cards: readonly PluginCard[]): PluginCounts {
   let enabled = 0
   for (const card of cards) if (card.enabled) enabled += 1
   return { total: cards.length, enabled, disabled: cards.length - enabled }
+}
+
+/** 一个分组 + 它下面的卡片（已过滤）。 */
+export interface PluginGroupSection {
+  meta: PluginGroupMeta
+  cards: PluginCard[]
+}
+
+/**
+ * 按来源把（已过滤的）卡片分组。
+ *
+ * 两条硬规则：
+ * 1. **恒定输出所有分组**，包括空组 —— 分组是「这个应用有哪些种类的插件」的
+ *    结构声明，不是「当前有哪些数据」的投影。空组由 UI 渲染成灰色说明文字。
+ * 2. **组内顺序沿用传入顺序**，未在 `PLUGIN_GROUPS` 里登记的 origin 不静默丢弃，
+ *    追加到末尾并按 id 排序 —— 新增来源类型时先看得到，再去补 meta。
+ */
+export function groupPluginCards(
+  cards: readonly PluginCard[],
+  groups: readonly PluginGroupMeta[] = PLUGIN_GROUPS,
+): PluginGroupSection[] {
+  const known = new Set(groups.map((g) => g.id))
+  const sections: PluginGroupSection[] = groups.map((meta) => ({
+    meta,
+    cards: cards.filter((c) => c.origin === meta.id),
+  }))
+
+  const orphans = cards.filter((c) => !known.has(c.origin))
+  if (orphans.length > 0) {
+    const ids = [...new Set(orphans.map((c) => c.origin))].sort()
+    for (const id of ids) {
+      sections.push({
+        meta: {
+          id,
+          label: id,
+          description: '未登记来源的插件。',
+          emptyHint: '',
+        },
+        cards: orphans.filter((c) => c.origin === id),
+      })
+    }
+  }
+
+  return sections
 }
