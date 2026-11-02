@@ -1,118 +1,85 @@
-import { cn } from '@/lib/utils'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import type { AppTheme, FontScale, UiFont, DefaultView } from '@/domain/settings'
+import type { AppTheme, FontScale, UiFont } from '@/domain/settings'
 import { useT } from '@/i18n/useT'
 import { SlideSegmented } from '@/components/nav/SlideSegmented'
-import { VisualStyleGrid } from './VisualStyleGrid'
+import { SettingsHeader, SettingsRow, SettingsSection } from './ui'
 
-function SettingsRow({
-  label,
-  children,
-  last,
-}: {
-  label: string
-  children: React.ReactNode
-  last?: boolean
-}) {
-  return (
-    <div
-      className={cn(
-        'flex items-center justify-between px-5 py-4 gap-3',
-        !last && 'border-b border-border-subtle',
-      )}
-    >
-      <span className="text-sm font-sans font-medium text-text-primary flex-shrink-0">
-        {label}
-      </span>
-      <div className="overflow-x-auto flex-shrink min-w-0">
-        {children}
-      </div>
-    </div>
-  )
-}
-
+/**
+ * 「外观」页：主题、排版、布局三组。
+ *
+ * 每组是一张卡片（`SettingsSection`），组标题在卡片外；行与行之间是细线，
+ * 不再是「一行一张卡」。视觉风格只剩石墨一套，不再提供切换控件。
+ */
 export function SettingsAppearance() {
   const settings = useAppSettingsStore((s) => s.settings)
   const setTheme = useAppSettingsStore((s) => s.setTheme)
   const setFontScale = useAppSettingsStore((s) => s.setFontScale)
   const setUiFont = useAppSettingsStore((s) => s.setUiFont)
-  const setDefaultView = useAppSettingsStore((s) => s.setDefaultView)
 
   const t = useT()
 
   return (
-    <div className="settings-appearance flex flex-col gap-5">
-      <div>
-        <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">
-          {t('settings.appearance')}
-        </h1>
-        <p className="text-sm text-text-tertiary mt-1 font-sans">
-          {t('settings.appearanceDesc')}
-        </p>
-      </div>
+    <div className="settings-appearance flex flex-col gap-7">
+      <SettingsHeader
+        title={t('settings.appearance')}
+        description={t('settings.appearanceDesc')}
+      />
 
-      <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden">
-        {/* 主题 */}
-        <SettingsRow label={t('settings.theme')}>
+      {/* 主题 */}
+      <SettingsSection title={t('settings.theme')}>
+        <SettingsRow
+          anchor="appearance-theme"
+          title={t('settings.themeMode')}
+          description={t('settings.themeModeHint')}
+        >
           <SlideSegmented<AppTheme>
             items={[
-              { id: 'auto',  label: t('settings.auto')  },
+              { id: 'auto', label: t('settings.auto') },
               { id: 'light', label: t('settings.light') },
-              { id: 'dark',  label: t('settings.dark')  },
+              { id: 'dark', label: t('settings.dark') },
             ]}
             value={settings.theme ?? 'light'}
             onChange={(theme) => fireAndForget(setTheme(theme), 'set theme')}
           />
         </SettingsRow>
+      </SettingsSection>
 
-        {/* 视觉风格 */}
-        <div className="px-5 py-4 border-b border-border-subtle">
-          <h2 className="text-xs font-sans font-medium text-text-secondary mb-3">
-            {t('settings.visualStyle')}
-          </h2>
-          <VisualStyleGrid />
-        </div>
-
-        {/* 字号 */}
-        <SettingsRow label={t('settings.fontSize')}>
+      {/* 排版 */}
+      <SettingsSection title={t('settings.section.typography')}>
+        <SettingsRow
+          anchor="appearance-font-size"
+          title={t('settings.fontSize')}
+          description={t('settings.fontSizeHint')}
+        >
           <SlideSegmented<FontScale>
             items={[
-              { id: 'sm',      label: t('settings.small')   },
+              { id: 'sm', label: t('settings.small') },
               { id: 'default', label: t('settings.default') },
-              { id: 'lg',      label: t('settings.large')   },
-              { id: 'xl',      label: t('settings.xlarge')  },
+              { id: 'lg', label: t('settings.large') },
+              { id: 'xl', label: t('settings.xlarge') },
             ]}
             value={settings.fontScale ?? 'default'}
             onChange={(scale) => fireAndForget(setFontScale(scale), 'set font scale')}
           />
         </SettingsRow>
 
-        {/* 字体 */}
-        <SettingsRow label={t('settings.font')}>
+        <SettingsRow
+          anchor="appearance-font"
+          title={t('settings.font')}
+          description={t('settings.fontHint')}
+        >
           <SlideSegmented<UiFont>
             items={[
-              { id: 'default',   label: t('settings.fontDefault') },
-              { id: 'sourcehan', label: '思源黑体'               },
-              { id: 'wenkai',    label: '霞鹜文楷'               },
+              { id: 'default', label: t('settings.fontDefault') },
+              { id: 'sourcehan', label: '思源黑体' },
+              { id: 'wenkai', label: '霞鹜文楷' },
             ]}
             value={settings.uiFont ?? 'default'}
             onChange={(font) => fireAndForget(setUiFont(font), 'set font')}
           />
         </SettingsRow>
-
-        {/* 初始视图 */}
-        <SettingsRow label={t('settings.defaultView')} last>
-          <SlideSegmented<DefaultView>
-            items={[
-              { id: 'week',  label: t('settings.weekView')  },
-              { id: 'month', label: t('settings.monthView') },
-            ]}
-            value={settings.defaultView ?? 'week'}
-            onChange={(v) => fireAndForget(setDefaultView(v), 'set default view')}
-          />
-        </SettingsRow>
-      </div>
+      </SettingsSection>
     </div>
   )
 }

@@ -9,7 +9,6 @@ import { SettingsCorePlugins } from './SettingsCorePlugins'
 import { SettingsThirdPartyPlugins } from './SettingsThirdPartyPlugins'
 /* 子页：不出现在侧栏，从父页进入（保留原有功能，不删除） */
 import { SettingsStorage } from './SettingsStoragePage'
-import { SettingsAccount } from './SettingsAccount'
 import { SettingsSupport } from './SettingsSupport'
 
 /**
@@ -28,7 +27,7 @@ export const TAB_CONTENT: Record<SettingsTab, FC> = {
   'core-plugins': SettingsCorePlugins,
   'third-party': SettingsThirdPartyPlugins,
   /* 隐藏子页 */
-  account: SettingsAccount,
+  account: SettingsInterface,
   data: SettingsData,
   storage: SettingsStorage,
   support: SettingsSupport,

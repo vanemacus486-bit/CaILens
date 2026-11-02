@@ -1,5 +1,6 @@
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { SettingsPlugins } from './SettingsPlugins'
+import { SettingsHeader } from './ui'
 
 /**
  * 「第三方插件」页。
@@ -14,14 +15,10 @@ export function SettingsThirdPartyPlugins() {
 
   return (
     <div className="flex flex-col gap-7">
-      <div>
-        <h2 className="font-serif text-xl font-semibold text-text-primary">
-          {tl('第三方插件', 'Third-party plugins')}
-        </h2>
-        <p className="mt-1 text-sm text-text-tertiary">
-          {tl('由外部提供、运行时接入的插件', 'Externally provided plugins loaded at runtime')}
-        </p>
-      </div>
+      <SettingsHeader
+        title={tl('第三方插件', 'Third-party plugins')}
+        description={tl('由外部提供、运行时接入的插件', 'Externally provided plugins loaded at runtime')}
+      />
 
       <SettingsPlugins onlyOrigin="third-party" />
     </div>

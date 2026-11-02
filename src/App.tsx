@@ -135,7 +135,7 @@ function Layout() {
   }, [])
 
   // 跨窗口同步：其他 WebView（快速记录浮窗、独立设置窗口）写入后，主窗口无感刷新。
-  // 200ms 合并连续写入（浮窗「记录并继续」会连发多条），避免每条都全量重读。
+  // 200ms 合并连续写入（批量补记会连发多条），避免每条都全量重读。
   //
   // 设置窗口是另一个 WebView，store 不共享：在那边改主题/语言/插件开关/分类名，
   // 主窗口必须重读才看得到。各表刷新代价不同，所以分开合并计时——
@@ -357,9 +357,6 @@ function Layout() {
           }
           onUpdate={async (input: UpdateEventInput) => { await useEventStore.getState().updateEvent(input) }}
           onDelete={(id: string) => useEventStore.getState().deleteEvent(id)}
-          onContinue={(start: number, end: number) =>
-            setCapture((prev) => (prev ? { open: true, times: { start, end } } : prev))
-          }
         />
       )}
     </div>

@@ -67,8 +67,10 @@ export function AccountMenu({ variant }: AccountMenuProps) {
   }, [])
 
   const handleOpenSettings = useCallback(() => {
-    // openSettings 自己会写 activeSettingsTab，桌面端走独立窗口
-    void openSettings('account')
+    // 不指定页签：openSettings 会复位到第一个选项卡（关于）。
+    // 曾经这里传 'interface'，于是「从账户菜单打开设置」永远停在界面页，
+    // 用户报的「打开设置没从第一项开始」就是它。
+    void openSettings()
     setOpen(false)
   }, [openSettings])
 

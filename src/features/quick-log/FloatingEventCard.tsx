@@ -5,15 +5,14 @@ import { cn } from '@/lib/utils'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { getEventRepo } from '@/data/getRepositories'
 import { classifyEvent } from '@/domain/icsImport'
-import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType } from '@/domain/event'
+import type { CalendarEvent, CreateEventInput, EventColor, UpdateEventInput, TypedEventData, SleepSubType, MealOrder } from '@/domain/event'
+import { MEAL_ORDER_LABELS } from '@/domain/event'
 import type { CategoryId } from '@/domain/category'
 import { inferHygieneActivity, findHygieneActivity, DEFAULT_HYGIENE_ACTIVITIES } from '@/domain/hygieneActivity'
-import { computeQuickCaptureSpan } from '@/domain/quickCaptureSpan'
 import { parseEventDraft } from '@/domain/eventDraft'
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import type { AutocompleteSuggestion } from './AutocompleteDropdown'
 import { CardInput } from './CardInput'
-import eatingCatImage from '@/assets/illustrations/eating-cat.webp'
 
 // ── Types ───────────────────────────────────────────────
 
@@ -35,8 +34,6 @@ interface FloatingEventCardProps {
   onSave: (input: CreateEventInput) => Promise<string>
   onUpdate: (input: UpdateEventInput) => Promise<void>
   onDelete: (id: string) => Promise<void>
-  /** 记录并继续：用上一条的结束时间立即开下一条 */
-  onContinue?: (nextStart: number, nextEnd: number, color: EventColor) => void
 }
 
 // ── Helpers ─────────────────────────────────────────────
@@ -111,6 +108,13 @@ function parseMealEntry(text: string): ParsedMealEntry {
   return { isMeal: false, foodTitle: trimmed }
 }
 
+/** D 版一行速记：把「牛肉面 鸡蛋」拆成一个个食物 */
+const MEAL_ORDER_SEQUENCE: MealOrder[] = ['breakfast', 'lunch', 'dinner', 'night_snack']
+
+function parseFoodParts(foodTitle: string): string[] {
+  return foodTitle.split(/[\s,，、·+]+/).filter(Boolean)
+}
+
 function inferMealOrder(timeMs: number): 'breakfast' | 'lunch' | 'dinner' | 'night_snack' {
   const h = new Date(timeMs).getHours()
   if (h < 10) return 'breakfast'
@@ -148,7 +152,7 @@ function bandOffsetToClock(offset: number): string {
 
 export function FloatingEventCard({
   open, anchorEl, defaultTimes, defaultColor,
-  editingEvent, onClose, onSave, onUpdate, onDelete, onContinue,
+  editingEvent, onClose, onSave, onUpdate, onDelete,
 }: FloatingEventCardProps) {
   const categories = useCategoryStore((s) => s.categories)
   const hygieneActivities = useAppSettingsStore((s) => s.settings.hygieneActivities) ?? DEFAULT_HYGIENE_ACTIVITIES
@@ -166,6 +170,10 @@ export function FloatingEventCard({
     editingEvent?.categoryId ?? defaultColor ?? 'accent',
   )
   const [title, setTitle] = useState(editingEvent?.title ?? '')
+  /** D 版：用户点餐次词手动指定的餐次；null 表示按开始时间推断 */
+  const [mealOrderOverride, setMealOrderOverride] = useState<MealOrder | null>(
+    editingEvent?.typedData?.type === 'meal' ? editingEvent.typedData.mealOrder : null,
+  )
   const [userChangedCategory, setUserChangedCategory] = useState(false)
   const [manualCategory, setManualCategory] = useState(false)
 
@@ -272,11 +280,6 @@ export function FloatingEventCard({
     catch { return false }
   })
 
-  // 刚存下的那条：用于底部「已存」回执 + Ctrl+Z 撤销
-  const [lastSaved, setLastSaved] = useState<
-    { id: string; title: string; start: number; end: number } | null
-  >(null)
-
   // Refs
   const inputRef = useRef<HTMLInputElement>(null)
   /** 睡眠时间横轴的轨道元素，拖拽时按它的宽度换算时间 */
@@ -374,6 +377,15 @@ export function FloatingEventCard({
     setSuggestions([])
   }, [])
 
+  function cycleMealOrder() {
+    setMealOrderOverride((prev) => {
+      const current = prev ?? inferMealOrder(effectiveStartTs)
+      const idx = MEAL_ORDER_SEQUENCE.indexOf(current)
+      return MEAL_ORDER_SEQUENCE[(idx + 1) % MEAL_ORDER_SEQUENCE.length]
+    })
+    setError(null)
+  }
+
   const acceptSuggestion = useCallback((s: AutocompleteSuggestion) => {
     setTitle(s.title)
     setSuggestions([])
@@ -398,10 +410,10 @@ export function FloatingEventCard({
       return
     }
 
-    // Enter → 保存并留在原地接着记（连续补记是主路径）；Esc 才退出
+    // Enter → 保存并关闭（一次输入一次结束）；Esc 才退出
     if (e.key === 'Enter') {
       e.preventDefault()
-      handleSaveRef.current(true)
+      handleSaveRef.current()
       return
     }
 
@@ -436,7 +448,7 @@ export function FloatingEventCard({
     return null
   }
 
-  async function handleSave(stayOpen = false) {
+  async function handleSave() {
     // 标题里被解析掉的时间/时长片段不再进标题
     const effectiveTitle = draft.title
     const parsedMeal = parseMealEntry(effectiveTitle)
@@ -479,7 +491,7 @@ export function FloatingEventCard({
       saveCategory = 'sand'
       typedData = {
         type: 'meal',
-        mealOrder: existingMeal?.mealOrder ?? inferMealOrder(startTime),
+        mealOrder: mealOrderOverride ?? existingMeal?.mealOrder ?? inferMealOrder(startTime),
         foodTags: existingMeal?.foodTags ?? [],
         source: existingMeal?.source ?? 'home',
       } as TypedEventData
@@ -517,28 +529,12 @@ export function FloatingEventCard({
         await onUpdate({ id: editingEvent.id, ...input })
         onClose()
       } else {
-        const savedId = await onSave(input)
+        await onSave(input)
         try {
           const n = Number(localStorage.getItem('cailens.cardHintSeen') ?? '0')
           localStorage.setItem('cailens.cardHintSeen', String(n + 1))
         } catch { /* ignore */ }
-
-        if (!stayOpen) {
-          onClose()
-          return
-        }
-
-        // 连续补记：留在原地、清空标题、时间推进到「本条结束 → 现在」
-        const next = computeQuickCaptureSpan({ lastEventEnd: endTime, now: Date.now(), trustAnchor: true })
-        setLastSaved({ id: savedId, title: eventTitle, start: startTime, end: endTime })
-        setTitle('')
-        setSuggestions([])
-        setError(null)
-        setStartStr(tsToStr(next.start))
-        setEndStr(tsToStr(next.end))
-        setCrossDay(new Date(next.end).toDateString() !== new Date(next.start).toDateString())
-        onContinue?.(next.start, next.end, saveCategory as EventColor)
-        requestAnimationFrame(() => inputRef.current?.focus())
+        onClose()
       }
     } catch {
       setError('保存失败')
@@ -574,7 +570,7 @@ export function FloatingEventCard({
   const placeholderText = (() => {
     switch (mode) {
       case 'chores': return '做了哪些杂务？'
-      case 'meal-food': return '吃了什么？例如：牛肉面、鸡蛋'
+      case 'meal-food': return '牛肉面 鸡蛋…'
       case 'growth': return '学了/练了什么？'
       case 'leisure': return '怎么放松的？'
       default: return '这段时间在做什么？'
@@ -990,9 +986,11 @@ export function FloatingEventCard({
     )
   }
 
-  // ── Meal mode ────────────────────────────────────────
+  // ── Meal mode（D 版：一行速记）─────────────────────
 
   function renderMealMode() {
+    const mealOrder = mealOrderOverride ?? inferMealOrder(effectiveStartTs)
+    const foodParts = parseFoodParts(parseMealEntry(title).foodTitle)
     return (
       <>
         {/* 纸头 */}
@@ -1036,24 +1034,6 @@ export function FloatingEventCard({
           </button>
         </div>
 
-        {/* 纸上的插图带：猫坐在纸上，不是渐变横幅 */}
-        <div className="relative h-[74px] overflow-hidden px-[15px]">
-          <div className="pt-2.5 font-mono text-[8.5px] uppercase tracking-[0.16em]" style={{ color: 'var(--paper-card-ink-4)' }}>
-            Meal note
-          </div>
-          <div className="mt-0.5 font-serif text-[15px] font-medium" style={{ color: 'var(--paper-card-ink)' }}>
-            记下这一顿
-          </div>
-          <img
-            src={eatingCatImage}
-            alt=""
-            width={720}
-            height={335}
-            draggable={false}
-            className="pointer-events-none absolute -bottom-1 right-2 h-[68px] w-[146px] select-none object-contain object-bottom opacity-80 dark:opacity-55 dark:brightness-75"
-          />
-        </div>
-
         {/* 时间编辑：下划线 */}
         {showTimeEdit && (
           <div
@@ -1089,53 +1069,70 @@ export function FloatingEventCard({
           </div>
         )}
 
-        <div className="px-[15px] pb-1 pt-1">
-          <label
-            className="mb-1 block font-mono text-[9px] tracking-[0.09em]"
-            style={{ color: 'var(--paper-card-ink-3)' }}
-            htmlFor="meal-food-input"
+        {/* 一行速记：餐次词 + 食物输入，与 CardInput 完全同一套纸面语言 */}
+        <div className="px-[15px] pb-1 pt-[10px]">
+          <div
+            className="flex items-center"
+            data-meal-line=""
+            style={{
+              borderBottom: '1px solid transparent',
+              transition: 'border-color 220ms ease',
+              ['--meal-line-focus' as string]: 'color-mix(in srgb, var(--event-sand-fill) 42%, transparent)',
+            }}
           >
-            吃了什么
-          </label>
-          <CardInput
-            id="meal-food-input"
-            inputRef={inputRef}
-            value={title}
-            onChange={setTitle}
-            onKeyDown={handleKeyDown}
-            placeholder="牛肉面、鸡蛋、青菜"
-            accent="var(--event-sand-fill)"
-            ghostSuffix={showInlineCompletion ? completionSuffix : ''}
-            rightSlot={<Utensils size={14} className="mr-1 flex-shrink-0" style={{ color: 'var(--event-sand-text)' }} aria-hidden="true" />}
-          />
-        </div>
-
-        {(showInlineCompletion && topSuggestion) || error ? (
-          <div className="px-[15px]">
-            {showInlineCompletion && topSuggestion && (
-              <button
-                type="button"
-                onMouseDown={(event) => {
-                  event.preventDefault()
-                  acceptSuggestion(topSuggestion)
-                }}
-                className="mt-1 inline-flex max-w-full items-center gap-1.5 py-0.5 text-left font-serif text-[10.5px] italic transition-opacity duration-150 hover:opacity-70"
-                style={{ color: 'var(--paper-card-ink-3)' }}
-              >
-                <span className="truncate">补全为「{topSuggestion.title}」</span>
-                <span className="flex-shrink-0 font-mono text-[9px] not-italic">{topSuggestion.count} 次 · Tab</span>
-              </button>
-            )}
-            {error && (
-              <p className="mt-1 font-serif text-[10.5px]" style={{ color: 'var(--color-text-danger)' }}>{error}</p>
-            )}
+            <style>{'[data-meal-line]:focus-within{border-bottom-color:var(--meal-line-focus)}'}</style>
+            <button
+              type="button"
+              onClick={cycleMealOrder}
+              className="h-11 flex-shrink-0 pr-1 font-serif text-[15px] font-[450] text-text-secondary tracking-[-0.008em] transition-opacity duration-150 hover:opacity-60"
+              aria-label="切换餐次"
+              title="点击切换餐次"
+            >
+              {MEAL_ORDER_LABELS[mealOrder]}
+            </button>
+            <input
+              id="meal-food-input"
+              ref={inputRef}
+              type="text"
+              value={title}
+              onChange={(event) => { setTitle(event.target.value); setError(null) }}
+              onKeyDown={handleKeyDown}
+              placeholder="牛肉面 鸡蛋…"
+              aria-label="吃了什么"
+              autoComplete="off"
+              spellCheck={false}
+              className="h-11 min-w-0 flex-1 bg-transparent pl-1 font-serif text-lg font-[450] text-text-primary tracking-[-0.008em] outline-none placeholder:italic placeholder:text-text-tertiary/60"
+              style={{ caretColor: 'var(--event-sand-fill)' }}
+            />
           </div>
-        ) : null}
+
+          {/* 实时回读：把「会记成什么」当场说清楚 */}
+          <p className="mt-1 min-h-[18px] font-serif text-[10.5px] leading-relaxed tracking-[0.01em] text-text-tertiary">
+            记作 <span className="text-text-secondary">{MEAL_ORDER_LABELS[mealOrder]}</span>
+            {foodParts.length > 0 ? (
+              <>
+                {' · '}
+                {foodParts.map((part, i) => (
+                  <span key={`${part}-${i}`}>
+                    <span className="font-mono text-[10px] text-text-secondary">{part}</span>
+                    {i < foodParts.length - 1 ? ' ' : ''}
+                  </span>
+                ))}
+                <span>（{foodParts.length} 样）</span>
+              </>
+            ) : (
+              <span> · 空格分隔多样食物</span>
+            )}
+          </p>
+          {error && (
+            <p className="mt-1 font-serif text-[10.5px] text-text-danger">{error}</p>
+          )}
+        </div>
 
         {/* 纸脚 */}
         <div className="mt-3 flex items-center gap-[7px] px-[15px] pb-[11px] pt-[6px]">
           <span className="min-w-0 flex-1 font-serif text-[10px] italic" style={{ color: 'var(--paper-card-ink-4)' }}>
-            只写食物名称，按 Enter 也可记下
+            空格分词 · ↵ 记下这一顿
           </span>
           {isEditing && (
             <button
@@ -1285,7 +1282,7 @@ export function FloatingEventCard({
         />
         </div>
 
-        {(hygieneHint || (showHint && showRecent) || lastSaved || error) && (
+        {(hygieneHint || (showHint && showRecent) || error) && (
           <div className="px-[15px]">
             {hygieneHint && (
               <div className="mt-1 font-serif text-[10.5px] italic" style={{ color: 'var(--paper-card-ink-3)' }}>
@@ -1295,15 +1292,7 @@ export function FloatingEventCard({
 
             {showHint && showRecent && (
               <div className="mt-1 flex items-center gap-3 font-mono text-[9px] tracking-[0.03em]" style={{ color: 'var(--paper-card-ink-3)' }}>
-                <span>Enter 记录并继续</span><span>Tab 补全</span><span>Esc 关闭</span>
-              </div>
-            )}
-
-            {lastSaved && (
-              <div className="mt-1 flex items-center gap-2 font-mono text-[9px]" style={{ color: 'var(--paper-card-ink-2)' }}>
-                <span className="min-w-0 truncate">
-                  已存「{lastSaved.title || '未命名'}」 {tsToStr(lastSaved.start)}–{tsToStr(lastSaved.end)}
-                </span>
+                <span>Enter 记录</span><span>Tab 补全</span><span>Esc 关闭</span>
               </div>
             )}
 
@@ -1353,17 +1342,6 @@ export function FloatingEventCard({
                 style={{ color: 'var(--color-text-danger)' }}
               >
                 删除
-              </button>
-            )}
-            {!isEditing && (
-              <button
-                type="button"
-                onClick={() => handleSave(true)}
-                title="记录并继续下一条 (Shift+Enter)"
-                className="rounded-sm border border-transparent px-[11px] py-[5px] font-serif text-[11px] tracking-[0.02em] transition-colors duration-150 hover:opacity-70"
-                style={{ color: 'var(--paper-card-ink-2)' }}
-              >
-                继续
               </button>
             )}
             <button

@@ -62,7 +62,7 @@ export function ProfilePage() {
         {/* 编辑入口 — 指向设置页 */}
         <div className="flex justify-center" style={{ marginTop: 48 }}>
           <button
-            onClick={() => { void useUIStore.getState().openSettings('account') }}
+            onClick={() => { void useUIStore.getState().openSettings() }}
             className="font-sans cursor-pointer bg-transparent border-none transition-colors duration-150"
             style={{ fontSize: 12, color: 'var(--ink-2)' }}
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.textDecoration = 'underline' }}

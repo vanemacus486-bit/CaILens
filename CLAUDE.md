@@ -142,7 +142,7 @@ use-cases/  →  domain/  →  data/  →  stores/  →  features/ + components/
 
 **6 种事件色 = 6 种分类 = 6 种 CategoryId**，各有 `bg/text/fill` 三个 CSS 变量。分类数量固定，不可增删。
 
-**5 视觉风格**（`graphite` 默认暖色 / `nocturne` / `carbon` / `tide` / `indigo`），通过 `<html data-style="...">` 切换，定义在 `tokens.css` 末尾的 `[data-style]` 覆盖块。覆盖块需同时改写两套 token 体系（`index.css` 的 `--surface-*`/`--accent*` 与 `tokens.css` 的 `--paper`/`--ink*`/`--line*`），不影响事件分类色。`tide`/`indigo` 是 Timepage 式全画布深底（浅色模式也是深底，须一并覆盖 `--text-*`）。
+**视觉风格只有一套：`graphite`**（暖纸底）。`<html data-style="graphite">` 恒为唯一取值，定义在 `tokens.css` 末尾的 `[data-style]` 覆盖块。旧的 `nocturne` / `carbon` / `tide` / `indigo` 已移除，历史值经 `DEPRECATED_VISUAL_STYLES` 静默回退到 graphite。再引入第二套风格前先想清楚：每个组件都要重验一遍全部 token，成本是线性的。
 
 **状态色：** success / danger / info，变量名以 `tokens.css` 为准。
 

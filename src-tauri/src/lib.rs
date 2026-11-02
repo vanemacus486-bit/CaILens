@@ -7,6 +7,10 @@ use tauri_plugin_global_shortcut::{Builder, GlobalShortcutExt};
 /// 因此这里不能随需求改名。
 const SETTINGS_WINDOW_LABEL: &str = "settings";
 
+/// 主窗口的 label。`tauri.conf.json` 只声明了一个窗口且没写 `label`，
+/// Tauri 给第一个窗口的默认值就是 `main`，这里对齐它。
+const MAIN_WINDOW_LABEL: &str = "main";
+
 struct QuickCaptureState {
     window_label: &'static str,
     last_toggle: std::sync::atomic::AtomicBool,
@@ -49,6 +53,25 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(Builder::new().build())
+        // 主窗口 = 应用本体：它一关，附属窗口（设置、快速捕获）都必须跟着消失。
+        //
+        // Tauri 默认语义是「**最后一个**窗口关闭才退出进程」——主窗口关掉、设置
+        // 窗口还开着时，进程会赖在后台：没有任务栏图标、也没有托盘，用户只能去
+        // 任务管理器杀。所以这里把主窗口的关闭请求直接升级成 `exit(0)`，由进程
+        // 退出统一带走其余窗口，而不是逐个 `close()`（那样要处理顺序和竞态）。
+        //
+        // 挂在 Builder 上而不是 setup 里逐个窗口注册：它从第一刻就生效，不依赖
+        // 注册时窗口是否已经创建。只认 `CloseRequested`（点关闭 / Alt+F4 /
+        // 前端 `win.close()` 都汇聚到这里）；`Destroyed` 在其后必到，再挂一个
+        // 就是重复触发。
+        .on_window_event(|window, event| {
+            if window.label() != MAIN_WINDOW_LABEL {
+                return;
+            }
+            if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
+                window.app_handle().exit(0);
+            }
+        })
         .manage(QuickCaptureState::new())
         .invoke_handler(tauri::generate_handler![
             fs_commands::read_dir_recursive,

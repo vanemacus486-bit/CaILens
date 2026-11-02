@@ -9,18 +9,17 @@ export type AppLanguage = 'zh' | 'en' | 'es' | 'ar' | 'fr' | 'ru'
 export type AppTheme = 'light' | 'dark' | 'auto'
 export type UiFont = 'default' | 'sourcehan' | 'wenkai'
 /**
- * 视觉风格只保留两套：
- * - graphite 石墨：默认暖纸底，日常长时间阅读
- * - tide 浸染：全画布深青，沉浸式
- * 旧值 nocturne / carbon / indigo 已废弃，读取时由 settingsStore 回退到 graphite。
+ * 视觉风格只保留石墨一套：暖纸底 + 石墨文字 + 陶土橙强调。
+ * 旧值 nocturne / carbon / tide / indigo 全部废弃，读取时由 settingsStore 回退到 graphite。
  */
-export type VisualStyle = 'graphite' | 'tide'
+export type VisualStyle = 'graphite'
 
 /** 已废弃的风格值 → 新值映射，供迁移使用 */
 export const DEPRECATED_VISUAL_STYLES: Record<string, VisualStyle> = {
   nocturne: 'graphite',
   carbon: 'graphite',
-  indigo: 'tide',
+  tide: 'graphite',
+  indigo: 'graphite',
 }
 export type FontScale = 'sm' | 'default' | 'lg' | 'xl'
 export type DefaultView = 'week' | 'month'

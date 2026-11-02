@@ -96,7 +96,10 @@ export function CategorySettingItem({
   }
 
   return (
-    <div className="rounded-xl bg-surface-raised border border-border-subtle overflow-hidden transition-colors duration-200 hover:border-border-default">
+    <div
+      data-settings-item={`category-${category.id}`}
+      className="scroll-mt-4 transition-colors duration-200 hover:bg-surface-sunken/30"
+    >
       {/* ── Main row: name + description + controls ── */}
       <div className="px-5 py-4 flex items-center gap-4">
         {/* Color dot */}

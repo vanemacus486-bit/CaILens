@@ -25,7 +25,7 @@ function applyFont(font: UiFont) {
   document.documentElement.setAttribute('data-font', font)
 }
 
-const VALID_VISUAL_STYLES: VisualStyle[] = ['graphite', 'tide']
+const VALID_VISUAL_STYLES: VisualStyle[] = ['graphite']
 
 function isValidVisualStyle(value: string): value is VisualStyle {
   return VALID_VISUAL_STYLES.includes(value as VisualStyle)
@@ -152,7 +152,7 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => {
     let style = styleResult.value
     const scale = scaleResult.value
 
-    // 回退已废弃的视觉风格：nocturne/carbon → graphite，indigo → tide，其余 → graphite
+    // 回退已废弃的视觉风格：任何非 graphite 的历史值（nocturne/carbon/tide/indigo）→ graphite
     if (!isValidVisualStyle(style)) {
       style = DEPRECATED_VISUAL_STYLES[style as string] ?? 'graphite'
       settings = await getSettingsRepo().update({ visualStyle: style })

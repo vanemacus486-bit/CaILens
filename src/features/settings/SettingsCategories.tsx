@@ -8,16 +8,15 @@ import { computeBucket } from '@/hooks/useStatsAggregation'
 import type { CategoryId } from '@/domain/category'
 import { BudgetBar } from './BudgetBar'
 import { CategorySettingItem } from './CategorySettingItem'
+import { SettingsSection } from './ui'
 
-interface SettingsCategoriesProps {
-  /**
-   * 内嵌在「核心插件」页里时置 true：不渲染自己的 h1 大标题，
-   * 改用与其它 section 一致的 h3，避免一个页面出现两级主标题。
-   */
-  embedded?: boolean
-}
-
-export function SettingsCategories({ embedded = false }: SettingsCategoriesProps = {}) {
+/**
+ * 分类配置：预算条 + 每个分类一行。
+ *
+ * 它内嵌在「核心插件」页里，不再自带页头；外层用 `SettingsSection`，
+ * 分类行与插件行共享同一套卡片与分隔线，不再各自画一张小卡。
+ */
+export function SettingsCategories() {
   const categories = useCategoryStore((s) => s.categories)
   const rangeEvents = useEventStore((s) => s.rangeEvents)
   const language = useAppSettingsStore((s) => s.settings.language)
@@ -71,37 +70,24 @@ export function SettingsCategories({ embedded = false }: SettingsCategoriesProps
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Header */}
-      <div>
-        {embedded ? (
-          <h3 className="font-sans text-sm font-medium text-text-secondary">分类</h3>
-        ) : (
-          <h1 className="font-serif text-xl font-medium text-text-primary tracking-tight">分类</h1>
-        )}
-        <p className="text-sm text-text-tertiary mt-1 font-sans">
-          每周 168 小时如何分配 · 管理关键词自动分类
-        </p>
-      </div>
-
-      {/* Budget allocation summary */}
+    <SettingsSection
+      anchor="core-plugins-categories"
+      title="分类"
+      description="每周 168 小时如何分配 · 管理关键词自动分类"
+    >
       <BudgetBar categories={categories} />
-
-      {/* Category setting items — vertical list */}
-      <div className="flex flex-col gap-3">
-        {categories.map((cat) => (
-          <CategorySettingItem
-            key={cat.id}
-            category={cat}
-            language={language}
-            trackedHours={trackedByCategory[cat.id]}
-            onNameCommit={handleNameCommit}
-            onBudgetChange={handleBudgetChange}
-            onAddKeyword={handleAddKeyword}
-            onRemoveKeyword={handleRemoveKeyword}
-          />
-        ))}
-      </div>
-    </div>
+      {categories.map((cat) => (
+        <CategorySettingItem
+          key={cat.id}
+          category={cat}
+          language={language}
+          trackedHours={trackedByCategory[cat.id]}
+          onNameCommit={handleNameCommit}
+          onBudgetChange={handleBudgetChange}
+          onAddKeyword={handleAddKeyword}
+          onRemoveKeyword={handleRemoveKeyword}
+        />
+      ))}
+    </SettingsSection>
   )
 }

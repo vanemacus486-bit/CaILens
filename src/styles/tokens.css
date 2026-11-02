@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════════════
    CaILens Design Tokens — 唯一颜色 / 字号 / 圆角 / 间距来源
    ────────────────────────────────────────────────────────────
-   视觉风格只有两套：graphite（默认暖纸）/ tide（深青沉浸）
+   视觉风格只有一套：graphite（暖纸底）。旧的 tide/nocturne/carbon/indigo 已移除。
    字号 7 档（tight 仅限时间轴等极密集场景），圆角 4 档 + full。
    组件里不得再出现 text-[11px] / rounded-2xl 这类自由取值。
    ══════════════════════════════════════════════════════════════ */
@@ -187,34 +187,4 @@
   --line: #46413A; --line-strong: #565045; --accent-soft: #3A2C22;
 }
 
-/* ── Tide 浸染（全画布深青 + 暖沙橙；浅色模式也刻意是深底） ── */
-[data-style="tide"] {
-  --surface-base: #10645B; --surface-raised: #156E64; --surface-sunken: #0C554D;
-  --border-subtle: #20776C; --border-default: #2C867A;
-  --grid-line: rgba(232,246,242,0.10); --grid-line-date-sep: rgba(232,246,242,0.16);
-  --accent: #F2B279; --accent-hover: #F6C28F; --accent-light: #1D6D62; --time-line: #F2B279;
-  --text-primary: #EAF4F1; --text-secondary: #A9CEC7; --text-tertiary: #7FA9A2; --text-quaternary: #58807A;
-  --paper: #10645B; --surface: #146A60;
-  --ink: #EAF4F1; --ink-2: #A9CEC7; --ink-3: #7FA9A2;
-  --line: #20776C; --line-strong: #2C867A; --accent-soft: #1D6D62;
-  /* 深底浅色模式：复盘/热力 token 须跟随主题文字色 */
-  --stats-shell-bg: var(--surface-base); --stats-shell-pill-bg: var(--surface-raised); --stats-shell-pill-text: var(--text-tertiary);
-  --stats-shell-ink-1: var(--text-primary); --stats-shell-ink-2: var(--text-secondary); --stats-shell-ink-3: var(--text-tertiary);
-  --stats-shell-rule: rgba(255,255,255,0.10);
-  --heatmap-bg: var(--surface-base); --heatmap-bg-card: var(--surface-raised);
-  --heatmap-ink-1: var(--text-primary); --heatmap-ink-2: var(--text-secondary); --heatmap-ink-3: var(--text-tertiary);
-  --heatmap-rule: rgba(255,255,255,0.10);
-  --heatmap-bg-cell-empty: #17564E; --bg-cell-empty: #17564E;
-}
-.dark[data-style="tide"] {
-  --surface-base: #0A433D; --surface-raised: #000000; --surface-sunken: #073630;
-  --border-subtle: #175249; --border-default: #216056;
-  --grid-line: rgba(226,244,239,0.08); --grid-line-date-sep: rgba(226,244,239,0.13);
-  --accent: #F0B075; --accent-hover: #F4BE89; --accent-light: #12483F; --time-line: #F0B075;
-  --text-primary: #E6F1EE; --text-secondary: #A2C6BF; --text-tertiary: #77A099; --text-quaternary: #52776F;
-  --paper: #0A433D; --surface: #0D4A43;
-  --ink: #E6F1EE; --ink-2: #A2C6BF; --ink-3: #77A099;
-  --line: #175249; --line-strong: #216056; --accent-soft: #12483F;
-  --stats-shell-rule: rgba(226,244,239,0.08); --heatmap-rule: rgba(226,244,239,0.08);
-  --heatmap-bg-cell-empty: #0E4A42; --bg-cell-empty: #0E4A42;
-}
+

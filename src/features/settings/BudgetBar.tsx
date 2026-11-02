@@ -17,7 +17,7 @@ export function BudgetBar({ categories }: BudgetBarProps) {
   const overBudget = remaining < 0
 
   return (
-    <div className="rounded-xl bg-surface-raised border border-border-subtle px-4 py-3">
+    <div className="px-5 py-4">
       {/* Stats row */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-sans font-medium text-text-tertiary">

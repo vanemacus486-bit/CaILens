@@ -9,11 +9,13 @@ import type { CailensImportResult, CailensMergeResult } from '@/lib/cailensExpor
 
 interface ImportSectionProps {
   language: AppLanguage
+  /** 嵌入设置页时去掉自带卡片与标题，由外层 SettingsRow 提供。 */
+  embedded?: boolean
 }
 
 type ImportStatus = 'idle' | 'importing' | 'done' | 'error'
 
-export function ImportSection({ language }: ImportSectionProps) {
+export function ImportSection({ language, embedded = false }: ImportSectionProps) {
   const [status, setStatus] = useState<ImportStatus>('idle')
   const [result, setResult] = useState<ImportStats | CailensImportResult | CailensMergeResult | null>(null)
   const [error, setError] = useState('')
@@ -101,13 +103,17 @@ export function ImportSection({ language }: ImportSectionProps) {
   }
 
   return (
-    <div className="bg-surface-raised border border-border-subtle p-6">
-      <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
-        {tr('import.title')}
-      </h3>
-      <p className="text-body-xs text-text-tertiary mb-4">
-        {tr('import.description')}
-      </p>
+    <div className={embedded ? 'flex flex-col gap-3' : 'bg-surface-raised border border-border-subtle p-6'}>
+      {!embedded && (
+        <>
+          <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
+            {tr('import.title')}
+          </h3>
+          <p className="text-body-xs text-text-tertiary mb-4">
+            {tr('import.description')}
+          </p>
+        </>
+      )}
 
       {/* Status banner */}
       {status === 'done' && result && (

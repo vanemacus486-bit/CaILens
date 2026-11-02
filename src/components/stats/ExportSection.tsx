@@ -8,9 +8,11 @@ import type { AppLanguage } from '@/i18n/types'
 
 interface ExportSectionProps {
   language: AppLanguage
+  /** 嵌入设置页时去掉自带卡片与标题，由外层 SettingsRow 提供。 */
+  embedded?: boolean
 }
 
-export function ExportSection({ language }: ExportSectionProps) {
+export function ExportSection({ language, embedded = false }: ExportSectionProps) {
   const [expClk, setExpClk] = useState<string | null>(null)
   const [encDialogOpen, setEncDialogOpen] = useState(false)
   const [icsBusy, setIcsBusy] = useState(false)
@@ -62,13 +64,17 @@ export function ExportSection({ language }: ExportSectionProps) {
   }
 
   return (
-    <div className="bg-surface-raised border border-border-subtle p-6">
-      <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
-        {'导出与所有权'}
-      </h3>
-      <p className="text-body-xs text-text-tertiary mb-4">
-        {'随时下载你的记录，任何格式，任何理由。'}
-      </p>
+    <div className={embedded ? 'flex flex-col gap-3' : 'bg-surface-raised border border-border-subtle p-6'}>
+      {!embedded && (
+        <>
+          <h3 className="font-serif text-sm font-semibold text-text-primary mb-1">
+            {'导出与所有权'}
+          </h3>
+          <p className="text-body-xs text-text-tertiary mb-4">
+            {'随时下载你的记录，任何格式，任何理由。'}
+          </p>
+        </>
+      )}
 
       <div className="flex gap-2.5 items-center flex-wrap">
         {(['CSV', 'JSON'] as const).map((fmt) => (

@@ -30,7 +30,6 @@ function renderCard(over: Partial<Parameters<typeof FloatingEventCard>[0]> = {})
   const onSave = vi.fn<Parameters<typeof FloatingEventCard>[0]['onSave']>().mockResolvedValue('new-id')
   const onUpdate = vi.fn().mockResolvedValue(undefined)
   const onDelete = vi.fn().mockResolvedValue(undefined)
-  const onContinue = vi.fn()
   const start = new Date(2026, 5, 22, 10, 0).getTime()
   const end = new Date(2026, 5, 22, 10, 30).getTime()
   render(
@@ -42,11 +41,10 @@ function renderCard(over: Partial<Parameters<typeof FloatingEventCard>[0]> = {})
       onSave={onSave}
       onUpdate={onUpdate}
       onDelete={onDelete}
-      onContinue={onContinue}
       {...over}
     />,
   )
-  return { onClose, onSave, onUpdate, onDelete, onContinue, start, end }
+  return { onClose, onSave, onUpdate, onDelete, start, end }
 }
 
 // ── Tests ───────────────────────────────────────────────
@@ -56,15 +54,16 @@ describe('FloatingEventCard', () => {
     try { localStorage.clear() } catch { /* jsdom always has it */ }
   })
 
-  it('新建模式真的画出：输入框 + 6 个分类点 + 记录/继续按钮', () => {
+  it('新建模式真的画出：输入框 + 6 个分类点 + 记录按钮', () => {
     renderCard()
     expect(screen.getByPlaceholderText('这段时间在做什么？')).toBeTruthy()
     // 6 个分类点，title 形如「… · Alt+1」～「… · Alt+6」
     expect(screen.getAllByTitle(/Alt\+[1-6]/)).toHaveLength(6)
     // 默认分类 accent(Alt+1) 高亮
     expect(screen.getByTitle(/Alt\+1/).getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByRole('button', { name: /继续/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: '记录' })).toBeTruthy()
+    // 一次输入一次结束：没有「继续」这种留在原地接着记的入口
+    expect(screen.queryByRole('button', { name: /继续/ })).toBeNull()
   })
 
   it('点击分类点切换高亮：aria-pressed 跟随', () => {
@@ -80,8 +79,8 @@ describe('FloatingEventCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '记录吃了什么' }))
 
-    expect(screen.getByPlaceholderText('牛肉面、鸡蛋、青菜')).toBeTruthy()
-    expect(screen.getByText('记下这一顿')).toBeTruthy()
+    expect(screen.getByPlaceholderText('牛肉面 鸡蛋…')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '切换餐次' })).toBeTruthy()
     expect(screen.queryAllByTitle(/Alt\+[1-6]/)).toHaveLength(0)
     expect(screen.getByRole('button', { name: '记下' })).toBeTruthy()
   })
@@ -106,20 +105,30 @@ describe('FloatingEventCard', () => {
     }))
   })
 
-  it('点「继续」：保存后 onContinue 接力——开始=上条结束、终点取现在', async () => {
-    const { onSave, onContinue, end } = renderCard()
-    fireEvent.click(screen.getByRole('button', { name: /继续/ }))
+  it('Enter 保存后立即关闭卡片——一次输入一次结束', async () => {
+    const { onClose, onSave } = renderCard()
+    const input = screen.getByPlaceholderText('这段时间在做什么？')
+
+    fireEvent.change(input, { target: { value: '写代码' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
-    await waitFor(() => expect(onContinue).toHaveBeenCalledTimes(1))
-    const [nextStart, nextEnd, color] = onContinue.mock.calls[0]
-    expect(nextStart).toBe(end)                     // 接力：下一条开始 = 上一条结束
-    expect(nextEnd).toBeGreaterThan(nextStart)      // 终点推进到「现在」，不再沿用上一条时长
-    expect(color).toBe('accent')
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
   })
 
-  it('编辑模式：不出现「继续」，出现「删除」', () => {
+  it('点「记录」保存后关闭卡片', async () => {
+    const { onClose, onSave } = renderCard()
+    const input = screen.getByPlaceholderText('这段时间在做什么？')
+
+    fireEvent.change(input, { target: { value: '写代码' } })
+    fireEvent.click(screen.getByRole('button', { name: '记录' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+  })
+
+  it('编辑模式：出现「删除」', () => {
     renderCard({ editingEvent: makeEvent() })
-    expect(screen.queryByRole('button', { name: /继续/ })).toBeNull()
     expect(screen.getByRole('button', { name: '删除' })).toBeTruthy()
   })
 

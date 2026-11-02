@@ -1,6 +1,7 @@
 import { useAppSettingsStore } from '@/stores/settingsStore'
 import { SettingsPlugins } from './SettingsPlugins'
 import { SettingsCategories } from './SettingsCategories'
+import { SettingsHeader } from './ui'
 
 /**
  * 「核心插件」页：随应用编译的内置模块开关 + 内置业务配置。
@@ -16,20 +17,14 @@ export function SettingsCorePlugins() {
 
   return (
     <div className="flex flex-col gap-7">
-      <div>
-        <h2 className="font-serif text-xl font-semibold text-text-primary">
-          {tl('核心插件', 'Core plugins')}
-        </h2>
-        <p className="mt-1 text-sm text-text-tertiary">
-          {tl('内置模块的开关与配置', 'Built-in module toggles & configuration')}
-        </p>
-      </div>
+      <SettingsHeader
+        title={tl('核心插件', 'Core plugins')}
+        description={tl('内置模块的开关与配置', 'Built-in module toggles & configuration')}
+      />
 
       <SettingsPlugins onlyOrigin="core" />
 
-      <hr className="border-border-subtle" />
-
-      <SettingsCategories embedded />
+      <SettingsCategories />
     </div>
   )
 }

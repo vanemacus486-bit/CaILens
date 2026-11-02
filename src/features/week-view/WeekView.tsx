@@ -331,17 +331,6 @@ export function WeekView() {
     if (ev) showUndoSnackbar(ev.id, ev.title || '未命名记录')
   }, [allEvents, deleteEvent, events])
 
-  // 记录并继续：保持卡片打开，用上一条的结束时间开下一条
-  const handleFloatingCardContinue = useCallback((nextStart: number, nextEnd: number, color: EventColor) => {
-    setFloatingCard((prev) => ({
-      ...prev,
-      open: true,
-      times: { start: nextStart, end: nextEnd },
-      color,
-      editingEvent: undefined,
-    }))
-  }, [])
-
   const gridRef = useRef<HTMLDivElement>(null)
 
   // Session state: save week + view, restore scroll
@@ -470,7 +459,6 @@ export function WeekView() {
           onSave={handleFloatingCardSave}
           onUpdate={handleFloatingCardUpdate}
           onDelete={handleFloatingCardDelete}
-          onContinue={handleFloatingCardContinue}
         />
       )}
     </>

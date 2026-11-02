@@ -1105,22 +1105,6 @@ body {
     var(--surface-base);
 }
 
-.settings-nav {
-  width: 236px;
-  border-right-color: color-mix(in srgb, var(--border-subtle) 82%, transparent) !important;
-  background: color-mix(in srgb, var(--surface-raised) 38%, var(--surface-base));
-}
-
-.settings-nav [role='tab'] {
-  min-height: 48px;
-  border-radius: 10px !important;
-}
-
-.settings-nav [role='tab'][aria-selected='true'] {
-  background: color-mix(in srgb, var(--surface-raised) 94%, var(--surface-base)) !important;
-  box-shadow: 0 1px 3px rgb(62 48 36 / 0.07), inset 0 1px 0 var(--surface-lit) !important;
-}
-
 .settings-main {
   background: transparent;
 }
@@ -1129,17 +1113,22 @@ body {
   min-height: 100%;
 }
 
-.settings-content > div > div > h1,
-.settings-appearance h1 {
-  font-size: 28px;
-  font-weight: 500;
-  letter-spacing: -0.035em;
+/* 搜索跳转后的短暂高亮：行本身在卡片里，用背景色而不是描边，避免撑开布局 */
+@keyframes settings-row-highlight {
+  0%, 30% { background-color: color-mix(in srgb, var(--accent) 13%, transparent); }
+  100%    { background-color: transparent; }
 }
 
-.settings-appearance > div:nth-child(2) {
-  border-color: color-mix(in srgb, var(--border-subtle) 88%, transparent) !important;
-  border-radius: 18px;
-  box-shadow: 0 1px 2px rgb(62 48 36 / 0.03), 0 14px 34px rgb(62 48 36 / 0.055), inset 0 1px 0 var(--surface-lit);
+.settings-row-flash {
+  animation: settings-row-highlight 1.6s ease-out;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-row-flash {
+    animation: none;
+    background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
 }
 
 .visual-style-card {
@@ -1158,15 +1147,8 @@ body {
   outline-offset: 3px;
 }
 
-.dark .app-sidebar,
-.dark .settings-appearance > div:nth-child(2) {
+.dark .app-sidebar {
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.17), inset 0 1px 0 var(--surface-lit);
-}
-
-@media (max-width: 719px) {
-  .settings-nav { width: 100%; }
-  .settings-content { padding: 22px 16px !important; }
-  .settings-appearance > div:nth-child(2) { border-radius: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

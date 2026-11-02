@@ -24,6 +24,15 @@ export type SettingsTab =
   // 旧 key（历史值 / 旧调用点）
   | 'plugins'
 
+/**
+ * 打开设置且未指定页签时落在哪一页。
+ *
+ * 必须是 `features/settings/settingsTabs.ts` 里 `SETTINGS_TABS` 的第一项 ——
+ * 用户的心智模型是「打开设置就从第一个选项卡开始」，而不是回到上次停留的页。
+ * 两处的一致性由 `features/settings/__tests__/settingsTabs.test.ts` 断言。
+ */
+export const DEFAULT_SETTINGS_TAB: SettingsTab = 'about'
+
 interface UIState {
   sidebarExpanded: boolean
   commandPaletteOpen: boolean
@@ -68,7 +77,7 @@ export const useUIStore = create<UIState>()((set) => ({
   sidebarExpanded: loadSidebarExpanded(),
   commandPaletteOpen: false,
   settingsModalOpen: false,
-  activeSettingsTab: 'about',
+  activeSettingsTab: DEFAULT_SETTINGS_TAB,
   clipboardEvent: null,
   lastFocusedEventId: null,
   quickCaptureInboxOpen: false,
@@ -80,12 +89,16 @@ export const useUIStore = create<UIState>()((set) => ({
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setSettingsModalOpen: (open) => set({ settingsModalOpen: open }),
   openSettings: async (tab) => {
-    if (tab) set({ activeSettingsTab: tab })
+    // 无条件写本窗口页签：不传就是「回到第一项」，不是「保持上次」。
+    const target = tab ?? DEFAULT_SETTINGS_TAB
+    set({ activeSettingsTab: target })
     const { isTauriDesktop } = await import('@/lib/platform')
     if (isTauriDesktop()) {
       try {
         const { invoke } = await import('@tauri-apps/api/core')
-        await invoke('open_settings_window', { tab: tab ?? null })
+        // 桌面独立窗口有自己的一份 store，必须把 target 传过去：
+        // Rust 只在 `Some(tab)` 时 emit `settings:set-tab`，传 null 时已存在的窗口原地不动。
+        await invoke('open_settings_window', { tab: target })
         return
       } catch (e) {
         console.error('[openSettings] 独立窗口打开失败，回落为弹窗', e)
