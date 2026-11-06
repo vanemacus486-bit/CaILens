@@ -17,6 +17,7 @@ import {
   isRangeOverlapping,
   isEventOnDay,
   shiftEventsByWeeks,
+  snapToHourStart,
 } from '../time'
 
 // ── helpers ───────────────────────────────────────────────
@@ -595,5 +596,51 @@ describe('shiftEventsByWeeks', () => {
     // Shift must be exactly WEEK_MS regardless of DST
     expect(result[0].startTime - mar1).toBe(WEEK_MS)
     expect(result[0].endTime - (mar1 + 3600_000)).toBe(WEEK_MS)
+  })
+})
+
+// ── snapToHourStart ───────────────────────────────────────
+
+describe('snapToHourStart', () => {
+  // 2026-11-06 local time, matching the calendar-slot bug repro.
+  const NOV_6_2026 = 2026
+
+  it('snaps a quarter-hour slot down to the top of the local hour', () => {
+    const ts = new Date(NOV_6_2026, 10, 6, 5, 15).getTime()
+    expect(snapToHourStart(ts)).toBe(new Date(NOV_6_2026, 10, 6, 5, 0).getTime())
+  })
+
+  it('snaps a half-hour slot down to the top of the local hour', () => {
+    const ts = new Date(NOV_6_2026, 10, 6, 5, 30).getTime()
+    expect(snapToHourStart(ts)).toBe(new Date(NOV_6_2026, 10, 6, 5, 0).getTime())
+  })
+
+  it('leaves an exact hour boundary untouched', () => {
+    const ts = new Date(NOV_6_2026, 10, 6, 5, 0).getTime()
+    expect(snapToHourStart(ts)).toBe(ts)
+  })
+
+  it('snaps the last hour of the day down to 23:00, not past midnight', () => {
+    const ts = new Date(NOV_6_2026, 10, 6, 23, 45).getTime()
+    expect(snapToHourStart(ts)).toBe(new Date(NOV_6_2026, 10, 6, 23, 0).getTime())
+  })
+
+  it('snaps midnight slots to 00:00 of the same day, not the previous day', () => {
+    const ts = new Date(NOV_6_2026, 10, 6, 0, 30).getTime()
+    expect(snapToHourStart(ts)).toBe(new Date(NOV_6_2026, 10, 6, 0, 0).getTime())
+  })
+
+  // UTC-epoch truncation (ts % 3600000) is WRONG in non-UTC timezones;
+  // this test pins the local-timezone behavior.
+  it('snaps correctly in a UTC-offset timezone (CI runs where TZ ≠ UTC)', () => {
+    const ts = new Date(NOV_6_2026, 10, 6, 5, 15).getTime()
+    const expected = new Date(NOV_6_2026, 10, 6, 5, 0).getTime()
+    expect(snapToHourStart(ts)).toBe(expected)
+    // Guard: in UTC+offset timezones the UTC-truncation answer differs —
+    // only meaningful when offset is not a whole-hour boundary. Assert the
+    // result round-trips to the same local hour/minute.
+    const out = new Date(snapToHourStart(ts))
+    expect(out.getHours()).toBe(5)
+    expect(out.getMinutes()).toBe(0)
   })
 })

@@ -26,9 +26,12 @@ type StaticItem = Omit<SettingsSearchItem, 'labelEn' | 'keywords'> &
   Partial<Pick<SettingsSearchItem, 'labelEn' | 'keywords'>>
 
 const STATIC_ITEMS: readonly StaticItem[] = [
+  // ── 版本 ──
+  { tab: 'versions', anchor: 'versions-check', labelZh: '检查更新', labelEn: 'Check for updates', keywords: ['版本', '更新', '检查更新', 'version', 'update'] },
+  { tab: 'versions', anchor: 'versions-auto-update', labelZh: '自动更新', labelEn: 'Automatic updates', keywords: ['更新', 'auto update'] },
+  { tab: 'versions', anchor: 'versions-history', labelZh: '版本历史与回退', labelEn: 'Version history & rollback', keywords: ['版本', '回退', '降级', 'rollback', 'history'] },
+
   // ── 关于 ──
-  { tab: 'about', anchor: 'about-version', labelZh: '版本与更新', labelEn: 'Version & updates', keywords: ['版本', '检查更新', 'version', 'update'] },
-  { tab: 'about', anchor: 'about-auto-update', labelZh: '自动更新', labelEn: 'Automatic updates', keywords: ['更新', 'auto update'] },
   { tab: 'about', anchor: 'about-language', labelZh: '界面语言', labelEn: 'Language', keywords: ['语言', '中文', 'english', 'language'] },
   { tab: 'about', anchor: 'about-help', labelZh: '获取帮助', labelEn: 'Get help', keywords: ['帮助', '支持', '赞助', 'help', 'support'] },
   { tab: 'about', anchor: 'about-privacy', labelZh: '隐私政策', labelEn: 'Privacy policy', keywords: ['隐私', 'privacy'] },

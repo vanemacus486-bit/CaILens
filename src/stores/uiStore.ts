@@ -4,12 +4,13 @@ import type { CreateEventInput } from '@/domain/event'
 /**
  * 设置选项卡 key。
  *
-  * 前七个是侧栏可见项（顺序见 `features/settings/settingsTabs.ts`）；
+  * 前八个是侧栏可见项（顺序见 `features/settings/settingsTabs.ts`）；
  * 其余是**隐藏子页**：从父页进入，不出现在侧栏 —— 保留是为了不丢已有功能。
  */
 export type SettingsTab =
   // 侧栏可见
   | 'about'
+  | 'versions'
   | 'appearance'
   | 'interface'
   | 'file'

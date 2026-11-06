@@ -481,7 +481,7 @@ export function FloatingEventCard({
       typedData = {
         type: 'sleep',
         sleepType,
-        quality: quality ?? undefined,
+        quality: quality ?? 3, // 未选时默认"一般"（3 档）
         bedtime: startTime,
         wakeTime: endTime,
       } as TypedEventData

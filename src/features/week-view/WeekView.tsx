@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getISOWeek } from 'date-fns'
-import { addWeeks, getWeekDays, isEventOnDay, formatISODate, parseISODate, getWeekStart } from '@/domain/time'
+import { addWeeks, getWeekDays, isEventOnDay, formatISODate, parseISODate, getWeekStart, snapToHourStart } from '@/domain/time'
 import type { CalendarEvent, EventColor, CreateEventInput, UpdateEventInput } from '@/domain/event'
 import { fireAndForget } from '@/lib/fireAndForget'
 import { translate } from '@/i18n/useT'
@@ -224,10 +224,11 @@ export function WeekView() {
     }
     if (cardState.mode !== 'none') return
 
+    const start = snapToHourStart(startTime)
     setFloatingCard({
       open: true,
       anchorEl: slotEl,
-      times: { start: startTime, end: startTime + 60 * 60_000 },
+      times: { start, end: start + 60 * 60_000 },
       color: 'accent',
       editingEvent: undefined,
     })

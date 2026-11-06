@@ -159,11 +159,11 @@ export function EventDetailCard({ event, anchorEl, onEdit, onDelete, onClose }: 
                 <span style={{ fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-ui)' }}>睡眠质量</span>
                 <div className="flex items-center gap-[3px]">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <MoonPip key={i} filled={sleep.quality != null && i <= sleep.quality} />
+                    <MoonPip key={i} filled={(sleep.quality ?? 3) >= i} />
                   ))}
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 500, color: sleep.quality ? 'var(--ink)' : 'var(--ink-3)', fontFamily: 'var(--font-ui)' }}>
-                  {sleep.quality ? SLEEP_QUALITY_LABELS[sleep.quality] : '未评级'}
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)', fontFamily: 'var(--font-ui)' }}>
+                  {SLEEP_QUALITY_LABELS[sleep.quality ?? 3]}
                 </span>
               </div>
             )}

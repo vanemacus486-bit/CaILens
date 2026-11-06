@@ -37,6 +37,16 @@ export function getDayStart(date: Date): number {
   return startOfDay(date).getTime()
 }
 
+/**
+ * Snaps a timestamp down to the top of its local hour
+ * (minutes/seconds/milliseconds zeroed, local-timezone aware).
+ * Clicking the 05:15 or 05:30 slot on a day column yields 05:00.
+ */
+export function snapToHourStart(timestamp: number): number {
+  const d = new Date(timestamp)
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), 0, 0, 0).getTime()
+}
+
 // Returns the start of the NEXT day (exclusive upper bound for the day).
 export function getDayEnd(date: Date): number {
   return addDays(startOfDay(date), 1).getTime()

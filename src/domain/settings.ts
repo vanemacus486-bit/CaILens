@@ -57,6 +57,13 @@ export interface AppSettings {
   enabledPlugins?: Record<string, boolean>
   /** 启动时自动检查更新；缺省（undefined）视为开启 */
   autoUpdateCheck?: boolean
+  /**
+   * 回退后固定住的版本号（不带 v）。
+   *
+   * 设置后不再把这个版本之后的更新当作「可用更新」提示，直到在版本面板解除固定。
+   * 只影响提示，不阻止手动检查与安装。
+   */
+  pinnedVersion?: string
   updatedAt?: number
 }
 

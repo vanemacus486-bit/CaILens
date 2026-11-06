@@ -94,6 +94,8 @@ interface AppSettingsState {
   setPluginEnabled: (pluginId: string, enabled: boolean) => Promise<void>
   /** 开关启动时自动检查更新 */
   setAutoUpdateCheck: (enabled: boolean) => Promise<void>
+  /** 固定到某个版本（回退后调用）；传 null 解除固定 */
+  setPinnedVersion: (version: string | null) => Promise<void>
 }
 
 export const useAppSettingsStore = create<AppSettingsState>()((set) => {
@@ -308,6 +310,11 @@ export const useAppSettingsStore = create<AppSettingsState>()((set) => {
 
   setAutoUpdateCheck: async (enabled) => {
     const settings = await getSettingsRepo().update({ autoUpdateCheck: enabled })
+    commit(settings)
+  },
+
+  setPinnedVersion: async (version) => {
+    const settings = await getSettingsRepo().update({ pinnedVersion: version ?? undefined })
     commit(settings)
   },
 

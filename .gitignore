@@ -45,6 +45,7 @@ CaILens_keys/
 # Temporary / debug artifacts
 eslint_output.txt
 *.png
+.tmp/
 # 构建期工具链（dlltool/windres 等二进制，约 10 MB，由 scripts/*.ps1 现取）
 .build-tools/
 

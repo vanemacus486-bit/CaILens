@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Blocks,
   FolderOpen,
+  History,
   Info,
   Keyboard,
   LayoutGrid,
@@ -33,6 +34,7 @@ import {
 /** 图标语义名 → 组件。数据侧只存字符串，避免 `.ts` 里出现组件值。 */
 const ICONS: Record<SettingsTabIcon, LucideIcon> = {
   info: Info,
+  history: History,
   palette: Palette,
   layout: LayoutGrid,
   folder: FolderOpen,

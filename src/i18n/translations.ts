@@ -719,6 +719,83 @@ export const translations: TranslationDict = {
     ru: 'Язык',
   },
 
+  // ── 设置：版本 ─────────────────────────────────────────
+  'settings.versions': {
+    zh: '版本', en: 'Versions', es: 'Versiones', ar: 'الإصدارات', fr: 'Versions', ru: 'Версии',
+  },
+  'settings.versionsDesc': {
+    zh: '当前安装的版本、可用更新，以及出现问题时如何回退。更新下载好后由你决定何时重启；回退后会固定在所选版本，不再提示新版本。',
+    en: 'Installed version, available updates, and how to roll back. Updates wait for your restart; a rollback pins the chosen version and stops new-version prompts.',
+    es: 'Versión instalada, actualizaciones disponibles y cómo revertir. Las actualizaciones esperan tu reinicio; revertir fija la versión elegida y detiene los avisos.',
+    ar: 'الإصدار المثبت والتحديثات المتاحة وكيفية التراجع. تنتظر التحديثات إعادة التشغيل؛ والتراجع يثبّت الإصدار المختار ويوقف تنبيهات الإصدارات الجديدة.',
+    fr: "Version installée, mises à jour disponibles et retour arrière. Les mises à jour attendent votre redémarrage ; un retour fige la version choisie et coupe les notifications.",
+    ru: 'Установленная версия, доступные обновления и откат. Обновления ждут перезапуска; откат закрепляет выбранную версию и отключает уведомления.',
+  },
+  'settings.versions.running': {
+    zh: '正在运行', en: 'Running', es: 'En ejecución', ar: 'قيد التشغيل', fr: 'En cours', ru: 'Запущена',
+  },
+  'settings.versions.local': {
+    zh: '本机', en: 'Local', es: 'Local', ar: 'محلي', fr: 'Local', ru: 'Локально',
+  },
+  'settings.versions.takesEffect': {
+    zh: '立即生效', en: 'Applies immediately', es: 'Se aplica al instante', ar: 'يسري فوراً', fr: 'Pris en compte immédiatement', ru: 'Действует сразу',
+  },
+  'settings.versions.available': {
+    zh: '可用更新', en: 'Available', es: 'Disponible', ar: 'متاح', fr: 'Disponible', ru: 'Доступна',
+  },
+  'settings.versions.updateNotes': {
+    zh: '更新内容', en: 'Release notes', es: 'Notas de la versión', ar: 'ملاحظات الإصدار', fr: 'Notes de version', ru: 'Что нового',
+  },
+  'settings.versions.expand': {
+    zh: '展开更新内容', en: 'Show release notes', es: 'Mostrar notas', ar: 'إظهار الملاحظات', fr: 'Afficher les notes', ru: 'Показать заметки',
+  },
+  'settings.versions.collapse': {
+    zh: '收起更新内容', en: 'Hide release notes', es: 'Ocultar notas', ar: 'إخفاء الملاحظات', fr: 'Masquer les notes', ru: 'Скрыть заметки',
+  },
+  'settings.versions.showEarlier': {
+    zh: '显示更早的 {0} 个版本', en: 'Show {0} earlier versions', es: 'Mostrar {0} versiones anteriores', ar: 'عرض {0} إصدارات أقدم', fr: 'Afficher {0} versions antérieures', ru: 'Показать {0} более ранних версий',
+  },
+  'settings.versions.hideEarlier': {
+    zh: '收起更早的版本', en: 'Hide earlier versions', es: 'Ocultar versiones anteriores', ar: 'إخفاء الإصدارات الأقدم', fr: 'Masquer les versions antérieures', ru: 'Скрыть ранние версии',
+  },
+  'settings.versions.rollback': {
+    zh: '回退到此版本', en: 'Roll back to this version', es: 'Revertir a esta versión', ar: 'التراجع إلى هذا الإصدار', fr: 'Revenir à cette version', ru: 'Откатиться к этой версии',
+  },
+  'settings.versions.rollbackConfirm': {
+    zh: '回退后会固定在此版本，不再提示新版本。确定回退到 v{0}？',
+    en: 'Rolling back pins this version and stops new-version prompts. Roll back to v{0}?',
+    es: 'Revertir fija esta versión y detiene los avisos. ¿Revertir a v{0}?',
+    ar: 'التراجع يثبّت هذا الإصدار ويوقف التنبيهات. التراجع إلى v{0}؟',
+    fr: 'Le retour arrière fige cette version et coupe les notifications. Revenir à v{0} ?',
+    ru: 'Откат закрепит эту версию и отключит уведомления. Откатиться к v{0}?',
+  },
+  'settings.versions.pinned': {
+    zh: '已固定', en: 'Pinned', es: 'Fijada', ar: 'مثبّت', fr: 'Figée', ru: 'Закреплена',
+  },
+  'settings.versions.pinnedHint': {
+    zh: '已固定在 v{0}，不再提示新版本。', en: 'Pinned to v{0}; new-version prompts are off.', es: 'Fijada en v{0}; los avisos están desactivados.', ar: 'مثبّت على v{0}؛ التنبيهات متوقفة.', fr: 'Figée sur v{0} ; les notifications sont coupées.', ru: 'Закреплено на v{0}; уведомления отключены.',
+  },
+  'settings.versions.unpin': {
+    zh: '解除固定', en: 'Unpin', es: 'Desfijar', ar: 'إلغاء التثبيت', fr: 'Défiger', ru: 'Открепить',
+  },
+  'settings.versions.openRelease': {
+    zh: '在浏览器打开', en: 'Open in browser', es: 'Abrir en el navegador', ar: 'فتح في المتصفح', fr: 'Ouvrir dans le navigateur', ru: 'Открыть в браузере',
+  },
+  'settings.versions.older': {
+    zh: '更早的版本', en: 'Earlier versions', es: 'Versiones anteriores', ar: 'إصدارات أقدم', fr: 'Versions antérieures', ru: 'Ранние версии',
+  },
+  'settings.versions.section.new': {
+    zh: '新增', en: 'New', es: 'Nuevo', ar: 'جديد', fr: 'Nouveau', ru: 'Новое',
+  },
+  'settings.versions.section.fix': {
+    zh: '修复', en: 'Fixes', es: 'Correcciones', ar: 'إصلاحات', fr: 'Corrections', ru: 'Исправления',
+  },
+  'settings.versions.section.improve': {
+    zh: '改进', en: 'Improvements', es: 'Mejoras', ar: 'تحسينات', fr: 'Améliorations', ru: 'Улучшения',
+  },
+  'settings.versions.section.remove': {
+    zh: '移除', en: 'Removed', es: 'Eliminado', ar: 'محذوف', fr: 'Supprimé', ru: 'Удалено',
+  },
   // ── 设置：关于 ─────────────────────────────────────────
   'settings.about': {
     zh: '关于',
@@ -1416,6 +1493,22 @@ export const translations: TranslationDict = {
     ar: 'فتح',
     fr: 'Ouvrir',
     ru: 'Открыть',
+  },
+  'support.qrMissing': {
+    zh: '二维码还没放进来。把赞赏码图片保存为 public/sponsor/wechat-qr.png 即可显示。',
+    en: 'QR code not found. Save your tip-code image as public/sponsor/wechat-qr.png to show it.',
+    es: 'No se encontró el código QR. Guarda tu imagen como public/sponsor/wechat-qr.png para mostrarla.',
+    ar: 'لم يتم العثور على رمز QR. احفظ صورتك باسم public/sponsor/wechat-qr.png لعرضها.',
+    fr: 'QR code introuvable. Enregistrez votre image sous public/sponsor/wechat-qr.png pour l’afficher.',
+    ru: 'QR-код не найден. Сохраните изображение как public/sponsor/wechat-qr.png, чтобы оно отобразилось.',
+  },
+  'support.notConfigured': {
+    zh: '还没有配置任何赞助渠道。在 src/lib/sponsor.ts 里填上真实地址即可。',
+    en: 'No sponsor channel configured yet. Add a real URL in src/lib/sponsor.ts.',
+    es: 'Aún no hay ningún canal de patrocinio configurado. Añade una URL real en src/lib/sponsor.ts.',
+    ar: 'لم يتم إعداد أي قناة دعم بعد. أضف رابطاً حقيقياً في src/lib/sponsor.ts.',
+    fr: 'Aucun canal de soutien configuré. Ajoutez une URL réelle dans src/lib/sponsor.ts.',
+    ru: 'Каналы поддержки не настроены. Укажите реальный адрес в src/lib/sponsor.ts.',
   },
 
   // ── 设置：Tab 相关 ─────────────────────────────────────

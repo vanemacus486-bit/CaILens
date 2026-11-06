@@ -5,16 +5,24 @@ import { useState } from 'react'
 import { Copy, Check, ExternalLink } from 'lucide-react'
 import { openExternal } from '@/lib/platform'
 import { useAppSettingsStore } from '@/stores/settingsStore'
-import { SPONSOR_CHANNELS, type SponsorChannel } from '@/lib/sponsor'
+import { configuredChannels, type SponsorChannel } from '@/lib/sponsor'
 import { cn } from '@/lib/utils'
 
 type T = (key: TranslationKey, ...args: (string | number)[]) => string
 
+/**
+ * 单个赞助渠道卡片。
+ *
+ * 两种形态：
+ * - 纯扫码（微信赞赏码）：只有二维码，没有 url —— 下面的链接行整块不渲染；
+ * - 有链接（爱发电 / Gumroad）：显示二维码（若有）+ 链接 + 复制 / 打开。
+ */
 function ChannelCard({ channel, t, language }: { channel: SponsorChannel; t: T; language: AppLanguage }) {
   const [copied, setCopied] = useState(false)
   const [qrFailed, setQrFailed] = useState(false)
 
   const copy = async () => {
+    if (!channel.url) return
     try {
       await navigator.clipboard.writeText(channel.url)
       setCopied(true)
@@ -25,6 +33,7 @@ function ChannelCard({ channel, t, language }: { channel: SponsorChannel; t: T; 
   }
 
   const open = async () => {
+    if (!channel.url) return
     if (!await openExternal(channel.url)) void copy()
   }
 
@@ -46,12 +55,12 @@ function ChannelCard({ channel, t, language }: { channel: SponsorChannel; t: T; 
         </p>
 
         {qrSrc && !qrFailed && (
-          <div className="flex flex-col items-center gap-2 mb-3">
+          <div className="flex flex-col items-center gap-2 mb-1">
             <img
               src={qrSrc}
               alt={t('support.qrCodeAlt')}
               onError={() => setQrFailed(true)}
-              className="w-40 h-40 rounded-lg border border-border-subtle bg-white object-contain p-2"
+              className="w-48 h-48 rounded-lg border border-border-subtle bg-white object-contain p-2"
             />
             <span className="text-xs text-text-tertiary font-sans">
               {t('support.scanToSupport')}
@@ -59,31 +68,39 @@ function ChannelCard({ channel, t, language }: { channel: SponsorChannel; t: T; 
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <code className="flex-1 truncate text-xs font-mono text-text-secondary bg-surface-sunken rounded-md px-2.5 py-1.5">
-            {channel.url}
-          </code>
-          <button
-            onClick={copy}
-            style={copied ? { color: 'var(--color-text-success)' } : undefined}
-            className={cn(
-              'inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-sans font-medium transition-colors duration-200 cursor-pointer border-none',
-              !copied && 'text-text-secondary hover:text-text-primary hover:bg-surface-sunken',
-            )}
-            aria-label={t('support.copyLink')}
-          >
-            {copied ? <Check size={13} strokeWidth={2} /> : <Copy size={13} strokeWidth={1.75} />}
-            {copied ? t('support.copied') : t('support.copy')}
-          </button>
-          <button
-            onClick={() => void open()}
-            className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-sans font-medium text-white bg-accent hover:bg-accent-hover transition-colors duration-200 cursor-pointer border-none"
-            aria-label={t('support.openLink')}
-          >
-            <ExternalLink size={13} strokeWidth={1.75} />
-            {t('support.open')}
-          </button>
-        </div>
+        {qrSrc && qrFailed && (
+          <p className="text-xs font-sans text-text-tertiary leading-relaxed mb-1">
+            {t('support.qrMissing')}
+          </p>
+        )}
+
+        {channel.url && (
+          <div className="flex items-center gap-2 mt-3">
+            <code className="flex-1 truncate text-xs font-mono text-text-secondary bg-surface-sunken rounded-md px-2.5 py-1.5">
+              {channel.url}
+            </code>
+            <button
+              onClick={copy}
+              style={copied ? { color: 'var(--color-text-success)' } : undefined}
+              className={cn(
+                'inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-sans font-medium transition-colors duration-200 cursor-pointer border-none',
+                !copied && 'text-text-secondary hover:text-text-primary hover:bg-surface-sunken',
+              )}
+              aria-label={t('support.copyLink')}
+            >
+              {copied ? <Check size={13} strokeWidth={2} /> : <Copy size={13} strokeWidth={1.75} />}
+              {copied ? t('support.copied') : t('support.copy')}
+            </button>
+            <button
+              onClick={() => void open()}
+              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-sans font-medium text-white bg-accent hover:bg-accent-hover transition-colors duration-200 cursor-pointer border-none"
+              aria-label={t('support.openLink')}
+            >
+              <ExternalLink size={13} strokeWidth={1.75} />
+              {t('support.open')}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -92,6 +109,7 @@ function ChannelCard({ channel, t, language }: { channel: SponsorChannel; t: T; 
 export function SettingsSupport() {
   const t = useT()
   const language = useAppSettingsStore((s) => s.settings.language)
+  const channels = configuredChannels()
 
   return (
     <div className="flex flex-col gap-5">
@@ -104,9 +122,15 @@ export function SettingsSupport() {
         </p>
       </div>
 
-      {SPONSOR_CHANNELS.map((channel) => (
-        <ChannelCard key={channel.id} channel={channel} t={t} language={language} />
-      ))}
+      {channels.length === 0 ? (
+        <p className="text-sm font-sans text-text-tertiary leading-relaxed">
+          {t('support.notConfigured')}
+        </p>
+      ) : (
+        channels.map((channel) => (
+          <ChannelCard key={channel.id} channel={channel} t={t} language={language} />
+        ))
+      )}
 
       <p className="text-xs text-text-tertiary font-sans leading-relaxed">
         {t('support.footer')}

@@ -1,6 +1,7 @@
 import type { FC } from 'react'
 import type { SettingsTab } from '@/stores/uiStore'
 import { SettingsAbout } from './SettingsAbout'
+import { SettingsVersions } from './SettingsVersions'
 import { SettingsAppearance } from './SettingsAppearance'
 import { SettingsInterface } from './SettingsInterface'
 import { SettingsData } from './SettingsData'
@@ -20,6 +21,7 @@ import { SettingsSupport } from './SettingsSupport'
  */
 export const TAB_CONTENT: Record<SettingsTab, FC> = {
   about: SettingsAbout,
+  versions: SettingsVersions,
   appearance: SettingsAppearance,
   interface: SettingsInterface,
   file: SettingsData,

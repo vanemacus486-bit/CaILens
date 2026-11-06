@@ -19,6 +19,7 @@ export type SettingsTabGroup = 'options' | 'core' | 'third-party'
 /** 图标语义名；具体组件在 SettingsNav.tsx 里映射，数据模块不持有 JSX。 */
 export type SettingsTabIcon =
   | 'info'
+  | 'history'
   | 'palette'
   | 'layout'
   | 'folder'
@@ -49,6 +50,16 @@ export const SETTINGS_TABS: readonly TabDef[] = [
     group: 'options',
     icon: 'info',
     keywords: ['版本', '更新', '语言', '隐私'],
+  },
+  {
+    key: 'versions',
+    labelZh: '版本',
+    labelEn: 'Versions',
+    descZh: '更新记录与回退',
+    descEn: 'Release notes & rollback',
+    group: 'options',
+    icon: 'history',
+    keywords: ['版本', '更新', '回退', '降级', 'version', 'release', 'rollback'],
   },
   {
     key: 'appearance',

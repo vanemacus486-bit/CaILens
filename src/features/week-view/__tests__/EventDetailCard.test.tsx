@@ -59,9 +59,10 @@ describe('EventDetailCard — 睡眠特色', () => {
     expect(screen.getByText('良好')).toBeTruthy()
   })
 
-  it('未评级时回退到「未评级」', () => {
+  it('未评级时默认「一般」（3 档）', () => {
     renderCard({ typedData: sleepData({ quality: undefined }) })
-    expect(screen.getByText('未评级')).toBeTruthy()
+    expect(screen.getByText('一般')).toBeTruthy()
+    expect(screen.queryByText('未评级')).toBeNull()
   })
 
   it('小睡 + 夜醒 显示对应角标', () => {
